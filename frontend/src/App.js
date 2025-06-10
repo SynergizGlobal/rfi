@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import Login from './components/Login/Login';
 
 function App() {
   const [msg, setMsg] = useState('');
@@ -12,7 +13,11 @@ function App() {
       .catch(err => console.error("Fetch error:", err));
   }, []);
 
-  return <h1>{msg}</h1>;
+  return (
+    <div className="App">
+      <Login />
+    </div>
+  );
 }
 
 export default App;

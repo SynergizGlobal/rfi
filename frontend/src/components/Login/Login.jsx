@@ -1,0 +1,177 @@
+import React, { useState } from 'react';
+import './Login.css';
+
+const Login = () => {
+  const [showForgot, setShowForgot] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showOtpPopup, setShowOtpPopup] = useState(false);
+
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const showForgotPassword = () => {
+    setShowForgot(true);
+    setShowNewPassword(false);
+    setShowOtpPopup(false);
+  };
+
+  const cancelForgotPassword = () => {
+    setShowForgot(false);
+    setShowNewPassword(false);
+    setShowOtpPopup(false);
+  };
+
+  const openOtpPopup = () => {
+    if (!email) {
+      alert('Please enter your email.');
+      return;
+    }
+    setShowOtpPopup(true);
+  };
+
+  const submitOtp = () => {
+    if (!otp) {
+      alert('Please enter the OTP.');
+      return;
+    }
+    alert('OTP verified. You may now set a new password.');
+    setShowOtpPopup(false);
+    setShowForgot(false);
+    setShowNewPassword(true);
+  };
+
+  const submitNewPassword = () => {
+    if (!newPassword || !confirmPassword) {
+      alert('Both password fields are required.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    alert('Password successfully changed. Please log in.');
+    cancelForgotPassword();
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-banner-image">
+        <img src="/images/login-side-image.png" alt="side" />
+      </div>
+
+      <div className="login-form">
+        <div className="login-logo">
+          <img src="/images/MRVC.webp" alt="Logo" width="250" height="250" />
+        </div>
+        <h2>{showNewPassword ? 'Set New Password' : showForgot ? 'Forgot Password' : 'Login'}</h2>
+
+        {!showForgot && !showNewPassword && (
+          <>
+            <form>
+              <label>Username: </label>
+              <div className="form-fields">
+                <input type="text" placeholder="Enter Username" />
+              </div>
+              <label>Password: </label>
+              <div className="form-fields">
+                <input type="password" placeholder="Enter Password" />
+              </div>
+              <div className="form-fields-checkbox">
+                <input type="checkbox" id="remember_me" />
+                <label htmlFor="remember_me">Remember Me</label>
+              </div>
+              <input type="submit" value="Login" />
+            </form>
+            <a href="#" className="forgot-password" onClick={showForgotPassword}>
+              Forgot Password?
+            </a>
+          </>
+        )}
+
+        {showForgot && (
+          <div id="forgotPasswordSection">
+            <form>
+              <label>Enter Email:</label>
+              <div className="form-fields">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="d-flex">
+                <button type="button" className="btn btn-red" onClick={openOtpPopup}>
+                  Change
+                </button>
+                <button type="button" className="btn btn-white" onClick={cancelForgotPassword}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {showNewPassword && (
+          <div id="newPasswordSection">
+            <form>
+              <div className="form-fields">
+                <input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="form-fields">
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <div className="d-flex">
+                <button type="button" className="btn btn-red" onClick={submitNewPassword}>
+                  Submit
+                </button>
+                <button type="button" className="btn btn-white" onClick={cancelForgotPassword}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {showOtpPopup && (
+        <div className="modal" id="otpPopup">
+          <div className="modal-content">
+            <div className="modal-heading d-flex justify-space-between align-center">
+              <h3>Enter OTP</h3>
+            <span className="btn-close" onClick={() => setShowOtpPopup(false)}>X</span>
+            </div>
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
+            <div className="d-flex">
+              <button type="button" className="btn btn-red" onClick={submitOtp}>
+                Submit OTP
+              </button>
+              <button type="button" className="btn btn-white">Resend</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Login;
