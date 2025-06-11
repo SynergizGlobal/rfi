@@ -25,28 +25,67 @@ const Login = () => {
     setShowNewPassword(false);
     setShowOtpPopup(false);
     setMessage('');
+    setEmail('');
+    setOtp('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
-  const openOtpPopup = () => {
+  const openOtpPopup = async () => {
     if (!email) {
       alert('Please enter your email.');
       return;
     }
-    setShowOtpPopup(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/forgot/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: email }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        setShowOtpPopup(true);
+      } else {
+        alert('Failed to send OTP: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      alert('Error sending OTP');
+    }
   };
 
-  const submitOtp = () => {
+  const submitOtp = async () => {
     if (!otp) {
       alert('Please enter the OTP.');
       return;
     }
-    alert('OTP verified. You may now set a new password.');
-    setShowOtpPopup(false);
-    setShowForgot(false);
-    setShowNewPassword(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/forgot/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: email, otp: otp }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        setShowOtpPopup(false);
+        setShowForgot(false);
+        setShowNewPassword(true);
+      } else {
+        alert('OTP verification failed: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      alert('Error verifying OTP');
+    }
   };
 
-  const submitNewPassword = () => {
+  const submitNewPassword = async () => {
     if (!newPassword || !confirmPassword) {
       alert('Both password fields are required.');
       return;
@@ -57,33 +96,41 @@ const Login = () => {
       return;
     }
 
-    alert('Password successfully changed. Please log in.');
-    cancelForgotPassword();
+    try {
+      const response = await fetch('http://localhost:8000/api/forgot/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: email, newPassword: newPassword }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        cancelForgotPassword();
+      } else {
+        alert('Password reset failed: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Error resetting password');
+    }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     setMessage('');
 
     try {
-		const response = await fetch('http://localhost:8000/api/auth/login', {
+      const response = await fetch('http://localhost:8000/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          userName: username,
-          password: password,
-        }),
+        body: JSON.stringify({ userName: username, password: password }),
       });
 
       const data = await response.json();
-
       if (response.ok) {
         setMessage(`✅ Login successful! Welcome, ${data.userName}`);
-        // Optionally redirect or store user info
       } else {
         setMessage(`❌ Login failed: ${data.message || 'Invalid credentials'}`);
       }
@@ -108,7 +155,7 @@ const Login = () => {
         {!showForgot && !showNewPassword && (
           <>
             <form onSubmit={handleLogin}>
-              <label>Username: </label>
+              <label>Username:</label>
               <div className="form-fields">
                 <input
                   type="text"
@@ -118,7 +165,7 @@ const Login = () => {
                   required
                 />
               </div>
-              <label>Password: </label>
+              <label>Password:</label>
               <div className="form-fields">
                 <input
                   type="password"
