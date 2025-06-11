@@ -1,0 +1,44 @@
+.dashboard-main {
+            text-align: center; /* Center align content */
+        }
+
+        .dashboard-main h1 {
+            font-size: 30px;
+            font-weight: 400; 
+			color: #4C70D8;
+        }
+		.cards-section{
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 45px 20px;
+			width: 100%;
+		}
+		.cards{
+			
+			flex: 0 0 33%;
+			justify-content: center;
+			color: #fff;
+			font-weight: 700;
+		}
+		.card-inner{
+			background: #3EA5D3;
+			background: linear-gradient(147deg,rgba(62, 165, 211, 1) 0%, rgba(16, 74, 101, 1) 100%);
+			border-radius: 10px;
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			max-width: 200px;
+			padding: 10px;
+			gap: 15px;
+		}
+		.card-top{
+			display: flex;
+			justify-content: space-between;
+		}
+		.card-bottom{
+			display: flex;
+		}
+		.card-number{
+			text-shadow: 0px -1px 0px rgba(0, 0, 0, 0.75);
+		}

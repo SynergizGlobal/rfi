@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
@@ -13,6 +14,7 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const showForgotPassword = () => {
     setShowForgot(true);
@@ -130,6 +132,8 @@ const Login = () => {
 
       const data = await response.json();
       if (response.ok) {
+        localStorage.setItem('isLoggedIn', true);
+         window.location.href = "/rfiSystem/dashboard";
         setMessage(`✅ Login successful! Welcome, ${data.userName}`);
       } else {
         setMessage(`❌ Login failed: ${data.message || 'Invalid credentials'}`);
@@ -254,7 +258,7 @@ const Login = () => {
           <div className="modal-content">
             <div className="modal-heading d-flex justify-space-between align-center">
               <h3>Enter OTP</h3>
-              <span className="btn-close" onClick={() => setShowOtpPopup(false)}>X</span>
+              <span className="btn-close" onClick={() => setShowOtpPopup(false)}></span>
             </div>
             <input
               type="text"
