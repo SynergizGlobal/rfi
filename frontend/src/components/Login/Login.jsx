@@ -6,10 +6,13 @@ const Login = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showOtpPopup, setShowOtpPopup] = useState(false);
 
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
 
   const showForgotPassword = () => {
     setShowForgot(true);
@@ -21,6 +24,7 @@ const Login = () => {
     setShowForgot(false);
     setShowNewPassword(false);
     setShowOtpPopup(false);
+    setMessage('');
   };
 
   const openOtpPopup = () => {
@@ -57,6 +61,38 @@ const Login = () => {
     cancelForgotPassword();
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    setMessage('');
+
+    try {
+		const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userName: username,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`✅ Login successful! Welcome, ${data.userName}`);
+        // Optionally redirect or store user info
+      } else {
+        setMessage(`❌ Login failed: ${data.message || 'Invalid credentials'}`);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setMessage('❌ An error occurred while logging in.');
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-banner-image">
@@ -71,14 +107,26 @@ const Login = () => {
 
         {!showForgot && !showNewPassword && (
           <>
-            <form>
+            <form onSubmit={handleLogin}>
               <label>Username: </label>
               <div className="form-fields">
-                <input type="text" placeholder="Enter Username" />
+                <input
+                  type="text"
+                  placeholder="Enter Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
               </div>
               <label>Password: </label>
               <div className="form-fields">
-                <input type="password" placeholder="Enter Password" />
+                <input
+                  type="password"
+                  placeholder="Enter Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
               <div className="form-fields-checkbox">
                 <input type="checkbox" id="remember_me" />
@@ -90,6 +138,12 @@ const Login = () => {
               Forgot Password?
             </a>
           </>
+        )}
+
+        {message && (
+          <div style={{ marginTop: '15px', color: message.includes('✅') ? 'green' : 'red' }}>
+            {message}
+          </div>
         )}
 
         {showForgot && (
@@ -153,7 +207,7 @@ const Login = () => {
           <div className="modal-content">
             <div className="modal-heading d-flex justify-space-between align-center">
               <h3>Enter OTP</h3>
-            <span className="btn-close" onClick={() => setShowOtpPopup(false)}>X</span>
+              <span className="btn-close" onClick={() => setShowOtpPopup(false)}>X</span>
             </div>
             <input
               type="text"
