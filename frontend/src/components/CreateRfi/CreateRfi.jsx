@@ -385,7 +385,7 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
               <div className="form-fields flex-1">
                   <label htmlFor="addRfiLocation" className="block mb-1">Location:</label>
                   <input
-                    type="time"
+                    type="text"
                     id="addRfiLocation"
                     name="addRfiLocation"
                     value={formState.addRfiLocation}
