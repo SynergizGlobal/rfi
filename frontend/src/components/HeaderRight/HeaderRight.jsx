@@ -35,7 +35,7 @@ const HeaderRight = () => {
           
           <ul className="dashboard-menu">
           <li><Link to="/rfiSystem/home"><div className="menu-text"><i className="fas fa-home"></i> <span className="menu-name">Home</span></div></Link></li>
-          <li><Link to="/rfiSystem/upload-irussor"><div className="menu-text"><i className="fa-solid fa-print"></i> <span className="menu-name">Create RFI</span></div></Link></li>
+          <li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span className="menu-name">Create RFI</span></div></Link></li>
           <li><span><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span className="menu-name">Update RFI</span></div> <i className="fas fa-chevron-down"></i></span>
             <ul className="sub-menu">
               <li><Link to="/rfiSystem/upload-contract-schedules"><div className="menu-text">Upload RFI</div></Link></li>
