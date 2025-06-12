@@ -1,0 +1,8 @@
+.form-fields {
+  margin-bottom: 1rem;
+}
+
+.react-select-wrapper {
+  position: relative;
+  z-index: 1;
+}
