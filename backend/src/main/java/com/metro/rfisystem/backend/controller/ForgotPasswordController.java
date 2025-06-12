@@ -43,8 +43,14 @@ public class ForgotPasswordController {
 
 	    @PostMapping("/reset-password")
 	    public ResponseEntity<?> resetPassword(@RequestBody NewPasswordRequest request) {
-	        forgotPasswordService.updatePassword(request.getEmailId(), request.getNewPassword());
-	        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+	        try {
+	            forgotPasswordService.updatePassword(request.getEmailId(), request.getNewPassword(), request.getConfirmPassword());
+	            return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+	        } catch (Exception e) {
+	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                    .body(Map.of("message", "Password reset failed", "error", e.getMessage()));
+	        }
 	    }
+
 
 }

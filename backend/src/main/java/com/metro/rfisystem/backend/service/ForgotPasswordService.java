@@ -6,6 +6,6 @@ public interface ForgotPasswordService {
 
 	boolean verifyOtp(String email, String otp);
 
-	void updatePassword(String email, String newPassword);
+	void updatePassword(String email, String newPassword, String confirmPassword);
 
 }
