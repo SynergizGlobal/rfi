@@ -136,7 +136,7 @@ const Login = () => {
 			if (response.ok) {
 				localStorage.setItem('isLoggedIn', true);
 				window.location.href = "/rfiSystem/dashboard";
-				setMessage(`✅ Login successful! Welcome, ${data.userName}`);
+				localStorage.setItem('userName', data.userName); // ✅ store userName
 			} else {
 				setMessage(`❌ Login failed: ${data.message || 'Invalid credentials'}`);
 			}
