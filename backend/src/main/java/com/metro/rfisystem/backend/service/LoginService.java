@@ -1,6 +1,6 @@
 package com.metro.rfisystem.backend.service;
 
-import com.metro.rfisystem.backend.model.User;
+import com.metro.rfisystem.backend.model.pmis.User;
 
 public interface LoginService {
 

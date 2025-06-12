@@ -19,7 +19,7 @@ import com.metro.rfisystem.backend.dto.LoginRequest;
 import com.metro.rfisystem.backend.dto.LoginResponse;
 import com.metro.rfisystem.backend.exception.AuthenticationException;
 import com.metro.rfisystem.backend.exception.UserNotFoundException;
-import com.metro.rfisystem.backend.model.User;
+import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.service.LoginService;
 
 import jakarta.servlet.http.HttpSession;

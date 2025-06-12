@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 
 import com.metro.rfisystem.backend.config.EncryptDecrypt;
 import com.metro.rfisystem.backend.exception.UserNotFoundException;
-import com.metro.rfisystem.backend.model.User;
-import com.metro.rfisystem.backend.repository.LoginRepository;
+import com.metro.rfisystem.backend.model.pmis.User;
+import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.service.EmailSenderService;
 import com.metro.rfisystem.backend.service.ForgotPasswordService;
 
