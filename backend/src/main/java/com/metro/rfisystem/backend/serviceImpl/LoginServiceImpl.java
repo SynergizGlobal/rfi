@@ -2,11 +2,9 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import com.metro.rfisystem.backend.config.EncryptDecrypt;
 import com.metro.rfisystem.backend.exception.AuthenticationException;
-import com.metro.rfisystem.backend.model.User;
-import com.metro.rfisystem.backend.repository.LoginRepository;
+import com.metro.rfisystem.backend.model.pmis.User;
+import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.service.LoginService;
-import com.metro.rfisystem.backend.util.RandomStringGenerator;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

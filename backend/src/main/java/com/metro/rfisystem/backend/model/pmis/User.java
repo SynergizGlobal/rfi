@@ -1,4 +1,4 @@
-package com.metro.rfisystem.backend.model;
+package com.metro.rfisystem.backend.model.pmis;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,7 +64,6 @@ public class User {
 	    @Column(name = "user_image", length = 100)
 	    private String userImage;
 	    
-
 	    @Column(name = "single_login_session_id", length = 50)
 	    private String singleLoginSessionId;
 
@@ -73,8 +72,4 @@ public class User {
 
 	    @Column(name = "is_test_env_enabled", length = 5)
 	    private String isTestEnvEnabled;
-
-	    @Column(name = "emp_no")
-	    private Integer empNo;
-
 }
