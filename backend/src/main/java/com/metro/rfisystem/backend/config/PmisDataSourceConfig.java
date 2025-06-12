@@ -27,10 +27,10 @@ public class PmisDataSourceConfig {
 	@Bean(name = "pmisDataSource")
 	public DataSource dataSource() {
 	    HikariDataSource ds = new HikariDataSource();
-	    ds.setJdbcUrl("jdbc:mysql://syntrack-product.cx7j14shahw3.ap-south-1.rds.amazonaws.com:3306/pmis");
-	    ds.setUsername("synTrack");
-	    ds.setPassword("Ke$sie#9!0");
-	    ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
+	    ds.setJdbcUrl("jdbc:sqlserver://203.153.40.44:1433;databaseName=pmis;encrypt=false;");
+	    ds.setUsername("Synergiz");
+	    ds.setPassword("$y^7r@(k1$pm1$");
+	    ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 	    return ds;
 	}
 

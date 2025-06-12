@@ -43,6 +43,7 @@ public class RfiDataSourceConfig {
                 .persistenceUnit("rfiPU")
                 .build();
     }
+    
 
     @Primary
     @Bean(name = "rfiTransactionManager")

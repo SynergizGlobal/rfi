@@ -24,6 +24,7 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService{
     private LoginRepository loginRepo;
 	
 	
+	
 
     @Autowired
     private EmailSenderService emailSenderService;

@@ -10,4 +10,5 @@ public interface LoginService {
 
 	boolean isValidUser(String userName);
 
+	
 }
