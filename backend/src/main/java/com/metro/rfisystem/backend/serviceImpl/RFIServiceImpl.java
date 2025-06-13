@@ -23,14 +23,14 @@ public class RFIServiceImpl implements RFIService {
     public RFI createRFI(RFI_DTO dto) {
         RFI rfi = new RFI();
 
-        rfi.setProject(dto.getProject());
-        rfi.setWork(dto.getWork());
-        rfi.setContract(dto.getContact());
+       // rfi.setProject(dto.getProject());
+       // rfi.setWork(dto.getWork());
+      //  rfi.setContract(dto.getContact());
         rfi.setStructureType(dto.getStructureType());
-        rfi.setStructure(dto.getStructure());
-        rfi.setComponent(dto.getComponent());
-        rfi.setElement(dto.getElement());
-        rfi.setActivity(dto.getActivity());
+      //  rfi.setStructure(dto.getStructure());
+       //.setComponent(dto.getComponent());
+      //  rfi.setElement(dto.getElement());
+       // rfi.setActivity(dto.getActivity());
         rfi.setRfiDescription(dto.getRfiDescription());
         rfi.setAction(dto.getAction());
         rfi.setTypeOfRFI(dto.getTypeOfRFI());

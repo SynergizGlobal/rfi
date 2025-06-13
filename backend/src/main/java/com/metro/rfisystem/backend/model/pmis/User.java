@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.model.pmis;
 
 import jakarta.persistence.Column;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
