@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
+	
 
 	@Id
 	@Column(name = "user_id", length = 45, nullable = false)

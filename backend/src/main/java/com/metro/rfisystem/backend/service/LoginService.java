@@ -9,6 +9,4 @@ public interface LoginService {
 	void updateSessionId(String userId, String sessionId);
 
 	boolean isValidUser(String userName);
-
-	
 }
