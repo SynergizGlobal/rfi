@@ -25,13 +25,17 @@ public class RFI {
     @Column(name = "id")
     private Long Id;
     private String rfi_Id;
+    @Column(name = "project_name")
     private String project;
-    private String work;
+    @Column(name = "work_short_name")
+    private String work;	
+    @Column(name = "contract_short_name") 
     private String contract;
 
     @Column(name = "structure_type")
     private String structureType;
 
+    
     private String structure;
     private String component;
     private String element;
