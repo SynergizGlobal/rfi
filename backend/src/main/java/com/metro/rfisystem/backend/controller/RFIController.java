@@ -1,7 +1,9 @@
 package com.metro.rfisystem.backend.controller;
 
-import org.springframework.http.ResponseEntity;
+import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +27,12 @@ public class RFIController {
     public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto) {
         RFI saved = rfiService.createRFI(dto);
         return ResponseEntity.ok("RFI created successfully with ID: " + saved.getId());
+    }
+    
+    
+    @GetMapping("/project-names")
+    public List<String> getAllDistinctProjectNames() {
+        return rfiService.getDistinctProjectNames();
     }
 }
 

@@ -1,12 +1,13 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
 import java.time.LocalDate;
-
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
+import com.metro.rfisystem.backend.repository.pmis.ProjectRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIService;
 
@@ -18,6 +19,8 @@ public class RFIServiceImpl implements RFIService {
 
    
     private final RFIRepository rfiRepository;
+    private final ProjectRepository projectRepository;
+
 
     @Override
     public RFI createRFI(RFI_DTO dto) {
@@ -45,6 +48,13 @@ public class RFIServiceImpl implements RFIService {
 
         return rfiRepository.save(rfi);
     }
+
+	@Override
+	public List<String> getDistinctProjectNames() {
+		
+		  return projectRepository.findDistinctProjectNames();
+		
+	}
 
 	
 }
