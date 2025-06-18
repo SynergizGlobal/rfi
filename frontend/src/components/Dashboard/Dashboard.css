@@ -21,6 +21,11 @@
 			color: #fff;
 			font-weight: 700;
 		}
+		.cards a{
+			display: flex;
+			width: 100%;
+			max-width: 200px;
+		}
 		.card-inner{
 			background: #3EA5D3;
 			background: linear-gradient(147deg,rgba(62, 165, 211, 1) 0%, rgba(16, 74, 101, 1) 100%);

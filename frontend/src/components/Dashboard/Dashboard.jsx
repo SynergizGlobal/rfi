@@ -1,6 +1,6 @@
 import React from 'react';
 import HeaderRight from '../HeaderRight/HeaderRight';
-
+import { Link } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -20,21 +20,23 @@ const Dashboard = () => {
             <div className="cards-section">
               {/* card - 1 */} 
               <div className="cards">
-                <div className="card-inner">
-                  <div className="card-top">
-                    <div className="card-count">
-                      <span className="card-number">100</span>
+                <Link to="/CreatedRfi">
+                  <div className="card-inner">
+                    <div className="card-top">
+                      <div className="card-count">
+                        <span className="card-number">100</span>
+                      </div>
+                      <div className="cards-icon">
+                        <img src="/images/check-icon.png" alt="tick symbol" width="25" height="25" />
+                      </div>
                     </div>
-                    <div className="cards-icon">
-                      <img src="/images/check-icon.png" alt="tick symbol" width="25" height="25" />
+                    <div className="card-bottom">
+                      <div className="card-title">
+                        <span className="card-text">RFI created</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="card-bottom">
-                    <div className="card-title">
-                      <span className="card-text">RFI created</span>
-                    </div>
-                  </div>
-                </div>
+                </Link>
               </div>
               {/* card - 2 */} 
               <div className="cards">

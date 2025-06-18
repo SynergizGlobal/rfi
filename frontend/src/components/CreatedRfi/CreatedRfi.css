@@ -1,0 +1,46 @@
+.dashboard-main h2{
+  background-color: #007A7A;
+    color: #fff;
+    font-weight: 700;
+    font-size: 24px;
+    padding: 10px 0;
+    border-radius: 3px;
+    margin: 15px 0;
+}
+.top-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-box input {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.create-button {
+  background-color: #006d75;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+.datatable{
+  margin: 20px 0;
+}
+.datatable thead tr{
+  background-color: #156082;
+  color: #fff;
+  border-collapse: collapse;
+}
+.left{
+  margin-top: 85px;
+}

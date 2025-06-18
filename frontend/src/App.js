@@ -5,6 +5,7 @@ import './App.css';
 import Login from './components/Login/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import CreateRfi from './components/CreateRfi/CreateRfi';
+import CreatedRfi from './components/CreatedRfi/CreatedRfi';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 import MainLayout from './layouts/MainLayout';
@@ -32,8 +33,9 @@ function App() {
 
         {/* Protected main layout routes */}
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/Dashboard" element={<Dashboard />} />
           <Route path="/CreateRfi" element={<CreateRfi />} />
+          <Route path="/CreatedRfi" element={<CreatedRfi />} />
           {/* Add more protected routes here */}
         </Route>
 
