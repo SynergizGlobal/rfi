@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -35,17 +36,18 @@ public class RFIServiceImpl implements RFIService {
 	private final P6ActivityRepository p6ActivityRepository;
 
 	@Override
+	@Transactional
 	public RFI createRFI(RFI_DTO dto) {
 		RFI rfi = new RFI();
 
-		// rfi.setProject(dto.getProject());
-		// rfi.setWork(dto.getWork());
-		// rfi.setContract(dto.getContact());
+		rfi.setProject(dto.getProject());
+		rfi.setWork(dto.getWork());
+		rfi.setContract(dto.getContact());
 		rfi.setStructureType(dto.getStructureType());
-		// rfi.setStructure(dto.getStructure());
-		// .setComponent(dto.getComponent());
-		// rfi.setElement(dto.getElement());
-		// rfi.setActivity(dto.getActivity());
+		rfi.setStructure(dto.getStructure());
+		rfi.setComponent(dto.getComponent());
+		rfi.setElement(dto.getElement());
+		rfi.setActivity(dto.getActivity());
 		rfi.setRfiDescription(dto.getRfiDescription());
 		rfi.setAction(dto.getAction());
 		rfi.setTypeOfRFI(dto.getTypeOfRFI());

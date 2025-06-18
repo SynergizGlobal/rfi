@@ -2,7 +2,6 @@ package com.metro.rfisystem.backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,15 +13,22 @@ import lombok.NoArgsConstructor;
 public class RFI_DTO {
 
 	private Long Id;
-	private String  structureType, rfiDescription,action,typeOfRFI,nameOfRepresentative,enclosures,location,description;
-	private LocalDate dateOfSubmission,dateOfInspection;
-    private LocalDateTime timeOfInspection;
-    private List<Project> project;
-    private List<Work> work;
-    private List<Contract> contact;
-    private List<Structure> structure;
-    private List<Activity> activity;
-    
-    
-	
+	private String rfiDescription;
+	private String structureType;
+	private String action;
+	private String typeOfRFI;
+	private String nameOfRepresentative;
+	private String enclosures;
+	private String location;
+	private String component;
+	private String element;
+	private String description;
+	private LocalDate dateOfSubmission, dateOfInspection;
+	private LocalDateTime timeOfInspection;
+	private String project;
+	private String work;
+	private String contact;
+	private String structure;
+	private String activity;
+
 }
