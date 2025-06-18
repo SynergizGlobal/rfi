@@ -3,57 +3,90 @@ import { Link } from 'react-router-dom';
 import './HeaderRight.css';
 
 const HeaderRight = () => {
-  useEffect(() => {
-  const menuItems = document.querySelectorAll('.dashboard-menu li');
-  const handleClick = (item) => () => {
-    menuItems.forEach(el => el.classList.remove('active'));
-    item.classList.toggle('active');
-  };
 
-  menuItems.forEach(item => {
-    item.addEventListener('click', handleClick(item));
-  });
+	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
 
-  return () => {
-    menuItems.forEach(item => {
-      item.removeEventListener('click', handleClick(item));
-    });
-  };
-}, []);
+	// Normalize values to lowercase to avoid case mismatch issues
+	const isContractor = userRole === "contractor";
+	const isRegularUser = userRole === "regular user";
+	const isITAdmin = userRole === "it admin";
+	const isDyHOD = userType === "dyhod"; // Only from userType
 
-  
+	const hasFullAccess = isITAdmin || isDyHOD;
 
-  const closeSideBar = () => {
-    const leftSide = document.querySelector('.left');
-    leftSide.classList.remove('half-open');
-  };
+	useEffect(() => {
+		const menuItems = document.querySelectorAll('.dashboard-menu li');
+		const handleClick = (item) => () => {
+			menuItems.forEach(el => el.classList.remove('active'));
+			item.classList.toggle('active');
+		};
 
-  return (
-    <div className="left">
-        <div className="scroll">
-          <div className="mobile-close" onClick="closeSideBar()"><i className="fas fa-times-circle"></i></div>
-          
-          <ul className="dashboard-menu">
-          <li><Link to="/rfiSystem/home"><div className="menu-text"><i className="fas fa-home"></i> <span className="menu-name">Home</span></div></Link></li>
-          <li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span className="menu-name">Create RFI</span></div></Link></li>
-          <li><span><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span className="menu-name">Update RFI</span></div> <i className="fas fa-chevron-down"></i></span>
-            <ul className="sub-menu">
-              <li><Link to="/rfiSystem/upload-contract-schedules"><div className="menu-text">Upload RFI</div></Link></li>
-              <li><Link to="/rfiSystem/boqList">Select RFI</Link></li>
-            </ul>
-          </li>	
-          <li><Link to="/rfiSystem/mbList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i><span className="menu-name">RFI Log</span></div></Link></li>
-          <li><Link to="/rfiSystem/emb-validation"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span className="menu-name">Inspection</span></div></Link></li>
-          <li><span><div className="menu-text"><i className="fa-solid fa-download"></i> <span className="menu-name">Download Enclosures</span></div> <i className="fas fa-chevron-down"></i></span>
-            <ul className="sub-menu">
-              <li><Link to="/rfiSystem/raBillsList">On Account Bill</Link></li>
-              <li><Link to="/rfiSystem/finalBillsList">Final Bill</Link></li>
-            </ul>
-          </li>
-          </ul>
-        </div>			
-      </div>
-  );
+		menuItems.forEach(item => {
+			item.addEventListener('click', handleClick(item));
+		});
+
+		return () => {
+			menuItems.forEach(item => {
+				item.removeEventListener('click', handleClick(item));
+			});
+		};
+	}, []);
+
+	const closeSideBar = () => {
+		const leftSide = document.querySelector('.left');
+		leftSide.classList.remove('half-open');
+	};
+
+	return (
+		<div className="left">
+			<div className="scroll">
+				<div className="mobile-close" onClick={closeSideBar}><i className="fas fa-times-circle"></i></div>
+
+				<ul className="dashboard-menu">
+					<li><Link to="/rfiSystem/home"><i className="fas fa-home"></i> Home</Link></li>
+
+					{(isContractor || hasFullAccess) && (
+						<>
+							<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Create RFI</Link></li>
+							<li>
+								<span><i className="fa-solid fa-file-pen"></i> Update RFI <i className="fas fa-chevron-down"></i></span>
+								<ul className="sub-menu">
+									<li><Link to="/rfiSystem/upload-contract-schedules">Upload RFI</Link></li>
+									<li><Link to="/rfiSystem/boqList">Select RFI</Link></li>
+								</ul>
+							</li>
+							<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+						</>
+					)}
+
+				{(isContractor || isRegularUser || hasFullAccess) && (
+	<>
+		<li><Link to="/rfiSystem/emb-validation"><i className="fa-solid fa-folder-tree"></i> Inspection</Link></li>
+
+		{isRegularUser && (
+			<>
+				<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
+				<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+			</>
+		)}
+	</>
+)}
+
+
+					{(isContractor || hasFullAccess) && (
+						<li>
+							<span><i className="fa-solid fa-download"></i> Download Enclosures <i className="fas fa-chevron-down"></i></span>
+							<ul className="sub-menu">
+								<li><Link to="/rfiSystem/raBillsList">On Account Bill</Link></li>
+								<li><Link to="/rfiSystem/finalBillsList">Final Bill</Link></li>
+							</ul>
+						</li>
+					)}
+				</ul>
+			</div>
+		</div>
+	);
 };
 
 export default HeaderRight;

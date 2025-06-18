@@ -49,7 +49,12 @@ public class LoginController {
 
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
-			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk());
+			LoginResponse response = new LoginResponse(
+				    user.getUserId(),
+				    user.getUserName(),
+				    user.getUserRoleNameFk(),
+				    user.getUserTypeFk()
+				);
 
 			logger.info("Login successful for user: {}", user.getUserName());
 			return ResponseEntity.ok(response);
