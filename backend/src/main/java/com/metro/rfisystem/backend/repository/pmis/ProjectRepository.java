@@ -2,9 +2,11 @@ package com.metro.rfisystem.backend.repository.pmis;
 
 import java.util.List;
 
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.model.pmis.Project;
 
 public interface ProjectRepository extends JpaRepository<Project, String> {
@@ -25,7 +27,7 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
 			+ "            c.work_id_fk\n" + "    )\n" + "GROUP BY \n" + "    wr.project_id_fk,\n"
 			+ "    p.project_id,\n" + "    p.project_name\n" + "ORDER BY \n" + "    wr.project_id_fk ASC;\n"
 			+ "", nativeQuery = true)
-	List<String> findDistinctProjectNames();
+	List<ProjectDTO> findDistinctProjectNames();
 
 
 }

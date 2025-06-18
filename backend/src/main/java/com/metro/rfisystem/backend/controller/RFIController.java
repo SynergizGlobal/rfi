@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.service.RFIService;
 
@@ -30,12 +33,12 @@ public class RFIController {
 	}
 
 	@GetMapping("/projectNames")
-	public List<String> getAllProjectNames() {
+	public List<ProjectDTO> getAllProjectNames() {
 		return rfiService.getAllProjectNames();
 	}
 
 	@GetMapping("/workNames")
-	public List<String> getWorkNamesByProjectId(@RequestParam(name = "projectId", required = false) String projectId) {
+	public List<WorkDTO> getWorkNamesByProjectId(@RequestParam(name = "projectId", required = false) String projectId) {
 		return rfiService.getWorkShortNamesByProjectId(projectId);
 	}
 
@@ -71,7 +74,7 @@ public class RFIController {
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component) {
-		return rfiService.getComponentByStructureStructureTypeContractId(structureType, structure, component);
+		return rfiService.getElementByStructureStructureTypeComponent(structureType, structure, component);
 	}
 
 	@GetMapping("/activityNames")

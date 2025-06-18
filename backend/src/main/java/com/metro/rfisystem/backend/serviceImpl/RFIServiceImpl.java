@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
@@ -38,11 +40,15 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	@Transactional
 	public RFI createRFI(RFI_DTO dto) {
+		
+		
 		RFI rfi = new RFI();
+		
+	
 
 		rfi.setProject(dto.getProject());
 		rfi.setWork(dto.getWork());
-		rfi.setContract(dto.getContact());
+		rfi.setContract(dto.getContract());
 		rfi.setStructureType(dto.getStructureType());
 		rfi.setStructure(dto.getStructure());
 		rfi.setComponent(dto.getComponent());
@@ -64,12 +70,12 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<String> getAllProjectNames() {
+	public List<ProjectDTO> getAllProjectNames() {
 		return projectRepository.findDistinctProjectNames();
 	}
 
 	@Override
-	public List<String> getWorkShortNamesByProjectId(String projectId) {
+	public List<WorkDTO> getWorkShortNamesByProjectId(String projectId) {
 		return workRepository.findDistinctWorkShortNamesByProjectId(projectId);
 	}
 

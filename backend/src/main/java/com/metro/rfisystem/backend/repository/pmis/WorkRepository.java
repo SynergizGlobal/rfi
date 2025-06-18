@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.pmis.Work;
 
 public interface WorkRepository extends JpaRepository<Work, String> {
@@ -23,6 +24,6 @@ public interface WorkRepository extends JpaRepository<Work, String> {
 			AND (:projectId IS NULL OR w.project_id_fk = :projectId)
 			ORDER BY w.work_short_name ASC
 			""", nativeQuery = true)
-	List<String> findDistinctWorkShortNamesByProjectId(@Param("projectId") String projectId);
+	List<WorkDTO> findDistinctWorkShortNamesByProjectId(@Param("projectId") String projectId);
 
 }
