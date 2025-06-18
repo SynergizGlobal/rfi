@@ -27,8 +27,9 @@ public class RFI_DTO {
 	private LocalDateTime timeOfInspection;
 	private String project;
 	private String work;
-	private String contact;
+	private String contract;
 	private String structure;
 	private String activity;
+	private String user;
 
 }
