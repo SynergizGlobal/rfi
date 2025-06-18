@@ -61,7 +61,7 @@ const CreatedRfi = () => {
   const { pageIndex, globalFilter, pageSize } = state;
 
   return (
-    <div className="dashboard">
+    <div className="dashboard credted-rfi">
       <HeaderRight />
       <div className="right">
         <div className="dashboard-main">

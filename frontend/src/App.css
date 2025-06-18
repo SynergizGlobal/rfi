@@ -10,7 +10,7 @@ body {
 }
 body:has(.dashboard) {
 	height: 100%;
-	overflow: hidden;
+	/* overflow: hidden; */
 }
 
 a{
