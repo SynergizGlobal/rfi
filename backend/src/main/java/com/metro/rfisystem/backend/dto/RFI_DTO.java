@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,7 +25,7 @@ public class RFI_DTO {
 	private String element;
 	private String description;
 	private LocalDate dateOfSubmission, dateOfInspection;
-	private LocalDateTime timeOfInspection;
+	private LocalTime TimeOfInspection;
 	private String project;
 	private String work;
 	private String contract;

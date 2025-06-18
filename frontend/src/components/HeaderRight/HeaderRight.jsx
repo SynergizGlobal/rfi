@@ -60,22 +60,24 @@ const HeaderRight = () => {
 						</>
 					)}
 
-				{(isContractor || isRegularUser || hasFullAccess) && (
-	<>
-		<li><Link to="/rfiSystem/emb-validation"><i className="fa-solid fa-folder-tree"></i> Inspection</Link></li>
+					{(isContractor || isRegularUser || hasFullAccess) && (
+						<>
+							<li><Link to="/rfiSystem/emb-validation"><i className="fa-solid fa-folder-tree"></i> Inspection</Link></li>
 
-		{isRegularUser && (
-			<>
-				<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
-				<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
-			</>
-		)}
-	</>
-)}
+							{isRegularUser && (
+								<>
+									<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
+									<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+								</>
+							)}
+						</>
+					)}
 
 
 					{(isContractor || hasFullAccess) && (
 						<li>
+							<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
+
 							<span><i className="fa-solid fa-download"></i> Download Enclosures <i className="fas fa-chevron-down"></i></span>
 							<ul className="sub-menu">
 								<li><Link to="/rfiSystem/raBillsList">On Account Bill</Link></li>

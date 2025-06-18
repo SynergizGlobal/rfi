@@ -2,6 +2,9 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,12 +63,16 @@ public class RFI {
     @Column(length = 1000)
     private String description;
     
-    private LocalDateTime timeOfInspection;
+    @Column(name="time_of_inspection")
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime timeOfInspection;
 
     @Column(name = "date_of_submission")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfSubmission;
 
     @Column(name = "date_of_inspection")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfInspection;
 
     

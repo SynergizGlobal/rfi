@@ -10,7 +10,6 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 	const [step, setStep] = useState(1);
 	const [formState, setFormState] = useState({
 		project: '',
-		projectId: '',
 		work: '',
 		contract: '',
 		structureType: '',
@@ -19,15 +18,15 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		element: '',
 		activity: '',
 		rfiDescription: '',
-		rfiAction: '',
-		typeOfRfi: '',
+		action: '', // ✅ Correct field
+		typeOfRFI: '', // ✅ Correct field
 		nameOfRepresentative: '',
-		timeOfInspection: '',
-		rfiId: '',
-		dateSubmissionRfi: '',
-		dateInspection: '',
-		addRfiEnclosures: '',
-		addRfiLocation: '',
+		timeOfInspection: '', // ✅ HH:mm
+		rfi_Id: '', // ✅ Correct field name
+		dateOfSubmission: '', // ✅ yyyy-MM-dd
+		dateOfInspection: '', // ✅ yyyy-MM-dd
+		enclosures: '', // ✅ Correct field
+		location: '', // ✅ Correct field
 		description: '',
 	});
 	const [message, setMessage] = useState('');
@@ -36,24 +35,23 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		if (mode === 'edit' && formData) {
 			setFormState({
 				project: formData.project || '',
-				location: formData.location || '',
+				work: formData.work || '',
 				contract: formData.contract || '',
 				structureType: formData.structureType || '',
 				structure: formData.structure || '',
 				component: formData.component || '',
 				element: formData.element || '',
 				activity: formData.activity || '',
-				rfiDescription: formData.contract || '',
-				rfiAction: formData.rfiAction || '',
-				typeOfRfi: formData.typeOfRfi || '',
+				rfiDescription: formData.rfiDescription || '',
+				action: formData.action || '',
+				typeOfRFI: formData.typeOfRFI || '',
 				nameOfRepresentative: formData.nameOfRepresentative || '',
 				timeOfInspection: formData.timeOfInspection || '',
-				rfiId: formData.rfiId || '',
-				dateSubmissionRfi: formData.dateSubmissionRfi || '',
-				dateInspection: formData.dateInspection || '',
-				inspectionType: formData.inspectionType || '',
-				addRfiEnclosures: formData.addRfiEnclosures || '',
-				addRfiLocation: formData.addRfiLocation || '',
+				rfi_Id: formData.rfi_Id || '',
+				dateOfSubmission: formData.dateOfSubmission || '',
+				dateOfInspection: formData.dateOfInspection || '',
+				enclosures: formData.enclosures || '',
+				location: formData.location || '',
 				description: formData.description || '',
 			});
 		}
@@ -64,35 +62,35 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		setFormState({ ...formState, [name]: value });
 	};
 
-	const handleSubmit = async () => {
-		setMessage('');
-		try {
-			const response = await fetch(
-				mode === 'edit'
-					? `http://localhost:8000/api/rfi/update/${formData.id}`
-					: 'http://localhost:8000/rfi/create',
-				{
-					method: mode === 'edit' ? 'PUT' : 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(formState),
-				}
-			);
-			const data = await response.json();
-			if (response.ok) {
-				setMessage(`✅ RFI ${mode === 'edit' ? 'updated' : 'created'} successfully. RFI No: ${data.rfiNumber}`);
-			} else {
-				setMessage(`❌ Error: ${data.message}`);
-			}
-		} catch (error) {
-			console.error(error);
-			setMessage('❌ Network error.');
+const handleSubmit = async () => {
+	setMessage('');
+	try {
+		const response = await fetch('http://localhost:8000/rfi/create', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(formState), // ensure `formState` matches `RFI_DTO`
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Error: ${response.status} - ${errorText}`);
 		}
-	};
+
+		const message = await response.text(); // 👈 expects plain string from Spring
+		setMessage(message); // show message on UI
+		alert(message); // optional popup
+	} catch (error) {
+		console.error('Error submitting RFI:', error);
+		setMessage('❌ Failed to submit RFI. Please try again.');
+	}
+};
 
 	const [projectOptions, setProjectOptions] = useState([]);
 	const [projectIdMap, setProjectIdMap] = useState({});
 	const [workOptions, setWorkOptions] = useState([]);
-	const [workIdMap, setWorkIdMap] = useState({}); // e.g. { "Virar Dahanu": "P04W01", ... }
+	const [workIdMap, setWorkIdMap] = useState({}); // 
 
 
 
@@ -266,8 +264,8 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		{ value: 'Steel Cage lowering & approval of concreting for Concreting', label: 'Steel Cage lowering & approval of concreting for Concreting' },
 	];
 	const typeOfRfiOptions = [
-		{ value: 'typeOfRfi 1', label: 'typeOfRfi 1' },
-		{ value: 'typeOfRfi 2', label: 'typeOfRfi 2' },
+		{ value: 'typeOfRFI 1', label: 'typeOfRFI 1' },
+		{ value: 'typeOfRFI 2', label: 'typeOfRFI 2' },
 	];
 	const nameOfRepresentativeOptions = [
 		{ value: 'nameOfRepresentative 1', label: 'nameOfRepresentative 1' },
@@ -592,25 +590,25 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
-									<label htmlFor="rfiAction" className="block mb-1">Action:</label>
+									<label htmlFor="action" className="block mb-1">Action:</label>
 									<input
 										type="text"
-										id="rfiAction"
-										name="rfiAction"
-										value={formState.rfiAction}
+										id="action"
+										name="action"
+										value={formState.action}
 										onChange={handleChange}
 										placeholder="Enter value"
 									/>
 								</div>
 
 								<div className="form-fields flex-1">
-									<label htmlFor="typeOfRfi" className="block mb-1">Type of RFI:</label>
+									<label htmlFor="typeOfRFI" className="block mb-1">Type of RFI:</label>
 									<Select
-										id="typeOfRfi"
-										name="typeOfRfi"
+										id="typeOfRFI"
+										name="typeOfRFI"
 										options={typeOfRfiOptions}
-										value={formState.typeOfRfi ? { value: formState.typeOfRfi, label: formState.typeOfRfi } : null}
-										onChange={(selected) => setFormState({ ...formState, typeOfRfi: selected?.value || '' })}
+										value={formState.typeOfRFI ? { value: formState.typeOfRFI, label: formState.typeOfRFI } : null}
+										onChange={(selected) => setFormState({ ...formState, typeOfRFI: selected?.value || '' })}
 									/>
 								</div>
 
@@ -638,38 +636,39 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 								</div>
 
 								<div className="form-fields flex-1">
-									<label htmlFor="rfiId" className="block mb-1">RFI ID:</label>
 									<input
-										type="text"
-										id="rfiId"
-										name="rfiId"
-										value={formState.rfiId}
+										type="hidden"
+										id="rfi_Id"
+										name="rfi_Id"
+										value={formState.rfi_Id}
 										onChange={handleChange}
 										placeholder="Enter value"
+
+
 									/>
 								</div>
 								<div className="form-fields flex-1">
-									<label htmlFor="dateSubmissionRfi" className="block mb-1">Date of Submission of RFI:</label>
+									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
 									<input
-										type="time"
-										id="dateSubmissionRfi"
-										name="dateSubmissionRfi"
-										value={formState.dateSubmissionRfi}
+										type="date"
+										id="dateOfSubmission"
+										name="dateOfSubmission"
+										value={formState.dateOfSubmission}
 										onChange={handleChange}
-										placeholder="Enter value"
 									/>
 								</div>
+
 								<div className="form-fields flex-1">
-									<label htmlFor="dateInspection" className="block mb-1">Date of Inspection:</label>
+									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection:</label>
 									<input
-										type="time"
-										id="dateInspection"
-										name="dateInspection"
-										value={formState.dateInspection}
+										type="date"
+										id="dateOfInspection"
+										name="dateOfInspection"
+										value={formState.dateOfInspection}
 										onChange={handleChange}
-										placeholder="Enter value"
 									/>
 								</div>
+
 
 							</div>
 
@@ -688,22 +687,22 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
-									<label htmlFor="addRfiEnclosures" className="block mb-1">Enclosures:</label>
+									<label htmlFor="enclosures" className="block mb-1">Enclosures:</label>
 									<Select
-										id="addRfiEnclosures"
-										name="addRfiEnclosures"
+										id="enclosures"
+										name="enclosures"
 										options={addRfiEnclosuresOptions}
-										value={formState.addRfiEnclosures ? { value: formState.addRfiEnclosures, label: formState.addRfiEnclosures } : null}
-										onChange={(selected) => setFormState({ ...formState, addRfiEnclosures: selected?.value || '' })}
+										value={formState.enclosures ? { value: formState.enclosures, label: formState.enclosures } : null}
+										onChange={(selected) => setFormState({ ...formState, enclosures: selected?.value || '' })}
 									/>
 								</div>
 								<div className="form-fields flex-1">
-									<label htmlFor="addRfiLocation" className="block mb-1">Location:</label>
+									<label htmlFor="location" className="block mb-1">Location:</label>
 									<input
 										type="text"
-										id="addRfiLocation"
-										name="addRfiLocation"
-										value={formState.addRfiLocation}
+										id="location"
+										name="location"
+										value={formState.location}
 										onChange={handleChange}
 										placeholder="Enter value"
 									/>

@@ -40,33 +40,36 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	@Transactional
 	public RFI createRFI(RFI_DTO dto) {
-		
-		
-		RFI rfi = new RFI();
-		
-	
+	    RFI rfi = new RFI();
 
-		rfi.setProject(dto.getProject());
-		rfi.setWork(dto.getWork());
-		rfi.setContract(dto.getContract());
-		rfi.setStructureType(dto.getStructureType());
-		rfi.setStructure(dto.getStructure());
-		rfi.setComponent(dto.getComponent());
-		rfi.setElement(dto.getElement());
-		rfi.setActivity(dto.getActivity());
-		rfi.setRfiDescription(dto.getRfiDescription());
-		rfi.setAction(dto.getAction());
-		rfi.setTypeOfRFI(dto.getTypeOfRFI());
-		rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
-		rfi.setEnclosures(dto.getEnclosures());
-		rfi.setLocation(dto.getLocation());
-		rfi.setDescription(dto.getDescription());
+	    // ✅ Generate RFI ID (e.g., RFI0001)
+	    long totalCount = rfiRepository.count() + 1; // Not safe for concurrency, use a DB sequence if needed
+	    String generatedRfiId = String.format("RFI%04d", totalCount); // RFI0001, RFI0002 etc.
+	    rfi.setRfi_Id(generatedRfiId);
 
-		// Automatically set submission date if not passed
-		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
-		rfi.setDateOfInspection(dto.getDateOfInspection());
+	    // ✅ Set fields
+	    rfi.setProject(dto.getProject());
+	    rfi.setWork(dto.getWork());
+	    rfi.setContract(dto.getContract());
+	    rfi.setStructureType(dto.getStructureType());
+	    rfi.setStructure(dto.getStructure());
+	    rfi.setComponent(dto.getComponent());
+	    rfi.setElement(dto.getElement());
+	    rfi.setActivity(dto.getActivity());
+	    rfi.setRfiDescription(dto.getRfiDescription());
+	    rfi.setAction(dto.getAction());
+	    rfi.setTypeOfRFI(dto.getTypeOfRFI());
+	    rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
+	    rfi.setEnclosures(dto.getEnclosures());
+	    rfi.setLocation(dto.getLocation());
+	    rfi.setDescription(dto.getDescription());
 
-		return rfiRepository.save(rfi);
+	    // ✅ Set time/date fields
+	    rfi.setTimeOfInspection(dto.getTimeOfInspection()); // Make sure it's LocalTime
+	    rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
+	    rfi.setDateOfInspection(dto.getDateOfInspection());
+
+	    return rfiRepository.save(rfi);
 	}
 
 	@Override
