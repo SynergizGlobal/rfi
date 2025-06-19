@@ -8,6 +8,8 @@ import axios from 'axios';
 const CreateRfi = ({ mode = 'create', formData = {} }) => {
 
 	const [step, setStep] = useState(1);
+	const [isUpdateMode, setIsUpdateMode] = useState(false);
+
 	const [formState, setFormState] = useState({
 		project: '',
 		work: '',
@@ -18,15 +20,15 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		element: '',
 		activity: '',
 		rfiDescription: '',
-		action: '', // ✅ Correct field
-		typeOfRFI: '', // ✅ Correct field
+		action: '',
+		typeOfRFI: '',
 		nameOfRepresentative: '',
-		timeOfInspection: '', // ✅ HH:mm
-		rfi_Id: '', // ✅ Correct field name
-		dateOfSubmission: '', // ✅ yyyy-MM-dd
-		dateOfInspection: '', // ✅ yyyy-MM-dd
-		enclosures: '', // ✅ Correct field
-		location: '', // ✅ Correct field
+		timeOfInspection: '',
+		rfi_Id: '',
+		dateOfSubmission: '',
+		dateOfInspection: '',
+		enclosures: '',
+		location: '',
 		description: '',
 	});
 	const [message, setMessage] = useState('');
@@ -62,30 +64,32 @@ const CreateRfi = ({ mode = 'create', formData = {} }) => {
 		setFormState({ ...formState, [name]: value });
 	};
 
-const handleSubmit = async () => {
-	setMessage('');
-	try {
-		const response = await fetch('http://localhost:8000/rfi/create', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(formState), // ensure `formState` matches `RFI_DTO`
-		});
+	const handleSubmit = async () => {
+		setMessage('');
+		try {
+			const response = await fetch('http://localhost:8000/rfi/create', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(formState),
+				credentials: 'include'
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Error: ${response.status} - ${errorText}`);
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Error: ${response.status} - ${errorText}`);
+			}
+
+			const message = await response.text(); // 👈 expects plain string from Spring
+			setMessage(message); // show message on UI
+			alert(message); // optional popup
+		} catch (error) {
+			console.error('Error submitting RFI:', error);
+			setMessage('❌ Failed to submit RFI. Please try again.');
 		}
-
-		const message = await response.text(); // 👈 expects plain string from Spring
-		setMessage(message); // show message on UI
-		alert(message); // optional popup
-	} catch (error) {
-		console.error('Error submitting RFI:', error);
-		setMessage('❌ Failed to submit RFI. Please try again.');
-	}
-};
+	};
 
 	const [projectOptions, setProjectOptions] = useState([]);
 	const [projectIdMap, setProjectIdMap] = useState({});
@@ -264,8 +268,8 @@ const handleSubmit = async () => {
 		{ value: 'Steel Cage lowering & approval of concreting for Concreting', label: 'Steel Cage lowering & approval of concreting for Concreting' },
 	];
 	const typeOfRfiOptions = [
-		{ value: 'typeOfRFI 1', label: 'typeOfRFI 1' },
-		{ value: 'typeOfRFI 2', label: 'typeOfRFI 2' },
+		{ value: 'Regular RFI ', label: 'Regular RFI ' },
+		{ value: 'SPOT RFI', label: 'SPOT RFI' },
 	];
 	const nameOfRepresentativeOptions = [
 		{ value: 'nameOfRepresentative 1', label: 'nameOfRepresentative 1' },
@@ -276,7 +280,7 @@ const handleSubmit = async () => {
 		{ value: 'addRfiEnclosures 2', label: 'addRfiEnclosures 2' },
 	];
 	return (
-		<div className="dashboard create-rfi">
+		<div className="dashboard">
 			<HeaderRight />
 			<div className="right">
 				<div className="max-w-lg mx-auto p-4 bg-white rounded-xl shadow-md">
@@ -589,17 +593,22 @@ const handleSubmit = async () => {
 					{step === 2 && (
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 							<div className="form-row flex-wrap align-center">
-								<div className="form-fields flex-1">
-									<label htmlFor="action" className="block mb-1">Action:</label>
-									<input
-										type="text"
-										id="action"
-										name="action"
-										value={formState.action}
-										onChange={handleChange}
-										placeholder="Enter value"
-									/>
-								</div>
+								{isUpdateMode && (
+									<div className="form-fields flex-1">
+										<label htmlFor="action" className="block mb-1">Action:</label>
+										<select
+											id="action"
+											name="action"
+											value={formState.action}
+											onChange={handleChange}
+											className="form-control"
+										>
+											<option value="">-- Select Action --</option>
+											<option value="Reschedule">Reschedule</option>
+											<option value="Reassign">Reassign</option>
+										</select>
+									</div>
+								)}
 
 								<div className="form-fields flex-1">
 									<label htmlFor="typeOfRFI" className="block mb-1">Type of RFI:</label>
@@ -614,14 +623,18 @@ const handleSubmit = async () => {
 
 								<div className="form-fields flex-1">
 									<label htmlFor="nameOfRepresentative" className="block mb-1">Name Of Representative:</label>
-									<Select
+									<input
+										type="text"
 										id="nameOfRepresentative"
 										name="nameOfRepresentative"
-										options={nameOfRepresentativeOptions}
-										value={formState.nameOfRepresentative ? { value: formState.nameOfRepresentative, label: formState.nameOfRepresentative } : null}
-										onChange={(selected) => setFormState({ ...formState, nameOfRepresentative: selected?.value || '' })}
+										placeholder="Enter representative name"
+										value={formState.nameOfRepresentative}
+										onChange={(e) =>
+											setFormState({ ...formState, nameOfRepresentative: e.target.value })
+										}
 									/>
 								</div>
+
 
 								<div className="form-fields flex-1">
 									<label htmlFor="timeOfInspection" className="block mb-1">Time Of Inspection:</label>

@@ -8,7 +8,7 @@ import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 
 public interface RFIService {
-	RFI createRFI(RFI_DTO dto);
+	RFI createRFI(RFI_DTO dto, String userName);
 
 	List<ProjectDTO> getAllProjectNames();
 

@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.service.RFIService;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,9 +29,15 @@ public class RFIController {
 	private final RFIService rfiService;
 
 	@PostMapping("/create")
-	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto) {
-		RFI saved = rfiService.createRFI(dto);
-		return ResponseEntity.ok("RFI created successfully with ID: " + saved.getId());
+	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto, HttpSession session) {
+		String userName = (String) session.getAttribute("userName");
+		
+		if (userName == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
+		}
+
+		RFI saved = rfiService.createRFI(dto, userName);
+		return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");
 	}
 
 	@GetMapping("/projectNames")

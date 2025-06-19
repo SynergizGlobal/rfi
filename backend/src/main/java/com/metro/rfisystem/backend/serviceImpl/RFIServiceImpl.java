@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -39,37 +40,49 @@ public class RFIServiceImpl implements RFIService {
 
 	@Override
 	@Transactional
-	public RFI createRFI(RFI_DTO dto) {
-	    RFI rfi = new RFI();
+	public RFI createRFI(RFI_DTO dto, String userName) {
 
-	    // ✅ Generate RFI ID (e.g., RFI0001)
-	    long totalCount = rfiRepository.count() + 1; // Not safe for concurrency, use a DB sequence if needed
-	    String generatedRfiId = String.format("RFI%04d", totalCount); // RFI0001, RFI0002 etc.
-	    rfi.setRfi_Id(generatedRfiId);
+		String contractShortName = dto.getContractId();
 
-	    // ✅ Set fields
-	    rfi.setProject(dto.getProject());
-	    rfi.setWork(dto.getWork());
-	    rfi.setContract(dto.getContract());
-	    rfi.setStructureType(dto.getStructureType());
-	    rfi.setStructure(dto.getStructure());
-	    rfi.setComponent(dto.getComponent());
-	    rfi.setElement(dto.getElement());
-	    rfi.setActivity(dto.getActivity());
-	    rfi.setRfiDescription(dto.getRfiDescription());
-	    rfi.setAction(dto.getAction());
-	    rfi.setTypeOfRFI(dto.getTypeOfRFI());
-	    rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
-	    rfi.setEnclosures(dto.getEnclosures());
-	    rfi.setLocation(dto.getLocation());
-	    rfi.setDescription(dto.getDescription());
+		String contractId = contractRepository.findContractIdByShortName(contractShortName);
 
-	    // ✅ Set time/date fields
-	    rfi.setTimeOfInspection(dto.getTimeOfInspection()); // Make sure it's LocalTime
-	    rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
-	    rfi.setDateOfInspection(dto.getDateOfInspection());
+		if (contractId == null) {
+			throw new RuntimeException("No contract ID found for short name: " + contractShortName);
+		}
 
-	    return rfiRepository.save(rfi);
+		long totalCount = rfiRepository.count() + 1;
+		String rfiNumber = String.format("RFI%04d", totalCount);
+		String date = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"));
+		String revision = "R0";
+
+		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractShortName, userName, date, dto.getActivity(),
+				rfiNumber, revision);
+
+		RFI rfi = new RFI();
+		rfi.setRfi_Id(rfiId);
+
+		rfi.setContract(dto.getContract());
+
+		rfi.setProject(dto.getProject());
+		rfi.setWork(dto.getWork());
+		rfi.setStructureType(dto.getStructureType());
+		rfi.setStructure(dto.getStructure());
+		rfi.setComponent(dto.getComponent());
+		rfi.setElement(dto.getElement());
+		rfi.setActivity(dto.getActivity());
+		rfi.setRfiDescription(dto.getRfiDescription());
+		rfi.setAction(dto.getAction());
+		rfi.setTypeOfRFI(dto.getTypeOfRFI());
+		rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
+		rfi.setEnclosures(dto.getEnclosures());
+		rfi.setLocation(dto.getLocation());
+		rfi.setDescription(dto.getDescription());
+		rfi.setTimeOfInspection(dto.getTimeOfInspection());
+		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
+		rfi.setDateOfInspection(dto.getDateOfInspection());
+		rfi.setCreatedBy(userName);
+
+		return rfiRepository.save(rfi);
 	}
 
 	@Override
