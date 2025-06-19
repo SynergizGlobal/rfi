@@ -44,30 +44,30 @@ const HeaderRight = () => {
 				<div className="mobile-close" onClick={closeSideBar}><i className="fas fa-times-circle"></i></div>
 
 				<ul className="dashboard-menu">
-					<li><Link to="/dashboard"><i className="fas fa-home"></i> Home</Link></li>
+					<li><Link to="/dashboard"><div className="menu-text"><i className="fas fa-home"></i> <span>Home</span></div></Link></li>
 
 					{(isContractor || hasFullAccess) && (
 						<>
-							<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Create RFI</Link></li>
-							<li><Link to="/CreatedRfi"><i className="fa-solid fa-file-pen"></i> Update RFI</Link>
+							<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
+							<li><Link to="/CreatedRfi"><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span>Update RFI</span></div></Link>
 								{/*<span><i className="fa-solid fa-file-pen"></i> Update RFI <i className="fas fa-chevron-down"></i></span>
 									<ul className="sub-menu">
 									<li><Link to="/rfiSystem/upload-contract-schedules">Upload RFI</Link></li>
 									<li><Link to="/rfiSystem/boqList">Select RFI</Link></li>
 								</ul> */}
 							</li>
-							<li><Link to="/RfiLog"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+							<li><Link to="/RfiLog"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 						</>
 					)}
 
 					{(isContractor || isRegularUser || hasFullAccess) && (
 						<>
-							<li><Link to="/rfiSystem/emb-validation"><i className="fa-solid fa-folder-tree"></i> Inspection</Link></li>
+							<li><Link to="/rfiSystem/emb-validation"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
 
 							{isRegularUser && (
 								<>
-									<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
-									<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+									<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+									<li><Link to="/rfiSystem/mbList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 								</>
 							)}
 						</>
@@ -75,11 +75,11 @@ const HeaderRight = () => {
 
 
 					{hasFullAccess && (
-						<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
+						<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 					)}
 
 					{(isContractor || hasFullAccess) && (
-						<li><Link><span><i className="fa-solid fa-download"></i> Download Enclosures </span></Link></li>
+						<li><Link><span><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div> </span></Link></li>
 					)}
 				</ul>
 			</div>
