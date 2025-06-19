@@ -62,7 +62,7 @@ const HeaderRight = () => {
 
 					{(isContractor || isRegularUser || hasFullAccess) && (
 						<>
-							<li><Link to="/rfiSystem/emb-validation"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
 
 							{isRegularUser && (
 								<>
