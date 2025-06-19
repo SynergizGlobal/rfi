@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useTable, usePagination, useGlobalFilter } from 'react-table';
+import { useTable, usePagination, useGlobalFilter, gotoPage } from 'react-table';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import './CreatedRfi.css';
 
@@ -95,7 +95,7 @@ const CreatedRfi = () => {
                 />
               </div>
             </div>
-
+            <div className="table-section">
             <table {...getTableProps()} className="rfi-table datatable" border={1}>
               <thead>
                 {headerGroups.map(group => (
@@ -119,18 +119,32 @@ const CreatedRfi = () => {
                 })}
               </tbody>
             </table>
-
-            <div className="pagination-bar">
-              <button onClick={() => previousPage()} disabled={!canPreviousPage}>
-                &lt; Prev
-              </button>
-              <span>
-                Page <strong>{pageIndex + 1} of {pageOptions.length}</strong>
-              </span>
-              <button onClick={() => nextPage()} disabled={!canNextPage}>
-                Next &gt;
-              </button>
             </div>
+                <div className="d-flex align-items-center justify-content-between">
+                  <span>
+                    Showing {pageIndex * pageSize + 1} to{' '}
+                    {Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
+                  </span>
+                  <div className="pagination-bar">
+                    <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+                      ‹
+                    </button>
+                    {pageOptions.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => gotoPage(i)}
+                        className={pageIndex === i ? 'activePage' : ''}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button onClick={() => nextPage()} disabled={!canNextPage}>
+                      ›
+                    </button>
+                  </div>
+                  <div>&nbsp;</div>
+                </div>
+            
           </div>
         </div>
       </div>

@@ -276,7 +276,7 @@ const handleSubmit = async () => {
 		{ value: 'addRfiEnclosures 2', label: 'addRfiEnclosures 2' },
 	];
 	return (
-		<div className="dashboard">
+		<div className="dashboard create-rfi">
 			<HeaderRight />
 			<div className="right">
 				<div className="max-w-lg mx-auto p-4 bg-white rounded-xl shadow-md">

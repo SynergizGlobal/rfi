@@ -44,3 +44,20 @@
 .credted-rfi .left{
   margin-top: 85px;
 }
+
+.datatable th,
+.datatable td {
+  border: 1px solid #ccc;
+  padding: 10px 12px;
+}
+.datatable tbody tr:nth-child(odd) td {
+  background-color: #fff;
+}
+.activePage {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+.table-section{
+  overflow-x: scroll;
+}
