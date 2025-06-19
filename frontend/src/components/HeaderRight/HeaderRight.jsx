@@ -56,7 +56,7 @@ const HeaderRight = () => {
 									<li><Link to="/rfiSystem/boqList">Select RFI</Link></li>
 								</ul> */}
 							</li>
-							<li><Link to="/rfiSystem/mbList"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
+							<li><Link to="/RfiLog"><i className="fa-solid fa-file-invoice"></i> RFI Log</Link></li>
 						</>
 					)}
 
