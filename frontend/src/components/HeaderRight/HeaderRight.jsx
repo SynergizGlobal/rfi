@@ -74,11 +74,12 @@ const HeaderRight = () => {
 					)}
 
 
+					{hasFullAccess && (
+						<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
+					)}
+
 					{(isContractor || hasFullAccess) && (
-						<>
-							<li><Link to="/CreateRfi"><i className="fa-solid fa-print"></i> Validation</Link></li>
-							<li><Link><span><i className="fa-solid fa-download"></i> Download Enclosures </span></Link></li>
-						</>
+						<li><Link><span><i className="fa-solid fa-download"></i> Download Enclosures </span></Link></li>
 					)}
 				</ul>
 			</div>
