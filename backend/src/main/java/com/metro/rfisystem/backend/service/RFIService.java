@@ -28,4 +28,9 @@ public interface RFIService {
 	List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
 			String component, String component_id);
 
+  // List<RFI_DTO> getAllRFIDetails();
+   
+   List<RFI> getAllRFIs();
+
+   
 }

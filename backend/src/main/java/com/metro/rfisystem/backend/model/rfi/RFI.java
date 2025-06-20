@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
 
@@ -92,6 +93,8 @@ public class RFI {
     @Column(name = "created_by")
     private String createdBy;
 
+  @Column(name = "status")
+    private String status;	
 
     
 }

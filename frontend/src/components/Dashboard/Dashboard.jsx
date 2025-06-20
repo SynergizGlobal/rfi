@@ -1,10 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [rfiCount, setRfiCount] = useState(0);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/rfi/rfi-count")
+      .then((res) => res.json())
+      .then((data) => setRfiCount(data))
+      .catch((err) => console.error("Failed to fetch RFI count:", err));
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -45,7 +53,7 @@ const Dashboard = () => {
                     <div className="card-inner">
                       <div className="card-top">
                         <div className="card-count">
-                          <span className="card-number">100</span>
+                          <span className="card-number">{rfiCount}</span>
                         </div>
                         <div className="cards-icon">
                           <img src="/images/check-icon.png" alt="tick symbol" width="25" height="25" />

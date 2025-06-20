@@ -9,3 +9,26 @@
 .create-rfi .left{
   margin-top: 85px;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}

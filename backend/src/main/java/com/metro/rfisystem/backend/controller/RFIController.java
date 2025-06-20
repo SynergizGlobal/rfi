@@ -1,21 +1,25 @@
 package com.metro.rfisystem.backend.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
+import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIService;
 
 import jakarta.servlet.http.HttpSession;
@@ -28,6 +32,8 @@ public class RFIController {
 
 	private final RFIService rfiService;
 
+	private final RFIRepository rfiRepository;
+
 	@PostMapping("/create")
 	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto, HttpSession session) {
 		String userName = (String) session.getAttribute("userName");
@@ -35,7 +41,7 @@ public class RFIController {
 		if (userName == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
 		}
-
+ 
 		RFI saved = rfiService.createRFI(dto, userName);
 		return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");
 	}
@@ -82,7 +88,7 @@ public class RFIController {
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component) {
-		return rfiService.getElementByStructureStructureTypeComponent(structureType, structure, component);
+		return rfiService.getComponentByStructureStructureTypeContractId(structureType, structure, component);
 	}
 
 	@GetMapping("/activityNames")
@@ -94,4 +100,35 @@ public class RFIController {
 		return rfiService.getActivityNamesByStructureStructureTypeComponentComponentId(structureType, structure,
 				component, component_id);
 	}
+
+	@GetMapping("/rfi-details")
+	public List<RFI> getAllRFIs() {
+	    return rfiService.getAllRFIs();  // Return actual entities
+	}
+
+
+	@GetMapping("/rfi-count")
+	public long getRFICount() {
+		return rfiRepository.count();
+	}
+	
+	@GetMapping("/update/{rfiId}")
+	public ResponseEntity<RFI> getRFIById(@PathVariable Long rfiId) {
+	    Optional<RFI> rfi = rfiRepository.findById(rfiId);
+	    return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+	}
+	
+	@DeleteMapping("/delete/{rfiId}")
+	public ResponseEntity<Void> deleteRFI(@PathVariable Long rfiId) {
+	    Optional<RFI> rfi = rfiRepository.findById(rfiId);
+	    if (rfi.isPresent()) {
+	        rfiRepository.deleteById(rfiId);
+	        return ResponseEntity.noContent().build(); 
+	    } else {
+	        return ResponseEntity.notFound().build();
+	    }
+	}
+
+
+
 }

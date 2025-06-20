@@ -1,32 +1,60 @@
-import React, { useMemo } from 'react';
-import { useTable, usePagination, useGlobalFilter, gotoPage } from 'react-table';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useTable, usePagination, useGlobalFilter } from 'react-table';
+import { useNavigate } from 'react-router-dom'; 
 import HeaderRight from '../HeaderRight/HeaderRight';
 import './CreatedRfi.css';
 
-const data = [
-  {
-    rfiId: 'P4EN3/ABC/0115/RFI/00001/R1',
-    project: 'Panvel Karjat',
-    structureType: 'Building Works',
-    element: 'Foundation',
-    activity: 'PCC',
-    assignedPerson: 'Mr. Ramesh',
-    submissionDate: '12-03-2025',
-    status: 'Inspection done',
-  },
-  {
-    rfiId: 'P4EN5/ABC/0115/RFI/00001/R1',
-    project: 'Panvel Karjat',
-    structureType: 'Earthwork',
-    element: 'Pier',
-    activity: 'Concreting',
-    assignedPerson: 'Mr. Kamlesh',
-    submissionDate: '',
-    status: 'Rescheduled',
-  },
-];
-
 const CreatedRfi = () => {
+  const [rfiData, setRfiData] = useState([]);
+  const navigate = useNavigate(); 
+
+  // Fetch data from backend on mount
+  useEffect(() => {
+    fetch('http://localhost:8000/rfi/rfi-details')
+      .then(response => response.json())
+      .then(data => {
+        console.log("Fetched RFI data:", data); 
+        const transformed = data.map((item, index) => ({
+          rfiId: item.rfi_Id,
+          project: item.project,
+          structureType: item.structureType,
+          element: item.element,
+          activity: item.activity,
+          assignedPerson: item.nameOfRepresentative,
+          submissionDate: item.dateOfSubmission || '',
+          status: item.status,
+        }));
+        setRfiData(transformed);
+      })
+      .catch(error => {
+        console.error('Error fetching RFI data:', error);
+      });
+  }, []);
+
+  const handleEdit = (rfi) => {
+      // Redirect to CreateRfi page with RFI ID
+      navigate(`/CreateRfi/${rfi.rfiId}`);
+    };
+
+    const handleDelete = (rfi) => {
+      if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
+        fetch(`http://localhost:8000/rfi/delete/${rfi.rfiId}`, {
+          method: 'DELETE',
+        })
+          .then((res) => {
+			console.log("Delete response status:", res.status);
+            if (res.ok) {
+              alert('RFI deleted successfully');
+              setRfiData(prev => prev.filter(item => item.rfiId !== rfi.rfiId));
+            } else {
+				alert(`Failed to delete RFI (Status: ${res.status})`);
+            }
+          })
+          .catch((err) => console.error('Error deleting RFI:', err));
+      }
+    };
+
+
   const columns = useMemo(() => [
     { Header: 'RFI ID', accessor: 'rfiId' },
     { Header: 'Project', accessor: 'project' },
@@ -36,7 +64,21 @@ const CreatedRfi = () => {
     { Header: 'Assigned Person', accessor: 'assignedPerson' },
     { Header: 'Submission Date', accessor: 'submissionDate' },
     { Header: 'Status', accessor: 'status' },
-  ], []);
+	  {
+	    Header: 'Actions',
+	    id: 'actions',
+		    Cell: ({ row }) => (
+		      <div className="action-buttons">
+		        <button className="edit-btn" onClick={() => handleEdit(row.original)}>
+		          Edit
+		        </button>
+		        <button className="delete-btn" onClick={() => handleDelete(row.original)}>
+		          Delete
+		        </button>
+		      </div>
+		    )
+		  }
+		], []);
 
   const {
     getTableProps,
@@ -53,7 +95,7 @@ const CreatedRfi = () => {
     setGlobalFilter,
     setPageSize,
   } = useTable(
-    { columns, data, initialState: { pageSize: 5 } },
+    { columns, data: rfiData, initialState: { pageSize: 5 } },
     useGlobalFilter,
     usePagination
   );
@@ -61,7 +103,7 @@ const CreatedRfi = () => {
   const { pageIndex, globalFilter, pageSize } = state;
 
   return (
-    <div className="dashboard credted-rfi">
+    <div className="dashboard">
       <HeaderRight />
       <div className="right">
         <div className="dashboard-main">
@@ -95,7 +137,7 @@ const CreatedRfi = () => {
                 />
               </div>
             </div>
-            <div className="table-section">
+
             <table {...getTableProps()} className="rfi-table datatable" border={1}>
               <thead>
                 {headerGroups.map(group => (
@@ -119,32 +161,18 @@ const CreatedRfi = () => {
                 })}
               </tbody>
             </table>
+
+            <div className="pagination-bar">
+              <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+                &lt; Prev
+              </button>
+              <span>
+                Page <strong>{pageIndex + 1} of {pageOptions.length}</strong>
+              </span>
+              <button onClick={() => nextPage()} disabled={!canNextPage}>
+                Next &gt;
+              </button>
             </div>
-                <div className="d-flex align-items-center justify-content-between">
-                  <span>
-                    Showing {pageIndex * pageSize + 1} to{' '}
-                    {Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
-                  </span>
-                  <div className="pagination-bar">
-                    <button onClick={() => previousPage()} disabled={!canPreviousPage}>
-                      ‹
-                    </button>
-                    {pageOptions.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => gotoPage(i)}
-                        className={pageIndex === i ? 'activePage' : ''}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button onClick={() => nextPage()} disabled={!canNextPage}>
-                      ›
-                    </button>
-                  </div>
-                  <div>&nbsp;</div>
-                </div>
-            
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class RFI_DTO {
 
 	private Long Id;
+	private String rfi_Id;
 	private String contractId;
 	private String rfiDescription;
 	private String structureType;
@@ -32,7 +33,6 @@ public class RFI_DTO {
 	private String contract;
 	private String structure;
 	private String activity;
-	private String user;
-	
+	private String status;
 
 }

@@ -3,10 +3,12 @@ package com.metro.rfisystem.backend.serviceImpl;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.metro.rfisystem.backend.dto.Contract;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -132,4 +134,10 @@ public class RFIServiceImpl implements RFIService {
 				structure, component, component_id);
 	}
 
+	@Override
+	public List<RFI> getAllRFIs() {
+	    return rfiRepository.findAll();  // Directly return entities from repository
+	}
+
+  
 }
