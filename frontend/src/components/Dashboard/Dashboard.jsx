@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import HeaderRight from '../HeaderRight/HeaderRight';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [rfiCount, setRfiCount] = useState(0);
+
+  const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+  const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+
+  const isContractor = userRole === "contractor";
+  const isRegularUser = userRole === "regular user";
+  const isITAdmin = userRole === "it admin";
+  const isDyHOD = userType === "dyhod";
+
+  const hasFullAccess = isITAdmin || isDyHOD;
 
   useEffect(() => {
     fetch("http://localhost:8000/rfi/rfi-count")
@@ -47,27 +57,38 @@ const Dashboard = () => {
             <h1>Welcome to RFI System</h1>
             <div className="body-content">
               <div className="cards-section">
-                {/* card - 1 */}
-                <div className="cards">
-                  <Link to="/CreatedRfi">
-                    <div className="card-inner">
-                      <div className="card-top">
-                        <div className="card-count">
-                          <span className="card-number">{rfiCount}</span>
-                        </div>
-                        <div className="cards-icon">
-                          <img src="/images/check-icon.png" alt="tick symbol" width="25" height="25" />
-                        </div>
+                {/* Card 1: Role-based navigation */}
+                <div
+                  className="cards"
+                  onClick={() => {
+                    if (hasFullAccess) {
+                      navigate("/RfiLog");
+                    } else if (isContractor) {
+                      navigate("/CreatedRfi");
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="card-inner">
+                    <div className="card-top">
+                      <div className="card-count">
+                        <span className="card-number">{rfiCount}</span>
                       </div>
-                      <div className="card-bottom">
-                        <div className="card-title">
-                          <span className="card-text">RFI created</span>
-                        </div>
+                      <div className="cards-icon">
+                        <img src="/images/check-icon.png" alt="tick symbol" width="25" height="25" />
                       </div>
                     </div>
-                  </Link>
+                    <div className="card-bottom">
+                      <div className="card-title">
+                        <span className="card-text">
+                          {hasFullAccess ? "RFI submitted" : isContractor ? "RFI created" : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                {/* card - 2 */}
+
+                {/* Card 2: Inspections */}
                 <div className="cards">
                   <div className="card-inner">
                     <div className="card-top">
@@ -85,7 +106,8 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                {/* card - 3 */}
+
+                {/* Card 3: Pending */}
                 <div className="cards">
                   <div className="card-inner">
                     <div className="card-top">
@@ -103,7 +125,8 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                {/* card - 4 */}
+
+                {/* Card 4: Rescheduled */}
                 <div className="cards">
                   <div className="card-inner">
                     <div className="card-top">
@@ -122,12 +145,12 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-              </div> {/* cards-section */}
-            </div> {/* body-content */}
-          </div> {/* home-body */}
-        </div> {/* dashboard-main */}
-      </div> {/* right */}
-    </div> // dashboard
+              </div>
+            </div>
+          </div> 
+        </div> 
+      </div> 
+    </div>
   );
 };
 
