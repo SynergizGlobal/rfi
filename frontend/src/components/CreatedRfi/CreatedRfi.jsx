@@ -15,6 +15,7 @@ const CreatedRfi = () => {
       .then(data => {
         console.log("Fetched RFI data:", data); 
         const transformed = data.map((item, index) => ({
+			id: item.id,
           rfiId: item.rfi_Id,
           project: item.project,
           structureType: item.structureType,
@@ -34,23 +35,22 @@ const CreatedRfi = () => {
   const handleEdit = (rfi) => {
       // Redirect to CreateRfi page with RFI ID
 	  console.log("🟢 rfi object:", rfi); 
-      navigate('/CreateRfi', { state: { rfiId: rfi.rfiId, mode: 'edit' } });
+      navigate('/CreateRfi', { state: { id: rfi.id, mode: 'edit' } });
 	  console.log("Navigating to edit with:", {rfiId: rfi.rfiId,mode: 'edit' });
 
     };
 
 	const handleDelete = (rfi) => {
 	  if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
-	    fetch(`http://localhost:8000/rfi/delete/${rfi.rfiId}`, {
-	      method: 'DELETE',
-	      headers: {
-	        'Content-Type': 'application/json',
-	      },
-	    })
+		console.log("🟡 RFI Object to delete:", rfi);
+		fetch(`http://localhost:8000/rfi/delete/${rfi.id}`, {
+		  method: 'DELETE',
+		  headers: { 'Content-Type': 'application/json' },
+		})
 	      .then((res) => {
 	        if (res.ok) {
 	          alert('RFI deleted successfully');
-	          setRfiData(prev => prev.filter(item => item.rfiId !== rfi.rfiId));
+	          setRfiData(prev => prev.filter(item => item.id !== rfi.id));
 	        } else {
 	          alert(`Failed to delete RFI (Status: ${res.status})`);
 	        }

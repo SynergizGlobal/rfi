@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +27,7 @@ import com.metro.rfisystem.backend.service.RFIService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
-
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/rfi")
 @RequiredArgsConstructor
@@ -105,7 +106,7 @@ public class RFIController {
 
 	@GetMapping("/rfi-details")
 	public List<RFI> getAllRFIs() {
-	    return rfiService.getAllRFIs();  // Return actual entities
+	    return rfiService.getAllRFIs(); 
 	}
 
 
@@ -114,16 +115,16 @@ public class RFIController {
 		return rfiRepository.count();
 	}
 	
-	@GetMapping("/update/{rfiId}")
-	public ResponseEntity<RFI> getRFIById(@PathVariable String rfiId) {
-	    Optional<RFI> rfi = rfiRepository.findByRfiId(rfiId);
+	@GetMapping("/rfi-details/{id}")
+	public ResponseEntity<RFI> getRFIById(@PathVariable Long id) {
+	    Optional<RFI> rfi = rfiRepository.findById(id);
 	    return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
 	
-	@DeleteMapping("/delete/{rfiId}")
-	public ResponseEntity<Void> deleteRFI(@PathVariable String rfiId) {
-	    Optional<RFI> rfi = rfiRepository.findByRfiId(rfiId);
+	@DeleteMapping("/delete/{id}")
+	public ResponseEntity<Void> deleteRFI(@PathVariable Long id) {
+	    Optional<RFI> rfi = rfiRepository.findById(id);
 	    if (rfi.isPresent()) {
 	        rfiRepository.delete(rfi.get());
 	        return ResponseEntity.noContent().build();
@@ -131,5 +132,43 @@ public class RFIController {
 	        return ResponseEntity.notFound().build();
 	    }
 	}
+
+	@PutMapping("/update/{id}")
+	public ResponseEntity<String> updateRfi(@PathVariable Long id, @RequestBody RFI_DTO rfiDto) {
+	    Optional<RFI> optionalRfi = rfiRepository.findById(id);
+
+	    if (optionalRfi.isPresent()) {
+	        RFI existingRfi = optionalRfi.get();
+
+	        // Update fields
+	        existingRfi.setProject(rfiDto.getProject());
+	        existingRfi.setWork(rfiDto.getWork());
+	        existingRfi.setContract(rfiDto.getContract());
+	        existingRfi.setStructureType(rfiDto.getStructureType());
+	        existingRfi.setStructure(rfiDto.getStructure());
+	        existingRfi.setComponent(rfiDto.getComponent());
+	        existingRfi.setElement(rfiDto.getElement());
+	        existingRfi.setActivity(rfiDto.getActivity());
+	        existingRfi.setRfiDescription(rfiDto.getRfiDescription());
+	        existingRfi.setAction(rfiDto.getAction());
+	        existingRfi.setTypeOfRFI(rfiDto.getTypeOfRFI());
+	        existingRfi.setNameOfRepresentative(rfiDto.getNameOfRepresentative());
+	        existingRfi.setTimeOfInspection(rfiDto.getTimeOfInspection());
+	        existingRfi.setRfi_Id(rfiDto.getRfi_Id());
+	        existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
+	        existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
+	        existingRfi.setEnclosures(rfiDto.getEnclosures());
+	        existingRfi.setLocation(rfiDto.getLocation());
+	        existingRfi.setDescription(rfiDto.getDescription());
+
+	        rfiRepository.save(existingRfi);
+	        System.out.println("Received PUT request to update RFI ID: " + id);
+
+	        return ResponseEntity.ok("✅ RFI updated successfully.");
+	    } else {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("❌ RFI not found with ID: " + id);
+	    }
+	}
+
 
 }

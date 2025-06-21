@@ -10,48 +10,6 @@ const CreateRfi = () => {
   const [formData, setFormData] = useState({});
   const [mode, setMode] = useState('create');
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-	const state = location.state || {};
-	 const { mode: navMode, rfiId } = state;
-	console.log('🟡 mode:', mode, 'rfiId:', rfiId);
-    if (navMode === 'edit' && rfiId) {
-      setMode('edit');
-      // 🔽 Fetch RFI details from backend using rfiId
-	  console.log(`🔵 Fetching RFI data from http://localhost:8000/update/${rfiId}`);
-	  const encodedRfiId = encodeURIComponent(rfiId);
-	  axios.get(`http://localhost:8000/rfi/update/${encodeURIComponent(rfiId)}`)
-        .then((res) => {
-          const data = res.data;
-		  console.log("✅ Received response:", res.data);
-          setFormData(data); // still optional if needed
-          setFormState({
-            project: data.project || '',
-            work: data.work || '',
-            contract: data.contract || '',
-            structureType: data.structureType || '',
-            structure: data.structure || '',
-            component: data.component || '',
-            element: data.element || '',
-            activity: data.activity || '',
-            rfiDescription: data.rfiDescription || '',
-            action: data.action || '',
-            typeOfRFI: data.typeOfRFI || '',
-            nameOfRepresentative: data.nameOfRepresentative || '',
-            timeOfInspection: data.timeOfInspection || '',
-            rfi_Id: data.rfi_Id || '',
-            dateOfSubmission: data.dateOfSubmission || '',
-            dateOfInspection: data.dateOfInspection || '',
-            enclosures: data.enclosures || '',
-            location: data.location || '',
-            description: data.description || '',
-          });
-        })
-        .catch((err) => {
-          console.error('Error fetching RFI:', err);
-          setMessage('Failed to load RFI data.');
-        });
-    }
-  }, [location.state]);
 
 
 	const [step, setStep] = useState(1);
@@ -109,38 +67,190 @@ const CreateRfi = () => {
 		setFormState({ ...formState, [name]: value });
 	};
 
-const handleSubmit = async () => {
-	setMessage('');
-	try {
-		const response = await fetch('http://localhost:8000/rfi/create', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(formState), // ensure `formState` matches `RFI_DTO`
-		});
+	const handleSubmit = async () => {
+	  setMessage('');
+	  const url =
+	    mode === 'edit'
+	      ? `http://localhost:8000/rfi/update/${location.state.id}` 
+	      : 'http://localhost:8000/rfi/create';
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Error: ${response.status} - ${errorText}`);
-		}
+	  const method = mode === 'edit' ? 'PUT' : 'POST';
 
-		const message = await response.text(); // 👈 expects plain string from Spring
-		setMessage(message); // show message on UI
-		alert(message); // optional popup
-	} catch (error) {
-		console.error('Error submitting RFI:', error);
-		setMessage('❌ Failed to submit RFI. Please try again.');
-	}
-};
+	  try {
+	    const response = await fetch(url, {
+	      method: method,
+	      headers: {
+	        'Content-Type': 'application/json',
+	      },
+	      body: JSON.stringify(formState),
+	    });
+
+	    if (!response.ok) {
+	      const errorText = await response.text();
+	      throw new Error(`Error: ${response.status} - ${errorText}`);
+	    }
+
+	    const message = await response.text();
+	    setMessage(message);
+	    alert(message);
+	  } catch (error) {
+	    console.error('Error submitting RFI:', error);
+	    setMessage('❌ Failed to submit RFI. Please try again.');
+	  }
+	};
 
 	const [projectOptions, setProjectOptions] = useState([]);
 	const [projectIdMap, setProjectIdMap] = useState({});
 	const [workOptions, setWorkOptions] = useState([]);
 	const [workIdMap, setWorkIdMap] = useState({}); // 
 
+	useEffect(() => {
+	  const state = location.state || {};
+	  const { mode: navMode, id } = state;
 
+	  if (navMode === 'edit' && id) {
+	    setMode('edit');
 
+	    axios.get(`http://localhost:8000/rfi/rfi-details/${id}`)
+	      .then(async (res) => {
+	        const data = res.data;
+	        console.log("✅ Received RFI:", data);
+
+	        // 1. Set project first
+	        const projectId = projectIdMap[data.project];
+	        if (projectId) {
+	          const workRes = await axios.get('http://localhost:8000/rfi/workNames', {
+	            params: { projectId }
+	          });
+
+	          const workOptions = workRes.data.map(work => ({
+	            value: work.workName,
+	            label: work.workName
+	          }));
+	          const workIdMap = {};
+	          workRes.data.forEach(work => {
+	            workIdMap[work.workName] = work.workId;
+	          });
+	          setWorkOptions(workOptions);
+	          setWorkIdMap(workIdMap);
+
+	          // 2. Set work → contract
+	          const workId = workIdMap[data.work];
+	          if (workId) {
+	            const contractRes = await axios.get('http://localhost:8000/rfi/contractNames', {
+	              params: { workId }
+	            });
+	            const contractOptions = contractRes.data.map(c => ({
+	              value: c.contractShortName,
+	              label: c.contractShortName
+	            }));
+	            const contractIdMap = {};
+	            contractRes.data.forEach(c => {
+	              contractIdMap[c.contractShortName] = c.contractIdFk.trim();
+	            });
+	            setContractOptions(contractOptions);
+	            setContractIdMap(contractIdMap);
+
+	            // 3. contract → structureType
+	            const contractId = contractIdMap[data.contract];
+	            if (contractId) {
+	              const structureTypeRes = await axios.get('http://localhost:8000/rfi/structureType', {
+	                params: { contractId }
+	              });
+	              const structureTypeOptions = structureTypeRes.data.map(type => ({
+	                value: type,
+	                label: type
+	              }));
+	              setStructureTypeOptions(structureTypeOptions);
+
+	              // 4. structure
+	              const structureRes = await axios.get('http://localhost:8000/rfi/structure', {
+	                params: {
+	                  contractId,
+	                  structureType: data.structureType
+	                }
+	              });
+	              const structureOptions = structureRes.data.map(s => ({
+	                value: s,
+	                label: s
+	              }));
+	              setStructureOptions(structureOptions);
+
+	              // 5. component
+	              const componentRes = await axios.get('http://localhost:8000/rfi/component', {
+	                params: {
+	                  contractId,
+	                  structureType: data.structureType,
+	                  structure: data.structure
+	                }
+	              });
+	              const componentOptions = componentRes.data.map(c => ({
+	                value: c,
+	                label: c
+	              }));
+	              setComponentOptions(componentOptions);
+
+	              // 6. element
+	              const elementRes = await axios.get('http://localhost:8000/rfi/element', {
+	                params: {
+	                  structureType: data.structureType,
+	                  structure: data.structure,
+	                  component: data.component
+	                }
+	              });
+	              const elementOptions = elementRes.data.map(e => ({
+	                value: e,
+	                label: e
+	              }));
+	              setElementOptions(elementOptions);
+
+	              // 7. activity
+	              const activityRes = await axios.get('http://localhost:8000/rfi/activityNames', {
+	                params: {
+	                  structureType: data.structureType,
+	                  structure: data.structure,
+	                  component: data.component,
+	                  component_id: data.element
+	                }
+	              });
+	              const activityOptions = activityRes.data.map(a => ({
+	                value: a,
+	                label: a
+	              }));
+	              setActivityOptions(activityOptions);
+	            }
+	          }
+	        }
+
+	        // ✅ Finally set the form data
+	        setFormState({
+	          project: data.project || '',
+	          work: data.work || '',
+	          contract: data.contract || '',
+	          structureType: data.structureType || '',
+	          structure: data.structure || '',
+	          component: data.component || '',
+	          element: data.element || '',
+	          activity: data.activity || '',
+	          rfiDescription: data.rfiDescription || '',
+	          action: data.action || '',
+	          typeOfRFI: data.typeOfRFI || '',
+	          nameOfRepresentative: data.nameOfRepresentative || '',
+	          timeOfInspection: data.timeOfInspection || '',
+	          rfi_Id: data.rfi_Id || '',
+	          dateOfSubmission: data.dateOfSubmission || '',
+	          dateOfInspection: data.dateOfInspection || '',
+	          enclosures: data.enclosures || '',
+	          location: data.location || '',
+	          description: data.description || '',
+	        });
+	      })
+	      .catch((err) => {
+	        console.error('❌ Error fetching RFI:', err);
+	        setMessage('Failed to load RFI data.');
+	      });
+	  }
+	}, [location.state, projectIdMap]);
 
 	useEffect(() => {
 		axios.get('http://localhost:8000/rfi/projectNames')
