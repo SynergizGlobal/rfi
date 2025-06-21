@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-	
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.metro.rfisystem.backend.model.pmis.User;
@@ -15,6 +15,11 @@ public interface LoginRepository extends JpaRepository<User, String>  {
 	List<User> findByUserName(String userName);
 
 	Optional<User> findByEmailId(String email);
+
+	List<User> findByUserRoleNameFkIgnoreCase(String string);
+
+	@Query("SELECT u.userName FROM User u WHERE LOWER(u.userRoleNameFk) = 'Regular user'")
+	List<String> findUserNamesByRegularUserRole();
 	
 	
 }

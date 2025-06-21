@@ -8,7 +8,6 @@ import './Inspection.css';
 
 const DropdownMenu = ({ anchorRef, children }) => {
   const [coords, setCoords] = useState(null);
-  
 
   useEffect(() => {
     if (anchorRef.current) {
@@ -26,12 +25,14 @@ const DropdownMenu = ({ anchorRef, children }) => {
     <div
       className="drop-down-menu"
       style={{ position: 'absolute', top: coords.top, left: coords.left }}
+      onClick={(e) => e.stopPropagation()}
     >
       {children}
     </div>,
     document.getElementById('dropdown-portal')
   );
 };
+
 
 const Inspection = () => {
   const [selectedRfi, setSelectedRfi] = useState(null);
@@ -42,18 +43,27 @@ const Inspection = () => {
   const navigate = useNavigate();
 
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      const refs = Object.values(buttonRefs.current);
-      if (!refs.some(ref => ref?.current?.contains(e.target))) {
-        setTimeout(() => {
-        setOpenDropdownRow(null);
-      }, 100);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    const dropdowns = document.querySelectorAll('.drop-down-menu');
+    const refs = Object.values(buttonRefs.current);
+
+    const clickedInsideDropdown = Array.from(dropdowns).some(menu =>
+      menu.contains(e.target)
+    );
+    const clickedInsideButton = refs.some(ref =>
+      ref?.current?.contains(e.target)
+    );
+
+    if (!clickedInsideDropdown && !clickedInsideButton) {
+      setOpenDropdownRow(null);
+    }
+  };
+
+  document.addEventListener('click', handleClickOutside);
+  return () => document.removeEventListener('click', handleClickOutside);
+}, []);
+
 
   const data = useMemo(() => [
     {
@@ -92,43 +102,49 @@ const Inspection = () => {
       Cell: ({ row }) => assignedPersons[row.id] || '—',
     },
     {
-      Header: 'Action',
-      Cell: ({ row }) => {
-        const btnRef = (buttonRefs.current[row.id] ||= React.createRef());
-        return (
-          <div className="action-dropdown">
-            <button
-              ref={btnRef}
-              className="action-button"
-              onClick={() => setOpenDropdownRow(openDropdownRow === row.id ? null : row.id)}
-            >
-              ⋮
-            </button>
-            {openDropdownRow === row.id && (
-              <DropdownMenu anchorRef={btnRef}>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setSelectedRfi(row.id);
-                    setTimeout(() => {
-                      navigate('/InspectionForm');
-                    }, 10); // short delay before navigating
-                    setOpenDropdownRow(null); // let dropdown close AFTER
-                  }}
-                >
-                  Start Inspection Online
-                </button>
+  Header: 'Action',
+  Cell: ({ row }) => {
+    // Create a reference for the toggle button
+    const btnRef = (buttonRefs.current[row.id] ||= React.createRef());
 
-                <button>Start Inspection Offiline</button>
-                <button>Upload Test Results</button>
-                <button>View</button>
-                <button>Submit</button>
-              </DropdownMenu>
-            )}
-          </div>
-        );
-      }
-    }
+    return (
+      <div className="action-dropdown">
+        {/* Dropdown Toggle Button */}
+        <button
+          ref={btnRef}
+          className="action-button"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent click bubbling
+            setOpenDropdownRow(openDropdownRow === row.id ? null : row.id);
+          }}
+        >
+          ⋮
+        </button>
+
+        {/* Dropdown Menu */}
+        {openDropdownRow === row.id && (
+          <DropdownMenu anchorRef={btnRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedRfi(row.id);
+                setOpenDropdownRow(null); // Close dropdown
+                navigate('/InspectionForm'); // Navigate
+              }}
+            >
+              Start Inspection Online
+            </button>
+            <button>Start Inspection Offline</button>
+            <button>Upload Test Results</button>
+            <button>View</button>
+            <button>Submit</button>
+          </DropdownMenu>
+        )}
+      </div>
+    );
+  }
+}
+
   ], [assignedPersons, selectedRfi, openDropdownRow]);
 
   const {
@@ -158,7 +174,7 @@ const Inspection = () => {
       <div className="right">
         <div className="dashboard-main">
           <div className="rfi-table-container">
-            <h2 className="section-heading">Created RFI List</h2>
+            <h2 className="section-heading">Inspection List</h2>
 
             <div className="table-top-bar d-flex justify-content-between align-items-center">
               <div className="left-controls">

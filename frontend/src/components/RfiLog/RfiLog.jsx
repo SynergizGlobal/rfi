@@ -55,7 +55,7 @@ const RfiLog = () => {
     {
       rfiId: 'P4EN3/ABC/0115/RFI/00001/R1',
       project: 'Panvel Karjat',
-      structureType: 'Building Works',
+      structure: 'Building Works',
       element: 'Foundation',
       activity: 'PCC',
       contractor: 'Mr. Ramesh',
@@ -65,7 +65,7 @@ const RfiLog = () => {
     {
       rfiId: 'P4EN5/ABC/0115/RFI/00001/R1',
       project: 'Panvel Karjat',
-      structureType: 'Earthwork',
+      structure: 'Earthwork',
       element: 'Pier',
       activity: 'Concreting',
       contractor: 'Mr. Kamlesh',
@@ -77,7 +77,7 @@ const RfiLog = () => {
   const columns = useMemo(() => [
     { Header: 'RFI ID', accessor: 'rfiId' },
     { Header: 'Project', accessor: 'project' },
-    { Header: 'Structure Type', accessor: 'structureType' },
+    { Header: 'Structure', accessor: 'structure' },
     { Header: 'Element', accessor: 'element' },
     { Header: 'Activity', accessor: 'activity' },
     { Header: 'Assigned Contractor', accessor: 'contractor' },
@@ -149,7 +149,7 @@ const RfiLog = () => {
       <div className="right">
         <div className="dashboard-main">
           <div className="rfi-table-container">
-            <h2 className="section-heading">Created RFI List</h2>
+            <h2 className="section-heading">Rfi Created</h2>
 
             <div className="table-top-bar d-flex justify-content-between align-items-center">
               <div className="left-controls">

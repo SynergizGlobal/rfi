@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -104,6 +105,12 @@ public class LoginController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(new ErrorResponse("NO_SESSION", "No active session found"));
 		}
+	}
+	
+	@GetMapping("/regular-roles")
+	public ResponseEntity<List<String>> getUserNamesOfRegularUsers() {
+	    List<String> userNames  = loginService.getUserNamesOfRegularUsers();
+	    return ResponseEntity.ok(userNames);
 	}
 
 }

@@ -70,4 +70,11 @@ public class LoginServiceImpl implements LoginService {
 	public boolean isValidUser(String userId) {
 		return loginRepo.existsById(userId);
 	}
+
+
+	@Override
+	public List<String> getUserNamesOfRegularUsers() {
+	    return loginRepo.findUserNamesByRegularUserRole();
+
+	}
 }
