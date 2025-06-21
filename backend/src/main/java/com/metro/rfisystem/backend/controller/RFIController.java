@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ import com.metro.rfisystem.backend.service.RFIService;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+
 
 @RestController
 @RequestMapping("/rfi")
@@ -113,22 +115,21 @@ public class RFIController {
 	}
 	
 	@GetMapping("/update/{rfiId}")
-	public ResponseEntity<RFI> getRFIById(@PathVariable Long rfiId) {
-	    Optional<RFI> rfi = rfiRepository.findById(rfiId);
+	public ResponseEntity<RFI> getRFIById(@PathVariable String rfiId) {
+	    Optional<RFI> rfi = rfiRepository.findByRfiId(rfiId);
 	    return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
+
 	
 	@DeleteMapping("/delete/{rfiId}")
-	public ResponseEntity<Void> deleteRFI(@PathVariable Long rfiId) {
-	    Optional<RFI> rfi = rfiRepository.findById(rfiId);
+	public ResponseEntity<Void> deleteRFI(@PathVariable String rfiId) {
+	    Optional<RFI> rfi = rfiRepository.findByRfiId(rfiId);
 	    if (rfi.isPresent()) {
-	        rfiRepository.deleteById(rfiId);
-	        return ResponseEntity.noContent().build(); 
+	        rfiRepository.delete(rfi.get());
+	        return ResponseEntity.noContent().build();
 	    } else {
 	        return ResponseEntity.notFound().build();
 	    }
 	}
-
-
 
 }

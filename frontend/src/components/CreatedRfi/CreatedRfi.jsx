@@ -33,27 +33,31 @@ const CreatedRfi = () => {
 
   const handleEdit = (rfi) => {
       // Redirect to CreateRfi page with RFI ID
-      navigate(`/CreateRfi/${rfi.rfiId}`);
+	  console.log("🟢 rfi object:", rfi); 
+      navigate('/CreateRfi', { state: { rfiId: rfi.rfiId, mode: 'edit' } });
+	  console.log("Navigating to edit with:", {rfiId: rfi.rfiId,mode: 'edit' });
+
     };
 
-    const handleDelete = (rfi) => {
-      if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
-        fetch(`http://localhost:8000/rfi/delete/${rfi.rfiId}`, {
-          method: 'DELETE',
-        })
-          .then((res) => {
-			console.log("Delete response status:", res.status);
-            if (res.ok) {
-              alert('RFI deleted successfully');
-              setRfiData(prev => prev.filter(item => item.rfiId !== rfi.rfiId));
-            } else {
-				alert(`Failed to delete RFI (Status: ${res.status})`);
-            }
-          })
-          .catch((err) => console.error('Error deleting RFI:', err));
-      }
-    };
-
+	const handleDelete = (rfi) => {
+	  if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
+	    fetch(`http://localhost:8000/rfi/delete/${rfi.rfiId}`, {
+	      method: 'DELETE',
+	      headers: {
+	        'Content-Type': 'application/json',
+	      },
+	    })
+	      .then((res) => {
+	        if (res.ok) {
+	          alert('RFI deleted successfully');
+	          setRfiData(prev => prev.filter(item => item.rfiId !== rfi.rfiId));
+	        } else {
+	          alert(`Failed to delete RFI (Status: ${res.status})`);
+	        }
+	      })
+	      .catch((err) => console.error('Error deleting RFI:', err));
+	  }
+	};
 
   const columns = useMemo(() => [
     { Header: 'RFI ID', accessor: 'rfiId' },
