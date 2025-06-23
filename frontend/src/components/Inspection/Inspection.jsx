@@ -4,6 +4,7 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import { useNavigate } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 import './Inspection.css';
+import InspectionForm from '../InspectionForm/InspectionForm';
 
 const DropdownMenu = ({ anchorRef, children }) => {
 	const [coords, setCoords] = useState(null);
@@ -85,20 +86,10 @@ const Inspection = () => {
 		return () => document.removeEventListener('click', handleClickOutside);
 	}, []);
 
-	// Simulate completion and update row
-	const handleInspectionComplete = (rfi_Id) => {
-		const updated = data.map((item) =>
-			item.rfi_Id === rfi_Id
-				? {
-					...item,
-					inspectionStatus: 'Completed',
-					contractorImages: '5',
-					clientImages: '3',
-				}
-				: item
-		);
-		setData(updated);
-	};
+	const handleInspectionComplete = (rfi) => {
+  navigate(`/InspectionForm`, { state: { rfi } });
+};
+
 
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfi_Id' },
