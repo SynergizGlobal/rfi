@@ -32,5 +32,8 @@ public interface RFIService {
    
    List<RFI> getAllRFIs();
 
+
+boolean assignPersonToClient(String rfi_Id, String assignedPersonClient);
+
    
 }

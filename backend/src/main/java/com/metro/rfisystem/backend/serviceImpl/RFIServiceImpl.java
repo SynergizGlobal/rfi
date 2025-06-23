@@ -3,6 +3,7 @@ package com.metro.rfisystem.backend.serviceImpl;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -137,6 +138,18 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	public List<RFI> getAllRFIs() {
 	    return rfiRepository.findAll(); 
+	}
+
+	@Override
+	public boolean assignPersonToClient(String rfi_Id, String assignedPersonClient) {
+		Optional<RFI> optional = rfiRepository.findByRfiId(rfi_Id);
+		if (optional.isPresent()) {
+			RFI rfi = optional.get();
+			rfi.setAssignedPersonClient(assignedPersonClient);
+			rfiRepository.save(rfi);
+			return true;
+		}
+		return false;
 	}
 
   

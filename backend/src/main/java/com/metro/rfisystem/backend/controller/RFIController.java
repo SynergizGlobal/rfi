@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -169,6 +171,18 @@ public class RFIController {
 	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("❌ RFI not found with ID: " + id);
 	    }
 	}
+	
+	@PostMapping("/assign-client-person")
+	public ResponseEntity<String> assignPersonToClient(@RequestBody AssignPersonDTO assignDTO) {
+		boolean success = rfiService.assignPersonToClient(assignDTO.getRfi_Id(), assignDTO.getAssignedPersonClient());
+		if (success) {
+			return ResponseEntity.ok("Assigned successfully");
+		} else {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
+		}
+	}
 
+
+	
 
 }

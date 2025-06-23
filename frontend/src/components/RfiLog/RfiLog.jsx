@@ -38,6 +38,8 @@ const RfiLog = () => {
 	const [openDropdownRow, setOpenDropdownRow] = useState(null);
 	const buttonRefs = useRef({});
 	const [personOptions, setPersonOptions] = useState([]);
+	const [selectedPerson, setSelectedPerson] = useState('');
+
 
 
 	useEffect(() => {
@@ -53,7 +55,7 @@ const RfiLog = () => {
 					activity: item.activity,
 					contractor: item.createdBy,
 					submissionDate: item.dateOfSubmission || '—',
-					clientPerson: item.nameOfRepresentative || '—',
+					clientPerson: item.assignedPersonClient || '—',
 				}));
 				setData(formatted);
 			} catch (error) {
@@ -79,6 +81,42 @@ const RfiLog = () => {
 
 		fetchRegularUsers();
 	}, []);
+
+
+	const handleAssignSubmit = async () => {
+
+		const selectedRow = data.find(d => d.rfiId === selectedRfi);
+		if (!selectedRow) return; 
+		const rfiId = selectedRow.rfiId;
+
+		try {
+			const response = await fetch('http://localhost:8000/rfi/assign-client-person', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					rfi_Id: rfiId,
+					assignedPersonClient: selectedPerson,
+				}),
+			});
+
+			if (response.ok) {
+				// Update UI immediately
+				setAssignedPersons((prev) => ({
+					...prev,
+					[selectedRfi]: selectedPerson,
+				}));
+				setShowPopup(false);
+				setSelectedPerson('');
+			} else {
+				alert("Assignment failed: " + (await response.text()));
+			}
+		} catch (err) {
+			console.error("Error assigning person:", err);
+			alert("Error assigning person");
+		}
+	};
 
 
 	useEffect(() => {
@@ -123,7 +161,7 @@ const RfiLog = () => {
 								<button
 									onMouseDown={(e) => {
 										e.preventDefault();
-										setSelectedRfi(row.id);
+										setSelectedRfi(row.values.rfiId);
 										setShowPopup(true);
 										setOpenDropdownRow(null);
 									}}
@@ -259,17 +297,18 @@ const RfiLog = () => {
 							<div className="popup-overlay">
 								<div className="popup">
 									<h3>Select Person to Assign</h3>
-									<select onChange={handleAssign} defaultValue="">
+									<select onChange={(e) => setSelectedPerson(e.target.value)} defaultValue="">
 										<option value="" disabled>Select</option>
 										{personOptions.map(p => <option key={p}>{p}</option>)}
 									</select>
 
 									<div className="rfilog-popup-btn">
-										<button onClick={() => setShowPopup(false)}>Done</button>
+										<button onClick={handleAssignSubmit}>Done</button>
 									</div>
 								</div>
 							</div>
 						)}
+
 
 					</div>
 				</div>

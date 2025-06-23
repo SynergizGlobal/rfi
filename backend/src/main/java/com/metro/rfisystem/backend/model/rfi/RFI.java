@@ -29,72 +29,79 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RFI {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long Id;
-    private String rfi_Id;
-    @Column(name = "project_name")
-    private String project;
-    @Column(name = "work_short_name")
-    private String work;	
-    @Column(name = "contract_short_name") 
-    private String contract;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long Id;
+	private String rfi_Id;
+	@Column(name = "project_name")
+	private String project;
+	@Column(name = "work_short_name")
+	private String work;
+	@Column(name = "contract_short_name")
+	private String contract;
 
-    @Column(name = "structure_type")
-    private String structureType;
+	@Column(name = "structure_type")
+	private String structureType;
 
-    
-    private String structure;
-    private String component;
-    private String element;
-    private String activity;
+	private String structure;
+	private String component;
+	private String element;
+	private String activity;
 
-    @Column(name = "rfi_description", length = 1000)
-    private String rfiDescription;
+	@Column(name = "rfi_description", length = 1000)
+	private String rfiDescription;
 
-    private String action;
+	private String action;
 
-    @Column(name = "type_of_rfi")
-    private String typeOfRFI;
+	@Column(name = "type_of_rfi")
+	private String typeOfRFI;
 
-    @Column(name = "name_of_representative")
-    private String nameOfRepresentative;
+	@Column(name = "name_of_representative")
+	private String nameOfRepresentative;
 
-    @Column(length = 1000)
-    private String enclosures;
+	@Column(length = 1000)
+	private String enclosures;
 
-    private String location;
+	private String location;
 
-    @Column(length = 1000)
-    private String description;
-    
-    @Column(name="time_of_inspection")
-    @JsonFormat(pattern = "HH:mm")
-    private LocalTime timeOfInspection;
+	@Column(length = 1000)
+	private String description;
 
-    @Column(name = "date_of_submission")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate dateOfSubmission;
+	@Column(name = "time_of_inspection")
+	@JsonFormat(pattern = "HH:mm")
+	private LocalTime timeOfInspection;
 
-    @Column(name = "date_of_inspection")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate dateOfInspection;
-    @Column(name = "created_at", updatable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    @CreationTimestamp
-    private Date createdAt;
+	@Column(name = "date_of_submission")
+	@JsonFormat(pattern = "yyyy-MM-dd")
+	private LocalDate dateOfSubmission;
 
-    @Column(name = "updated_at")
-    @Temporal(TemporalType.TIMESTAMP)
-    @UpdateTimestamp
-    private Date updatedAt;
-    
-    @Column(name = "created_by")
-    private String createdBy;
+	@Column(name = "date_of_inspection")
+	@JsonFormat(pattern = "yyyy-MM-dd")
+	private LocalDate dateOfInspection;
+	@Column(name = "created_at", updatable = false)
+	@Temporal(TemporalType.TIMESTAMP)
+	@CreationTimestamp
+	private Date createdAt;
 
-  @Column(name = "status")
-    private String status;	
+	@Column(name = "updated_at")
+	@Temporal(TemporalType.TIMESTAMP)
+	@UpdateTimestamp
+	private Date updatedAt;
 
-    
+	@Column(name = "created_by")
+	private String createdBy;
+
+	@Column(name = "status")
+	private String status;
+	
+	@Column(name = "assigned_person_client")
+	private String assignedPersonClient;
+	
+	@Column(name = "client_department")
+	private String clientDepartment;
+ 
+	@Column(name = "client_user_id")
+	private String clientUserId;
+
 }
