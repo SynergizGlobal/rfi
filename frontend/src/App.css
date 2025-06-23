@@ -983,10 +983,22 @@ padding: 0 15px;
 	background-color: #ccc;
 	color: #000;
 }
+.btn-green{
+	background-color: #007A7A;
+	color: #fff;
+}
+.btn-green:hover{
+	background-color: #005E5C;
+
+}
 .btn-white{
 	background-color: #fff;
 	color: #000;
 	border: 1px solid #000;
+}
+.btn-blue{
+	background-color: #2196f3;
+	color: #fff;
 }
 input[type='button']{
 	padding: 3px 15px;

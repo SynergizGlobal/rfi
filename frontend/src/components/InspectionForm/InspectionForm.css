@@ -1,3 +1,374 @@
-.inspectionform {
-  /* Styles for InspectionForm */
+.rfi-inspection-form {
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.form-left {
+  flex: 0 0 48%;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-section {
+  flex: 1 1 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-section button {
+  padding: 10px 20px;
+  background-color: #009688;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.upload-section .selfie-preview {
+  width: 150px;
+  height: 150px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-top: 10px;
+  border: 2px solid #ddd;
+}
+
+.upload-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.capture-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 0 0 48%;
+}
+
+.capture-option button,
+.capture-option label {
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
+  background-color: #3f51b5;
+  color: white;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.capture-option label input {
+  display: none;
+}
+label{
+  text-align: left;
+  margin: 16px 0 8px;
+}
+.gallery-preview {
+  margin-top: 10px;
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.enclosure-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+
+.enclosure-table th,
+.enclosure-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.btn-row {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.next-btn,
+.back-btn,
+.save-btn,
+.submit-btn {
+  padding: 10px 20px;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 12px 0 8px;
+}
+.next-btn:disabled {
+  background-color: #ccc;
+
+}
+.next-btn {
+  background-color: #4caf50;
+}
+
+.back-btn {
+  background-color: #607d8b;
+}
+
+.save-btn {
+  background-color: #2196f3;
+}
+
+.submit-btn {
+  background-color: #e91e63;
+}
+
+/* Centered popup */
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 999;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  max-width: 95%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+/* Popup actions */
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.popup input[type="text"],
+.popup input[type="date"],
+.popup input[type="time"],
+.popup select  {
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .form-grid {
+    flex-direction: column;
+  }
+
+  .upload-grid {
+    justify-content: center;
+  }
+
+  .capture-option {
+    width: 100%;
+  }
+
+  .btn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+/* Checklist Table Styling */
+.popup table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.popup table th,
+.popup table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.popup table th {
+  background-color: #f5f5f5;
+}
+
+/* Popup Input Styling */
+.popup input[type="text"],
+.popup input[type="date"],
+.popup input[type="time"],
+.popup input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Upload Popup Specific */
+.popup h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+/* Upload Buttons in Step 2 (Choose File) */
+.capture-option label.file-upload {
+  background-color: #f5f5f5;
+  border: 1px dashed #999;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  display: block;
+  margin-top: 10px;
+  text-align: center;
+  color: #000;
+}
+
+.capture-option label.file-upload:hover {
+  background-color: #e9e9e9;
+}
+
+.capture-option label input[type="file"] {
+  display: none;
+}
+
+/* Preview images inside popup and form */
+.gallery-preview,
+.selfie-preview {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+/* Responsive Fixes for Popup Overflow */
+@media (max-width: 600px) {
+  .popup {
+    width: 90%;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+
+  .popup table th,
+  .popup table td {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .popup-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .popup input[type="text"],
+  .popup input[type="file"] {
+    font-size: 13px;
+  }
+}
+/* Checklist popup signature uploads inside table */
+.popup table tr td[colspan="7"] {
+  padding: 10px;
+  background-color: #f9f9f9;
+  text-align: left;
+  border-top: 1px solid #ccc;
+}
+
+.popup table tr td[colspan="7"] label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.popup table tr td[colspan="7"] input[type="file"] {
+  display: inline-block;
+  width: 100%;
+  padding: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .popup table {
+    font-size: 12px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .popup table tr td[colspan="7"] input[type="file"] {
+    font-size: 12px;
+    padding: 4px;
+  }
+
+  .popup h3 {
+    font-size: 16px;
+  }
+
+  .popup-actions button {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+}
+.signature-preview {
+  max-width: 150px;
+  margin-top: 10px;
+  display: block;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+.table-scroll-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.enclosure-table {
+  min-width: 600px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.enclosure-table th,
+.enclosure-table td {
+  padding: 8px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+.popup h3{
+  background-color: #156082;
+  padding: 10px 0;
+  color: #fff;
+}
+.location-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.location-row input {
+  flex: 1;
 }
