@@ -136,7 +136,7 @@ public class RFIServiceImpl implements RFIService {
 
 	@Override
 	public List<RFI> getAllRFIs() {
-	    return rfiRepository.findAll();  // Directly return entities from repository
+	    return rfiRepository.findAll(); 
 	}
 
   

@@ -8,7 +8,6 @@ const CreatedRfi = () => {
   const [rfiData, setRfiData] = useState([]);
   const navigate = useNavigate(); 
 
-  // Fetch data from backend on mount
   useEffect(() => {
     fetch('http://localhost:8000/rfi/rfi-details')
       .then(response => response.json())
