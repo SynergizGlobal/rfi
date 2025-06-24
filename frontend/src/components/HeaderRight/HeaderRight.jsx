@@ -66,8 +66,8 @@ const HeaderRight = () => {
 
 							{isRegularUser && (
 								<>
-									<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
-									<li><Link to="/rfiSystem/mbList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
+									<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+									<li><Link to="/RfiLog"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 								</>
 							)}
 						</>
@@ -75,7 +75,7 @@ const HeaderRight = () => {
 
 
 					{hasFullAccess && (
-						<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+						<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 					)}
 
 					{(isContractor || hasFullAccess) && (

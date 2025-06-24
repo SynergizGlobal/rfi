@@ -9,6 +9,7 @@ import CreatedRfi from './components/CreatedRfi/CreatedRfi';
 import RfiLog from './components/RfiLog/RfiLog';
 import Inspection from './components/Inspection/Inspection';
 import InspectionForm from './components/InspectionForm/InspectionForm';
+import Validation from './components/Validation/Validation';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 import MainLayout from './layouts/MainLayout';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/RfiLog" element={<RfiLog />} />
           <Route path="/Inspection" element={<Inspection />} />
           <Route path="/InspectionForm" element={<InspectionForm />} />
+          <Route path="/Validation" element={<Validation />} />
           {/* Add more protected routes here */}
         </Route>
 
