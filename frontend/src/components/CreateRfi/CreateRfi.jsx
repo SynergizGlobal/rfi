@@ -191,18 +191,35 @@ const CreateRfi = () => {
 	              setComponentOptions(componentOptions);
 
 	              // 6. element
-	              const elementRes = await axios.get('http://localhost:8000/rfi/element', {
-	                params: {
-	                  structureType: data.structureType,
-	                  structure: data.structure,
-	                  component: data.component
-	                }
-	              });
-	              const elementOptions = elementRes.data.map(e => ({
-	                value: e,
-	                label: e
-	              }));
-	              setElementOptions(elementOptions);
+				  const elementRes = await axios.get('http://localhost:8000/rfi/element', {
+				    params: {
+				      structureType: data.structureType,
+				      structure: data.structure,
+				      component: data.component
+				    }
+				  });
+
+				  let elementOptions = elementRes.data.map(e => ({
+				    value: e,
+				    label: e
+				  }));
+
+				  // ✅ Fallback if API didn't return the current element
+				  if (
+				    elementOptions.length === 0 &&
+				    data.element &&
+				    !elementOptions.find(e => e.value === data.element)
+				  ) {
+				    elementOptions = [{ value: data.element, label: data.element }];
+				  }
+
+				  setElementOptions(elementOptions);
+
+				  // ✅ Set the form state with existing element
+				  setFormState((prev) => ({
+				    ...prev,
+				    element: data.element || '',
+				  }));
 
 	              // 7. activity
 	              const activityRes = await axios.get('http://localhost:8000/rfi/activityNames', {
@@ -311,8 +328,6 @@ const CreateRfi = () => {
 			setStructureOptions([]);
 		}
 	}, [formState.contract, formState.structureType, contractIdMap]);
-
-
 
 
 	const [componentOptions, setComponentOptions] = useState([]);

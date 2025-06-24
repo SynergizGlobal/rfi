@@ -137,40 +137,10 @@ public class RFIController {
 
 	@PutMapping("/update/{id}")
 	public ResponseEntity<String> updateRfi(@PathVariable Long id, @RequestBody RFI_DTO rfiDto) {
-	    Optional<RFI> optionalRfi = rfiRepository.findById(id);
-
-	    if (optionalRfi.isPresent()) {
-	        RFI existingRfi = optionalRfi.get();
-
-	        // Update fields
-	        existingRfi.setProject(rfiDto.getProject());
-	        existingRfi.setWork(rfiDto.getWork());
-	        existingRfi.setContract(rfiDto.getContract());
-	        existingRfi.setStructureType(rfiDto.getStructureType());
-	        existingRfi.setStructure(rfiDto.getStructure());
-	        existingRfi.setComponent(rfiDto.getComponent());
-	        existingRfi.setElement(rfiDto.getElement());
-	        existingRfi.setActivity(rfiDto.getActivity());
-	        existingRfi.setRfiDescription(rfiDto.getRfiDescription());
-	        existingRfi.setAction(rfiDto.getAction());
-	        existingRfi.setTypeOfRFI(rfiDto.getTypeOfRFI());
-	        existingRfi.setNameOfRepresentative(rfiDto.getNameOfRepresentative());
-	        existingRfi.setTimeOfInspection(rfiDto.getTimeOfInspection());
-	        existingRfi.setRfi_Id(rfiDto.getRfi_Id());
-	        existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
-	        existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
-	        existingRfi.setEnclosures(rfiDto.getEnclosures());
-	        existingRfi.setLocation(rfiDto.getLocation());
-	        existingRfi.setDescription(rfiDto.getDescription());
-
-	        rfiRepository.save(existingRfi);
-	        System.out.println("Received PUT request to update RFI ID: " + id);
-
-	        return ResponseEntity.ok("✅ RFI updated successfully.");
-	    } else {
-	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("❌ RFI not found with ID: " + id);
-	    }
+	    String result = rfiService.updateRfi(id, rfiDto);
+	    return ResponseEntity.ok(result);
 	}
+
 	
 	@PostMapping("/assign-client-person")
 	public ResponseEntity<String> assignPersonToClient(@RequestBody AssignPersonDTO assignDTO) {

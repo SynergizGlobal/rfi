@@ -20,7 +20,7 @@ const CreatedRfi = () => {
           structureType: item.structureType,
           element: item.element,
           activity: item.activity,
-          assignedPerson: item.nameOfRepresentative,
+          assignedPerson: item.createdBy,
           submissionDate: item.dateOfSubmission || '',
           status: item.status,
         }));
@@ -140,7 +140,7 @@ const CreatedRfi = () => {
                 />
               </div>
             </div>
-
+			<div className="table-scroll-wrapper">
             <table {...getTableProps()} className="rfi-table datatable" border={1}>
               <thead>
                 {headerGroups.map(group => (
@@ -164,7 +164,7 @@ const CreatedRfi = () => {
                 })}
               </tbody>
             </table>
-
+			</div>
             <div className="pagination-bar">
               <button onClick={() => previousPage()} disabled={!canPreviousPage}>
                 &lt; Prev
