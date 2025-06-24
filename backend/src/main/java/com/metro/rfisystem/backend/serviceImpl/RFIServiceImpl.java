@@ -139,68 +139,67 @@ public class RFIServiceImpl implements RFIService {
 
 	@Override
 	public List<RFI> getAllRFIs() {
-	    return rfiRepository.findAll(); 
+		return rfiRepository.findAll();
 	}
-	
-	 @Override
-	    public String updateRfi(Long id, RFI_DTO rfiDto) {
-	        Optional<RFI> optionalRfi = rfiRepository.findById(id);
 
-	        if (optionalRfi.isPresent()) {
-	            RFI existingRfi = optionalRfi.get();
+	@Override
+	public String updateRfi(Long id, RFI_DTO rfiDto) {
+		Optional<RFI> optionalRfi = rfiRepository.findById(id);
 
-	            existingRfi.setProject(rfiDto.getProject());
-	            existingRfi.setWork(rfiDto.getWork());
-	            existingRfi.setContract(rfiDto.getContract());
-	            existingRfi.setStructureType(rfiDto.getStructureType());
-	            existingRfi.setStructure(rfiDto.getStructure());
-	            existingRfi.setComponent(rfiDto.getComponent());
-	            existingRfi.setElement(rfiDto.getElement());
-	            existingRfi.setActivity(rfiDto.getActivity());
-	            existingRfi.setRfiDescription(rfiDto.getRfiDescription());
-	            existingRfi.setAction(rfiDto.getAction());
-	            existingRfi.setTypeOfRFI(rfiDto.getTypeOfRFI());
-	            existingRfi.setNameOfRepresentative(rfiDto.getNameOfRepresentative());
-	            existingRfi.setTimeOfInspection(rfiDto.getTimeOfInspection());
-	            existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
-	            existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
-	            existingRfi.setEnclosures(rfiDto.getEnclosures());
-	            existingRfi.setLocation(rfiDto.getLocation());
-	            existingRfi.setDescription(rfiDto.getDescription());
+		if (optionalRfi.isPresent()) {
+			RFI existingRfi = optionalRfi.get();
 
-	            String updatedRfiId = incrementRevision(existingRfi.getRfi_Id());
-	            existingRfi.setRfi_Id(updatedRfiId);
+			existingRfi.setProject(rfiDto.getProject());
+			existingRfi.setWork(rfiDto.getWork());
+			existingRfi.setContract(rfiDto.getContract());
+			existingRfi.setStructureType(rfiDto.getStructureType());
+			existingRfi.setStructure(rfiDto.getStructure());
+			existingRfi.setComponent(rfiDto.getComponent());
+			existingRfi.setElement(rfiDto.getElement());
+			existingRfi.setActivity(rfiDto.getActivity());
+			existingRfi.setRfiDescription(rfiDto.getRfiDescription());
+			existingRfi.setAction(rfiDto.getAction());
+			existingRfi.setTypeOfRFI(rfiDto.getTypeOfRFI());
+			existingRfi.setNameOfRepresentative(rfiDto.getNameOfRepresentative());
+			existingRfi.setTimeOfInspection(rfiDto.getTimeOfInspection());
+			existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
+			existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
+			existingRfi.setEnclosures(rfiDto.getEnclosures());
+			existingRfi.setLocation(rfiDto.getLocation());
+			existingRfi.setDescription(rfiDto.getDescription());
 
-	            rfiRepository.save(existingRfi);
+			String updatedRfiId = incrementRevision(existingRfi.getRfi_Id());
+			existingRfi.setRfi_Id(updatedRfiId);
 
-	            return "✅ RFI updated successfully.";
-	        } else {
-	            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "❌ RFI not found with ID: " + id);
-	        }
-	    }
+			rfiRepository.save(existingRfi);
 
-	    // Helper method to increment the R number in rfi_Id
-	    private String incrementRevision(String rfiId) {
-	        if (rfiId == null || !rfiId.contains("/R")) {
-	            return rfiId; // invalid format fallback
-	        }
+			return "✅ RFI updated successfully.";
+		} else {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "❌ RFI not found with ID: " + id);
+		}
+	}
 
-	        String[] parts = rfiId.split("/");
-	        String lastPart = parts[parts.length - 1];
+	private String incrementRevision(String rfiId) {
+		if (rfiId == null || !rfiId.contains("/R")) {
+			return rfiId;
+		}
 
-	        if (lastPart.startsWith("R")) {
-	            try {
-	                int revision = Integer.parseInt(lastPart.substring(1));
-	                parts[parts.length - 1] = "R" + (revision + 1);
-	            } catch (NumberFormatException e) {
-	                parts[parts.length - 1] = "R1";
-	            }
-	        } else {
-	            parts[parts.length - 1] = "R1";
-	        }
+		String[] parts = rfiId.split("/");
+		String lastPart = parts[parts.length - 1];
 
-	        return String.join("/", parts);
-	    }
+		if (lastPart.startsWith("R")) {
+			try {
+				int revision = Integer.parseInt(lastPart.substring(1));
+				parts[parts.length - 1] = "R" + (revision + 1);
+			} catch (NumberFormatException e) {
+				parts[parts.length - 1] = "R1";
+			}
+		} else {
+			parts[parts.length - 1] = "R1";
+		}
+
+		return String.join("/", parts);
+	}
 
 	@Override
 	public boolean assignPersonToClient(String rfi_Id, String assignedPersonClient) {
@@ -214,5 +213,4 @@ public class RFIServiceImpl implements RFIService {
 		return false;
 	}
 
-  
 }

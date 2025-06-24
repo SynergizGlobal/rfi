@@ -6,10 +6,10 @@ import './CreateRfi.css';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 const CreateRfi = () => {
-  const location = useLocation();
-  const [formData, setFormData] = useState({});
-  const [mode, setMode] = useState('create');
-  const [loading, setLoading] = useState(true);
+	const location = useLocation();
+	const [formData, setFormData] = useState({});
+	const [mode, setMode] = useState('create');
+	const [loading, setLoading] = useState(true);
 
 
 	const [step, setStep] = useState(1);
@@ -23,15 +23,15 @@ const CreateRfi = () => {
 		element: '',
 		activity: '',
 		rfiDescription: '',
-		action: '', // ✅ Correct field
-		typeOfRFI: '', // ✅ Correct field
+		action: '',
+		typeOfRFI: '',
 		nameOfRepresentative: '',
-		timeOfInspection: '', // ✅ HH:mm
-		rfi_Id: '', // ✅ Correct field name
-		dateOfSubmission: '', // ✅ yyyy-MM-dd
-		dateOfInspection: '', // ✅ yyyy-MM-dd
-		enclosures: '', // ✅ Correct field
-		location: '', // ✅ Correct field
+		timeOfInspection: '',
+		rfi_Id: '',
+		dateOfSubmission: '',
+		dateOfInspection: '',
+		enclosures: '',
+		location: '',
 		description: '',
 	});
 	const [message, setMessage] = useState('');
@@ -68,205 +68,206 @@ const CreateRfi = () => {
 	};
 
 	const handleSubmit = async () => {
-	  setMessage('');
-	  const url =
-	    mode === 'edit'
-	      ? `http://localhost:8000/rfi/update/${location.state.id}` 
-	      : 'http://localhost:8000/rfi/create';
+		setMessage('');
+		const url =
+			mode === 'edit'
+				? `http://localhost:8000/rfi/update/${location.state.id}`
+				: 'http://localhost:8000/rfi/create';
 
-	  const method = mode === 'edit' ? 'PUT' : 'POST';
+		const method = mode === 'edit' ? 'PUT' : 'POST';
 
-	  try {
-	    const response = await fetch(url, {
-	      method: method,
-	      headers: {
-	        'Content-Type': 'application/json',
-	      },
-	      body: JSON.stringify(formState),
-	    });
+		try {
+			const response = await fetch(url, {
+				method: method,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include',
+				body: JSON.stringify(formState),
+			});
 
-	    if (!response.ok) {
-	      const errorText = await response.text();
-	      throw new Error(`Error: ${response.status} - ${errorText}`);
-	    }
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Error: ${response.status} - ${errorText}`);
+			}
 
-	    const message = await response.text();
-	    setMessage(message);
-	    alert(message);
-	  } catch (error) {
-	    console.error('Error submitting RFI:', error);
-	    setMessage('❌ Failed to submit RFI. Please try again.');
-	  }
+			const message = await response.text();
+			setMessage(message);
+			alert(message);
+		} catch (error) {
+			console.error('Error submitting RFI:', error);
+			setMessage('❌ Failed to submit RFI. Please try again.');
+		}
 	};
 
 	const [projectOptions, setProjectOptions] = useState([]);
 	const [projectIdMap, setProjectIdMap] = useState({});
 	const [workOptions, setWorkOptions] = useState([]);
-	const [workIdMap, setWorkIdMap] = useState({}); // 
+	const [workIdMap, setWorkIdMap] = useState({});
 
 	useEffect(() => {
-	  const state = location.state || {};
-	  const { mode: navMode, id } = state;
+		const state = location.state || {};
+		const { mode: navMode, id } = state;
 
-	  if (navMode === 'edit' && id) {
-	    setMode('edit');
+		if (navMode === 'edit' && id) {
+			setMode('edit');
 
-	    axios.get(`http://localhost:8000/rfi/rfi-details/${id}`)
-	      .then(async (res) => {
-	        const data = res.data;
-	        console.log("✅ Received RFI:", data);
+			axios.get(`http://localhost:8000/rfi/rfi-details/${id}`)
+				.then(async (res) => {
+					const data = res.data;
+					console.log("✅ Received RFI:", data);
 
-	        // 1. Set project first
-	        const projectId = projectIdMap[data.project];
-	        if (projectId) {
-	          const workRes = await axios.get('http://localhost:8000/rfi/workNames', {
-	            params: { projectId }
-	          });
+					// 1. Set project first
+					const projectId = projectIdMap[data.project];
+					if (projectId) {
+						const workRes = await axios.get('http://localhost:8000/rfi/workNames', {
+							params: { projectId }
+						});
 
-	          const workOptions = workRes.data.map(work => ({
-	            value: work.workName,
-	            label: work.workName
-	          }));
-	          const workIdMap = {};
-	          workRes.data.forEach(work => {
-	            workIdMap[work.workName] = work.workId;
-	          });
-	          setWorkOptions(workOptions);
-	          setWorkIdMap(workIdMap);
+						const workOptions = workRes.data.map(work => ({
+							value: work.workName,
+							label: work.workName
+						}));
+						const workIdMap = {};
+						workRes.data.forEach(work => {
+							workIdMap[work.workName] = work.workId;
+						});
+						setWorkOptions(workOptions);
+						setWorkIdMap(workIdMap);
 
-	          // 2. Set work → contract
-	          const workId = workIdMap[data.work];
-	          if (workId) {
-	            const contractRes = await axios.get('http://localhost:8000/rfi/contractNames', {
-	              params: { workId }
-	            });
-	            const contractOptions = contractRes.data.map(c => ({
-	              value: c.contractShortName,
-	              label: c.contractShortName
-	            }));
-	            const contractIdMap = {};
-	            contractRes.data.forEach(c => {
-	              contractIdMap[c.contractShortName] = c.contractIdFk.trim();
-	            });
-	            setContractOptions(contractOptions);
-	            setContractIdMap(contractIdMap);
+						// 2. Set work → contract
+						const workId = workIdMap[data.work];
+						if (workId) {
+							const contractRes = await axios.get('http://localhost:8000/rfi/contractNames', {
+								params: { workId }
+							});
+							const contractOptions = contractRes.data.map(c => ({
+								value: c.contractShortName,
+								label: c.contractShortName
+							}));
+							const contractIdMap = {};
+							contractRes.data.forEach(c => {
+								contractIdMap[c.contractShortName] = c.contractIdFk.trim();
+							});
+							setContractOptions(contractOptions);
+							setContractIdMap(contractIdMap);
 
-	            // 3. contract → structureType
-	            const contractId = contractIdMap[data.contract];
-	            if (contractId) {
-	              const structureTypeRes = await axios.get('http://localhost:8000/rfi/structureType', {
-	                params: { contractId }
-	              });
-	              const structureTypeOptions = structureTypeRes.data.map(type => ({
-	                value: type,
-	                label: type
-	              }));
-	              setStructureTypeOptions(structureTypeOptions);
+							// 3. contract → structureType
+							const contractId = contractIdMap[data.contract];
+							if (contractId) {
+								const structureTypeRes = await axios.get('http://localhost:8000/rfi/structureType', {
+									params: { contractId }
+								});
+								const structureTypeOptions = structureTypeRes.data.map(type => ({
+									value: type,
+									label: type
+								}));
+								setStructureTypeOptions(structureTypeOptions);
 
-	              // 4. structure
-	              const structureRes = await axios.get('http://localhost:8000/rfi/structure', {
-	                params: {
-	                  contractId,
-	                  structureType: data.structureType
-	                }
-	              });
-	              const structureOptions = structureRes.data.map(s => ({
-	                value: s,
-	                label: s
-	              }));
-	              setStructureOptions(structureOptions);
+								// 4. structure
+								const structureRes = await axios.get('http://localhost:8000/rfi/structure', {
+									params: {
+										contractId,
+										structureType: data.structureType
+									}
+								});
+								const structureOptions = structureRes.data.map(s => ({
+									value: s,
+									label: s
+								}));
+								setStructureOptions(structureOptions);
 
-	              // 5. component
-	              const componentRes = await axios.get('http://localhost:8000/rfi/component', {
-	                params: {
-	                  contractId,
-	                  structureType: data.structureType,
-	                  structure: data.structure
-	                }
-	              });
-	              const componentOptions = componentRes.data.map(c => ({
-	                value: c,
-	                label: c
-	              }));
-	              setComponentOptions(componentOptions);
+								// 5. component
+								const componentRes = await axios.get('http://localhost:8000/rfi/component', {
+									params: {
+										contractId,
+										structureType: data.structureType,
+										structure: data.structure
+									}
+								});
+								const componentOptions = componentRes.data.map(c => ({
+									value: c,
+									label: c
+								}));
+								setComponentOptions(componentOptions);
 
-	              // 6. element
-				  const elementRes = await axios.get('http://localhost:8000/rfi/element', {
-				    params: {
-				      structureType: data.structureType,
-				      structure: data.structure,
-				      component: data.component
-				    }
-				  });
+								// 6. element
+								const elementRes = await axios.get('http://localhost:8000/rfi/element', {
+									params: {
+										structureType: data.structureType,
+										structure: data.structure,
+										component: data.component
+									}
+								});
 
-				  let elementOptions = elementRes.data.map(e => ({
-				    value: e,
-				    label: e
-				  }));
+								let elementOptions = elementRes.data.map(e => ({
+									value: e,
+									label: e
+								}));
 
-				  // ✅ Fallback if API didn't return the current element
-				  if (
-				    elementOptions.length === 0 &&
-				    data.element &&
-				    !elementOptions.find(e => e.value === data.element)
-				  ) {
-				    elementOptions = [{ value: data.element, label: data.element }];
-				  }
+								// ✅ Fallback if API didn't return the current element
+								if (
+									elementOptions.length === 0 &&
+									data.element &&
+									!elementOptions.find(e => e.value === data.element)
+								) {
+									elementOptions = [{ value: data.element, label: data.element }];
+								}
 
-				  setElementOptions(elementOptions);
+								setElementOptions(elementOptions);
 
-				  // ✅ Set the form state with existing element
-				  setFormState((prev) => ({
-				    ...prev,
-				    element: data.element || '',
-				  }));
+								// ✅ Set the form state with existing element
+								setFormState((prev) => ({
+									...prev,
+									element: data.element || '',
+								}));
 
-	              // 7. activity
-	              const activityRes = await axios.get('http://localhost:8000/rfi/activityNames', {
-	                params: {
-	                  structureType: data.structureType,
-	                  structure: data.structure,
-	                  component: data.component,
-	                  component_id: data.element
-	                }
-	              });
-	              const activityOptions = activityRes.data.map(a => ({
-	                value: a,
-	                label: a
-	              }));
-	              setActivityOptions(activityOptions);
-	            }
-	          }
-	        }
+								// 7. activity
+								const activityRes = await axios.get('http://localhost:8000/rfi/activityNames', {
+									params: {
+										structureType: data.structureType,
+										structure: data.structure,
+										component: data.component,
+										component_id: data.element
+									}
+								});
+								const activityOptions = activityRes.data.map(a => ({
+									value: a,
+									label: a
+								}));
+								setActivityOptions(activityOptions);
+							}
+						}
+					}
 
-	        // ✅ Finally set the form data
-	        setFormState({
-	          project: data.project || '',
-	          work: data.work || '',
-	          contract: data.contract || '',
-	          structureType: data.structureType || '',
-	          structure: data.structure || '',
-	          component: data.component || '',
-	          element: data.element || '',
-	          activity: data.activity || '',
-	          rfiDescription: data.rfiDescription || '',
-	          action: data.action || '',
-	          typeOfRFI: data.typeOfRFI || '',
-	          nameOfRepresentative: data.nameOfRepresentative || '',
-	          timeOfInspection: data.timeOfInspection || '',
-	          rfi_Id: data.rfi_Id || '',
-	          dateOfSubmission: data.dateOfSubmission || '',
-	          dateOfInspection: data.dateOfInspection || '',
-	          enclosures: data.enclosures || '',
-	          location: data.location || '',
-	          description: data.description || '',
-	        });
-	      })
-	      .catch((err) => {
-	        console.error('❌ Error fetching RFI:', err);
-	        setMessage('Failed to load RFI data.');
-	      });
-	  }
+					// ✅ Finally set the form data
+					setFormState({
+						project: data.project || '',
+						work: data.work || '',
+						contract: data.contract || '',
+						structureType: data.structureType || '',
+						structure: data.structure || '',
+						component: data.component || '',
+						element: data.element || '',
+						activity: data.activity || '',
+						rfiDescription: data.rfiDescription || '',
+						action: data.action || '',
+						typeOfRFI: data.typeOfRFI || '',
+						nameOfRepresentative: data.nameOfRepresentative || '',
+						timeOfInspection: data.timeOfInspection || '',
+						rfi_Id: data.rfi_Id || '',
+						dateOfSubmission: data.dateOfSubmission || '',
+						dateOfInspection: data.dateOfInspection || '',
+						enclosures: data.enclosures || '',
+						location: data.location || '',
+						description: data.description || '',
+					});
+				})
+				.catch((err) => {
+					console.error('❌ Error fetching RFI:', err);
+					setMessage('Failed to load RFI data.');
+				});
+		}
 	}, [location.state, projectIdMap]);
 
 	useEffect(() => {
@@ -763,15 +764,32 @@ const CreateRfi = () => {
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
 									<label htmlFor="action" className="block mb-1">Action:</label>
-									<input
-										type="text"
-										id="action"
-										name="action"
-										value={formState.action}
-										onChange={handleChange}
-										placeholder="Enter value"
-									/>
+									{mode === 'edit' ? (
+										<select
+											id="action"
+											name="action"
+											value={formState.action}
+											onChange={handleChange}
+											className="form-control"
+										>
+											<option value="">-- Select Action --</option>
+											<option value="Reschedule">Reschedule</option>
+											<option value="Update">Update</option>
+											<option value="Reassign">Reassign</option>
+										</select>
+									) : (
+										<input
+											type="text"
+											id="action"
+											name="action"
+											value="Action"
+											disabled
+											className="form-control"
+											style={{ color: '#aaa', backgroundColor: '#f5f5f5', border: '1px solid #ccc' }}
+										/>
+									)}
 								</div>
+
 
 								<div className="form-fields flex-1">
 									<label htmlFor="typeOfRFI" className="block mb-1">Type of RFI:</label>
