@@ -87,14 +87,14 @@ public class RFIController {
 			@RequestParam(name = "structure", required = false) String structure) {
 		return rfiService.getComponentByStructureStructureTypeContractId(structureType, contractId, structure);
 	}
-
+	
 	@GetMapping("/element")
 	public List<String> getElementByStructureTypeStructureComponent(
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component) {
-		return rfiService.getComponentByStructureStructureTypeContractId(structureType, structure, component);
-	}
+		return rfiService.getElementByStructureStructureTypeComponent(structureType, structure, component);
+	} 
 
 	@GetMapping("/activityNames")
 	public List<String> getActivityNamesByStructureTypeStructureComponentComponentId(
