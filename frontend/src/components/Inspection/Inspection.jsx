@@ -44,30 +44,33 @@ const Inspection = () => {
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
 
-useEffect(() => {
-	fetch("http://localhost:8000/rfi/rfi-details", {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		credentials: 'include',
-	})
-		.then((res) => {
-			if (!res.ok) {
-				throw new Error("Network error");
-			}
-			return res.json();
+	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+
+	useEffect(() => {
+		fetch("http://localhost:8000/rfi/rfi-details", {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			credentials: 'include',
 		})
-		.then((data) => {
-			setData(data);
-			setLoading(false);
-		})
-		.catch((err) => {
-			console.error(err);
-			setError("Failed to load RFI data");
-			setLoading(false);
-		});
-}, []);
+			.then((res) => {
+				if (!res.ok) {
+					throw new Error("Network error");
+				}
+				return res.json();
+			})
+			.then((data) => {
+				setData(data);
+				setLoading(false);
+			})
+			.catch((err) => {
+				console.error(err);
+				setError("Failed to load RFI data");
+				setLoading(false);
+			});
+	}, []);
 
 
 
@@ -93,8 +96,8 @@ useEffect(() => {
 	}, []);
 
 	const handleInspectionComplete = (rfi) => {
-  navigate(`/InspectionForm`, { state: { rfi } });
-};
+		navigate(`/InspectionForm`, { state: { rfi } });
+	};
 
 
 	const columns = useMemo(() => [
@@ -129,16 +132,27 @@ useEffect(() => {
 								<button
 									onClick={(e) => {
 										e.stopPropagation();
-										handleInspectionComplete(row.original.rfi_Id);
+										handleInspectionComplete(row.original.id);
 										setOpenDropdownRow(null);
 									}}
 								>
 									Start Inspection Online
 								</button>
 								<button>Start Inspection Offline</button>
-								<button>Upload Test Results</button>
+								
+								{userRole !== 'regular user' && (
+									<button>Upload Test Results</button>
+								)}
+
 								<button>View</button>
-								<button>Submit</button>
+
+								{userRole !== 'contractor' && (
+									<button>Send for Validation</button>
+								)}
+
+								{userRole !== 'regular user' && (
+									<button>Submit</button>
+								)}
 							</DropdownMenu>
 						)}
 					</div>

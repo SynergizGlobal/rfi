@@ -372,3 +372,7 @@ label{
 .location-row input {
   flex: 1;
 }
+.inspection-form .popup .form-fields{
+	margin-top: 0;
+	margin-bottom: 0;
+}
