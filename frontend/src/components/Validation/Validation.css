@@ -77,5 +77,16 @@
   text-align: left;
 }
 
+.validation .popup-content .form-fields{
+	margin-top: 0;
+	margin-bottom: 0;
+		
+}
+.validation .popup-content .form-fields label{
+	margin: 5px 0;
+	color: #636363;
+		
+}
+
 
 
