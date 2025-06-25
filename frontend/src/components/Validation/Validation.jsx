@@ -155,7 +155,7 @@ export default function Validation() {
   const printPreview = () => window.print();
 
   return (
-    <div className="dashboard">
+    <div className="dashboard validation">
       <HeaderRight />
       <div className="right">
         <div className="dashboard-main">
