@@ -11,6 +11,7 @@ import Inspection from './components/Inspection/Inspection';
 import InspectionForm from './components/InspectionForm/InspectionForm';
 import Validation from './components/Validation/Validation';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import RfiLogList from './components/RfiLogList/RfiLogList'
 
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
@@ -44,6 +45,7 @@ function App() {
           <Route path="/Inspection" element={<Inspection />} />
           <Route path="/InspectionForm" element={<InspectionForm />} />
           <Route path="/Validation" element={<Validation />} />
+          <Route path="/RfiLogList" element={<RfiLogList />} />
           {/* Add more protected routes here */}
         </Route>
 

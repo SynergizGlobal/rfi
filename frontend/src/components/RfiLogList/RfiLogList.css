@@ -1,0 +1,27 @@
+.rfiloglist {
+  /* Styles for RfiLogList */
+}
+.validation-table{
+  margin: 0 auto;
+}
+.filters {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.filters select {
+  padding: 5px;
+}
+.download-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background-color: #0056b3;
+}
