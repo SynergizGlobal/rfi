@@ -32,7 +32,7 @@ public class RFI {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
-	private Long Id;
+	private Long id;
 	private String rfi_Id;
 	@Column(name = "project_name")
 	private String project;
@@ -103,5 +103,9 @@ public class RFI {
  
 	@Column(name = "client_user_id")
 	private String clientUserId;
+	
+    @Column(name = "assigned_person_contractor")
+    private String assignedPersonContractor;
+    
 
 }

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RFI_DTO {
 
-	private Long Id;
+	private Long id;
 	private String rfi_Id;
 	private String contractId;
 	private String rfiDescription;
@@ -34,5 +34,6 @@ public class RFI_DTO {
 	private String structure;
 	private String activity;
 	private String status;
+    private String contractor;
 
 }
