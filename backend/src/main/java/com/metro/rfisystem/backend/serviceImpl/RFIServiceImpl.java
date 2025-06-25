@@ -4,14 +4,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.metro.rfisystem.backend.dto.Contract;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -211,6 +209,22 @@ public class RFIServiceImpl implements RFIService {
 			return true;
 		}
 		return false;
+	}
+
+	@Override
+	public List<RFI> getRFIsByCreatedBy(String createdBy) {
+		return rfiRepository.findByCreatedBy(createdBy);
+	}
+
+	@Override
+	public List<RFI> getRFIsAssignedTo(String assignedPersonClient) {
+		return rfiRepository.findByAssignedPersonClient(assignedPersonClient);
+	}
+
+	@Override
+	public int countByAssignedTo(String assignedTo) {
+		return rfiRepository.countByAssignedPersonClient(assignedTo);
+
 	}
 
 }

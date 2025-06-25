@@ -9,8 +9,19 @@ const CreatedRfi = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		fetch('http://localhost:8000/rfi/rfi-details')
-			.then(response => response.json())
+		fetch('http://localhost:8000/rfi/rfi-details', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			credentials: 'include',
+		})
+			.then(response => {
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+				}
+				return response.json();
+			})
 			.then(data => {
 				console.log("Fetched RFI data:", data);
 				const transformed = data.map((item, index) => ({
@@ -27,9 +38,11 @@ const CreatedRfi = () => {
 				setRfiData(transformed);
 			})
 			.catch(error => {
-				console.error('Error fetching RFI data:', error);
+				console.error('❌ Error fetching RFI data:', error);
+				alert('Failed to fetch RFI data. Please check if you are logged in.');
 			});
 	}, []);
+
 
 	const handleEdit = (rfi) => {
 		console.log("🟢 rfi object:", rfi);

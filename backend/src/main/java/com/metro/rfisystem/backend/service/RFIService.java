@@ -28,13 +28,16 @@ public interface RFIService {
 	List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
 			String component, String component_id);
 
-  // List<RFI_DTO> getAllRFIDetails();
-   
-   List<RFI> getAllRFIs();
+	List<RFI> getAllRFIs();
 
-   String updateRfi(Long id, RFI_DTO rfiDto);
+	String updateRfi(Long id, RFI_DTO rfiDto);
 
-boolean assignPersonToClient(String rfi_Id, String assignedPersonClient);
+	boolean assignPersonToClient(String rfi_Id, String assignedPersonClient);
 
-   
+	List<RFI> getRFIsByCreatedBy(String userName);
+
+	List<RFI> getRFIsAssignedTo(String userName);
+
+	int countByAssignedTo(String userName);
+
 }

@@ -20,5 +20,12 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	 
     @Query("SELECT r FROM RFI r WHERE r.rfi_Id = :rfiId")
     Optional<RFI> findByRfiId(@Param("rfiId") String rfiId);
+    
+    List<RFI> findByCreatedBy(String createdBy);
+
+	List<RFI> findByAssignedPersonClient(String assignedPersonClient);
+
+	int countByAssignedPersonClient(String assignedTo);
+
 
 }

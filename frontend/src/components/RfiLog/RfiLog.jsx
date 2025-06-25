@@ -45,7 +45,18 @@ const RfiLog = () => {
 	useEffect(() => {
 		const fetchRfis = async () => {
 			try {
-				const response = await fetch('http://localhost:8000/rfi/rfi-details');
+				const response = await fetch('http://localhost:8000/rfi/rfi-details', {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include', 
+				});
+
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
 				const result = await response.json();
 				const formatted = result.map((item, index) => ({
 					rfiId: item.rfi_Id,
@@ -68,6 +79,7 @@ const RfiLog = () => {
 		fetchRfis();
 	}, []);
 
+
 	useEffect(() => {
 		const fetchRegularUsers = async () => {
 			try {
@@ -86,7 +98,7 @@ const RfiLog = () => {
 	const handleAssignSubmit = async () => {
 
 		const selectedRow = data.find(d => d.rfiId === selectedRfi);
-		if (!selectedRow) return; 
+		if (!selectedRow) return;
 		const rfiId = selectedRow.rfiId;
 
 		try {

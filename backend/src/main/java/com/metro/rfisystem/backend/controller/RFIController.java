@@ -1,6 +1,5 @@
 package com.metro.rfisystem.backend.controller;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,11 +41,11 @@ public class RFIController {
 	@PostMapping("/create")
 	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto, HttpSession session) {
 		String userName = (String) session.getAttribute("userName");
-		
+
 		if (userName == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
 		}
- 
+
 		RFI saved = rfiService.createRFI(dto, userName);
 		return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");
 	}
@@ -87,14 +86,14 @@ public class RFIController {
 			@RequestParam(name = "structure", required = false) String structure) {
 		return rfiService.getComponentByStructureStructureTypeContractId(structureType, contractId, structure);
 	}
-	
+
 	@GetMapping("/element")
 	public List<String> getElementByStructureTypeStructureComponent(
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component) {
 		return rfiService.getElementByStructureStructureTypeComponent(structureType, structure, component);
-	} 
+	}
 
 	@GetMapping("/activityNames")
 	public List<String> getActivityNamesByStructureTypeStructureComponentComponentId(
@@ -107,41 +106,77 @@ public class RFIController {
 	}
 
 	@GetMapping("/rfi-details")
-	public List<RFI> getAllRFIs() {
-	    return rfiService.getAllRFIs(); 
-	}
+	public ResponseEntity<List<RFI>> getRfisBasedOnRole(HttpSession session) {
+		String userName = (String) session.getAttribute("userName");
+		String userRole = (String) session.getAttribute("userRoleNameFk");
+		String userType = (String) session.getAttribute("userTypeFk");
 
+		System.out.println("Session userName: " + userName);
+		System.out.println("Session userRoleNameFk: " + userRole);
+		System.out.println("Session userTypeFk: " + userType);
+
+		if (userName == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
+		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
+
+		if (isAdmin || isDyHOD) {
+			return ResponseEntity.ok(rfiService.getAllRFIs());
+		}
+		if (userRole.equalsIgnoreCase("Regular User")) {
+			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
+		}
+		return ResponseEntity.ok(rfiService.getRFIsByCreatedBy(userName));
+	}
 
 	@GetMapping("/rfi-count")
-	public long getRFICount() {
-		return rfiRepository.count();
-	}
-	
-	@GetMapping("/rfi-details/{id}")
-	public ResponseEntity<RFI> getRFIById(@PathVariable Long id) {
-	    Optional<RFI> rfi = rfiRepository.findById(id);
-	    return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+	public ResponseEntity<Integer> getRfiCount(HttpSession session) {
+		String userName = (String) session.getAttribute("userName");
+		String userRole = (String) session.getAttribute("userRoleNameFk");
+		String userType = (String) session.getAttribute("userTypeFk");
+
+		if (userName == null || (userRole == null && userType == null)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
+		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
+
+		if (isAdmin || isDyHOD) {
+			int count = rfiService.getAllRFIs().size();
+			return ResponseEntity.ok(count);
+		}
+		if (userRole.equalsIgnoreCase("Regular User")) {
+			return ResponseEntity.ok(rfiService.countByAssignedTo(userName));
+		}
+
+		int userRfiCount = rfiService.getRFIsByCreatedBy(userName).size();
+		return ResponseEntity.ok(userRfiCount);
 	}
 
-	
+	@GetMapping("/rfi-details/{id}")
+	public ResponseEntity<RFI> getRFIById(@PathVariable Long id) {
+		Optional<RFI> rfi = rfiRepository.findById(id);
+		return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+	}
+
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<Void> deleteRFI(@PathVariable Long id) {
-	    Optional<RFI> rfi = rfiRepository.findById(id);
-	    if (rfi.isPresent()) {
-	        rfiRepository.delete(rfi.get());
-	        return ResponseEntity.noContent().build();
-	    } else {
-	        return ResponseEntity.notFound().build();
-	    }
+		Optional<RFI> rfi = rfiRepository.findById(id);
+		if (rfi.isPresent()) {
+			rfiRepository.delete(rfi.get());
+			return ResponseEntity.noContent().build();
+		} else {
+			return ResponseEntity.notFound().build();
+		}
 	}
 
 	@PutMapping("/update/{id}")
 	public ResponseEntity<String> updateRfi(@PathVariable Long id, @RequestBody RFI_DTO rfiDto) {
-	    String result = rfiService.updateRfi(id, rfiDto);
-	    return ResponseEntity.ok(result);
+		String result = rfiService.updateRfi(id, rfiDto);
+		return ResponseEntity.ok(result);
 	}
 
-	
 	@PostMapping("/assign-client-person")
 	public ResponseEntity<String> assignPersonToClient(@RequestBody AssignPersonDTO assignDTO) {
 		boolean success = rfiService.assignPersonToClient(assignDTO.getRfi_Id(), assignDTO.getAssignedPersonClient());
@@ -151,8 +186,5 @@ public class RFIController {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
 		}
 	}
-
-
-	
 
 }

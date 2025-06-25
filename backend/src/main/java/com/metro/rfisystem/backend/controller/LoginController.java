@@ -25,13 +25,11 @@ import com.metro.rfisystem.backend.service.LoginService;
 
 import jakarta.servlet.http.HttpSession;
 
-
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:9090", allowCredentials = "true")
 public class LoginController {
 
-	
 	private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
 
 	@Autowired
@@ -47,15 +45,13 @@ public class LoginController {
 			session.setAttribute("user", user);
 			session.setAttribute("userId", user.getUserId());
 			session.setAttribute("userName", user.getUserName());
+			session.setAttribute("userRoleNameFk", user.getUserRoleNameFk());
+			session.setAttribute("userTypeFk", user.getUserTypeFk());
 
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
-			LoginResponse response = new LoginResponse(
-				    user.getUserId(),
-				    user.getUserName(),
-				    user.getUserRoleNameFk(),
-				    user.getUserTypeFk()
-				);
+			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),
+					user.getUserTypeFk());
 
 			logger.info("Login successful for user: {}", user.getUserName());
 			return ResponseEntity.ok(response);
@@ -106,11 +102,11 @@ public class LoginController {
 					.body(new ErrorResponse("NO_SESSION", "No active session found"));
 		}
 	}
-	
+
 	@GetMapping("/regular-roles")
 	public ResponseEntity<List<String>> getUserNamesOfRegularUsers() {
-	    List<String> userNames  = loginService.getUserNamesOfRegularUsers();
-	    return ResponseEntity.ok(userNames);
+		List<String> userNames = loginService.getUserNamesOfRegularUsers();
+		return ResponseEntity.ok(userNames);
 	}
 
 }

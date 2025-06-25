@@ -44,24 +44,30 @@ const Inspection = () => {
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
 
-	useEffect(() => {
-		fetch("http://localhost:8000/rfi/rfi-details")
-			.then((res) => {
-				if (!res.ok) {
-					throw new Error("Network error");
-				}
-				return res.json();
-			})
-			.then((data) => {
-				setData(data);
-				setLoading(false);
-			})
-			.catch((err) => {
-				console.error(err);
-				setError("Failed to load RFI data");
-				setLoading(false);
-			});
-	}, []);
+useEffect(() => {
+	fetch("http://localhost:8000/rfi/rfi-details", {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		credentials: 'include',
+	})
+		.then((res) => {
+			if (!res.ok) {
+				throw new Error("Network error");
+			}
+			return res.json();
+		})
+		.then((data) => {
+			setData(data);
+			setLoading(false);
+		})
+		.catch((err) => {
+			console.error(err);
+			setError("Failed to load RFI data");
+			setLoading(false);
+		});
+}, []);
 
 
 
