@@ -1,6 +1,5 @@
 .action-dropdown {
   position: relative;
-  display: inline-block;
 }
 
 .action-button {
@@ -17,7 +16,7 @@
   background: white;
   border: 1px solid #ccc;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 1;
   min-width: 190px;
   padding: 5px 0;
   border-radius: 4px;
@@ -96,14 +95,16 @@ table {
   position: relative;
 }
 .table-wrapper {
-  min-width: 1000px;  /* Or adjust based on column needs */
-  width: max-content; /* Fits content but allows horizontal scroll */
+  width: 100%; 
+   overflow-x: auto;
+  max-height: 100%;
+  overflow-y: hidden;
 }
 
 .dashboard-main,
 .right,
 .dashboard {
-  height: auto;     /* or remove fixed height */
+  height: auto;   
   overflow: visible;
 }
 

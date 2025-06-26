@@ -2,36 +2,17 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTable, usePagination, useGlobalFilter } from 'react-table';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import { useNavigate } from 'react-router-dom';
-import ReactDOM from 'react-dom';
 import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
 
-const DropdownMenu = ({ anchorRef, children }) => {
-	const [coords, setCoords] = useState(null);
-
-	useEffect(() => {
-		if (anchorRef.current) {
-			const rect = anchorRef.current.getBoundingClientRect();
-			setCoords({
-				top: rect.bottom + window.scrollY,
-				left: rect.right - 150 + window.scrollX,
-			});
-		}
-	}, [anchorRef]);
-
-	if (!coords) return null;
-
-	return ReactDOM.createPortal(
-		<div
-			className="drop-down-menu"
-			style={{ position: 'absolute', top: coords.top, left: coords.left }}
-			onClick={(e) => e.stopPropagation()}
-		>
-			{children}
-		</div>,
-		document.getElementById('dropdown-portal')
-	);
+const DropdownMenu = ({ children }) => {
+  return (
+    <div className="drop-down-menu" onClick={(e) => e.stopPropagation()}>
+      {children}
+    </div>
+  );
 };
+
 
 const Inspection = () => {
 	const [selectedRfi, setSelectedRfi] = useState(null);
@@ -114,11 +95,9 @@ const Inspection = () => {
 		{
 			Header: 'Action',
 			Cell: ({ row }) => {
-				const btnRef = (buttonRefs.current[row.rfi_Id] ||= React.createRef());
 				return (
 					<div className="action-dropdown">
 						<button
-							ref={btnRef}
 							className="action-button"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -128,7 +107,7 @@ const Inspection = () => {
 							⋮
 						</button>
 						{openDropdownRow === row.id && (
-							<DropdownMenu anchorRef={btnRef}>
+							<DropdownMenu>
 								<button
 									onClick={(e) => {
 										e.stopPropagation();
