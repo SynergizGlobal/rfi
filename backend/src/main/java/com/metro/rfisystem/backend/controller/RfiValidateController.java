@@ -1,5 +1,12 @@
 package com.metro.rfisystem.backend.controller;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -76,6 +83,20 @@ public class RfiValidateController {
 			return ResponseEntity.noContent().build();
 		}
 		return ResponseEntity.ok(list);
+	}
+
+	@GetMapping("/previewFiles")
+	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws MalformedURLException {
+	    Path file = Paths.get(filepath); // full path from request param
+	    Resource resource = new UrlResource(file.toUri());
+
+	    if (!resource.exists() || !resource.isReadable()) {
+	        return ResponseEntity.notFound().build();
+	    }
+
+	    return ResponseEntity.ok()
+	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
+	        .body(resource);
 	}
 
 }

@@ -13,6 +13,28 @@
   white-space: nowrap;
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+}
+.form-fields label {
+  font-weight: bold;
+}
+.preview-image {
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+}
+.image-gallery {
+  margin-top: 20px;
+}
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
 
 
 /* Popup overlay */

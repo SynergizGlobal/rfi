@@ -1,59 +1,72 @@
-
-
-import React, { useState } from 'react';
+import axios from 'axios';
+import React, { useState,useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import './Validation.css';
 import HeaderRight from '../HeaderRight/HeaderRight';
 
-const enclosuresData = [
-	{ id: 1, rfiDescription: 'PCC', enclosure: 'Level Sheet' },
-	{ id: 2, rfiDescription: 'PCC', enclosure: 'Pour Card' },
-];
-
+const getExtension = (filename) => {
+  return filename?.split('.').pop()?.toLowerCase();
+};
 export default function Validation() {
-	const [inspectionList, setInspectionList] = useState([
-		{
-			client: 'Mumbai Rail Vikas Corporation',
-			consultant: 'XYZ Consultants',
-			contract: 'P04W02',
-			contractor: 'ABC Constructions Pvt. Ltd.',
-			contractId: 'P04W02',
-			rfiId: 'P4EN3/ABC/0115/RFI/00001/R1',
-			dateOfInspection: '2025-06-25',
-			proposedTime: '10:00 AM',
-			actualTime: '10:30 AM',
-			location: 'Mumbai, Site A',
-			contractorRep: 'John Doe',
-			clientRep: 'Jane Smith',
-			contractorDescription: 'Concrete pouring as per approved drawing.',
-			clientComments: 'Verified at site, looks good.',
-			rfiStatus: '',
-			remarks: '',
-			selfieImage: 'data:image/png;base64,...',
-			galleryImages: {
-				'gallery-1': 'data:image/png;base64,...',
-				'gallery-2': ''
-			},
-			enclosureStates: {
-				1: {
-					uploadedFile: { name: 'LevelSheet.pdf' },
-					contractorSign: 'data:image/png;base64,...',
-					gcSign: 'data:image/png;base64,...',
-					checklist: [
-						{ id: 1, description: 'Drawing Approved', status: 'Yes', contractorRemark: 'Ok', aeRemark: 'Fine' },
-						{ id: 2, description: 'Shuttering aligned', status: 'Yes', contractorRemark: 'Aligned', aeRemark: 'Checked' },
-					]
-				},
-				2: {
-					uploadedFile: { name: 'PourCard.pdf' }
-				}
-			}
-		}
-	]);
-
+	const [rfiList, setRfiList] = useState([]);
+	const [remarksList, setRemarksList] = useState([]);
+	const [statusList, setStatusList] = useState([]);
+	const [fileList, setFileList] = useState([]);
 	const [selectedInspection, setSelectedInspection] = useState(null);
 
+	useEffect(() => {
+		axios.get('http://localhost:8000/getRfiValidations')
+			.then(res => setRfiList(res.data))
+			.catch(err => console.error(err));
+	}, []);
+
+	const updateRemark = (idx, value) => {
+		const updated = [...remarksList];
+		updated[idx] = value;
+		setRemarksList(updated);
+	};
+
+	const updateStatus = (idx, value) => {
+		const updated = [...statusList];
+		updated[idx] = value;
+		setStatusList(updated);
+	};
+
+	const handleFileChange = (idx, file) => {
+		const updated = [...fileList];
+		updated[idx] = file;
+		setFileList(updated);
+	};
+
+	const submitValidation = (rfi, idx) => {
+		const formData = new FormData();
+		formData.append("long_rfi_id", rfi.longRfiId);
+		formData.append("long_rfi_validate_id", rfi.longRfiValidateId);
+		formData.append("remarks", remarksList[idx] || '');
+		formData.append("action", statusList[idx] || '');
+		formData.append("file", fileList[idx]);
+
+		axios.post("http://localhost:8000/validate", formData)
+			.then(() => alert('Validation submitted successfully.'))
+			.catch(err => console.error('Validation error:', err));
+	};
+
+	const fetchPreview = (rfiId) => {
+		axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`)
+			.then(res => {
+				if (res.data?.length > 0) {
+					setSelectedInspection(res.data[0]);
+				}
+			})
+			.catch(err => console.error(err));
+	};
+
+
+	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
+	const fileBaseURL = 'http://localhost:8000/previewFiles';
+	
+	
 	const generatePDF = async (inspectionListToExport) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 		const loadLogo = () => new Promise(resolve => {
@@ -64,6 +77,9 @@ export default function Validation() {
 		});
 
 		const logo = await loadLogo();
+		
+
+
 
 		inspectionListToExport.forEach((inspection, idx) => {
 			if (idx !== 0) doc.addPage();
@@ -86,7 +102,7 @@ export default function Validation() {
 			y += 6;
 			doc.text(`Date of Inspection: ${inspection.dateOfInspection}`, 15, y);
 			doc.text(`Location: ${inspection.location}`, 75, y);
-			doc.text(`Proposed Time: ${inspection.proposedTime}`, 135, y);
+			doc.text(`Proposed Time: ${inspection.proposedInspectionTime}`, 135, y);
 			y += 6;
 			doc.text(`Actual Time: ${inspection.actualTime}`, 15, y);
 			y += 6;
@@ -125,19 +141,7 @@ export default function Validation() {
 			doc.setFont(undefined, 'normal');
 			y += 2;
 
-			const enclosureTable = enclosuresData.map(e => [
-				e.rfiDescription,
-				e.enclosure,
-				inspection.enclosureStates?.[e.id]?.uploadedFile?.name || ''
-			]);
 
-			doc.autoTable({
-				startY: y,
-				head: [['RFI Description', 'Enclosure', 'File Name']],
-				body: enclosureTable,
-				styles: { fillColor: [255, 255, 255], lineWidth: 0.1 },
-				headStyles: { fillColor: [0, 102, 153], textColor: 255 },
-			});
 
 			y = doc.lastAutoTable.finalY + 5;
 			doc.setFont(undefined, 'bold');
@@ -208,23 +212,19 @@ export default function Validation() {
 								<th>Preview</th>
 								<th>Download</th>
 								<th>Remarks</th>
+								<th>Status</th>
+								<th>File</th>
 								<th>Action</th>
 							</tr>
 						</thead>
 						<tbody>
-							{inspectionList.map((inspection, idx) => (
+							{rfiList.map((rfi, idx) => (
 								<tr key={idx}>
-									<td>{inspection.rfiId}</td>
-									<td><button onClick={() => setSelectedInspection(inspection)}>👁️</button></td>
-									<td><button onClick={() => generatePDF([inspection])}>⬇️</button></td>
+									<td>{rfi.stringRfiId}</td>
+									<td><button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button></td>
+									<td><button onClick={() => generatePDF([rfi])}>⬇️</button></td>
 									<td>
-										<select
-											value={inspection.remarks || ''}
-											onChange={(e) => {
-												const updated = [...inspectionList];
-												updated[idx].remarks = e.target.value;
-												setInspectionList(updated);
-											}}>
+										<select onChange={(e) => updateRemark(idx, e.target.value)}>
 											<option value="">-- Select --</option>
 											<option value="NONO">NONO</option>
 											<option value="NONOC(B)">NONOC (B)</option>
@@ -233,36 +233,37 @@ export default function Validation() {
 										</select>
 									</td>
 									<td>
-										<select
-											value={inspection.rfiStatus || ''}
-											onChange={(e) => {
-												const updated = [...inspectionList];
-												updated[idx].rfiStatus = e.target.value;
-												setInspectionList(updated);
-											}}>
+										<select onChange={(e) => updateStatus(idx, e.target.value)}>
 											<option value="">-- Select --</option>
-											<option value="Approved">Approved</option>
-											<option value="Rejected">Rejected</option>
-											<option value="Clarification Required">Clarification Required</option>
+											<option value="APPROVED">Approved</option>
+											<option value="REJECTED">Rejected</option>
+											<option value="CLARIFICATION_REQUIRED">Clarification Required</option>
 										</select>
+									</td>
+									<td>
+										<input type="file" onChange={(e) => handleFileChange(idx, e.target.files[0])} />
+									</td>
+									<td>
+										<button onClick={() => submitValidation(rfi, idx)}>Validate</button>
 									</td>
 								</tr>
 							))}
 						</tbody>
 					</table>
 
-					<button onClick={() => generatePDF(inspectionList)}>Download All as PDF</button>
-
 					{selectedInspection && (
 						<div className="popup-overlay" onClick={() => setSelectedInspection(null)}>
 							<div className="popup-content" onClick={(e) => e.stopPropagation()}>
 								<h3>RFI Preview</h3>
 								<div className="form-row">
-								
-									<div className="form-fields">
-										<label>Client:</label> 
-										<p>{selectedInspection.client}</p>
-									</div>
+								<div className="form-fields" style={{ gridColumn: 'span 1' }}>
+								  <label>Client:</label>
+								  <p>Mumbai Rail Vikas Corporation</p>
+								</div>
+								<div className="form-fields" style={{ gridColumn: 'span 1' }}>
+								  <label></label>
+								  <p>Request For Information (RFI)</p>
+								</div>
 									
 									<div className="form-fields">
 										<label>Consultant:</label> 
@@ -293,107 +294,203 @@ export default function Validation() {
 										<label>Date of Inspection:</label> 
 										<p>{selectedInspection.dateOfInspection}</p>
 									</div>
-									
-									<div className="form-fields">
-										<label>Proposed Time:</label> 
-										<p>{selectedInspection.proposedTime}</p>
-									</div>
-									
-									<div className="form-fields">
-										<label>Actual Time:</label> 
-										<p>{selectedInspection.actualTime}</p>
-									</div>
-									
 									<div className="form-fields">
 										<label>Location:</label> 
 										<p>{selectedInspection.location}</p>
 									</div>
 									
 									<div className="form-fields">
+										<label>Proposed Time:</label> 
+										<p>{selectedInspection.proposedInspectionTime}</p>
+									</div>
+									
+									<div className="form-fields">
+										<label>Actual Time:</label> 
+										<p>{selectedInspection.actualInspectionTime}</p>
+									</div>
+									<div className="form-fields">
+										<label>RfiDescription:</label> 
+										<p>{selectedInspection.rfiDescription}</p>
+									</div>
+									
+									<div className="form-fields">
+										<label>Enclosures:</label> 
+										<p>{selectedInspection.enclosures}</p>
+									</div>
+								
+									
+									<div className="form-fields">
 										<label>Contractor's Representative:</label> 
-										<p>{selectedInspection.contractorRep}</p>
+										<p>{selectedInspection.contractorRepresentative}</p>
 									</div>
 									
 									<div className="form-fields">
 										<label>Client Representative:</label> 
-										<p>{selectedInspection.clientRep}</p>
+										<p>{selectedInspection.clientRepresentative}</p>
 									</div>
 									
 									<div className="form-fields">
 										<label>Description by Contractor:</label> 
-										<p>{selectedInspection.contractorDescription}</p>
+										<p>{selectedInspection.descriptionByContractor}</p>
 									</div>
 									
-									<div className="form-fields">
-										<label>Comments by Client:</label> 
-										<p>{selectedInspection.clientComments}</p>
-									</div>
 									
 								</div>
-
-								<h4>Enclosures</h4>
-								<table className="preview-table">
-									<thead>
-										<tr><th>Description</th><th>Enclosure</th><th>File</th></tr>
-									</thead>
-									<tbody>
-										{enclosuresData.map(e => (
-											<tr key={e.id}>
-												<td>{e.rfiDescription}</td>
-												<td>{e.enclosure}</td>
-												<td>{selectedInspection.enclosureStates?.[e.id]?.uploadedFile?.name || '---'}</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
 
 								<h4>Checklist</h4>
 								<table className="preview-table">
-									<thead>
-										<tr><th>ID</th><th>Description</th><th>Status</th><th>Contractor Remarks</th><th>AE Remarks</th></tr>
-									</thead>
-									<tbody>
-										{(selectedInspection.enclosureStates?.[1]?.checklist || []).map(row => (
-											<tr key={row.id}>
-												<td>{row.id}</td>
-												<td>{row.description}</td>
-												<td>{row.status}</td>
-												<td>{row.contractorRemark}</td>
-												<td>{row.aeRemark}</td>
-											</tr>
-										))}
-									</tbody>
+								  <thead>
+								    <tr>
+								      <th>ID</th>
+								      <th>Description</th>
+								      <th>Status</th>
+								      <th>Contractor Remarks</th>
+								      <th>AE Remarks</th>
+								    </tr>
+								  </thead>
+								  <tbody>
+								    {/* Drawing row */}
+								    <tr>
+								      <td>1</td>
+								      <td>Drawing</td>
+								      <td>{selectedInspection.drawingStatus || '---'}</td>
+								      <td>{selectedInspection.drawingRemarksContracotr || '---'}</td>
+								      <td>{selectedInspection.drawingRemarksClient || '---'}</td>
+								    </tr>
+								    {/* Alignment row */}
+								    <tr>
+								      <td>2</td>
+								      <td>Alignment</td>
+								      <td>{selectedInspection.alignmentStatus || '---'}</td>
+								      <td>{selectedInspection.alignmentoCntractorRemarks || '---'}</td>
+								      <td>{selectedInspection.alignmentClientRemarks || '---'}</td>
+								    </tr>
+								  </tbody>
 								</table>
 
+
 								<h4>Status & Remarks</h4>
-								<p><strong>Status:</strong> {selectedInspection.rfiStatus || '---'}</p>
+								<p><strong>Status:</strong> {selectedInspection.status || '---'}</p>
 								<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
 
-								{selectedInspection.selfieImage && (
-									<div>
-										<h4>Inspector Selfie</h4>
-										<img src={selectedInspection.selfieImage} alt="Selfie" className="preview-image" />
-									</div>
+								{selectedInspection.selfiePath && (
+								  <div className="image-gallery">
+								    <h4>Inspector Selfie</h4>
+								    <img
+								      src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.selfiePath)}`}
+								      alt="Selfie"
+								      className="preview-image"
+								    />
+								  </div>
 								)}
 
-								<h4>Site Images</h4>
-								<div className="image-gallery">
-									{Object.values(selectedInspection.galleryImages || {}).map((img, idx) => (
-										img ? <img key={idx} src={img} alt={`Site ${idx + 1}`} className="preview-image" /> : null
-									))}
-								</div>
 
-								{selectedInspection.enclosureStates?.[1]?.contractorSign && (
-									<div>
-										<h4>Contractor Signature</h4>
-										<img src={selectedInspection.enclosureStates[1].contractorSign} alt="Contractor Sign" className="preview-image" />
-									</div>
+								{selectedInspection.imagesUploadedByClient && (
+								  <div className="image-gallery">
+								    <h4>Site Images By Inspector</h4>
+								    {selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => (
+								      <img
+								        key={idx}
+								        src={`${fileBaseURL}?filepath=${encodeURIComponent(img.trim())}`}
+								        alt={`Client Image ${idx + 1}`}
+								        className="preview-image"
+								      />
+								    ))}
+								  </div>
 								)}
-								{selectedInspection.enclosureStates?.[1]?.gcSign && (
-									<div>
-										<h4>GC/MRVC Signature</h4>
-										<img src={selectedInspection.enclosureStates[1].gcSign} alt="GC Sign" className="preview-image" />
-									</div>
+
+								{selectedInspection.imagesUploadedByContractor && (
+								  <div className="image-gallery">
+								    <h4>Site Images By Contractor</h4>
+								    {selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => (
+								      <img
+								        key={idx}
+								        src={`${fileBaseURL}?filepath=${encodeURIComponent(img.trim())}`}
+								        alt={`Client Image ${idx + 1}`}
+								        className="preview-image"
+								      />
+								    ))}
+								  </div>
+								)}
+
+								
+								{selectedInspection.enclosureFilePaths && (
+								  <div className="image-gallery">
+								    <h4>Enclosures</h4>
+								    {selectedInspection.enclosureFilePaths.split(',').map((path, idx) => (
+								      <img
+								        key={idx}
+								        src={`${fileBaseURL}?filepath=${encodeURIComponent(path.trim())}`}
+								        alt={`Enclosure ${idx + 1}`}
+								        className="preview-image"
+								      />
+								    ))}
+								  </div>
+								)}
+
+								{selectedInspection.testInsiteLab && selectedInspection.testSiteDocuments && (
+								  <div className="image-gallery">
+								    <h4>Test Report</h4>
+									
+								    {(() => {
+								      const path = selectedInspection.testSiteDocuments.trim();
+								      const filename = getFilename(path);
+								      const extension = getExtension(filename);
+								      const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+									  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+									    View Test Report
+									  </a>
+
+								      if (extension === 'pdf') {
+								        return (
+								          <embed
+								            src={fileUrl}
+								            type="application/pdf"
+								            width="100%"
+								            height="500px"
+								            className="preview-pdf"
+								          />
+								        );
+								      } else {
+								        return (
+								          <img
+								            src={fileUrl}
+								            alt="Test Report"
+								            className="preview-image"
+								            onError={() => console.error("Image load error:", fileUrl)}
+								          />
+								        );
+								      }
+								    })()}
+								  </div>
+								)}
+
+
+
+
+
+
+								{selectedInspection.contractorSignature && (
+								  <div className="image-gallery">
+								    <h4>Contractor Signature</h4>
+								    <img
+								      src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.contractorSignature)}`}
+								      alt="Contractor Signature"
+								      className="preview-image"
+								    />
+								  </div>
+								)}
+
+
+								{selectedInspection.gcMrvcSignature && (
+								  <div className="image-gallery">
+								    <h4>GC/MRVC Signature</h4>
+								    <img
+								      src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.gcMrvcSignature)}`}
+								      alt="GC Signature"
+								      className="preview-image"
+								    />
+								  </div>
 								)}
 
 								<div className="popup-actions">

@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,15 +21,28 @@ public class RfiReportDTO {
     private String enclosures;
     private String contractorRepresentative;
     private String clientRepresentative;
-    private String contractorRemarks;
-    private String clientRemarks;
-    private String action;
+    private String descriptionByContractor;
+
+    private String drawingStatus;
+    private String alignmentStatus;
+    private String drawingRemarksContracotr; 
+    private String drawingRemarksClient;
+    private String alignmentoCntractorRemarks;
+    private String alignmentClientRemarks;
+
+    private String status;
     private String remarks;
-    private String enclosureFilePath;
-    private Boolean testInsiteLab;
-    private String testSiteDocuments;
+
+    private String enclosureNames;
+    private String enclosureFilePaths;
+
+
     private String selfiePath;
     private String imagesUploadedByClient;
     private String imagesUploadedByContractor;
-}
 
+    private Boolean testInsiteLab;
+    private String testSiteDocuments;
+    private String contractorSignature;
+    private String gcMrvcSignature;
+}
