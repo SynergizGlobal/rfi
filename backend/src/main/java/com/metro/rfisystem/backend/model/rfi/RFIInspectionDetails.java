@@ -3,6 +3,8 @@ package com.metro.rfisystem.backend.model.rfi;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import org.hibernate.annotations.ManyToAny;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 
@@ -14,6 +16,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -31,7 +35,7 @@ public class RFIInspectionDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
     private RFI rfi;
 
@@ -46,7 +50,7 @@ public class RFIInspectionDetails {
     
     private String chainage;
 
-    private String selfiePath; // uploaded image path
+    private String selfiePath; 
     @Column(name = "site_image", length = 10000)
     private String siteImage;
     

@@ -25,11 +25,10 @@ public class RFIEnclosure {
     private RFIInspectionDetails rfiInspection;
     
     
-    private String rfiId;
+    private String enclosureName;
     private String view;
     
-    private String other;
     
     @Column(length = 1000)
-    private String enclosureUpload;
+    private String enclosureUploadFile;
 }

@@ -64,21 +64,89 @@ export default function InspectionForm() {
 		}
 	};
 
-	const handleChecklistSubmit = (id, data, contractorSign, gcSign) => {
-		setEnclosureStates(prev => ({
-			...prev,
-			[id]: { ...prev[id], checklist: data, checklistDone: true, contractorSign, gcSign }
-		}));
-		setChecklistPopup(null);
-	};
+	function dataURLtoFile(dataUrl, filename) {
+	  if (!dataUrl) return null;
+	  const arr = dataUrl.split(',');
+	  const mime = arr[0]?.match(/:(.*?);/)?.[1];
+	  const bstr = atob(arr[1]);
+	  let n = bstr.length;
+	  const u8arr = new Uint8Array(n);
+	  while (n--) u8arr[n] = bstr.charCodeAt(n);
+	  return new File([u8arr], filename, { type: mime });
+	}
 
-	const handleUploadSubmit = (id, file) => {
-		setEnclosureStates(prev => ({
-			...prev,
-			[id]: { ...prev[id], uploadedFile: file }
-		}));
-		setUploadPopup(null);
-	};
+	  const handleChecklistSubmit = async (id, data, contractorSign, gcSign) => {
+	  	   const formData = new FormData();
+	  	   formData.append('data', JSON.stringify(data));
+	  	   if (contractorSign) formData.append('contractorSignature', contractorSign);
+	  	   if (gcSign) formData.append('clientSignature', gcSign);
+
+	  	   try {
+	  	     const res = await fetch('http://localhost:8000/rfi/save', {
+	  	       method: 'POST',
+	  	       body: formData,
+	  	     });
+	  	     const text = await res.text();
+	  	     alert(text);
+	  	     setEnclosureStates(prev => ({
+	  	       ...prev,
+	  	       [id]: { ...prev[id], checklist: data, checklistDone: true, contractorSign, gcSign }
+	  	     }));
+	  	     setChecklistPopup(null);
+	  	   } catch (err) {
+	  	     console.error("Error saving checklist:", err);
+	  	   }
+	  	 };
+	
+	
+
+	 const handleUploadSubmit = async (id, file) => {
+	     const formData = new FormData();
+	     formData.append('inspectionId', rfiData.rfi_Id);
+	     formData.append('file', file);
+
+	     try {
+	       const res = await fetch('http://localhost:8000/rfi/upload', {
+	         method: 'POST',
+	         body: formData,
+	       });
+	       const text = await res.text();
+	       alert(text);
+	       setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
+	       setUploadPopup(null);
+	     } catch (err) {
+	       console.error("Upload failed:", err);
+	     }
+	   };
+
+	   const handleSaveInspection = async () => {
+	     const formData = new FormData();
+	     const inspectionPayload = {
+	       rfiId: rfiData.rfi_Id,
+	       location: locationText,
+	       contractorRepresentative: contractorRep,
+	       dateOfInspection: rfiData.dateOfInspection,
+	       timeOfInspection: rfiData.timeOfInspection,
+	     };
+
+	     formData.append('data', JSON.stringify(inspectionPayload));
+		 const selfieFile = dataURLtoFile(selfieImage, 'selfie.jpg');
+		 if (selfieFile) formData.append('selfie', selfieFile);
+	     Object.entries(galleryImages).forEach(([key, url], idx) => {
+	       formData.append('siteImages', dataURLtoFile(url, `site-${idx + 1}.jpg`));
+	     });
+
+	     try {
+	       const res = await fetch('http://localhost:8000/rfi/start', {
+	         method: 'POST',
+	         body: formData,
+	       });
+	       const text = await res.text();
+	       alert("Saved: " + text);
+	     } catch (err) {
+	       console.error("Inspection save failed:", err);
+	     }
+	   };
 
 	if (!rfiData) return <div>Loading RFI details...</div>;
 
@@ -183,7 +251,7 @@ export default function InspectionForm() {
 
 								<div className="btn-row">
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
-									<button className="btn btn-blue">Save</button>
+									<button className="btn btn-blue" onClick={handleSaveInspection}>Save</button>
 									<button className="btn btn-green" onClick={() => setConfirmPopup(true)}>Submit</button>
 								</div>
 							</div>
@@ -269,12 +337,12 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 					<input type="text" name="component" value={rfiData.component || ''} readOnly />
 				</div>
 			</div>
-			<div class="form-row">
+			<div className="form-row">
 				<div className="form-fields flex-2">
 					<label>RFI No:</label>
 					<input type="text" name="rfi_id" value={rfiData.rfi_Id || ''} readOnly />
 				</div>
-				<div class="form-fields flex-2">
+				<div className="form-fields flex-2">
 					<label>Grade of Concrete:</label>
 					<input type="text" name="concrete_grade" id="concrete_grade" value="" />
 				</div>

@@ -61,7 +61,7 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Inspection ID"));
 
             RFIEnclosure enclosure = new RFIEnclosure();
-            enclosure.setEnclosureUpload(filePath.toString());
+            enclosure.setEnclosureUploadFile(filePath.toString());
             enclosure.setRfiInspection(inspection); 
             //enclosure.setFilePath(filePath.toString());
            

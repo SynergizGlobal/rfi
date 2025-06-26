@@ -1,5 +1,7 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,92 +25,76 @@ import com.metro.rfisystem.backend.service.RFIEnclosureService;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
 
 import lombok.RequiredArgsConstructor;
- 
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/rfi")
 public class InspectionController {
-	
+
 	private final InspectionService inspectionService;
 	private final RFIEnclosureService rfiEnclosureService;
-	 private final RFIInspectionChecklistService checklistService;
-	
-	
-    @GetMapping("/inspection/{id}")
-    public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
-        return ResponseEntity.ok(inspectionService.getById(id));
-    }
-    
-    
+	private final RFIInspectionChecklistService checklistService;
 
-    @PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> startInspection(
-            @RequestPart("data") String dataJson,
-            @RequestPart("selfie") MultipartFile selfie,
-            @RequestPart("siteImages") MultipartFile[] siteImages
-    ) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
+	@GetMapping("/inspection/{id}")
+	public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
+		return ResponseEntity.ok(inspectionService.getById(id));
+	}
 
-          
-            
-             inspectionService.startInspection(dto, selfie, siteImages);
+	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> startInspection(@RequestPart("data") String dataJson,
+			@RequestPart("selfie") MultipartFile selfie, @RequestPart("siteImages") MultipartFile[] siteImages) {
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-            return ResponseEntity.ok("Inspection started successfully.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
-        }
-    }
+			inspectionService.startInspection(dto, selfie, siteImages);
 
-    
-    @PostMapping("/upload")
-    public ResponseEntity<String> uploadEnclosure(
-           
-            @RequestParam("inspectionId") Long inspectionId,
-            @RequestParam("file") MultipartFile file) {
+			return ResponseEntity.ok("Inspection started successfully.");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
 
-        try {
-            String savedFileName = rfiEnclosureService.uploadEnclosureFile(inspectionId,file);
-            return ResponseEntity.ok("Uploaded successfully as: " + savedFileName);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Upload failed: " + e.getMessage());
-        }
-    }
-    
-    @GetMapping("/autofill/{rfiId}")
-    public ResponseEntity<RFIInspectionAutofillDTO> getAutofillDetails(@PathVariable Long rfiId) {
-        RFIInspectionAutofillDTO dto =rfiEnclosureService.getAutofillData(rfiId);
-        return ResponseEntity.ok(dto);
-    }
-    
-    
+	@PostMapping("/upload")
+	public ResponseEntity<String> uploadEnclosure(
 
-    @PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> saveChecklist(
-            @RequestPart("data") String checklistJson,
-            @RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
-            @RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
+			@RequestParam("inspectionId") Long inspectionId, @RequestParam("file") MultipartFile file) {
 
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
+		try {
+			String savedFileName = rfiEnclosureService.uploadEnclosureFile(inspectionId, file);
+			return ResponseEntity.ok("Uploaded successfully as: " + savedFileName);
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body(e.getMessage());
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed: " + e.getMessage());
+		}
+	}
 
-            checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature);
-            return ResponseEntity.ok("Checklist saved successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to save checklist: " + e.getMessage());
-        }
-    }
+	@GetMapping("/autofill/{rfiId}")
+	public ResponseEntity<RFIInspectionAutofillDTO> getAutofillDetails(@PathVariable Long rfiId) {
+		RFIInspectionAutofillDTO dto = rfiEnclosureService.getAutofillData(rfiId);
+		return ResponseEntity.ok(dto);
+	}
+
+	  @PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	    public ResponseEntity<String> saveChecklist(
+	            @RequestPart("data") String checklistJson,
+	            @RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
+	            @RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
+
+	        try {
+	            ObjectMapper mapper = new ObjectMapper();
+	            RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
+
+	            checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature);
+	            return ResponseEntity.ok("Checklist saved successfully");
+	        } catch (Exception e) {
+	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                    .body("Failed to save checklist: " + e.getMessage());
+	        }
+	    }
 
 
+	}
 
-	
-	
- 
-}
