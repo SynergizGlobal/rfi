@@ -39,6 +39,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	
 	
+	
 	@Query(value = "SELECT\r\n"
 			+ "  r.consultant AS consultant,\r\n"
 			+ "  r.contract_short_name AS contract,\r\n"

@@ -1,6 +1,6 @@
 package com.metro.rfisystem.backend.dto;
 
 public interface RfiStatusProjection {
-    Long getId();   
+    Long getId();      
     String getStatus();
 }
