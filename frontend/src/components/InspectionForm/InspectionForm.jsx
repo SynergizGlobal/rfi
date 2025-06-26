@@ -17,8 +17,9 @@ const enclosuresData = [
 export default function InspectionForm() {
 	const location = useLocation();
 	const id = location.state?.rfi;
+	const skipSelfie = location.state?.skipSelfie;
+	const [step, setStep] = useState(skipSelfie ? 2 : 1);
 	const [rfiData, setRfiData] = useState(null);
-	const [step, setStep] = useState(1);
 	const [locationText, setLocationText] = useState('');
 	const [contractorRep, setContractorRep] = useState('');
 	const [confirmPopup, setConfirmPopup] = useState(false);

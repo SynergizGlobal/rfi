@@ -1,3 +1,24 @@
 .inspection {
   /* Styles for Inspection */
 }
+.inspection .popup {
+  position: fixed;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -25%);
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #00000030;
+  z-index: 9999;
+  width: 400px;
+  text-align: center;
+}
+.inspection .popup-actions {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1rem;
+}
+.inspection .popup-actions button {
+  padding: 0.5rem 1.5rem;
+}

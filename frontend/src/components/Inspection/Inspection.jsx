@@ -24,6 +24,7 @@ const Inspection = () => {
 	const buttonRefs = useRef({});
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
+	const [confirmPopupData, setConfirmPopupData] = useState(null);
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
@@ -120,13 +121,48 @@ const Inspection = () => {
 								<button>Start Inspection Offline</button>
 								
 								{userRole !== 'regular user' && (
-									<button>Upload Test Results</button>
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											navigate('/InspectionForm', {
+											state: { rfi: row.original.id, skipSelfie: true },
+											});
+											setOpenDropdownRow(null);
+										}}
+										>
+										Upload Test Results
+										</button>
 								)}
 
-								<button>View</button>
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										navigate('/InspectionForm', {
+										state: { rfi: row.original.id, skipSelfie: true },
+										});
+										setOpenDropdownRow(null);
+									}}
+									>
+									View
+									</button>
 
 								{userRole !== 'contractor' && (
-									<button>Send for Validation</button>
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											setConfirmPopupData({
+											message: "Do you want to Submit the Inspection report for Validation?",
+											onConfirm: () => {
+												// Submit logic here
+												console.log("Submitted for validation:", row.original.id);
+												setOpenDropdownRow(null);
+												setConfirmPopupData(null);
+											},
+											});
+										}}
+										>
+										Send for Validation
+										</button>
 								)}
 
 								{userRole !== 'regular user' && (
@@ -168,7 +204,7 @@ const Inspection = () => {
 	const { pageIndex, globalFilter } = state;
 
 	return (
-		<div className="dashboard credted-rfi">
+		<div className="dashboard credted-rfi inspection">
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
@@ -256,6 +292,16 @@ const Inspection = () => {
 						</div>
 					</div>
 				</div>
+				{confirmPopupData && (
+					<div className="popup">
+						<h3>Send for Validation</h3>
+						<p>{confirmPopupData.message}</p>
+						<div className="popup-actions">
+						<button onClick={confirmPopupData.onConfirm}>Yes</button>
+						<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
+						</div>
+					</div>
+					)}
 			</div>
 		</div>
 	);
