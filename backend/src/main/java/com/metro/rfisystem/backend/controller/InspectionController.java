@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
@@ -77,23 +78,26 @@ public class InspectionController {
 		return ResponseEntity.ok(dto);
 	}
 
-	  @PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	    public ResponseEntity<String> saveChecklist(
-	            @RequestPart("data") String checklistJson,
-	            @RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
-	            @RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
+	@PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> saveChecklist(
+	    @RequestPart("data") String checklistJson,
+	    @RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
+	    @RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature
+	) {
+	    try {
+	        ObjectMapper mapper = new ObjectMapper();
 
-	        try {
-	            ObjectMapper mapper = new ObjectMapper();
-	            RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
+	        // ✅ FIX HERE: Expect a single DTO, not a list
+	        RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
 
-	            checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature);
-	            return ResponseEntity.ok("Checklist saved successfully");
-	        } catch (Exception e) {
-	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                    .body("Failed to save checklist: " + e.getMessage());
-	        }
+	        checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature);
+	        return ResponseEntity.ok("Checklist saved successfully");
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	            .body("Failed to save checklist: " + e.getMessage());
 	    }
+	}
+
 
 
 	}

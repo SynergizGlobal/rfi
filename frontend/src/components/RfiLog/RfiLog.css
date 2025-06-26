@@ -121,6 +121,9 @@ table {
 .responsive-table th, .responsive-table td {
     border: 1px solid #ccc;
     padding: 10px 12px;
+    min-width: 145px;
+    max-width: 261px;
+    word-wrap: break-word;
 }
 .responsive-table tbody tr:nth-child(odd) {
     background-color: #fff;

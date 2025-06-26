@@ -65,88 +65,118 @@ export default function InspectionForm() {
 	};
 
 	function dataURLtoFile(dataUrl, filename) {
-	  if (!dataUrl) return null;
-	  const arr = dataUrl.split(',');
-	  const mime = arr[0]?.match(/:(.*?);/)?.[1];
-	  const bstr = atob(arr[1]);
-	  let n = bstr.length;
-	  const u8arr = new Uint8Array(n);
-	  while (n--) u8arr[n] = bstr.charCodeAt(n);
-	  return new File([u8arr], filename, { type: mime });
+		const arr = dataUrl.split(',');
+		const mime = arr[0].match(/:(.*?);/)[1];
+		const bstr = atob(arr[1]);
+		let n = bstr.length;
+		const u8arr = new Uint8Array(n);
+		while (n--) {
+			u8arr[n] = bstr.charCodeAt(n);
+		}
+		return new File([u8arr], filename, { type: mime });
 	}
 
-	  const handleChecklistSubmit = async (id, data, contractorSign, gcSign) => {
-	  	   const formData = new FormData();
-	  	   formData.append('data', JSON.stringify(data));
-	  	   if (contractorSign) formData.append('contractorSignature', contractorSign);
-	  	   if (gcSign) formData.append('clientSignature', gcSign);
+	const handleChecklistSubmit = async (id, data, contractorSign, gcSign) => {
+		const dto = {
+			inspectionId: rfiData.id,
+			gradeOfConcrete: "M20",
+			drawingApproved: data[0].status,
+			drawingRemarkContractor: data[0].contractorRemark,
+			drawingRemarkAE: data[0].aeRemark,
+			alignmentOk: data[1].status,
+			alignmentRemarkContractor: data[1].contractorRemark,
+			alignmentRemarkAE: data[1].aeRemark,
+		};
 
-	  	   try {
-	  	     const res = await fetch('http://localhost:8000/rfi/save', {
-	  	       method: 'POST',
-	  	       body: formData,
-	  	     });
-	  	     const text = await res.text();
-	  	     alert(text);
-	  	     setEnclosureStates(prev => ({
-	  	       ...prev,
-	  	       [id]: { ...prev[id], checklist: data, checklistDone: true, contractorSign, gcSign }
-	  	     }));
-	  	     setChecklistPopup(null);
-	  	   } catch (err) {
-	  	     console.error("Error saving checklist:", err);
-	  	   }
-	  	 };
-	
-	
+		const formData = new FormData();
+		formData.append("data", JSON.stringify(dto));
+		if (contractorSign) formData.append("contractorSignature", contractorSign);
+		if (gcSign) formData.append("clientSignature", gcSign);
 
-	 const handleUploadSubmit = async (id, file) => {
-	     const formData = new FormData();
-	     formData.append('inspectionId', rfiData.rfi_Id);
-	     formData.append('file', file);
+		try {
+			const res = await fetch("http://localhost:8000/rfi/save", {
+				method: "POST",
+				body: formData,
+			});
+			const text = await res.text();
 
-	     try {
-	       const res = await fetch('http://localhost:8000/rfi/upload', {
-	         method: 'POST',
-	         body: formData,
-	       });
-	       const text = await res.text();
-	       alert(text);
-	       setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
-	       setUploadPopup(null);
-	     } catch (err) {
-	       console.error("Upload failed:", err);
-	     }
-	   };
+			// ✅ SET checklistDone and checklist data
+			setEnclosureStates(prev => ({
+				...prev,
+				[id]: {
+					checklist: data,
+					contractorSign,
+					gcSign,
+					checklistDone: true,
+				}
+			}));
+			setChecklistPopup(null);
 
-	   const handleSaveInspection = async () => {
-	     const formData = new FormData();
-	     const inspectionPayload = {
-	       rfiId: rfiData.rfi_Id,
-	       location: locationText,
-	       contractorRepresentative: contractorRep,
-	       dateOfInspection: rfiData.dateOfInspection,
-	       timeOfInspection: rfiData.timeOfInspection,
-	     };
+		} catch (err) {
+			console.error("Checklist save failed:", err);
+		}
+	};
 
-	     formData.append('data', JSON.stringify(inspectionPayload));
-		 const selfieFile = dataURLtoFile(selfieImage, 'selfie.jpg');
-		 if (selfieFile) formData.append('selfie', selfieFile);
-	     Object.entries(galleryImages).forEach(([key, url], idx) => {
-	       formData.append('siteImages', dataURLtoFile(url, `site-${idx + 1}.jpg`));
-	     });
 
-	     try {
-	       const res = await fetch('http://localhost:8000/rfi/start', {
-	         method: 'POST',
-	         body: formData,
-	       });
-	       const text = await res.text();
-	       alert("Saved: " + text);
-	     } catch (err) {
-	       console.error("Inspection save failed:", err);
-	     }
-	   };
+
+
+	const handleUploadSubmit = async (id, file) => {
+		const formData = new FormData();
+		formData.append('inspectionId', rfiData.id);
+		formData.append('file', file);
+
+		try {
+			const res = await fetch('http://localhost:8000/rfi/upload', {
+				method: 'POST',
+				body: formData,
+			});
+			const text = await res.text();
+			setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
+			setUploadPopup(null);
+		} catch (err) {
+			console.error("Upload failed:", err);
+		}
+	};
+
+	const handleSaveInspection = async () => {
+		const formData = new FormData();
+		const inspectionPayload = {
+			rfiId: rfiData.id,
+			location: locationText,
+		
+		};
+
+		formData.append('data', JSON.stringify(inspectionPayload));
+
+		if (selfieImage) {
+			if (selfieImage instanceof File) {
+				formData.append('selfie', selfieImage);
+			} else if (typeof selfieImage === 'string' && selfieImage.startsWith('data:image/')) {
+				const selfieFile = dataURLtoFile(selfieImage, 'selfie.jpg');
+				formData.append('selfie', selfieFile);
+			}
+		}
+
+
+		// Site images are already stored as File objects
+		Object.entries(galleryImages).forEach(([key, file]) => {
+			if (file instanceof File) {
+				formData.append('siteImages', file);
+			}
+		});
+
+		try {
+			const res = await fetch('http://localhost:8000/rfi/start', {
+				method: 'POST',
+				body: formData,
+			});
+			const text = await res.text();
+			alert("Saved: " + text);
+		} catch (err) {
+			console.error("Inspection save failed:", err);
+		}
+	};
+
 
 	if (!rfiData) return <div>Loading RFI details...</div>;
 
@@ -212,9 +242,9 @@ export default function InspectionForm() {
 													onChange={e => {
 														const file = e.target.files[0];
 														if (file) {
-															const url = URL.createObjectURL(file);
-															setGalleryImages(prev => ({ ...prev, [`gallery-${i}`]: url }));
+															setGalleryImages(prev => ({ ...prev, [`gallery-${i}`]: file }));
 														}
+
 													}}
 												/>
 												{galleryImages[`gallery-${i}`] && (
@@ -357,9 +387,12 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 						<tr key={row.id}>
 							<td>{row.id}</td>
 							<td>{row.description}</td>
-							<td><input type="radio" checked={row.status === 'Yes'} onChange={() => handleChange(row.id, 'status', 'Yes')} /></td>
-							<td><input type="radio" checked={row.status === 'No'} onChange={() => handleChange(row.id, 'status', 'No')} /></td>
-							<td><input type="radio" checked={row.status === 'NA'} onChange={() => handleChange(row.id, 'status', 'NA')} /></td>
+							<td><input type="radio" checked={row.status === 'YES'} onChange={() => handleChange(row.id, 'status', 'YES')} />
+							</td>
+							<td><input type="radio" checked={row.status === 'NO'} onChange={() => handleChange(row.id, 'status', 'NO')} />
+							</td>
+							<td><input type="radio" checked={row.status === 'NA'} onChange={() => handleChange(row.id, 'status', 'NA')} />
+							</td>
 							<td><input value={row.contractorRemark} onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)} /></td>
 							<td><input value={row.aeRemark} onChange={e => handleChange(row.id, 'aeRemark', e.target.value)} /></td>
 						</tr>

@@ -6,7 +6,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
-import com.metro.rfisystem.backend.dto.RfiInspectionDTOList;
 
 public interface InspectionService {
 
