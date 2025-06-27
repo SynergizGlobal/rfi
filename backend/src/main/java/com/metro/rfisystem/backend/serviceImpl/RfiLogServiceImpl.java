@@ -20,6 +20,11 @@ public class RfiLogServiceImpl implements RfiLogService {
 	public List<RfiLogDTO> listRfiDetailsByFilter(String project, String work, String contract) {
 		return rfiRepository.listRfiLogByFilter(project, work, contract);
 	}
+
+	@Override
+	public List<RfiLogDTO> listAllRfiLog() {
+		return rfiRepository.listAllRfiLog();
+	}
 	
 
 }

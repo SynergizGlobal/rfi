@@ -1,7 +1,8 @@
 package com.metro.rfisystem.backend.service;
 
 import java.io.IOException;
-import java.util.List;
+
+
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,4 +12,8 @@ import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 
     public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, 
     		MultipartFile contractorSig, MultipartFile clientSig) throws IOException;
+
+    
+	public void updateChecklistWithFiles(Long checklistId, RFIInspectionChecklistDTO dto,
+			MultipartFile contractorSignature, MultipartFile clientSignature) throws Exception;
 }
