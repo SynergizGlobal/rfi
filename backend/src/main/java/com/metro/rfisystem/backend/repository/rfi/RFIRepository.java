@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.model.rfi.RFI;
@@ -88,6 +89,20 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "GROUP BY r.id;\r\n"
 			+ "", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
+	
+	@Query(value="select r.id as id, r.rfi_id as rfiId, DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') as dateOfSubmission,r.description as rfiDescription,r.created_by as rfiRequestedBy,r.client_department as department,r.assigned_person_client as person,DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') as dateRaised,\r\n"
+			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') as dateResponded,r.status as status,rv.remarks as notes\r\n"
+			+ "from rfi_data as r\r\n"
+			+ "left join rfi_inspection_details as i \r\n"
+			+ "on r.id = i.rfi_id_fk\r\n"
+			+ "left join rfi_validation as rv\r\n"
+			+ "on rv.rfi_id_fk = r.id\r\n"
+			+ "where r.project_name=:project\r\n"
+			+ "and r.work_short_name =:work\r\n"
+			+ "and r.contract_short_name=:contract\r\n"
+			+ "order by created_at desc\r\n"
+			+ "",nativeQuery=true)
+	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
 
 
 

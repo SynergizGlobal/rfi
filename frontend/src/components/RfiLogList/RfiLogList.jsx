@@ -1,72 +1,91 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { useTable, usePagination, useGlobalFilter } from 'react-table';
+import Select from 'react-select';
 import './RfiLogList.css';
 import HeaderRight from '../HeaderRight/HeaderRight';
 
-const data = [
-  {
-    rfiId: 'P4EN3/ABC/0115/RFI/00001/R1',
-    rfiDate: '24-06-2025',
-    rfiDescription: 'Building Works',
-    rfiRequestedBy: 'Contractor',
-    sentToDepartment: 'PCC',
-    sentToPerson: 'Mr. Ramesh',
-    dateRaised: '12-03-2025',
-    dateResponded: '23-06-2025',
-    status: 'Inspection done',
-    notes: 'Nono',
-    work: 'Virar Dahanu',
-    contract: 'Lot-1 Station Improvement',
-    view: '/downloads/sample1.pdf',
-  },
-  {
-    rfiId: 'P4EN5/ABC/0115/RFI/00001/R1',
-    rfiDate: '25-06-2025',
-    rfiDescription: 'Earthwork',
-    rfiRequestedBy: 'Engineer',
-    sentToDepartment: 'Concreting',
-    sentToPerson: 'Mr. Kamlesh',
-    dateRaised: '',
-    dateResponded: '',
-    status: 'Rescheduled',
-    notes: 'Nono',
-    work: 'Panvel Karjat',
-    contract: 'Lot-11 Station Improvement',
-    view: '/downloads/sample2.pdf',
-  },
-];
+export default function RfiLogList() {
+  const [data, setData] = useState([]);
+  const [message, setMessage] = useState("Please select Project, Work and Contract to display.");
 
-const RfiLogList = () => {
-  const [projectFilter, setProjectFilter] = useState('');
-  const [workFilter, setWorkFilter] = useState('');
-  const [contractFilter, setContractFilter] = useState('');
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [projectIdMap, setProjectIdMap] = useState({});
+  const [workOptions, setWorkOptions] = useState([]);
+  const [workIdMap, setWorkIdMap] = useState({});
+  const [contractOptions, setContractOptions] = useState([]);
+  const [contractIdMap, setContractIdMap] = useState({});
 
-  const filteredData = useMemo(() => {
-  return data.filter(item => {
-    return (
-      (!projectFilter || item.project === projectFilter) &&
-      (!workFilter || item.work === workFilter) &&
-      (!contractFilter || item.contract === contractFilter)
-    );
-  });
-}, [data, projectFilter, workFilter, contractFilter]);
+  const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
 
+  useEffect(() => {
+    axios.get('http://localhost:8000/rfi/projectNames')
+      .then(response => {
+        const options = response.data.map(project => ({
+          value: project.projectName,
+          label: project.projectName
+        }));
+        const map = {};
+        response.data.forEach(project => {
+          map[project.projectName] = project.projectId;
+        });
+        setProjectOptions(options);
+        setProjectIdMap(map);
+      })
+      .catch(error => console.error('Error fetching project names:', error));
+  }, []);
+
+  useEffect(() => {
+    const { project, work, contract } = formState;
+
+    if (!project || !work || !contract) {
+      setData([]);
+      setMessage("Please select Project, Work and Contract to display.");
+      return;
+    }
+
+    const fetchFilteredData = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/getRfiLogDetails', {
+          params: { project, work, contract }
+        });
+
+        if (response.status === 204 || !response.data || response.data.length === 0) {
+          setData([]);
+          setMessage("No RFIs found for selected filters.");
+        } else {
+          setData(response.data);
+          setMessage("");
+        }
+      } catch (error) {
+        console.error('Error fetching filtered RFI log data:', error);
+        setData([]);
+        setMessage("Error loading RFI data.");
+      }
+    };
+
+    fetchFilteredData();
+  }, [formState]);
 
   const columns = useMemo(() => [
     { Header: 'RFI ID', accessor: 'rfiId' },
-    { Header: 'RFI Date', accessor: 'rfiDate' },
+    { Header: 'RFI Date', accessor: 'dateOfSubmission' },
     { Header: 'RFI Description', accessor: 'rfiDescription' },
     { Header: 'RFI Requested By', accessor: 'rfiRequestedBy' },
     {
       Header: 'RFI Sent To',
       columns: [
-        { Header: 'Department', accessor: 'sentToDepartment' },
-        { Header: 'Person', accessor: 'sentToPerson' }
+        { Header: 'Department', accessor: 'department' },
+        { Header: 'Person', accessor: 'person' }
       ]
     },
     { Header: 'Date Raised', accessor: 'dateRaised' },
     { Header: 'Date Responded', accessor: 'dateResponded' },
-    { Header: 'Status', accessor: 'status' },
+    {
+      Header: 'Status',
+      accessor: 'status',
+      Cell: ({ value }) => value === 'INSPECTION_DONE' ? 'Closed' : 'Open'
+    },
     { Header: 'Notes', accessor: 'notes' },
     {
       Header: 'View',
@@ -92,15 +111,15 @@ const RfiLogList = () => {
     canPreviousPage,
     pageOptions,
     state,
-    setGlobalFilter,
     setPageSize,
+    setGlobalFilter
   } = useTable(
-    { columns, data: filteredData, initialState: { pageSize: 5 } },
+    { columns, data, initialState: { pageSize: 5 } },
     useGlobalFilter,
     usePagination
   );
 
-  const { pageIndex, globalFilter, pageSize } = state;
+  const { pageIndex, pageSize, globalFilter } = state;
 
   return (
     <div className="dashboard">
@@ -108,41 +127,73 @@ const RfiLogList = () => {
       <div className="right">
         <div className="dashboard-main">
           <div className="rfi-table-container">
-            <h2 className="section-heading">Created RFI List</h2>
-
+            <h2 className="section-heading">REQUEST FOR INSPECTION LOG-(RFI LOG)</h2>
             <div className="filters">
               <div className="form-row">
-                <div className="form-fields">
-                     <label>Projects</label>
-                      <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
-                        <option value="">All Projects</option>
-                        {[...new Set(data.map(d => d.project))].map((proj, idx) => (
-                          <option key={idx} value={proj}>{proj}</option>
-                        ))}
-                      </select>
+                <div className="form-fields flex-2">
+                  <label>Project:</label>
+                  <Select
+                    options={projectOptions}
+                    value={formState.project ? { value: formState.project, label: formState.project } : null}
+                    onChange={(selected) => {
+                      const project = selected?.value || '';
+                      const projectId = projectIdMap[project] || '';
+                      setFormState({ project, work: '', contract: '' });
+                      if (projectId) {
+                        axios.get('http://localhost:8000/rfi/workNames', { params: { projectId } })
+                          .then(res => {
+                            const map = {};
+                            const opts = res.data.map(w => {
+                              map[w.workName] = w.workId;
+                              return { value: w.workName, label: w.workName };
+                            });
+                            setWorkOptions(opts);
+                            setWorkIdMap(map);
+                          })
+                          .catch(() => setWorkOptions([]));
+                      }
+                    }}
+                  />
                 </div>
-                 
-                <div className="form-fields">
-                  <label>Work</label>
-                  <select value={workFilter} onChange={(e) => setWorkFilter(e.target.value)}>
-                    <option value="">All Works</option>
-                    {[...new Set(data.map(d => d.work))].map((work, idx) => (
-                      <option key={idx} value={work}>{work}</option>
-                    ))}
-                  </select>
+
+                <div className="form-fields flex-2">
+                  <label>Work:</label>
+                  <Select
+                    options={workOptions}
+                    value={formState.work ? workOptions.find(w => w.value === formState.work) : null}
+                    onChange={(selected) => {
+                      const work = selected?.value || '';
+                      const workId = workIdMap[work] || '';
+                      setFormState(prev => ({ ...prev, work, contract: '' }));
+                      if (workId) {
+                        axios.get('http://localhost:8000/rfi/contractNames', { params: { workId } })
+                          .then(res => {
+                            const map = {};
+                            const opts = res.data.map(c => {
+                              map[c.contractShortName] = c.contractIdFk.trim();
+                              return { value: c.contractShortName, label: c.contractShortName };
+                            });
+                            setContractOptions(opts);
+                            setContractIdMap(map);
+                          })
+                          .catch(() => setContractOptions([]));
+                      }
+                    }}
+                  />
                 </div>
-              
-                <div className="form-fields">
-                  <label>Contract</label>
-                  <select value={contractFilter} onChange={(e) => setContractFilter(e.target.value)}>
-                    <option value="">All Contracts</option>
-                    {[...new Set(data.map(d => d.contract))].map((contract, idx) => (
-                      <option key={idx} value={contract}>{contract}</option>
-                    ))}
-                  </select>
+
+                <div className="form-fields flex-2">
+                  <label>Contract:</label>
+                  <Select
+                    options={contractOptions}
+                    value={formState.contract ? contractOptions.find(c => c.value === formState.contract) : null}
+                    onChange={(selected) => {
+                      const contract = selected?.value || '';
+                      setFormState(prev => ({ ...prev, contract }));
+                    }}
+                  />
                 </div>
               </div>
-                
             </div>
 
             <div className="table-top-bar d-flex justify-content-between align-items-center">
@@ -160,70 +211,56 @@ const RfiLogList = () => {
                   entries
                 </label>
               </div>
+              <div className="right-controls">
+                <input
+                  className="search-input"
+                  value={globalFilter || ''}
+                  onChange={e => setGlobalFilter(e.target.value)}
+                  placeholder="Search RFI..."
+                />
+              </div>
             </div>
 
             <div className="table-scroll-wrapper">
               <table {...getTableProps()} className="validation-table datatable" border={1}>
                 <thead>
-                  <tr>
-                    {columns.map((col, idx) => {
-                      if (col.columns) {
-                        return (
-                          <th key={idx} colSpan={col.columns.length} style={{ textAlign: 'center' }}>
-                            {col.Header}
-                          </th>
-                        );
-                      } else {
-                        return (
-                          <th key={idx} rowSpan={2}>
-                            {col.Header}
-                          </th>
-                        );
-                      }
-                    })}
-                  </tr>
-                  <tr>
-                    {columns.map(col =>
-                      col.columns
-                        ? col.columns.map((subCol, idx) => (
-                            <th key={idx}>{subCol.Header}</th>
-                          ))
-                        : null
-                    )}
-                  </tr>
+                  {headerGroups.map((group, i) => (
+                    <tr {...group.getHeaderGroupProps()} key={i}>
+                      {group.headers.map((column, idx) => (
+                        <th {...column.getHeaderProps()} key={idx}>{column.render('Header')}</th>
+                      ))}
+                    </tr>
+                  ))}
                 </thead>
-
                 <tbody {...getTableBodyProps()}>
-                  {page.map((row, i) => {
-                    prepareRow(row);
-                    return (
-                      <tr {...row.getRowProps()} key={i}>
-                        {row.cells.map((cell, idx) => (
-                          <td key={idx} {...cell.getCellProps()}>{cell.render('Cell')}</td>
-                        ))}
-                      </tr>
-                    );
-                  })}
+                  {message ? (
+                    <tr>
+                      <td colSpan={columns.length} className="message-cell">{message}</td>
+                    </tr>
+                  ) : (
+                    page.map((row, i) => {
+                      prepareRow(row);
+                      return (
+                        <tr {...row.getRowProps()} key={i}>
+                          {row.cells.map((cell, idx) => (
+                            <td {...cell.getCellProps()} key={idx}>{cell.render('Cell')}</td>
+                          ))}
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
             <div className="pagination-bar">
-              <button onClick={() => previousPage()} disabled={!canPreviousPage}>
-                &lt; Prev
-              </button>
-              <span>
-                Page <strong>{pageIndex + 1} of {pageOptions.length}</strong>
-              </span>
-              <button onClick={() => nextPage()} disabled={!canNextPage}>
-                Next &gt;
-              </button>
+              <button onClick={() => previousPage()} disabled={!canPreviousPage}>&lt; Prev</button>
+              <span>Page <strong>{pageIndex + 1} of {pageOptions.length}</strong></span>
+              <button onClick={() => nextPage()} disabled={!canNextPage}>Next &gt;</button>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default RfiLogList;
+}
