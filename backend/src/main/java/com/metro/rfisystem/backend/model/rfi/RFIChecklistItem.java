@@ -27,6 +27,7 @@ public class RFIChecklistItem {
 
     @ManyToOne
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
+    @JsonBackReference
     private RFI rfi;
     
     

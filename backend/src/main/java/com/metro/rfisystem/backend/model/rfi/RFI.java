@@ -121,5 +121,13 @@ public class RFI {
 	@OneToMany(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonManagedReference
 	private List<RFIInspectionDetails> inspectionDetails = new ArrayList<>();
+	
+    @OneToMany(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RFIChecklistItem> checklistItems = new ArrayList<>();
+ 
+    @OneToMany(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RFIEnclosure> enclosure = new ArrayList<>();
 
 }
