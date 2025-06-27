@@ -1,16 +1,21 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
+import com.metro.rfisystem.backend.dto.TestType;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIEnclosure;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
@@ -27,14 +32,14 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 
 	private final RFIEnclosureRepository enclosureRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
-	 private final RFIRepository rfiRepository;
+	private final RFIRepository rfiRepository;
 	    
 	
     @Value("${rfi.enclosures.upload-dir}")
     private String uploadDir;
     
     @Override
-    public String uploadEnclosureFile(Long inspectionId, MultipartFile file) {
+    public String uploadEnclosureFile( Long rfiId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("No file provided.");
         }
@@ -45,7 +50,7 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
         }
 
 
-        String fileName =  inspectionId+ "_" + originalFilename;
+        String fileName =  rfiId+ "_" + originalFilename;
         Path uploadPath = Paths.get(uploadDir);
         try {
             if (!Files.exists(uploadPath)) {
@@ -57,12 +62,14 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 
             // Save to database
             
-            RFIInspectionDetails inspection = inspectionRepository.findById(inspectionId)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid Inspection ID"));
+         //   RFIInspectionDetails inspection = inspectionRepository.findById(rfiId)
+                 //   .orElseThrow(() -> new IllegalArgumentException("Invalid Inspection ID"));
 
+            RFI inspection =rfiRepository.findById(rfiId).orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
             RFIEnclosure enclosure = new RFIEnclosure();
             enclosure.setEnclosureUploadFile(filePath.toString());
-            enclosure.setRfiInspection(inspection); 
+          //  enclosure.setRfiInspection(inspection);
+            enclosure.setRfi(inspection);
             //enclosure.setFilePath(filePath.toString());
            
             enclosureRepository.save(enclosure);
@@ -98,4 +105,57 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 
 	        return dto;
 	    }
-}
+
+	
+	 @Value("${file.site.test.dir}")
+	 private String uploadDirTest;
+	@Override
+	public void processConfirmation(InspectionStatus status, TestType testType,
+			List<MultipartFile> files) {
+		 if (status == InspectionStatus.VISUAL) {
+	            if (testType != null || (files != null && !files.isEmpty())) {
+	                throw new IllegalArgumentException("Visual inspections shouldn't have tests or uploads.");
+	            }
+	        }
+
+	        if ((status == InspectionStatus.LAB_TEST || status == InspectionStatus.SITE_TEST)) {
+	            if (testType == null) {
+	                throw new IllegalArgumentException("testsInSiteLab is required for lab/site tests");
+	            }
+	        }
+
+	        if (files != null) {
+	            files.forEach(file -> {
+					try {
+						saveFile(file);
+					} catch (Exception e) {
+						
+						e.printStackTrace();
+					}
+				});
+	        }
+
+	        // Optional: persist to DB
+	        System.out.println("Saved: status=" + status + ", test=" + testType);
+	    }
+
+	    private void saveFile(MultipartFile file) throws Exception {
+	        if (file.isEmpty()) return;
+
+	        try {
+	            Files.createDirectories(Paths.get(uploadDirTest));
+	            Path dest = Paths.get(uploadDirTest).resolve(Paths.get(file.getOriginalFilename())).normalize().toAbsolutePath();
+
+	            if (!dest.getParent().equals(Paths.get(uploadDirTest).toAbsolutePath())) {
+	                throw new Exception("Cannot write file outside designated directory");
+	            }
+
+	            try (InputStream is = file.getInputStream()) {
+	                Files.copy(is, dest, StandardCopyOption.REPLACE_EXISTING);
+	            }
+	        } catch (IOException e) {
+	            throw new Exception("Failed to store " + file.getOriginalFilename(), e);
+	        }
+	    }
+		
+	}

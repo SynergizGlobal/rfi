@@ -7,7 +7,8 @@ import lombok.Data;
 @Data
 public class RFIInspectionChecklistDTO {
 
-	private Long inspectionId;
+	//private Long inspectionId;
+	private Long rfiId;
     private String gradeOfConcrete;
 
     private ChecklistOption drawingApproved;
