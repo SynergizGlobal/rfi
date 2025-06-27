@@ -7,64 +7,64 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 
 export default function RfiLogList() {
   const [data, setData] = useState([]);
-  const [message, setMessage] = useState("Please select Project, Work and Contract to display.");
-
+  const [message, setMessage] = useState('');
   const [projectOptions, setProjectOptions] = useState([]);
   const [projectIdMap, setProjectIdMap] = useState({});
   const [workOptions, setWorkOptions] = useState([]);
   const [workIdMap, setWorkIdMap] = useState({});
   const [contractOptions, setContractOptions] = useState([]);
   const [contractIdMap, setContractIdMap] = useState({});
-
   const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/getAllRfiLogDetails')
+      .then(response => {
+        if (response.status === 204 || !response.data || response.data.length === 0) {
+          setData([]);
+          setMessage('No RFIs found.');
+        } else {
+          setData(response.data);
+          setMessage('');
+        }
+      })
+      .catch(() => {
+        setMessage('Error loading RFI data.');
+      });
+  }, []);
 
   useEffect(() => {
     axios.get('http://localhost:8000/rfi/projectNames')
       .then(response => {
-        const options = response.data.map(project => ({
-          value: project.projectName,
-          label: project.projectName
-        }));
         const map = {};
-        response.data.forEach(project => {
-          map[project.projectName] = project.projectId;
+        const options = response.data.map(p => {
+          map[p.projectName] = p.projectId;
+          return { value: p.projectName, label: p.projectName };
         });
         setProjectOptions(options);
         setProjectIdMap(map);
-      })
-      .catch(error => console.error('Error fetching project names:', error));
+      });
   }, []);
 
   useEffect(() => {
     const { project, work, contract } = formState;
+    if (!project || !work || !contract) return;
 
-    if (!project || !work || !contract) {
-      setData([]);
-      setMessage("Please select Project, Work and Contract to display.");
-      return;
-    }
-
-    const fetchFilteredData = async () => {
-      try {
-        const response = await axios.get('http://localhost:8000/getRfiLogDetails', {
-          params: { project, work, contract }
-        });
-
+    axios.get('http://localhost:8000/getRfiLogDetailsFilter', {
+      params: { project, work, contract }
+    })
+      .then(response => {
         if (response.status === 204 || !response.data || response.data.length === 0) {
           setData([]);
-          setMessage("No RFIs found for selected filters.");
+          setMessage('No RFIs found for selected filters.');
         } else {
           setData(response.data);
-          setMessage("");
+          setMessage('');
         }
-      } catch (error) {
-        console.error('Error fetching filtered RFI log data:', error);
+      })
+      .catch(() => {
         setData([]);
-        setMessage("Error loading RFI data.");
-      }
-    };
-
-    fetchFilteredData();
+        setMessage('Error loading filtered data.');
+      });
   }, [formState]);
 
   const columns = useMemo(() => [
@@ -111,8 +111,8 @@ export default function RfiLogList() {
     canPreviousPage,
     pageOptions,
     state,
-    setPageSize,
-    setGlobalFilter
+    setGlobalFilter,
+    setPageSize
   } = useTable(
     { columns, data, initialState: { pageSize: 5 } },
     useGlobalFilter,
@@ -127,7 +127,8 @@ export default function RfiLogList() {
       <div className="right">
         <div className="dashboard-main">
           <div className="rfi-table-container">
-            <h2 className="section-heading">REQUEST FOR INSPECTION LOG-(RFI LOG)</h2>
+            <h2 className="section-heading">REQUEST FOR INSPECTION LOG (RFI LOG)</h2>
+
             <div className="filters">
               <div className="form-row">
                 <div className="form-fields flex-2">
@@ -139,6 +140,7 @@ export default function RfiLogList() {
                       const project = selected?.value || '';
                       const projectId = projectIdMap[project] || '';
                       setFormState({ project, work: '', contract: '' });
+
                       if (projectId) {
                         axios.get('http://localhost:8000/rfi/workNames', { params: { projectId } })
                           .then(res => {
@@ -149,8 +151,7 @@ export default function RfiLogList() {
                             });
                             setWorkOptions(opts);
                             setWorkIdMap(map);
-                          })
-                          .catch(() => setWorkOptions([]));
+                          });
                       }
                     }}
                   />
@@ -165,6 +166,7 @@ export default function RfiLogList() {
                       const work = selected?.value || '';
                       const workId = workIdMap[work] || '';
                       setFormState(prev => ({ ...prev, work, contract: '' }));
+
                       if (workId) {
                         axios.get('http://localhost:8000/rfi/contractNames', { params: { workId } })
                           .then(res => {
@@ -175,8 +177,7 @@ export default function RfiLogList() {
                             });
                             setContractOptions(opts);
                             setContractIdMap(map);
-                          })
-                          .catch(() => setContractOptions([]));
+                          });
                       }
                     }}
                   />
@@ -193,17 +194,16 @@ export default function RfiLogList() {
                     }}
                   />
                 </div>
+
               </div>
             </div>
+
 
             <div className="table-top-bar d-flex justify-content-between align-items-center">
               <div className="left-controls">
                 <label>
                   Show{' '}
-                  <select
-                    value={pageSize}
-                    onChange={e => setPageSize(Number(e.target.value))}
-                  >
+                  <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
                     {[5, 10, 20, 50].map(size => (
                       <option key={size} value={size}>{size}</option>
                     ))}
@@ -219,8 +219,35 @@ export default function RfiLogList() {
                   placeholder="Search RFI..."
                 />
               </div>
+			  <div className="reset-button-wrapper">
+			    <button
+			      className="reset-button"
+			      onClick={() => {
+			        setFormState({ project: '', work: '', contract: '' });
+			        setWorkOptions([]);
+			        setContractOptions([]);
+			        axios.get('http://localhost:8000/getAllRfiLogDetails')
+			          .then(response => {
+			            if (response.status === 204 || !response.data || response.data.length === 0) {
+			              setData([]);
+			              setMessage('No RFIs found.');
+			            } else {
+			              setData(response.data);
+			              setMessage('');
+			            }
+			          })
+			          .catch(() => {
+			            setMessage('Error loading RFI data.');
+			          });
+			      }}
+			    >
+			      Reset Filters
+			    </button>
+			  </div>
+
             </div>
 
+ 
             <div className="table-scroll-wrapper">
               <table {...getTableProps()} className="validation-table datatable" border={1}>
                 <thead>
@@ -253,6 +280,7 @@ export default function RfiLogList() {
               </table>
             </div>
 
+          
             <div className="pagination-bar">
               <button onClick={() => previousPage()} disabled={!canPreviousPage}>&lt; Prev</button>
               <span>Page <strong>{pageIndex + 1} of {pageOptions.length}</strong></span>

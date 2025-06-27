@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -88,7 +89,7 @@ public class InspectionController {
 	    try {
 	        ObjectMapper mapper = new ObjectMapper();
 
-	        // ✅ FIX HERE: Expect a single DTO, not a list
+	        
 	        RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
 
 	        checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature);
@@ -98,6 +99,31 @@ public class InspectionController {
 	            .body("Failed to save checklist: " + e.getMessage());
 	    }
 	}
+	
+	@PutMapping(value = "/checklist/{checklistId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+      public ResponseEntity<String> updateChecklist(
+        @PathVariable Long checklistId,
+        @RequestPart("data")  String checklistJson,
+        @RequestPart(value = "contractorSignature", required = false)
+        MultipartFile contractorSignature,
+        @RequestPart(value = "clientSignature",    required = false)
+        MultipartFile clientSignature) {
+
+    try {
+        RFIInspectionChecklistDTO dto =
+                new ObjectMapper().readValue(checklistJson,
+                                             RFIInspectionChecklistDTO.class);
+
+        // Be sure the DTO carries the FK (rfiId) that already exists.
+        checklistService.updateChecklistWithFiles(
+                checklistId, dto, contractorSignature, clientSignature);
+
+        return ResponseEntity.ok("Checklist updated successfully");
+    } catch (Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Failed to update checklist: " + ex.getMessage());
+    }
+}
 	
 	 
 	  @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

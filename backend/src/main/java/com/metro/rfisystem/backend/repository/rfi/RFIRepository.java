@@ -105,7 +105,31 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
 
 
-
+	@Query(value="SELECT \r\n"
+			+ "    r.id AS id,\r\n"
+			+ "    r.rfi_id AS rfiId,\r\n"
+			+ "    DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,\r\n"
+			+ "    r.description AS rfiDescription,\r\n"
+			+ "    r.created_by AS rfiRequestedBy,\r\n"
+			+ "    r.client_department AS department,\r\n"
+			+ "    r.assigned_person_client AS person,\r\n"
+			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
+			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
+			+ "    r.status AS status,\r\n"
+			+ "    rv.remarks AS notes\r\n"
+			+ "FROM \r\n"
+			+ "    rfi_data AS r\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_inspection_details AS i \r\n"
+			+ "    ON r.id = i.rfi_id_fk\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_validation AS rv \r\n"
+			+ "    ON rv.rfi_id_fk = r.id\r\n"
+			+ "ORDER BY \r\n"
+			+ "    r.created_at DESC;\r\n"
+			+ "",nativeQuery=true)
+	List<RfiLogDTO> listAllRfiLog();
+ 
 
 
 }

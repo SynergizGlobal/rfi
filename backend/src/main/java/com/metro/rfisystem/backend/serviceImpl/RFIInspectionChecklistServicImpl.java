@@ -75,9 +75,68 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	        Files.createDirectories(path.getParent());
 	        Files.write(path, file.getBytes());
 	        return path.toString();
-	    }	
-	
+	    }
 
+		@Override
+		public void updateChecklistWithFiles(Long checklistId, RFIInspectionChecklistDTO dto,
+				MultipartFile contractorSignature, MultipartFile clientSignature) throws IOException {
+			
+			RFIChecklistItem checklist = checklistRepository.findById(checklistId)
+	                .orElseThrow(() ->
+	                     new RuntimeException("Checklist not found: " + checklistId));
+			
+			if (!checklist.getRfi().getId().equals(dto.getRfiId())) {
+	            throw new IllegalArgumentException("RFI mismatch for checklist update");
+	        }
+			
+			    checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
+		        checklist.setDrawingApproved(dto.getDrawingApproved());
+		        checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
+		        checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
+		        checklist.setAlignmentOk(dto.getAlignmentOk());
+		        checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
+		        checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
+		        
+		        
+		        if (contractorSignature != null && !contractorSignature.isEmpty()) {
+		            String newPath = replaceFile(checklist.getContractorSignature(),
+		                                         contractorSignature);
+		            checklist.setContractorSignature(newPath);
+		        }
+		        if (clientSignature != null && !clientSignature.isEmpty()) {
+		            String newPath = replaceFile(checklist.getGcMrvcRepresentativeSignature(),
+		                                         clientSignature);
+		            checklist.setGcMrvcRepresentativeSignature(newPath);
+		        }
+
+		        
+		        checklistRepository.save(checklist);
+		        
+		}
+		
+		 private String replaceFile(String oldPath, MultipartFile newFile)
+		            throws IOException {
+
+		        // delete old file if it exists
+		        if (oldPath != null) {
+		            try { Files.deleteIfExists(Paths.get(oldPath)); }
+		            catch (IOException ex) { /* log & continue */ }
+		        }
+
+		        // store new file
+		        String newName = UUID.randomUUID() + "_" + newFile.getOriginalFilename();
+		        Path newPath  = Paths.get(uploadDir, newName);
+		        Files.createDirectories(newPath.getParent());
+		        newFile.transferTo(newPath.toFile());
+		        return newPath.toString();
+		    }
+		
+	   
+		
+		
+	
+		
+		 
 	
 }
 
