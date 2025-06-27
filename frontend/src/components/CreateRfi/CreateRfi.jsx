@@ -10,7 +10,11 @@ const CreateRfi = () => {
 	const [formData, setFormData] = useState({});
 	const [mode, setMode] = useState('create');
 	const [loading, setLoading] = useState(true);
-
+	const [isEditable, setIsEditable] = useState(mode?.toLowerCase() !== 'edit');
+	
+	useEffect(() => {
+	  setIsEditable(mode?.toLowerCase() !== 'edit');
+	}, [mode]);
 
 	const [step, setStep] = useState(1);
 	const [formState, setFormState] = useState({
@@ -465,6 +469,7 @@ const CreateRfi = () => {
 
 					{step === 1 && (
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+						<fieldset disabled={!isEditable}>
 							<div className="form-row flex-wrap">
 								<div className="form-fields flex-2">
 									<label htmlFor="project" className="block mb-1">Project:</label>
@@ -474,6 +479,7 @@ const CreateRfi = () => {
 										options={projectOptions}
 										value={formState.project ? { value: formState.project, label: formState.project } : null}
 										onChange={(selected) => {
+											
 											const selectedProjectName = selected?.value || '';
 											const selectedProjectId = projectIdMap[selectedProjectName] || '';
 
@@ -514,6 +520,7 @@ const CreateRfi = () => {
 												setWorkOptions([]);
 											}
 										}}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -570,6 +577,7 @@ const CreateRfi = () => {
 											}
 										}
 										}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -616,6 +624,7 @@ const CreateRfi = () => {
 												setStructureTypeOptions([]);
 											}
 										}}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -640,6 +649,7 @@ const CreateRfi = () => {
 												activity: ''
 											})
 										}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -664,6 +674,7 @@ const CreateRfi = () => {
 												activity: ''
 											})
 										}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -689,6 +700,7 @@ const CreateRfi = () => {
 												activity: ''
 											})
 										}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -714,6 +726,7 @@ const CreateRfi = () => {
 												activity: ''
 											})
 										}
+										isDisabled={!isEditable}
 									/>
 								</div>
 
@@ -734,6 +747,7 @@ const CreateRfi = () => {
 											onChange={(selected) =>
 												setFormState({ ...formState, activity: selected?.value || '' })
 											}
+											isDisabled={!isEditable}
 										/>
 									</div>
 
@@ -745,12 +759,13 @@ const CreateRfi = () => {
 											options={rfiDescriptionOptions}
 											value={formState.rfiDescription ? { value: formState.rfiDescription, label: formState.rfiDescription } : null}
 											onChange={(selected) => setFormState({ ...formState, rfiDescription: selected?.value || '' })}
+											isDisabled={!isEditable}
 										/>
 									</div>
 								</div>
 
 							</div>
-
+							</fieldset>
 							<div className="d-flex justify-end">
 								<button onClick={() => setStep(2)} className="btn btn-primary">
 									Next

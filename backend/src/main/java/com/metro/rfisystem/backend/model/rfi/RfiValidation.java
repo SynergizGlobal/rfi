@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.metro.rfisystem.backend.constants.EnumValidation;
 
@@ -31,7 +32,7 @@ public class RfiValidation {
 	private Long id;
 	
 	@OneToOne
-	@JsonIgnore
+	@JsonBackReference
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
     private RFI rfi;
 	
