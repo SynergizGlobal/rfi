@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import java.io.File;
 
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,11 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
-
+import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIChecklistItem;
-import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionChecklistRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
+import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	
 	 private final RFIInspectionChecklistRepository checklistRepository;
 	 private final RFIInspectionDetailsRepository inspectionDetailsRepository;
+	 private final RFIRepository rfiRepository;
 	 @Value("${file.upload-dir}")
 	 private String uploadDir;
 
@@ -39,11 +41,11 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		
 	
 		  //  Fetch the RFIInspectionDetails using the ID
-		    RFIInspectionDetails inspection = inspectionDetailsRepository.findById(dto.getInspectionId())
-		        .orElseThrow(() -> new RuntimeException("Invalid inspection ID: " + dto.getInspectionId()));
+		    RFI inspection = rfiRepository.findById(dto.getRfiId())
+		        .orElseThrow(() -> new RuntimeException("Invalid inspection ID: " + dto.getRfiId()));
 
 	        RFIChecklistItem checklist = new RFIChecklistItem();
-	        checklist.setRfiInspection(inspection);
+	        checklist.setRfi(inspection);
 	        checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
 	        checklist.setDrawingApproved(dto.getDrawingApproved());
 	        checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());

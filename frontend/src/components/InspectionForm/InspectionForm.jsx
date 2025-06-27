@@ -78,7 +78,7 @@ export default function InspectionForm() {
 
 	const handleChecklistSubmit = async (id, data, contractorSign, gcSign) => {
 		const dto = {
-			inspectionId: rfiData.id,
+			rfiId: rfiData.id,
 			gradeOfConcrete: "M20",
 			drawingApproved: data[0].status,
 			drawingRemarkContractor: data[0].contractorRemark,
@@ -99,6 +99,11 @@ export default function InspectionForm() {
 				body: formData,
 			});
 			const text = await res.text();
+			if (!res.ok) {
+					// ❌ HTTP error, show status + backend error message
+					alert(`Checklist save failed: ${res.status} - ${text}`);
+					return;
+				}
 
 			// ✅ SET checklistDone and checklist data
 			setEnclosureStates(prev => ({
@@ -114,6 +119,7 @@ export default function InspectionForm() {
 
 		} catch (err) {
 			console.error("Checklist save failed:", err);
+			alert("Checklist save failed: " + err.message);
 		}
 	};
 
@@ -122,7 +128,7 @@ export default function InspectionForm() {
 
 	const handleUploadSubmit = async (id, file) => {
 		const formData = new FormData();
-		formData.append('inspectionId', rfiData.id);
+		formData.append('rfiId', rfiData.id);
 		formData.append('file', file);
 
 		try {
@@ -131,10 +137,17 @@ export default function InspectionForm() {
 				body: formData,
 			});
 			const text = await res.text();
+			if (!res.ok) {
+						console.error("Upload failed:", text);
+						alert(`Upload failed: ${text}`);
+						return;
+					}
 			setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
 			setUploadPopup(null);
 		} catch (err) {
 			console.error("Upload failed:", err);
+			alert("Checklist save failed: " + err.message);
+			
 		}
 	};
 

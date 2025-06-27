@@ -43,14 +43,7 @@ public class RFIInspectionDetails {
     @JsonBackReference
     private RFI rfi;
 
-    @OneToMany(mappedBy = "rfiInspection", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<RFIChecklistItem> checklistItems = new ArrayList<>();
-
-    @OneToMany(mappedBy = "rfiInspection", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<RFIEnclosure> enclosures = new ArrayList<>();
-    
+   
     @Column(name = "inspection_date")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfInspection;

@@ -26,10 +26,9 @@ public class RFIChecklistItem {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "inspection_id_fk", nullable = false)
-    @JsonBackReference
-    private RFIInspectionDetails rfiInspection;
-
+    @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
+    private RFI rfi;
+    
     
     //Checklist for concrete
      @Column(name = "grade_of_concrete")

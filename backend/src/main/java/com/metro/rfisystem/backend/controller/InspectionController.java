@@ -1,6 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
-import java.util.Arrays;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -15,8 +15,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.metro.rfisystem.backend.dto.ConfirmationRequestDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
@@ -60,10 +61,10 @@ public class InspectionController {
 	@PostMapping("/upload")
 	public ResponseEntity<String> uploadEnclosure(
 
-			@RequestParam("inspectionId") Long inspectionId, @RequestParam("file") MultipartFile file) {
+			@RequestParam("rfiId") Long rfiId, @RequestParam("file") MultipartFile file) {
 
 		try {
-			String savedFileName = rfiEnclosureService.uploadEnclosureFile(inspectionId, file);
+			String savedFileName = rfiEnclosureService.uploadEnclosureFile(rfiId, file);
 			return ResponseEntity.ok("Uploaded successfully as: " + savedFileName);
 		} catch (IllegalArgumentException e) {
 			return ResponseEntity.badRequest().body(e.getMessage());
@@ -97,6 +98,21 @@ public class InspectionController {
 	            .body("Failed to save checklist: " + e.getMessage());
 	    }
 	}
+	
+	 
+	  @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	  public ResponseEntity<String> confirmInspectionDetails(
+	          @RequestPart("data") String jsonData,
+	          @RequestPart(value = "uploadDocuments", required = false) List<MultipartFile> files
+	  ) throws JsonProcessingException {
+
+	      ObjectMapper mapper = new ObjectMapper();
+	      ConfirmationRequestDTO  request =
+	              mapper.readValue(jsonData,  ConfirmationRequestDTO .class);
+
+	      rfiEnclosureService.processConfirmation(request.getInspectionStatus(), request.getTestsInSiteLab(), files);
+	      return ResponseEntity.ok("Confirmation saved successfully");
+	  }
 
 
 
