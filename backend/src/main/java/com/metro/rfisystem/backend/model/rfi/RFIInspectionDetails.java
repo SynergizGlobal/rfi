@@ -2,12 +2,15 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.hibernate.annotations.ManyToAny;
-
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -37,8 +40,17 @@ public class RFIInspectionDetails {
 
     @ManyToOne
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
+    @JsonBackReference
     private RFI rfi;
 
+    @OneToMany(mappedBy = "rfiInspection", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RFIChecklistItem> checklistItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "rfiInspection", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RFIEnclosure> enclosures = new ArrayList<>();
+    
     @Column(name = "inspection_date")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfInspection;
@@ -50,7 +62,7 @@ public class RFIInspectionDetails {
     
     private String chainage;
 
-    private String selfiePath; 
+    private String selfiePath; // uploaded image path
     @Column(name = "site_image", length = 10000)
     private String siteImage;
     

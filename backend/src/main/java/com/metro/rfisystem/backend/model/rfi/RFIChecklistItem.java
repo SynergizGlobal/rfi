@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.model.rfi;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.metro.rfisystem.backend.dto.ChecklistOption;
 
 import jakarta.persistence.Column;
@@ -26,10 +27,10 @@ public class RFIChecklistItem {
 
     @ManyToOne
     @JoinColumn(name = "inspection_id_fk", nullable = false)
+    @JsonBackReference
     private RFIInspectionDetails rfiInspection;
 
-   
-
+    
     //Checklist for concrete
      @Column(name = "grade_of_concrete")
      private String gradeOfConcrete;
