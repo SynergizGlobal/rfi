@@ -2,6 +2,8 @@ package com.metro.rfisystem.backend.model.rfi;
 
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,6 +25,7 @@ public class RFIEnclosure {
     
     @ManyToOne
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
+    @JsonBackReference
     private RFI rfi;
 
     
