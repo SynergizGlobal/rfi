@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    container_name: backend
+    networks:
+      - rfi-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    container_name: frontend
+    depends_on:
+      - backend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - rfi-network
+
+networks:
+  rfi-network:
+    driver: bridge
