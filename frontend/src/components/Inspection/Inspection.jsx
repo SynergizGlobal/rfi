@@ -4,6 +4,8 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import { useNavigate } from 'react-router-dom';
 import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
+import axios from 'axios';
+
 
 const DropdownMenu = ({ children }) => {
   return (
@@ -146,24 +148,32 @@ const Inspection = () => {
 									View
 									</button>
 
-								{userRole !== 'contractor' && (
-									<button
-										onClick={(e) => {
-											e.stopPropagation();
-											setConfirmPopupData({
-											message: "Do you want to Submit the Inspection report for Validation?",
-											onConfirm: () => {
-												// Submit logic here
-												console.log("Submitted for validation:", row.original.id);
-												setOpenDropdownRow(null);
-												setConfirmPopupData(null);
-											},
-											});
-										}}
-										>
-										Send for Validation
-										</button>
-								)}
+									{userRole !== 'contractor' && (
+									  <button
+									    onClick={(e) => {
+									      e.stopPropagation();
+									      setConfirmPopupData({
+									        message: "Do you want to Submit the Inspection report for Validation?",
+									        onConfirm: async () => {
+									          try {
+									            const rfiLongId = row.original.id;
+									            const response = await axios.put(`http://localhost:8000/rfi/${rfiLongId}/send-for-validation`);
+									            alert(response.data); // or use toast if available
+									          } catch (error) {
+									            console.error("Validation submission failed:", error);
+									            alert("Failed to submit RFI for validation.");
+									          } finally {
+									            setOpenDropdownRow(null);
+									            setConfirmPopupData(null);
+									          }
+									        },
+									      });
+									    }}
+									  >
+									    Send for Validation
+									  </button>
+									)}
+
 
 								{userRole !== 'regular user' && (
 									<button>Submit</button>

@@ -34,6 +34,27 @@ const Dashboard = () => {
 			});
 	}, []);
 
+	const [statusCounts, setStatusCounts] = useState({
+		INSPECTION_DONE: 0,
+		PENDING: 0,
+		RESCHEDULED: 0
+	});
+
+	useEffect(() => {
+		fetch("http://localhost:8000/rfi/status-counts", {
+			method: "GET",
+			credentials: "include"
+		})
+			.then(res => {
+				if (!res.ok) throw new Error("Failed to fetch RFI status counts");
+				return res.json();
+			})
+			.then(data => setStatusCounts(data))
+			.catch(err => {
+				console.error("Failed to fetch status counts:", err);
+			});
+	}, []);
+
 	useEffect(() => {
 		const checkSession = async () => {
 			try {
@@ -103,7 +124,7 @@ const Dashboard = () => {
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
-												<span className="card-number">73</span>
+												<span className="card-number">{statusCounts.INSPECTION_DONE}</span>
 											</div>
 											<div className="cards-icon">
 												<img src="/images/verify.png" alt="tick symbol" width="25" height="25" />
@@ -122,7 +143,7 @@ const Dashboard = () => {
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
-												<span className="card-number">13</span>
+											<span className="card-number">{statusCounts.PENDING}</span>
 											</div>
 											<div className="cards-icon">
 												<img src="/images/caution.png" alt="tick symbol" width="25" height="25" />
@@ -141,7 +162,7 @@ const Dashboard = () => {
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
-												<span className="card-number">5</span>
+												<span className="card-number">{statusCounts.RESCHEDULED}</span>
 											</div>
 											<div className="cards-icon">
 												<img src="/images/calender.png" alt="tick symbol" width="25" height="25" />

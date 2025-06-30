@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -84,6 +85,8 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
 		rfi.setDateOfInspection(dto.getDateOfInspection());
 		rfi.setCreatedBy(userName);
+		
+		rfi.setStatus(EnumRfiStatus.CREATED);
 
 		return rfiRepository.save(rfi);
 	}
@@ -165,6 +168,16 @@ public class RFIServiceImpl implements RFIService {
 			existingRfi.setEnclosures(rfiDto.getEnclosures());
 			existingRfi.setLocation(rfiDto.getLocation());
 			existingRfi.setDescription(rfiDto.getDescription());
+
+			// ✅ Set status based on action
+			String action = rfiDto.getAction();
+			if ("Reschedule".equalsIgnoreCase(action)) {
+			    existingRfi.setStatus(EnumRfiStatus.RESCHEDULED);
+			} else if ("Reassign".equalsIgnoreCase(action)) {
+			    existingRfi.setStatus(EnumRfiStatus.REASSIGNED);
+			} else {
+			    existingRfi.setStatus(EnumRfiStatus.UPDATED);
+			}
 
 			String updatedRfiId = incrementRevision(existingRfi.getRfi_Id());
 			existingRfi.setRfi_Id(updatedRfiId);

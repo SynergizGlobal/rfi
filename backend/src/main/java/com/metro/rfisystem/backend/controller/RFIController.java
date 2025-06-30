@@ -1,6 +1,8 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
@@ -186,5 +189,15 @@ public class RFIController {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
 		}
 	}
+	
+	@GetMapping("/status-counts")
+	public ResponseEntity<Map<String, Long>> getRfiStatusCounts() {
+	    Map<String, Long> counts = new HashMap<>();
+	    counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
+	    counts.put("PENDING", rfiRepository.countByStatus(EnumRfiStatus.CREATED)); // or another logic
+	    counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
+	    return ResponseEntity.ok(counts);
+	}
+
 
 }

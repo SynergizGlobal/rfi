@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
@@ -35,9 +36,13 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);
 
 	@Query(value = "select r.rfi_id , r.id,rv.id \r\n" + "from rfi_data as r\r\n"
-			+ "right join rfi_validation as rv\r\n" + "on r.id = rv.rfi_id_fk", nativeQuery = true)
+			+ "right join rfi_validation as rv\r\n" + "on r.id = rv.rfi_id_fk "
+			+" ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidations();
-   
+
+	
+	
+	
 	@Query(value = "SELECT\r\n"
 			+ "  r.consultant AS consultant,\r\n"
 			+ "  r.contract_short_name AS contract,\r\n"
@@ -88,7 +93,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
 	
-	@Query(value="select r.id as id, r.rfi_id as rfiId, DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') as dateOfSubmission,r.description as rfiDescription,r.created_by as rfiRequestedBy,r.client_department as department,r.assigned_person_client as person,DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') as dateRaised,\r\n"
+	@Query(value="select r.id as id, r.rfi_id as rfiId, DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') as dateOfSubmission,r.description as rfiDescription,\r\n"
+			+ "r.created_by as rfiRequestedBy,r.client_department as department,r.assigned_person_client as person,DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') as dateRaised,\r\n"
 			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') as dateResponded,r.status as status,rv.remarks as notes\r\n"
 			+ "from rfi_data as r\r\n"
 			+ "left join rfi_inspection_details as i \r\n"
@@ -101,8 +107,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "order by created_at desc\r\n"
 			+ "",nativeQuery=true)
 	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
-
-
+	
 	@Query(value="SELECT \r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
@@ -127,7 +132,11 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    r.created_at DESC;\r\n"
 			+ "",nativeQuery=true)
 	List<RfiLogDTO> listAllRfiLog();
- 
+
+
+	long countByStatus(EnumRfiStatus status);
+
 
 
 }
+ 
