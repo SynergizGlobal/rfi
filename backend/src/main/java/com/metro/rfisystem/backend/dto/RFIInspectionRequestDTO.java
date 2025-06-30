@@ -15,4 +15,6 @@ public class RFIInspectionRequestDTO {
     private String activity;
     private String rfiDescription;
     private String description;
+    private InspectionStatus inspectionStatus;
+	private boolean testInsiteLab;
 }

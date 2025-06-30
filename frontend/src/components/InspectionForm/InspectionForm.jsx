@@ -30,6 +30,11 @@ export default function InspectionForm() {
 	const [uploadPopup, setUploadPopup] = useState(null);
 	const [showCamera, setShowCamera] = useState(false);
 	const [cameraMode, setCameraMode] = useState('environment');
+	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
+	const [chainage, setChainage] = useState('');
+	const [inspectionStatus, setInspectionStatus] = useState('');
+	const [testInLab, setTestInLab] = useState(null);
+
 
 	useEffect(() => {
 		if (id) {
@@ -76,10 +81,10 @@ export default function InspectionForm() {
 		return new File([u8arr], filename, { type: mime });
 	}
 
-	const handleChecklistSubmit = async (id, data, contractorSign, gcSign) => {
+	const handleChecklistSubmit = async (id, data, contractorSign, gcSign, grade) => {
 		const dto = {
 			rfiId: rfiData.id,
-			gradeOfConcrete: "M20",
+			gradeOfConcrete: grade,
 			drawingApproved: data[0].status,
 			drawingRemarkContractor: data[0].contractorRemark,
 			drawingRemarkAE: data[0].aeRemark,
@@ -100,10 +105,9 @@ export default function InspectionForm() {
 			});
 			const text = await res.text();
 			if (!res.ok) {
-					// ❌ HTTP error, show status + backend error message
-					alert(`Checklist save failed: ${res.status} - ${text}`);
-					return;
-				}
+				alert(`Checklist save failed: ${res.status} - ${text}`);
+				return;
+			}
 
 			// ✅ SET checklistDone and checklist data
 			setEnclosureStates(prev => ({
@@ -112,6 +116,7 @@ export default function InspectionForm() {
 					checklist: data,
 					contractorSign,
 					gcSign,
+					gradeOfConcrete: grade,
 					checklistDone: true,
 				}
 			}));
@@ -128,6 +133,7 @@ export default function InspectionForm() {
 
 	const handleUploadSubmit = async (id, file) => {
 		const formData = new FormData();
+
 		formData.append('rfiId', rfiData.id);
 		formData.append('file', file);
 
@@ -138,25 +144,30 @@ export default function InspectionForm() {
 			});
 			const text = await res.text();
 			if (!res.ok) {
-						console.error("Upload failed:", text);
-						alert(`Upload failed: ${text}`);
-						return;
-					}
+				console.error("Upload failed:", text);
+				alert(`Upload failed: ${text}`);
+				return;
+			}
 			setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
 			setUploadPopup(null);
 		} catch (err) {
 			console.error("Upload failed:", err);
 			alert("Checklist save failed: " + err.message);
-			
+
 		}
 	};
 
 	const handleSaveInspection = async () => {
 		const formData = new FormData();
+
+
 		const inspectionPayload = {
 			rfiId: rfiData.id,
 			location: locationText,
-		
+			chainage: chainage,
+			inspectionStatus: inspectionStatus,
+			testInsiteLab: testInLab
+
 		};
 
 		formData.append('data', JSON.stringify(inspectionPayload));
@@ -171,7 +182,6 @@ export default function InspectionForm() {
 		}
 
 
-		// Site images are already stored as File objects
 		Object.entries(galleryImages).forEach(([key, file]) => {
 			if (file instanceof File) {
 				formData.append('siteImages', file);
@@ -213,6 +223,10 @@ export default function InspectionForm() {
 										<label>Activity:</label><input type="text" readOnly value={rfiData.activity} />
 										<label>RFI Description:</label><input type="text" readOnly value={rfiData.rfiDescription} />
 										<label>Description:</label><input type="text" readOnly value={rfiData.description} />
+										<label>Chainage:</label>
+										<input type="text" value={chainage} onChange={e => setChainage(e.target.value)} />
+
+
 									</div>
 									<div className="upload-section">
 										<label>Selfie:</label>
@@ -306,8 +320,8 @@ export default function InspectionForm() {
 								data={enclosureStates[checklistPopup]?.checklist || initialChecklist}
 								contractorSign={enclosureStates[checklistPopup]?.contractorSign || null}
 								gcSign={enclosureStates[checklistPopup]?.gcSign || null}
-								onDone={(data, contractorSign, gcSign) =>
-									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign)
+								onDone={(data, contractorSign, gcSign, grade) =>
+									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
 								}
 								onClose={() => setChecklistPopup(null)}
 							/>
@@ -321,7 +335,11 @@ export default function InspectionForm() {
 							/>
 						)}
 
-						{confirmPopup && <ConfirmationPopup onClose={() => setConfirmPopup(false)} />}
+						{confirmPopup && <ConfirmationPopup
+							inspectionStatus={inspectionStatus}
+							setInspectionStatus={setInspectionStatus}
+							testInLab={testInLab}
+							setTestInLab={setTestInLab} onClose={() => setConfirmPopup(false)} />}
 
 						{showCamera && (
 							<div className="popup">
@@ -347,6 +365,10 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 	const [checklist, setChecklist] = useState(data);
 	const [contractorSignature, setContractorSignature] = useState(contractorSign);
 	const [gcSignature, setGcSignature] = useState(gcSign);
+	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
+
+
+
 
 	const handleChange = (id, field, value) => {
 		setChecklist(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
@@ -387,7 +409,13 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 				</div>
 				<div className="form-fields flex-2">
 					<label>Grade of Concrete:</label>
-					<input type="text" name="concrete_grade" id="concrete_grade" value="" />
+					<input
+						type="text"
+						name="concrete_grade"
+						id="concrete_grade"
+						value={gradeOfConcrete}
+						onChange={e => setGradeOfConcrete(e.target.value)}
+					/>
 				</div>
 			</div>
 			<h3>CHECKLIST FOR CONCRETE/SHUTTERING & REINFORCEMENT</h3>
@@ -418,7 +446,7 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 			<input type="file" onChange={(e) => setGcSignature(e.target.files[0])} />
 
 			<div className="popup-actions">
-				<button onClick={() => onDone(checklist, contractorSignature, gcSignature)}>Done</button>
+				<button onClick={() => onDone(checklist, contractorSignature, gcSignature, gradeOfConcrete)}>Done</button>
 				<button onClick={onClose}>Cancel</button>
 			</div>
 		</div>
@@ -427,6 +455,7 @@ function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose
 
 function UploadPopup({ onSubmit, onClose }) {
 	const [file, setFile] = useState(null);
+
 	return (
 		<div className="popup">
 			<h3>Upload File</h3>
@@ -439,16 +468,33 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ onClose }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, onClose }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
 			<label>Inspection Status</label>
-			<input type="text" placeholder="Enter status" />
-			<label>Tests in Site/Lab</label>
-			<select name="tests_site" id="tests_site">
+			<select value={inspectionStatus} onChange={e => setInspectionStatus(e.target.value)}>
 				<option value="">Select</option>
+				<option value="VISUAL">Visual</option>
+				<option value="LAB_TEST">Lab Test</option>
+				<option value="SITE_TEST">Site Test</option>
 			</select>
+			<label>Tests in Site/Lab</label>
+			<select
+				value={testInLab === null ? '' : testInLab.toString()}
+				onChange={(e) => {
+					const value = e.target.value;
+					if (value === 'true') setTestInLab(true);
+					else if (value === 'false') setTestInLab(false);
+					else setTestInLab(null);
+				}}
+			>
+				<option value="">Select</option>
+				<option value="true">Accepted</option>
+				<option value="false">Rejected</option>
+			</select>
+
+
 			<div className="popup-actions">
 				<button onClick={onClose}>Done</button>
 			</div>

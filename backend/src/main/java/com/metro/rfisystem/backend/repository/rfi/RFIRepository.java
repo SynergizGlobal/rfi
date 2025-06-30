@@ -37,10 +37,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query(value = "select r.rfi_id , r.id,rv.id \r\n" + "from rfi_data as r\r\n"
 			+ "right join rfi_validation as rv\r\n" + "on r.id = rv.rfi_id_fk", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidations();
-
-	
-	
-	
+   
 	@Query(value = "SELECT\r\n"
 			+ "  r.consultant AS consultant,\r\n"
 			+ "  r.contract_short_name AS contract,\r\n"
@@ -76,17 +73,18 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "FROM rfi_data r\r\n"
 			+ "JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk\r\n"
 			+ "JOIN rfi_validation v ON v.rfi_id_fk = r.id\r\n"
-			+ "JOIN rfi_checklist_item c ON i.id = c.inspection_id_fk\r\n"
+			+ "JOIN rfi_checklist_item c ON r.id = c.rfi_id_fk\r\n"
 			+ "LEFT JOIN (\r\n"
 			+ "    SELECT \r\n"
-			+ "      inspection_id_fk,\r\n"
+			+ "      rfi_id_fk,\r\n"
 			+ "      GROUP_CONCAT(enclosure_name SEPARATOR ', ') AS enclosureNames,\r\n"
 			+ "      GROUP_CONCAT(enclosure_upload_file SEPARATOR ', ') AS enclosureFilePaths\r\n"
 			+ "    FROM rfi_enclosure\r\n"
-			+ "    GROUP BY inspection_id_fk\r\n"
-			+ ") enc ON enc.inspection_id_fk = i.id\r\n"
-			+ "WHERE r.id = :id \r\n"
+			+ "    GROUP BY rfi_id_fk\r\n"
+			+ ") enc ON enc.rfi_id_fk = r.id\r\n"
+			+ "WHERE r.id =:id\r\n"
 			+ "GROUP BY r.id;\r\n"
+			+ "\r\n"
 			+ "", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
 	
