@@ -1,30 +1,27 @@
 package com.metro.rfisystem.backend.controller;
-import java.net.MalformedURLException;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
-
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.OutputStream;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -32,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class RfiValidateController {
 
 	private final RfiValidationService rfiValidationService;
-	
+
 	@PutMapping("/rfi/{id}/send-for-validation")
 	public ResponseEntity<String> sendForValidation(@PathVariable Long id) {
 		boolean success = rfiValidationService.sendRfiForValidation(id);
@@ -43,15 +40,12 @@ public class RfiValidateController {
 		}
 	}
 
-	
-	
-	
-	@PostMapping(value = "/validate", consumes = {"multipart/form-data"})
+	@PostMapping(value = "/validate", consumes = { "multipart/form-data" })
 	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
-	    rfiValidationService.validateRfiWithFile(dto);
-	    return ResponseEntity.ok("RFI validated with file uploaded.");
+		rfiValidationService.validateRfiWithFile(dto);
+		return ResponseEntity.ok("RFI validated with file uploaded.");
 	}
-	
+
 	@GetMapping("/getRfiValidations")
 	public ResponseEntity<List<GetRfiDTO>> showRfiIdsForValidations() {
 		List<GetRfiDTO> list = rfiValidationService.showRfiValidations();
@@ -62,7 +56,6 @@ public class RfiValidateController {
 		return ResponseEntity.ok(list);
 	}
 
-	
 //	@GetMapping("/rfiDownload/{id}")
 //    public void downloadRfiReport(@PathVariable long id, HttpServletResponse response) {
 //        response.setContentType("application/pdf");
@@ -74,8 +67,7 @@ public class RfiValidateController {
 //            throw new RuntimeException("Error generating PDF", e);
 //        }
 //    }
-	
-	
+
 	@GetMapping("/getRfiReportDetails/{id}")
 	public ResponseEntity<List<RfiReportDTO>> getRfiReportDetails(@PathVariable long id) {
 		List<RfiReportDTO> list = rfiValidationService.getRfiReportDetails(id);
@@ -87,17 +79,22 @@ public class RfiValidateController {
 	}
 
 	@GetMapping("/previewFiles")
-	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws MalformedURLException {
-	    Path file = Paths.get(filepath); // full path from request param
-	    Resource resource = new UrlResource(file.toUri());
+	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
+		Path file = Paths.get(filepath);
+		Resource resource = new UrlResource(file.toUri());
 
-	    if (!resource.exists() || !resource.isReadable()) {
-	        return ResponseEntity.notFound().build();
-	    }
+		if (!resource.exists() || !resource.isReadable()) {
+			return ResponseEntity.notFound().build();
+		}
 
-	    return ResponseEntity.ok()
-	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
-	        .body(resource);
+		String contentType = Files.probeContentType(file);
+		if (contentType == null) {
+			contentType = "application/octet-stream";
+		}
+
+		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
+				.body(resource);
 	}
 
 }
