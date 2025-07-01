@@ -22,3 +22,45 @@
 .inspection .popup-actions button {
   padding: 0.5rem 1.5rem;
 }
+/* Download button base style */
+.btn-download {
+  padding: 6px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+/* Hover effect */
+.btn-download:hover {
+  background-color: #0056b3;
+}
+
+/* Disabled style when loading */
+.btn-download:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Spinner style */
+.spinner {
+  border: 2px solid #f3f3f3; /* Light gray */
+  border-top: 2px solid #ffffff; /* White */
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Keyframes for spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.controller;
 
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.text.DocumentException;
 import com.metro.rfisystem.backend.dto.ConfirmationRequestDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
@@ -26,7 +27,6 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -139,8 +139,12 @@ public class InspectionController {
 	      rfiEnclosureService.processConfirmation(request.getInspectionStatus(), request.getTestsInSiteLab(), files);
 	      return ResponseEntity.ok("Confirmation saved successfully");
 	  }
+	  
+	    @GetMapping("/downloadSiteImagesPdf")
+	    public ResponseEntity<byte[]> downloadSiteImagesPdf(@RequestParam Long id, @RequestParam String uploadedBy)
+	            throws IOException, DocumentException {
 
-
-
-	}
+	        return inspectionService.generateSiteImagesPdf(id, uploadedBy);
+	    }	
+}
 

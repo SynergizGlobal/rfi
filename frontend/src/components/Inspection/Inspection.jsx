@@ -83,6 +83,38 @@ const Inspection = () => {
 		navigate(`/InspectionForm`, { state: { rfi } });
 	};
 
+	const [downloadingId, setDownloadingId] = useState(null);
+	const handleDownloadImagesPdf = async (id, uploadedBy) => {
+	  const uniqueId = uploadedBy === "Contractor" ? id : `client-${id}`;
+	  try {
+	    setDownloadingId(uniqueId);
+
+	    const response = await fetch(
+	      `http://localhost:8000/rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
+	    );
+
+	    if (!response.ok) {
+	      alert("No images found or failed to generate PDF.");
+	      return;
+	    }
+
+	    const blob = await response.blob();
+	    const url = window.URL.createObjectURL(blob);
+	    const link = document.createElement("a");
+	    link.href = url;
+	    const filename = `Images_Uploaded_by_the_${uploadedBy === "Contractor" ? "Contractor" : "Client"}.pdf`;
+	    link.setAttribute("download", filename);
+	    document.body.appendChild(link);
+	    link.click();
+	    link.remove();
+	  } catch (err) {
+	    console.error("PDF download error:", err);
+	    alert("Failed to download PDF.");
+	  } finally {
+	    setDownloadingId(null);
+	  }
+	};
+
 
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfi_Id' },
@@ -93,8 +125,36 @@ const Inspection = () => {
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
 		{ Header: 'Inspection Status', accessor: 'inspectionStatus' },
-		{ Header: 'Images uploaded by the Contractor', accessor: 'contractorImages' },
-		{ Header: 'Images uploaded by the Client', accessor: 'clientImages' },
+		{
+		  Header: 'Download Contractor Images',
+		  Cell: ({ row }) => {
+		    const isDownloading = downloadingId === row.original.id;
+		    return (
+		      <button
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+		        className="btn-download"
+		        disabled={isDownloading}
+		      >
+		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
+		      </button>
+		    );
+		  }
+		},
+		{
+		  Header: 'Download Client Images',
+		  Cell: ({ row }) => {
+		    const isDownloading = downloadingId === `client-${row.original.id}`;
+		    return (
+		      <button
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+		        className="btn-download"
+		        disabled={isDownloading}
+		      >
+		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
+		      </button>
+		    );
+		  }
+		},
 		{
 			Header: 'Action',
 			Cell: ({ row }) => {

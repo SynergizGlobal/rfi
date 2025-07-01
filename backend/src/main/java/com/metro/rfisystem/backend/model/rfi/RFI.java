@@ -111,8 +111,8 @@ public class RFI {
 	@Column(name = "client_department")
 	private String clientDepartment;
  
-	@Column(name = "client_user_id")
-	private String clientUserId;
+//	@Column(name = "client_user_id")
+//	private String clientUserId;
 	
     @Column(name = "assigned_person_contractor")
     private String assignedPersonContractor;
