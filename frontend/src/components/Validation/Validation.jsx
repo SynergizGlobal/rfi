@@ -67,23 +67,23 @@ export default function Validation() {
 	const fileBaseURL = 'http://localhost:8000/previewFiles';
 
 	const toBase64 = (url) => {
-			return new Promise((resolve, reject) => {
-				const img = new Image();
-				img.crossOrigin = 'Anonymous';
-				img.src = url;
-				img.onload = () => {
-					const canvas = document.createElement('canvas');
-					canvas.width = img.width;
-					canvas.height = img.height;
-					const ctx = canvas.getContext('2d');
-					ctx.drawImage(img, 0, 0);
-					resolve(canvas.toDataURL('image/jpeg'));
-				};
-				img.onerror = reject;
-			});
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			img.crossOrigin = 'Anonymous';
+			img.src = url;
+			img.onload = () => {
+				const canvas = document.createElement('canvas');
+				canvas.width = img.width;
+				canvas.height = img.height;
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(img, 0, 0);
+				resolve(canvas.toDataURL('image/jpeg'));
 			};
+			img.onerror = reject;
+		});
+	};
 
-	
+
 
 	const generatePDF = async (inspectionListToExport, remarksList = [], statusList = []) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -102,7 +102,7 @@ export default function Validation() {
 			}
 		};
 
-		
+
 
 
 		const loadLogo = () =>
@@ -127,36 +127,36 @@ export default function Validation() {
 			const safe = (val) => val || '---';
 
 			doc.setFontSize(10);
-		const wrappedclient = doc.splitTextToSize(`Client: ${safe(inspection.client)}`, 15);
-		doc.text(wrappedclient, 10, y);
-		y += wrappedclient.length * 5;
-		
-		doc.setFontSize(12);
-		doc.text('REQUEST FOR INSPECTION (RFI)', 70, y);
-		y += 8;
+			const wrappedclient = doc.splitTextToSize(`Client: ${safe(inspection.client)}`, 15);
+			doc.text(wrappedclient, 10, y);
+			y += wrappedclient.length * 5;
 
-		doc.setFontSize(10);
-		const wrappedconsultant = doc.splitTextToSize(`Consultant: ${safe(inspection.consultant)}`, 30);
-		doc.text(wrappedconsultant, 10, y);
+			doc.setFontSize(12);
+			doc.text('REQUEST FOR INSPECTION (RFI)', 70, y);
+			y += 8;
 
-		const wrappedContract = doc.splitTextToSize(`Contract: ${safe(inspection.contract)}`, 120);
-		doc.text(wrappedContract, 75, y);
+			doc.setFontSize(10);
+			const wrappedconsultant = doc.splitTextToSize(`Consultant: ${safe(inspection.consultant)}`, 30);
+			doc.text(wrappedconsultant, 10, y);
 
-		y += 12;
+			const wrappedContract = doc.splitTextToSize(`Contract: ${safe(inspection.contract)}`, 120);
+			doc.text(wrappedContract, 75, y);
 
-		const wrappedContractor = doc.splitTextToSize(`Contractor: ${safe(inspection.contractor)}`, 30);
-		doc.text(wrappedContractor, 10, y);
-		
-		const wrappedContractId = doc.splitTextToSize(`Contract ID: ${safe(inspection.contractId)}`, 120);
-		doc.text(wrappedContractId, 75, y);
+			y += 12;
 
-		y += 12;
+			const wrappedContractor = doc.splitTextToSize(`Contractor: ${safe(inspection.contractor)}`, 30);
+			doc.text(wrappedContractor, 10, y);
 
-		
-		const wrappedrfiId = doc.splitTextToSize(`RFI ID: ${safe(inspection.rfiId)}`, 80);
-		doc.text(wrappedrfiId, 10, y);
-		y += wrappedrfiId.length * 5;
-			
+			const wrappedContractId = doc.splitTextToSize(`Contract ID: ${safe(inspection.contractId)}`, 120);
+			doc.text(wrappedContractId, 75, y);
+
+			y += 12;
+
+
+			const wrappedrfiId = doc.splitTextToSize(`RFI ID: ${safe(inspection.rfiId)}`, 80);
+			doc.text(wrappedrfiId, 10, y);
+			y += wrappedrfiId.length * 5;
+
 			doc.text(`Date of Inspection: ${safe(inspection.dateOfInspection)}`, 10, y);
 			doc.text(`Location: ${safe(inspection.location)}`, 75, y);
 			doc.text(`Proposed Time: ${safe(inspection.proposedInspectionTime)}`, 135, y);
@@ -270,39 +270,39 @@ export default function Validation() {
 	};
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
-	try {
-		const res = await axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`);
-		if (res.data?.length > 0) {
-			const inspection = res.data[0];
+		try {
+			const res = await axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`);
+			if (res.data?.length > 0) {
+				const inspection = res.data[0];
 
-			// Inject remarks and status
-			inspection.remarks = remarksList[idx] || '';
-			inspection.rfiStatus = statusList[idx] || '';
+				// Inject remarks and status
+				inspection.remarks = remarksList[idx] || '';
+				inspection.rfiStatus = statusList[idx] || '';
 
-			// Convert image URLs to base64 and assign
-			const baseURL = 'http://localhost:8000/previewFiles?filepath=';
+				// Convert image URLs to base64 and assign
+				const baseURL = 'http://localhost:8000/previewFiles?filepath=';
 
-			const convert = async (src) => (src ? await toBase64(baseURL + encodeURIComponent(src.trim())) : null);
+				const convert = async (src) => (src ? await toBase64(baseURL + encodeURIComponent(src.trim())) : null);
 
-			// Convert images
-			inspection.selfieImage = await convert(inspection.selfieClient);
-			inspection.contractorSign = await convert(inspection.contractorSignature);
-			inspection.gcSign = await convert(inspection.gcMrvcSignature);
+				// Convert images
+				inspection.selfieImage = await convert(inspection.selfieClient);
+				inspection.contractorSign = await convert(inspection.contractorSignature);
+				inspection.gcSign = await convert(inspection.gcMrvcSignature);
 
-			const galleryImgs = inspection.imagesUploadedByClient?.split(',') || [];
-			inspection.galleryImages = {};
-			for (let i = 0; i < galleryImgs.length; i++) {
-				inspection.galleryImages[i] = await convert(galleryImgs[i]);
+				const galleryImgs = inspection.imagesUploadedByClient?.split(',') || [];
+				inspection.galleryImages = {};
+				for (let i = 0; i < galleryImgs.length; i++) {
+					inspection.galleryImages[i] = await convert(galleryImgs[i]);
+				}
+
+				await generatePDF([inspection]);
+			} else {
+				alert("No inspection details found.");
 			}
-
-			await generatePDF([inspection]);
-		} else {
-			alert("No inspection details found.");
+		} catch (err) {
+			console.error("Error fetching details for PDF:", err);
 		}
-	} catch (err) {
-		console.error("Error fetching details for PDF:", err);
-	}
-};
+	};
 
 
 
@@ -486,11 +486,21 @@ export default function Validation() {
 								{selectedInspection.selfieClient && (
 									<div className="image-gallery">
 										<h4>Inspector Selfie</h4>
-										<img
-											src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.selfieClient)}`}
-											alt="Selfie"
-											className="preview-image"
-										/>
+										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
@@ -498,28 +508,42 @@ export default function Validation() {
 								{selectedInspection.imagesUploadedByClient && (
 									<div className="image-gallery">
 										<h4>Site Images By Inspector</h4>
-										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => (
-											<img
-												key={idx}
-												src={`${fileBaseURL}?filepath=${encodeURIComponent(img.trim())}`}
-												alt={`Client Image ${idx + 1}`}
-												className="preview-image"
-											/>
-										))}
+										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
 								{selectedInspection.clientEnclosureFilePaths && (
 									<div className="image-gallery">
 										<h4>Enclosures Uploaded By Inspector</h4>
-										{selectedInspection.clientEnclosureFilePaths.split(',').map((path, idx) => (
-											<img
-												key={idx}
-												src={`${fileBaseURL}?filepath=${encodeURIComponent(path.trim())}`}
-												alt={`Enclosure ${idx + 1}`}
-												className="preview-image"
-											/>
-										))}
+										{selectedInspection.clientEnclosureFilePaths.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
@@ -562,11 +586,21 @@ export default function Validation() {
 								{selectedInspection.selfieContractor && (
 									<div className="image-gallery">
 										<h4>Contractor Selfie</h4>
-										<img
-											src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.selfieContractor)}`}
-											alt="Selfie"
-											className="preview-image"
-										/>
+										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
@@ -574,31 +608,58 @@ export default function Validation() {
 								{selectedInspection.imagesUploadedByContractor && (
 									<div className="image-gallery">
 										<h4>Site Images By Contractor</h4>
-										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => (
-											<img
-												key={idx}
-												src={`${fileBaseURL}?filepath=${encodeURIComponent(img.trim())}`}
-												alt={`Client Image ${idx + 1}`}
-												className="preview-image"
-											/>
-										))}
+										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
+
 
 
 								{selectedInspection.contractorEnclosureFilePaths && (
 									<div className="image-gallery">
 										<h4>Enclosures Uploaded By Contractor</h4>
-										{selectedInspection.contractorEnclosureFilePaths.split(',').map((path, idx) => (
-											<img
-												key={idx}
-												src={`${fileBaseURL}?filepath=${encodeURIComponent(path.trim())}`}
-												alt={`Enclosure ${idx + 1}`}
-												className="preview-image"
-											/>
-										))}
+										{selectedInspection.contractorEnclosureFilePaths.split(',').map((rawPath, idx) => {
+											const path = rawPath.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+											const extension = getExtension(path); // assuming this returns 'pdf', 'jpg', etc.
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													{extension === 'pdf' ? (
+														<embed
+															src={fileUrl}
+															type="application/pdf"
+															width="100%"
+															height="500px"
+															className="preview-pdf"
+														/>
+													) : (
+														<img
+															src={fileUrl}
+															alt={`Enclosure ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													)}
+												</a>
+											);
+										})}
 									</div>
 								)}
+
 
 								{selectedInspection.testInsiteLabContractor && selectedInspection.testSiteDocumentsContractor && (
 									<div className="image-gallery">
@@ -643,11 +704,21 @@ export default function Validation() {
 								{selectedInspection.contractorSignature && (
 									<div className="image-gallery">
 										<h4>Contractor Signature</h4>
-										<img
-											src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.contractorSignature)}`}
-											alt="Contractor Signature"
-											className="preview-image"
-										/>
+										{selectedInspection.contractorSignature.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
@@ -655,11 +726,21 @@ export default function Validation() {
 								{selectedInspection.gcMrvcSignature && (
 									<div className="image-gallery">
 										<h4>GC/MRVC Signature</h4>
-										<img
-											src={`${fileBaseURL}?filepath=${encodeURIComponent(selectedInspection.gcMrvcSignature)}`}
-											alt="GC Signature"
-											className="preview-image"
-										/>
+										{selectedInspection.gcMrvcSignature.split(',').map((img, idx) => {
+											const trimmedPath = img.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													<img
+														src={fileUrl}
+														alt={`Contractor Image ${idx + 1}`}
+														className="preview-image"
+														onError={() => console.error("Image load error:", fileUrl)}
+													/>
+												</a>
+											);
+										})}
 									</div>
 								)}
 
