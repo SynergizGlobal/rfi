@@ -2,12 +2,13 @@ package com.metro.rfisystem.backend.dto;
 
 import org.springframework.web.multipart.MultipartFile;
 
+
 import lombok.Data;
 
 @Data
 public class RFIInspectionChecklistDTO {
 
-	//private Long inspectionId;
+	private Long checklistId;
 	private Long rfiId;
     private String gradeOfConcrete;
 

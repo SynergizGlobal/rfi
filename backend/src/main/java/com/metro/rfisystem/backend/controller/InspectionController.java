@@ -27,6 +27,8 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
+
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -44,13 +46,14 @@ public class InspectionController {
 	}
 
 	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> startInspection(@RequestPart("data") String dataJson,
+	public ResponseEntity<String> startInspection( HttpSession session,@RequestPart("data") String dataJson,
 			@RequestPart("selfie") MultipartFile selfie, @RequestPart("siteImages") MultipartFile[] siteImages) {
+		String UserRole = (String)session.getAttribute("userRoleNameFk");
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-
-			inspectionService.startInspection(dto, selfie, siteImages);
+             
+			inspectionService.startInspection(dto, selfie, siteImages,UserRole);
 
 			return ResponseEntity.ok("Inspection started successfully.");
 		} catch (Exception e) {
@@ -100,29 +103,30 @@ public class InspectionController {
 	    }
 	}
 	
-	@PutMapping(value = "/checklist/{checklistId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-      public ResponseEntity<String> updateChecklist(
-        @PathVariable Long checklistId,
-        @RequestPart("data")  String checklistJson,
-        @RequestPart(value = "contractorSignature", required = false)
-        MultipartFile contractorSignature,
-        @RequestPart(value = "clientSignature",    required = false)
-        MultipartFile clientSignature) {
+	@PutMapping(value = "/update",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> updateChecklist(
+     
+      @RequestPart("data")  String checklistJson,
+      @RequestPart(value = "contractorSignature", required = false)
+      MultipartFile contractorSignature,
+      @RequestPart(value = "clientSignature",    required = false)
+      MultipartFile clientSignature) {
 
-    try {
-        RFIInspectionChecklistDTO dto =
-                new ObjectMapper().readValue(checklistJson,
-                                             RFIInspectionChecklistDTO.class);
+  try {
+  	ObjectMapper mapper = new ObjectMapper();
+      RFIInspectionChecklistDTO dto =
+              new ObjectMapper().readValue(checklistJson,
+                                           RFIInspectionChecklistDTO.class);
 
-        // Be sure the DTO carries the FK (rfiId) that already exists.
-        checklistService.updateChecklistWithFiles(
-                checklistId, dto, contractorSignature, clientSignature);
+      // Be sure the DTO carries the FK (rfiId) that already exists.
+      checklistService.updateChecklistWithFiles(
+             dto, contractorSignature, clientSignature);
 
-        return ResponseEntity.ok("Checklist updated successfully");
-    } catch (Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Failed to update checklist: " + ex.getMessage());
-    }
+      return ResponseEntity.ok("Checklist updated successfully");
+  } catch (Exception ex) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body("Failed to update checklist: " + ex.getMessage());
+  }
 }
 	
 	 
@@ -140,6 +144,24 @@ public class InspectionController {
 	      return ResponseEntity.ok("Confirmation saved successfully");
 	  }
 	  
+	  @PostMapping(value = "/inspection/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	  public ResponseEntity<String> updateInspectionStatus(
+	      @RequestPart("data") String dataJson,
+	      @RequestPart(value = "testDocument", required = false) MultipartFile testDocument) {
+		  
+		  System.out.println("Method calleddd" + dataJson);
+
+	      try {
+	          ObjectMapper mapper = new ObjectMapper();
+              RFIInspectionRequestDTO dto = mapper.readValue(dataJson,  RFIInspectionRequestDTO.class);
+	          inspectionService.updateInspectionStatus(dto, testDocument);
+	          return ResponseEntity.ok("Inspection status updated successfully");
+	      } catch (Exception e) {
+	          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	              .body("Failed to update inspection status: " + e.getMessage());
+	      }
+	  }
+
 	    @GetMapping("/downloadSiteImagesPdf")
 	    public ResponseEntity<byte[]> downloadSiteImagesPdf(@RequestParam Long id, @RequestParam String uploadedBy)
 	            throws IOException, DocumentException {

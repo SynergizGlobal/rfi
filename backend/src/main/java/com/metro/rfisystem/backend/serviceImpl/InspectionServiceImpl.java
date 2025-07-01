@@ -75,7 +75,7 @@ public class InspectionServiceImpl implements InspectionService{
 	}
 
 	 @Override
-	    public void startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages) {
+	    public void startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String UserRole) {
 	        RFI rfi = rfiRepository.findById(dto.getRfiId())
 	                .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
@@ -92,6 +92,7 @@ public class InspectionServiceImpl implements InspectionService{
 	        inspection.setSiteImage(siteImagePaths);
 	        inspection.setDateOfInspection(LocalDate.now());
 	        inspection.setTimeOfInspection(LocalTime.now());
+	        inspection.setUploadedBy(UserRole);
 
 	        inspectionRepository.save(inspection);
 	    }
@@ -115,6 +116,25 @@ public class InspectionServiceImpl implements InspectionService{
 	            throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
 	        }
 	    }
+	    
+	    @Override
+		public void updateInspectionStatus( RFIInspectionRequestDTO dto, MultipartFile testDocument) {
+	    RFI rfi = rfiRepository.findById(dto.getRfiId())
+				    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
+	   
+			 
+		   RFIInspectionDetails inspection = inspectionRepository.findByRfiId(dto.getRfiId())
+		        .orElseThrow(() -> new IllegalArgumentException("No inspection found for RFI ID: " + dto.getRfiId()));
+        
+	
+	    inspection.setInspectionStatus(dto.getInspectionStatus());
+	    inspection.setTestInsiteLab(dto.getTestInsiteLab());
+       
+	    //String filename = saveFile(testDocument);
+       // inspection.setTestSiteDocuments(filename);
+        
+			inspectionRepository.save(inspection);
+		}
 
 	    @Override
 	    public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException {

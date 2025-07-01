@@ -34,7 +34,7 @@ export default function InspectionForm() {
 	const [chainage, setChainage] = useState('');
 	const [inspectionStatus, setInspectionStatus] = useState('');
 	const [testInLab, setTestInLab] = useState(null);
-
+   
 
 	useEffect(() => {
 		if (id) {
@@ -128,7 +128,42 @@ export default function InspectionForm() {
 		}
 	};
 
+	const handleSubmitConfirmed = async () => {
+	   const formData = new FormData();
+	   const payload = {
+		//id: rfiData.inspectionDetails?.id,               
+		rfiId: rfiData.id,
+	     inspectionStatus,
+	     testInsiteLab: testInLab
+	   };
+	   formData.append("data", JSON.stringify(payload));
 
+	   try {
+	     const res = await fetch("http://localhost:8000/rfi/inspection/status", {
+	       method: "POST",
+	       body: formData,
+	     });
+
+	     const text = await res.text();
+		 // Debug response info
+		     console.log("Response status:", res.status);
+		     console.log("Response text:", text);
+
+
+	     if (!res.ok) {
+			alert(`❌ Failed to submit inspection status:\nStatus: ${res.status}\nMessage: ${text}`);
+			  
+	       return;
+	     }
+
+	     alert("Inspection submitted successfully.");
+	     setConfirmPopup(false);
+	     window.location.href = "http://localhost:3000/rfiSystem/Inspection";
+	   } catch (err) {
+	     console.error("Submit failed:", err);
+	     alert("Error: " + err.message);
+	   }
+	 };
 
 
 	const handleUploadSubmit = async (id, file) => {
@@ -165,9 +200,7 @@ export default function InspectionForm() {
 			rfiId: rfiData.id,
 			location: locationText,
 			chainage: chainage,
-			inspectionStatus: inspectionStatus,
-			testInsiteLab: testInLab
-
+			
 		};
 
 		formData.append('data', JSON.stringify(inspectionPayload));
@@ -192,6 +225,7 @@ export default function InspectionForm() {
 			const res = await fetch('http://localhost:8000/rfi/start', {
 				method: 'POST',
 				body: formData,
+				credentials: "include",
 			});
 			const text = await res.text();
 			alert("Saved: " + text);
@@ -322,8 +356,8 @@ export default function InspectionForm() {
 								gcSign={enclosureStates[checklistPopup]?.gcSign || null}
 								onDone={(data, contractorSign, gcSign, grade) =>
 									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
-								}
-								onClose={() => setChecklistPopup(null)}
+								} 
+								onClose={() => setConfirmPopup(false)}
 							/>
 						)}
 
@@ -336,11 +370,15 @@ export default function InspectionForm() {
 						)}
 
 						{confirmPopup && <ConfirmationPopup
+							
 							inspectionStatus={inspectionStatus}
 							setInspectionStatus={setInspectionStatus}
 							testInLab={testInLab}
-							setTestInLab={setTestInLab} onClose={() => setConfirmPopup(false)} />}
-
+							setTestInLab={setTestInLab} 
+							onConfirm={handleSubmitConfirmed}
+							onClose={() => setConfirmPopup(false)} />}
+							
+															   
 						{showCamera && (
 							<div className="popup">
 								<CameraCapture
@@ -468,7 +506,7 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, onClose }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab,onConfirm }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
@@ -484,19 +522,19 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				value={testInLab === null ? '' : testInLab.toString()}
 				onChange={(e) => {
 					const value = e.target.value;
-					if (value === 'true') setTestInLab(true);
-					else if (value === 'false') setTestInLab(false);
+					if (value === 'Accepted') setTestInLab(true);
+					else if (value === 'Rejected') setTestInLab(false);
 					else setTestInLab(null);
 				}}
 			>
 				<option value="">Select</option>
-				<option value="true">Accepted</option>
-				<option value="false">Rejected</option>
+				<option value="Accepted">Accepted</option>
+				<option value="Rejected">Rejected</option>
 			</select>
 
 
 			<div className="popup-actions">
-				<button onClick={onClose}>Done</button>
+				<button onClick={onConfirm}>Done</button>
 			</div>
 		</div>
 	);

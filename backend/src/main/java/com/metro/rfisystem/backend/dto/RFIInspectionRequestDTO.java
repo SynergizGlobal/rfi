@@ -1,9 +1,9 @@
 package com.metro.rfisystem.backend.dto;
-
 import lombok.Data;
 
 @Data
 public class RFIInspectionRequestDTO {
+	private Long id;
     private Long rfiId;
     private String location;
     private String chainage;
@@ -16,5 +16,5 @@ public class RFIInspectionRequestDTO {
     private String rfiDescription;
     private String description;
     private InspectionStatus inspectionStatus;
-	private boolean testInsiteLab;
+	private String testInsiteLab;
 }

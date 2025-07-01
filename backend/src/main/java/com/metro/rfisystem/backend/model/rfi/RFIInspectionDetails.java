@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
+import com.metro.rfisystem.backend.dto.TestType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -62,11 +63,11 @@ public class RFIInspectionDetails {
     @Enumerated(EnumType.STRING)
     private InspectionStatus inspectionStatus;
 
-    private boolean testInsiteLab;
+    @Column(name="test_insite_lab",columnDefinition = "VARCHAR(10)", nullable =true)
+    private String testInsiteLab;
     
     private String  testSiteDocuments;
     
-    private String imgUploadedByClient;
-    
-    private String imgUploadedByContractor;
+    @Column(name="uploaded_by")
+    private String uploadedBy;
 }
