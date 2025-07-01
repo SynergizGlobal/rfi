@@ -66,9 +66,44 @@ export default function Validation() {
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
 	const fileBaseURL = 'http://localhost:8000/previewFiles';
 
+	const toBase64 = (url) => {
+			return new Promise((resolve, reject) => {
+				const img = new Image();
+				img.crossOrigin = 'Anonymous';
+				img.src = url;
+				img.onload = () => {
+					const canvas = document.createElement('canvas');
+					canvas.width = img.width;
+					canvas.height = img.height;
+					const ctx = canvas.getContext('2d');
+					ctx.drawImage(img, 0, 0);
+					resolve(canvas.toDataURL('image/jpeg'));
+				};
+				img.onerror = reject;
+			});
+			};
+
+	
 
 	const generatePDF = async (inspectionListToExport, remarksList = [], statusList = []) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+		const addImageSafely = (imgData, x = 15, yPos, width = 60, height = 40) => {
+			try {
+				if (yPos + height > 280) {
+					doc.addPage();
+					yPos = 30;
+				}
+				doc.addImage(imgData, 'JPEG', x, yPos, width, height);
+				return yPos + height + 5;
+			} catch (e) {
+				console.warn("Image load error:", e);
+				return yPos;
+			}
+		};
+
+		
+
 
 		const loadLogo = () =>
 			new Promise(resolve => {
@@ -92,48 +127,65 @@ export default function Validation() {
 			const safe = (val) => val || '---';
 
 			doc.setFontSize(10);
-			doc.text(`Client: ${safe(inspection.client)}`, 15, y);
-			doc.setFontSize(12);
-			doc.text('REQUEST FOR INSPECTION (RFI)', 105, y);
-			y += 8;
+		const wrappedclient = doc.splitTextToSize(`Client: ${safe(inspection.client)}`, 15);
+		doc.text(wrappedclient, 10, y);
+		y += wrappedclient.length * 5;
+		
+		doc.setFontSize(12);
+		doc.text('REQUEST FOR INSPECTION (RFI)', 70, y);
+		y += 8;
 
-			doc.setFontSize(10);
-			doc.text(`Consultant: ${safe(inspection.consultant)}`, 15, y);
-			doc.text(`Contract: ${safe(inspection.contract)}`, 75, y);
-			doc.text(`Contractor: ${safe(inspection.contractor)}`, 135, y);
-			y += 6;
-			doc.text(`Contract ID: ${safe(inspection.contractId)}`, 15, y);
-			doc.text(`RFI ID: ${safe(inspection.rfiId)}`, 75, y);
-			y += 6;
-			doc.text(`Date of Inspection: ${safe(inspection.dateOfInspection)}`, 15, y);
+		doc.setFontSize(10);
+		const wrappedconsultant = doc.splitTextToSize(`Consultant: ${safe(inspection.consultant)}`, 30);
+		doc.text(wrappedconsultant, 10, y);
+
+		const wrappedContract = doc.splitTextToSize(`Contract: ${safe(inspection.contract)}`, 120);
+		doc.text(wrappedContract, 75, y);
+
+		y += 12;
+
+		const wrappedContractor = doc.splitTextToSize(`Contractor: ${safe(inspection.contractor)}`, 30);
+		doc.text(wrappedContractor, 10, y);
+		
+		const wrappedContractId = doc.splitTextToSize(`Contract ID: ${safe(inspection.contractId)}`, 120);
+		doc.text(wrappedContractId, 75, y);
+
+		y += 12;
+
+		
+		const wrappedrfiId = doc.splitTextToSize(`RFI ID: ${safe(inspection.rfiId)}`, 80);
+		doc.text(wrappedrfiId, 10, y);
+		y += wrappedrfiId.length * 5;
+			
+			doc.text(`Date of Inspection: ${safe(inspection.dateOfInspection)}`, 10, y);
 			doc.text(`Location: ${safe(inspection.location)}`, 75, y);
 			doc.text(`Proposed Time: ${safe(inspection.proposedInspectionTime)}`, 135, y);
-			y += 6;
-			doc.text(`Actual Time: ${safe(inspection.actualTime)}`, 15, y);
-			y += 6;
-			doc.text(`Contractor’s Representative: ${safe(inspection.contractorRep)}`, 15, y);
+			y += 8;
+			doc.text(`Actual Time: ${safe(inspection.actualTime)}`, 10, y);
+			y += 8;
+			doc.text(`Contractor’s Representative: ${safe(inspection.contractorRep)}`, 10, y);
 			doc.text(`Client Representative: ${safe(inspection.clientRep)}`, 105, y);
 			y += 10;
 
 			doc.setFont(undefined, 'bold');
-			doc.text('Description by Contractor:', 15, y);
+			doc.text('Description by Contractor:', 10, y);
 			doc.setFont(undefined, 'normal');
-			y += 5;
+			y += 8;
 			const contractorDesc = doc.splitTextToSize(safe(inspection.contractorDescription), 180);
-			doc.text(contractorDesc, 15, y);
+			doc.text(contractorDesc, 10, y);
 			y += contractorDesc.length * 5;
 
 			doc.setFont(undefined, 'bold');
-			doc.text('Comments by Client:', 15, y);
+			doc.text('Comments by Client:', 10, y);
 			doc.setFont(undefined, 'normal');
-			y += 5;
+			y += 8;
 			const clientComments = doc.splitTextToSize(safe(inspection.clientComments), 180);
-			doc.text(clientComments, 15, y);
+			doc.text(clientComments, 10, y);
 			y += clientComments.length * 5;
 
 			doc.setFont(undefined, 'bold');
-			doc.text('RFI Approval Status:', 15, y);
-			y += 6;
+			doc.text('RFI Approval Status:', 10, y);
+			y += 8;
 
 			const statusOptions = ['Approved', 'Rejected', 'Approved with Comments'];
 			statusOptions.forEach((opt, i) => {
@@ -147,8 +199,8 @@ export default function Validation() {
 			y += 10;
 
 			doc.setFont(undefined, 'bold');
-			doc.text('Enclosures:', 15, y);
-			y += 5;
+			doc.text('Enclosures:', 10, y);
+			y += 8;
 
 			const checklistSummary = (inspection.enclosureStates?.[1]?.checklist || []).map(row => [
 				safe(row.id),
@@ -178,70 +230,79 @@ export default function Validation() {
 
 			Object.values(inspection.galleryImages || {}).forEach(img => {
 				if (img) {
-					try {
-						doc.addImage(img, 'JPEG', 15, y, 50, 40);
-						y += 45;
-					} catch (e) {
-						console.warn('Image add error:', e);
-					}
+					y = addImageSafely(img, 15, y);
 				}
 			});
 
 			if (inspection.selfieImage) {
+				doc.setFont(undefined, 'bold');
 				doc.text('Selfie Image:', 15, y);
-				try {
-					doc.addImage(inspection.selfieImage, 'JPEG', 15, y + 5, 50, 40);
-					y += 50;
-				} catch (e) {
-					console.warn('Selfie image error:', e);
-				}
+				y += 5;
+				y = addImageSafely(inspection.selfieImage, 15, y);
 			}
 
 			if (inspection.enclosureStates?.[1]?.contractorSign) {
+				doc.setFont(undefined, 'bold');
 				doc.text('Contractor Signature:', 15, y);
-				try {
-					doc.addImage(inspection.enclosureStates[1].contractorSign, 'JPEG', 15, y + 5, 40, 20);
-					y += 25;
-				} catch (e) {
-					console.warn('Contractor sign error:', e);
-				}
+				y += 5;
+				y = addImageSafely(inspection.enclosureStates[1].contractorSign, 15, y, 40, 20);
 			}
 
 			if (inspection.enclosureStates?.[1]?.gcSign) {
-				doc.text('GC/MRVC Signature:', 100, y - 25);
-				try {
-					doc.addImage(inspection.enclosureStates[1].gcSign, 'JPEG', 100, y - 20, 40, 20);
-				} catch (e) {
-					console.warn('GC sign error:', e);
-				}
+				doc.setFont(undefined, 'bold');
+				doc.text('GC/MRVC Signature:', 100, y);
+				y += 5;
+				y = addImageSafely(inspection.enclosureStates[1].gcSign, 100, y - 20, 40, 20);
 			}
 
-			// ✅ Add Remarks at the bottom
+
 			doc.setFont(undefined, 'bold');
 			doc.text('Remarks:', 15, y);
 			doc.setFont(undefined, 'normal');
-			doc.text(doc.splitTextToSize(safe(inspection.remarks), 180), 15, y + 5);
+			y += 5;
+			const remarkLines = doc.splitTextToSize(safe(inspection.remarks), 180);
+			doc.text(remarkLines, 15, y);
+			y += remarkLines.length * 6;
+
 		});
 
 		doc.save('All_RFIs.pdf');
 	};
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
-		try {
-			const res = await axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`);
-			if (res.data?.length > 0) {
-				const inspection = res.data[0];
-				// Inject remarks/status directly into inspection before passing
-				inspection.remarks = remarksList[idx] || '';
-				inspection.rfiStatus = statusList[idx] || '';
-				await generatePDF([inspection]); // No need to pass remarksList/statusList now
-			} else {
-				alert("No inspection details found.");
+	try {
+		const res = await axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`);
+		if (res.data?.length > 0) {
+			const inspection = res.data[0];
+
+			// Inject remarks and status
+			inspection.remarks = remarksList[idx] || '';
+			inspection.rfiStatus = statusList[idx] || '';
+
+			// Convert image URLs to base64 and assign
+			const baseURL = 'http://localhost:8000/previewFiles?filepath=';
+
+			const convert = async (src) => (src ? await toBase64(baseURL + encodeURIComponent(src.trim())) : null);
+
+			// Convert images
+			inspection.selfieImage = await convert(inspection.selfieClient);
+			inspection.contractorSign = await convert(inspection.contractorSignature);
+			inspection.gcSign = await convert(inspection.gcMrvcSignature);
+
+			const galleryImgs = inspection.imagesUploadedByClient?.split(',') || [];
+			inspection.galleryImages = {};
+			for (let i = 0; i < galleryImgs.length; i++) {
+				inspection.galleryImages[i] = await convert(galleryImgs[i]);
 			}
-		} catch (err) {
-			console.error("Error fetching details for PDF:", err);
+
+			await generatePDF([inspection]);
+		} else {
+			alert("No inspection details found.");
 		}
-	};
+	} catch (err) {
+		console.error("Error fetching details for PDF:", err);
+	}
+};
 
 
 
