@@ -109,6 +109,8 @@
 	color: #636363;
 		
 }
-
+.validation .popup .form-fields{
+  flex: 1 1 30%;
+}
 
 
