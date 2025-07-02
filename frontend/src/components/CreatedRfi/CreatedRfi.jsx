@@ -7,9 +7,11 @@ import './CreatedRfi.css';
 const CreatedRfi = () => {
 	const [rfiData, setRfiData] = useState([]);
 	const navigate = useNavigate();
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
 
 	useEffect(() => {
-		fetch('http://localhost:8000/rfi/rfi-details', {
+		fetch(`${API_BASE_URL}rfi/rfi-details`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -54,7 +56,7 @@ const CreatedRfi = () => {
 	const handleDelete = (rfi) => {
 		if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
 			console.log("🟡 RFI Object to delete:", rfi);
-			fetch(`http://localhost:8000/rfi/delete/${rfi.id}`, {
+			fetch(`${API_BASE_URL}rfi/delete/${rfi.id}`, {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 			})

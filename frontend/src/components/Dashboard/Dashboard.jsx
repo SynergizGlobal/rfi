@@ -9,6 +9,9 @@ const Dashboard = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
+
 
 	const isContractor = userRole === "contractor";
 	const isRegularUser = userRole === "regular user";
@@ -18,7 +21,8 @@ const Dashboard = () => {
 	const hasFullAccess = isITAdmin || isDyHOD;
 
 	useEffect(() => {
-		fetch("http://localhost:8000/rfi/rfi-count", {
+
+		fetch(`${API_BASE_URL}rfi/rfi-count`, {
 			method: 'GET',
 			credentials: 'include',
 		})
@@ -41,7 +45,7 @@ const Dashboard = () => {
 	});
 
 	useEffect(() => {
-		fetch("http://localhost:8000/rfi/status-counts", {
+		fetch(`${API_BASE_URL}rfi/status-counts`, {
 			method: "GET",
 			credentials: "include"
 		})
@@ -58,7 +62,7 @@ const Dashboard = () => {
 	useEffect(() => {
 		const checkSession = async () => {
 			try {
-				const response = await fetch('http://localhost:8000/api/auth/session', {
+				const response = await fetch(`${API_BASE_URL}api/auth/session`, {
 					method: 'GET',
 					credentials: 'include',
 				});
@@ -143,7 +147,7 @@ const Dashboard = () => {
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
-											<span className="card-number">{statusCounts.PENDING}</span>
+												<span className="card-number">{statusCounts.PENDING}</span>
 											</div>
 											<div className="cards-icon">
 												<img src="/images/caution.png" alt="tick symbol" width="25" height="25" />

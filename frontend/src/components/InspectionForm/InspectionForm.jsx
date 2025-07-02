@@ -34,13 +34,15 @@ export default function InspectionForm() {
 	const [chainage, setChainage] = useState('');
 	const [inspectionStatus, setInspectionStatus] = useState('');
 	const [testInLab, setTestInLab] = useState(null);
-   
+
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
+
 
 	useEffect(() => {
 		if (id) {
-			fetch(`http://localhost:8000/rfi/rfi-details/${id}`, {
-				credentials: 'include',
-			})
+			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: 'include' })
+
 				.then(res => res.json())
 				.then(data => {
 					setRfiData(data);
@@ -99,7 +101,7 @@ export default function InspectionForm() {
 		if (gcSign) formData.append("clientSignature", gcSign);
 
 		try {
-			const res = await fetch("http://localhost:8000/rfi/save", {
+			const res = await fetch(`${API_BASE_URL}rfi/save`, {
 				method: "POST",
 				body: formData,
 			});
@@ -129,41 +131,41 @@ export default function InspectionForm() {
 	};
 
 	const handleSubmitConfirmed = async () => {
-	   const formData = new FormData();
-	   const payload = {
-		//id: rfiData.inspectionDetails?.id,               
-		rfiId: rfiData.id,
-	     inspectionStatus,
-	     testInsiteLab: testInLab
-	   };
-	   formData.append("data", JSON.stringify(payload));
+		const formData = new FormData();
+		const payload = {
+			//id: rfiData.inspectionDetails?.id,               
+			rfiId: rfiData.id,
+			inspectionStatus,
+			testInsiteLab: testInLab
+		};
+		formData.append("data", JSON.stringify(payload));
 
-	   try {
-	     const res = await fetch("http://localhost:8000/rfi/inspection/status", {
-	       method: "POST",
-	       body: formData,
-	     });
+		try {
+			const res = await fetch(`${API_BASE_URL}rfi/inspection/status`, {
+				method: "POST",
+				body: formData,
+			});
 
-	     const text = await res.text();
-		 // Debug response info
-		     console.log("Response status:", res.status);
-		     console.log("Response text:", text);
+			const text = await res.text();
+			// Debug response info
+			console.log("Response status:", res.status);
+			console.log("Response text:", text);
 
 
-	     if (!res.ok) {
-			alert(`❌ Failed to submit inspection status:\nStatus: ${res.status}\nMessage: ${text}`);
-			  
-	       return;
-	     }
+			if (!res.ok) {
+				alert(`❌ Failed to submit inspection status:\nStatus: ${res.status}\nMessage: ${text}`);
 
-	     alert("Inspection submitted successfully.");
-	     setConfirmPopup(false);
-	     window.location.href = "http://localhost:3000/rfiSystem/Inspection";
-	   } catch (err) {
-	     console.error("Submit failed:", err);
-	     alert("Error: " + err.message);
-	   }
-	 };
+				return;
+			}
+
+			alert("Inspection submitted successfully.");
+			setConfirmPopup(false);
+			window.location.href = "http://localhost:3000/rfiSystem/Inspection";
+		} catch (err) {
+			console.error("Submit failed:", err);
+			alert("Error: " + err.message);
+		}
+	};
 
 
 	const handleUploadSubmit = async (id, file) => {
@@ -173,7 +175,7 @@ export default function InspectionForm() {
 		formData.append('file', file);
 
 		try {
-			const res = await fetch('http://localhost:8000/rfi/upload', {
+			const res = await fetch(`${API_BASE_URL}rfi/upload`, {
 				method: 'POST',
 				body: formData,
 			});
@@ -200,7 +202,7 @@ export default function InspectionForm() {
 			rfiId: rfiData.id,
 			location: locationText,
 			chainage: chainage,
-			
+
 		};
 
 		formData.append('data', JSON.stringify(inspectionPayload));
@@ -222,7 +224,7 @@ export default function InspectionForm() {
 		});
 
 		try {
-			const res = await fetch('http://localhost:8000/rfi/start', {
+			const res = await fetch(`${API_BASE_URL}rfi/start`, {
 				method: 'POST',
 				body: formData,
 				credentials: "include",
@@ -356,7 +358,7 @@ export default function InspectionForm() {
 								gcSign={enclosureStates[checklistPopup]?.gcSign || null}
 								onDone={(data, contractorSign, gcSign, grade) =>
 									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
-								} 
+								}
 								onClose={() => setConfirmPopup(false)}
 							/>
 						)}
@@ -370,15 +372,15 @@ export default function InspectionForm() {
 						)}
 
 						{confirmPopup && <ConfirmationPopup
-							
+
 							inspectionStatus={inspectionStatus}
 							setInspectionStatus={setInspectionStatus}
 							testInLab={testInLab}
-							setTestInLab={setTestInLab} 
+							setTestInLab={setTestInLab}
 							onConfirm={handleSubmitConfirmed}
 							onClose={() => setConfirmPopup(false)} />}
-							
-															   
+
+
 						{showCamera && (
 							<div className="popup">
 								<CameraCapture
@@ -506,7 +508,7 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab,onConfirm }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, onConfirm }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>

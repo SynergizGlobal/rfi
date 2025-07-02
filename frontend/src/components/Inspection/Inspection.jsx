@@ -8,11 +8,11 @@ import axios from 'axios';
 
 
 const DropdownMenu = ({ children }) => {
-  return (
-    <div className="drop-down-menu" onClick={(e) => e.stopPropagation()}>
-      {children}
-    </div>
-  );
+	return (
+		<div className="drop-down-menu" onClick={(e) => e.stopPropagation()}>
+			{children}
+		</div>
+	);
 };
 
 
@@ -27,12 +27,14 @@ const Inspection = () => {
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
 	const [confirmPopupData, setConfirmPopupData] = useState(null);
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
 
 	useEffect(() => {
-		fetch("http://localhost:8000/rfi/rfi-details", {
+		fetch(`${API_BASE_URL}rfi/rfi-details`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -85,34 +87,34 @@ const Inspection = () => {
 
 	const [downloadingId, setDownloadingId] = useState(null);
 	const handleDownloadImagesPdf = async (id, uploadedBy) => {
-	  const uniqueId = uploadedBy === "Contractor" ? id : `client-${id}`;
-	  try {
-	    setDownloadingId(uniqueId);
+		const uniqueId = uploadedBy === "Contractor" ? id : `client-${id}`;
+		try {
+			setDownloadingId(uniqueId);
 
-	    const response = await fetch(
-	      `http://localhost:8000/rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
-	    );
+			const response = await fetch(
+				`${API_BASE_URL}rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
+			);
 
-	    if (!response.ok) {
-	      alert("No images found or failed to generate PDF.");
-	      return;
-	    }
+			if (!response.ok) {
+				alert("No images found or failed to generate PDF.");
+				return;
+			}
 
-	    const blob = await response.blob();
-	    const url = window.URL.createObjectURL(blob);
-	    const link = document.createElement("a");
-	    link.href = url;
-	    const filename = `Images_Uploaded_by_the_${uploadedBy === "Contractor" ? "Contractor" : "Client"}.pdf`;
-	    link.setAttribute("download", filename);
-	    document.body.appendChild(link);
-	    link.click();
-	    link.remove();
-	  } catch (err) {
-	    console.error("PDF download error:", err);
-	    alert("Failed to download PDF.");
-	  } finally {
-	    setDownloadingId(null);
-	  }
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			const filename = `Images_Uploaded_by_the_${uploadedBy === "Contractor" ? "Contractor" : "Client"}.pdf`;
+			link.setAttribute("download", filename);
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+		} catch (err) {
+			console.error("PDF download error:", err);
+			alert("Failed to download PDF.");
+		} finally {
+			setDownloadingId(null);
+		}
 	};
 
 
@@ -126,34 +128,34 @@ const Inspection = () => {
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
 		{ Header: 'Inspection Status', accessor: 'inspectionStatus' },
 		{
-		  Header: 'Download Contractor Images',
-		  Cell: ({ row }) => {
-		    const isDownloading = downloadingId === row.original.id;
-		    return (
-		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
-		        className="btn-download"
-		        disabled={isDownloading}
-		      >
-		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
-		      </button>
-		    );
-		  }
+			Header: 'Download Contractor Images',
+			Cell: ({ row }) => {
+				const isDownloading = downloadingId === row.original.id;
+				return (
+					<button
+						onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+						className="btn-download"
+						disabled={isDownloading}
+					>
+						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+					</button>
+				);
+			}
 		},
 		{
-		  Header: 'Download Client Images',
-		  Cell: ({ row }) => {
-		    const isDownloading = downloadingId === `client-${row.original.id}`;
-		    return (
-		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
-		        className="btn-download"
-		        disabled={isDownloading}
-		      >
-		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
-		      </button>
-		    );
-		  }
+			Header: 'Download Client Images',
+			Cell: ({ row }) => {
+				const isDownloading = downloadingId === `client-${row.original.id}`;
+				return (
+					<button
+						onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+						className="btn-download"
+						disabled={isDownloading}
+					>
+						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+					</button>
+				);
+			}
 		},
 		{
 			Header: 'Action',
@@ -181,58 +183,58 @@ const Inspection = () => {
 									Start Inspection Online
 								</button>
 								<button>Start Inspection Offline</button>
-								
+
 								{userRole !== 'regular user' && (
 									<button
 										onClick={(e) => {
 											e.stopPropagation();
 											navigate('/InspectionForm', {
-											state: { rfi: row.original.id, skipSelfie: true },
+												state: { rfi: row.original.id, skipSelfie: true },
 											});
 											setOpenDropdownRow(null);
 										}}
-										>
+									>
 										Upload Test Results
-										</button>
+									</button>
 								)}
 
 								<button
 									onClick={(e) => {
 										e.stopPropagation();
 										navigate('/InspectionForm', {
-										state: { rfi: row.original.id, skipSelfie: true },
+											state: { rfi: row.original.id, skipSelfie: true },
 										});
 										setOpenDropdownRow(null);
 									}}
-									>
+								>
 									View
-									</button>
+								</button>
 
-									{userRole !== 'contractor' && (
-									  <button
-									    onClick={(e) => {
-									      e.stopPropagation();
-									      setConfirmPopupData({
-									        message: "Do you want to Submit the Inspection report for Validation?",
-									        onConfirm: async () => {
-									          try {
-									            const rfiLongId = row.original.id;
-									            const response = await axios.put(`http://localhost:8000/rfi/${rfiLongId}/send-for-validation`);
-									            alert(response.data); // or use toast if available
-									          } catch (error) {
-									            console.error("Validation submission failed:", error);
-									            alert("Failed to submit RFI for validation.");
-									          } finally {
-									            setOpenDropdownRow(null);
-									            setConfirmPopupData(null);
-									          }
-									        },
-									      });
-									    }}
-									  >
-									    Send for Validation
-									  </button>
-									)}
+								{userRole !== 'contractor' && (
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											setConfirmPopupData({
+												message: "Do you want to Submit the Inspection report for Validation?",
+												onConfirm: async () => {
+													try {
+														const rfiLongId = row.original.id;
+														const response = await axios.put(`${API_BASE_URL}rfi/${rfiLongId}/send-for-validation`);
+														alert(response.data); // or use toast if available
+													} catch (error) {
+														console.error("Validation submission failed:", error);
+														alert("Failed to submit RFI for validation.");
+													} finally {
+														setOpenDropdownRow(null);
+														setConfirmPopupData(null);
+													}
+												},
+											});
+										}}
+									>
+										Send for Validation
+									</button>
+								)}
 
 
 								{userRole !== 'regular user' && (
@@ -367,11 +369,11 @@ const Inspection = () => {
 						<h3>Send for Validation</h3>
 						<p>{confirmPopupData.message}</p>
 						<div className="popup-actions">
-						<button onClick={confirmPopupData.onConfirm}>Yes</button>
-						<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
+							<button onClick={confirmPopupData.onConfirm}>Yes</button>
+							<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
 						</div>
 					</div>
-					)}
+				)}
 			</div>
 		</div>
 	);

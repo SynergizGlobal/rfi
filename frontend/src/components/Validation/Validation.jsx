@@ -9,10 +9,13 @@ const getExtension = (filename) => {
 	return filename?.split('.').pop()?.toLowerCase();
 };
 export default function Validation() {
+	
+		const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+
 
 
 	useEffect(() => {
-		axios.get('http://localhost:8000/getRfiValidations')
+		axios.get(`${API_BASE_URL}/getRfiValidations`)
 			.then(res => setRfiList(res.data))
 			.catch(err => console.error(err));
 	}, []);
@@ -43,13 +46,13 @@ export default function Validation() {
 		formData.append("action", statusList[idx] || '');
 		formData.append("file", fileList[idx]);
 
-		axios.post("http://localhost:8000/validate", formData)
+		axios.post(`${API_BASE_URL}/validate`, formData)
 			.then(() => alert('Validation submitted successfully.'))
 			.catch(err => console.error('Validation error:', err));
 	};
 
 	const fetchPreview = (rfiId) => {
-		axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`)
+		axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`)
 			.then(res => {
 				if (res.data?.length > 0) {
 					setSelectedInspection(res.data[0]);
@@ -60,7 +63,7 @@ export default function Validation() {
 
 
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
-	const fileBaseURL = 'http://localhost:8000/previewFiles';
+	const fileBaseURL = `${API_BASE_URL}/previewFiles`;
 
 	const safe = (val) => val || '-';
 
@@ -87,7 +90,7 @@ const [rfiList, setRfiList] = useState([]);
   const [selectedInspection, setSelectedInspection] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:8000/getRfiValidations')
+		axios.get(`${API_BASE_URL}/getRfiValidations`)
       .then(res => setRfiList(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -234,7 +237,7 @@ const [rfiList, setRfiList] = useState([]);
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
-			const res = await axios.get(`http://localhost:8000/getRfiReportDetails/${rfiId}`);
+			const res = await axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`);
 			if (res.data?.length > 0) {
 				const inspection = res.data[0];
 
@@ -243,7 +246,7 @@ const [rfiList, setRfiList] = useState([]);
 				inspection.rfiStatus = statusList[idx] || '';
 
 				// Convert image URLs to base64 and assign
-				const baseURL = 'http://localhost:8000/previewFiles?filepath=';
+				const baseURL = `${API_BASE_URL}/previewFiles?filepath=`;
 
 				const convert = async (src) => (src ? await toBase64(baseURL + encodeURIComponent(src.trim())) : null);
 

@@ -11,9 +11,12 @@ const CreateRfi = () => {
 	const [mode, setMode] = useState('create');
 	const [loading, setLoading] = useState(true);
 	const [isEditable, setIsEditable] = useState(mode?.toLowerCase() !== 'edit');
-	
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
+
+
 	useEffect(() => {
-	  setIsEditable(mode?.toLowerCase() !== 'edit');
+		setIsEditable(mode?.toLowerCase() !== 'edit');
 	}, [mode]);
 
 	const [step, setStep] = useState(1);
@@ -72,12 +75,12 @@ const CreateRfi = () => {
 	};
 
 	const handleSubmit = async () => {
+
 		setMessage('');
 		const url =
 			mode === 'edit'
-				? `http://localhost:8000/rfi/update/${location.state.id}`
-				: 'http://localhost:8000/rfi/create';
-
+				? `${API_BASE_URL}rfi/update/${location.state.id}`
+				: `${API_BASE_URL}rfi/create`;
 		const method = mode === 'edit' ? 'PUT' : 'POST';
 
 		try {
@@ -116,7 +119,7 @@ const CreateRfi = () => {
 		if (navMode === 'edit' && id) {
 			setMode('edit');
 
-			axios.get(`http://localhost:8000/rfi/rfi-details/${id}`)
+			axios.get(`${API_BASE_URL}rfi/rfi-details/${id}`)
 				.then(async (res) => {
 					const data = res.data;
 					console.log("✅ Received RFI:", data);
@@ -124,7 +127,7 @@ const CreateRfi = () => {
 					// 1. Set project first
 					const projectId = projectIdMap[data.project];
 					if (projectId) {
-						const workRes = await axios.get('http://localhost:8000/rfi/workNames', {
+						const workRes = await axios.get(`${API_BASE_URL}rfi/workNames`, {
 							params: { projectId }
 						});
 
@@ -142,7 +145,7 @@ const CreateRfi = () => {
 						// 2. Set work → contract
 						const workId = workIdMap[data.work];
 						if (workId) {
-							const contractRes = await axios.get('http://localhost:8000/rfi/contractNames', {
+							const contractRes = await axios.get(`${API_BASE_URL}rfi/contractNames`, {
 								params: { workId }
 							});
 							const contractOptions = contractRes.data.map(c => ({
@@ -159,7 +162,7 @@ const CreateRfi = () => {
 							// 3. contract → structureType
 							const contractId = contractIdMap[data.contract];
 							if (contractId) {
-								const structureTypeRes = await axios.get('http://localhost:8000/rfi/structureType', {
+								const structureTypeRes = await axios.get(`${API_BASE_URL}rfi/structureType`, {
 									params: { contractId }
 								});
 								const structureTypeOptions = structureTypeRes.data.map(type => ({
@@ -169,7 +172,7 @@ const CreateRfi = () => {
 								setStructureTypeOptions(structureTypeOptions);
 
 								// 4. structure
-								const structureRes = await axios.get('http://localhost:8000/rfi/structure', {
+								const structureRes = await axios.get(`${API_BASE_URL}rfi/structure`, {
 									params: {
 										contractId,
 										structureType: data.structureType
@@ -182,7 +185,7 @@ const CreateRfi = () => {
 								setStructureOptions(structureOptions);
 
 								// 5. component
-								const componentRes = await axios.get('http://localhost:8000/rfi/component', {
+								const componentRes = await axios.get(`${API_BASE_URL}rfi/component`, {
 									params: {
 										contractId,
 										structureType: data.structureType,
@@ -196,7 +199,7 @@ const CreateRfi = () => {
 								setComponentOptions(componentOptions);
 
 								// 6. element
-								const elementRes = await axios.get('http://localhost:8000/rfi/element', {
+								const elementRes = await axios.get(`${API_BASE_URL}rfi/element`, {
 									params: {
 										structureType: data.structureType,
 										structure: data.structure,
@@ -227,7 +230,7 @@ const CreateRfi = () => {
 								}));
 
 								// 7. activity
-								const activityRes = await axios.get('http://localhost:8000/rfi/activityNames', {
+								const activityRes = await axios.get(`${API_BASE_URL}rfi/activityNames`, {
 									params: {
 										structureType: data.structureType,
 										structure: data.structure,
@@ -275,7 +278,8 @@ const CreateRfi = () => {
 	}, [location.state, projectIdMap]);
 
 	useEffect(() => {
-		axios.get('http://localhost:8000/rfi/projectNames')
+		// eslint-disable-next-line no-template-curly-in-string
+		axios.get(`${API_BASE_URL}rfi/projectNames`)
 			.then(response => {
 				const options = response.data.map(project => ({
 					value: project.projectName,
@@ -311,7 +315,7 @@ const CreateRfi = () => {
 
 		if (contractId && structureType) {
 			axios
-				.get('http://localhost:8000/rfi/structure', {
+			.get(`${API_BASE_URL}rfi/structure`, {
 					params: {
 						contractId: contractId,
 						structureType: structureType
@@ -343,7 +347,7 @@ const CreateRfi = () => {
 
 		if (contractId && structureType && structure) {
 			axios
-				.get('http://localhost:8000/rfi/component', {
+			.get(`${API_BASE_URL}rfi/component`, {
 					params: {
 						contractId: contractId,
 						structureType: structureType,
@@ -375,7 +379,7 @@ const CreateRfi = () => {
 
 		if (structureType && structure && component) {
 			axios
-				.get('http://localhost:8000/rfi/element', {
+			.get(`${API_BASE_URL}rfi/element`, {
 					params: {
 						structureType: structureType,
 						structure: structure,
@@ -408,7 +412,7 @@ const CreateRfi = () => {
 
 		if (structureType && structure && component) {
 			axios
-				.get('http://localhost:8000/rfi/activityNames', {
+			.get(`${API_BASE_URL}rfi/activityNames`, {
 					params: {
 						structureType,
 						structure,
@@ -469,302 +473,302 @@ const CreateRfi = () => {
 
 					{step === 1 && (
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-						<fieldset disabled={!isEditable}>
-							<div className="form-row flex-wrap">
-								<div className="form-fields flex-2">
-									<label htmlFor="project" className="block mb-1">Project:</label>
-									<Select
-										id="project"
-										name="project"
-										options={projectOptions}
-										value={formState.project ? { value: formState.project, label: formState.project } : null}
-										onChange={(selected) => {
-											
-											const selectedProjectName = selected?.value || '';
-											const selectedProjectId = projectIdMap[selectedProjectName] || '';
-
-											setFormState({
-												...formState,
-												project: selectedProjectName,
-												projectId: selectedProjectId,
-												work: '',
-												contract: '',
-												structureType: '',
-												structure: '',
-												component: '',
-												element: '',
-												activity: ''
-											});
-
-											if (selectedProjectId) {
-												axios.get('http://localhost:8000/rfi/workNames', {
-													params: { projectId: selectedProjectId }
-												})
-													.then(response => {
-														const map = {};
-														const workOptions = response.data.map(work => {
-															map[work.workName] = work.workId;
-															return {
-																value: work.workName,
-																label: work.workName
-															};
-														});
-														setWorkOptions(workOptions);
-														setWorkIdMap(map);
-													})
-													.catch(error => {
-														console.error('Error fetching work options:', error);
-														setWorkOptions([]);
-													});
-											} else {
-												setWorkOptions([]);
-											}
-										}}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-
-								<div className="form-fields flex-2">
-									<label htmlFor="work" className="block mb-1">Work:</label>
-									<Select
-										id="work"
-										name="work"
-										options={workOptions}
-										value={formState.work ? workOptions.find(w => w.value === formState.work) : null}
-										onChange={(selected) => {
-											const selectedWorkName = selected?.value || '';
-											const selectedWorkId = workIdMap[selectedWorkName] || '';
-
-											setFormState({
-												...formState,
-												work: selectedWorkName,
-												contract: '',
-												structureType: '',
-												structure: '',
-												component: '',
-												element: '',
-												activity: ''
-											});
-
-											if (selectedWorkId) {
-												axios.get('http://localhost:8000/rfi/contractNames', {
-													params: { workId: selectedWorkId }  // ✅ pass actual workId
-												})
-													.then(response => {
-														const map = {};
-														const contractOptions = response.data.map(contract => {
-															const name = contract.contractShortName;
-															const id = contract.contractIdFk.trim();
-															map[name] = id;
-															return {
-																value: name,   // user sees & selects the name
-																label: name
-															};
-														});
-
-														setContractOptions(contractOptions);
-														setContractIdMap(map); // ✅ store the map
-													})
-													.catch(error => {
-														console.error('Error fetching contract options:', error);
-														setContractOptions([]);
-														setContractIdMap({});
-													});
-											} else {
-												setContractOptions([]);
-												setContractIdMap({});
-											}
-										}
-										}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-
-
-								<div className="form-fields flex-1">
-									<label htmlFor="contract" className="block mb-1">Contract:</label>
-									<Select
-										id="contract"
-										name="contract"
-										options={contractOptions}
-										value={formState.contract ? contractOptions.find(c => c.value === formState.contract) : null}
-										onChange={(selected) => {
-											const selectedContractName = selected?.value || '';
-											const selectedContractId = contractIdMap[selectedContractName] || '';
-
-											setFormState({
-												...formState,
-												contract: selectedContractName,
-												contractId: selectedContractId,
-												structureType: '',
-												structure: '',
-												component: '',
-												element: '',
-												activity: ''
-											});
-
-											if (selectedContractId) {
-												axios.get('http://localhost:8000/rfi/structureType', {
-													params: { contractId: selectedContractId }
-												})
-													.then(response => {
-														const options = response.data.map(type => ({
-															value: type,
-															label: type
-														}));
-														setStructureTypeOptions(options);
-													})
-													.catch(error => {
-														console.error('Error fetching structure types:', error);
-														setStructureTypeOptions([]);
-													});
-											} else {
-												setStructureTypeOptions([]);
-											}
-										}}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-								<div className="form-fields flex-4">
-									<label htmlFor="structureType" className="block mb-1">Structure Type:</label>
-									<Select
-										id="structureType"
-										name="structureType"
-										options={structureTypeOptions}
-										value={
-											formState.structureType
-												? structureTypeOptions.find(s => s.value === formState.structureType)
-												: null
-										}
-										onChange={(selected) =>
-											setFormState({
-												...formState,
-												structureType: selected?.value || '',
-												structure: '',
-												component: '',
-												element: '',
-												activity: ''
-											})
-										}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-								<div className="form-fields flex-4">
-									<label htmlFor="structure" className="block mb-1">Structure:</label>
-									<Select
-										id="structure"
-										name="structure"
-										options={structureOptions}
-										placeholder="Select Structure..." // ✅ Shows 'Select Structure...' when structure is ''
-										value={
-											formState.structure
-												? structureOptions.find(s => s.value === formState.structure)
-												: null
-										}
-										onChange={(selected) =>
-											setFormState({
-												...formState,
-												structure: selected?.value || '',
-												component: '',
-												element: '',
-												activity: ''
-											})
-										}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-
-
-								<div className="form-fields flex-4">
-									<label htmlFor="component" className="block mb-1">Component:</label>
-									<Select
-										id="component"
-										name="component"
-										options={componentOptions}
-										placeholder="Select Component..."
-										value={
-											formState.component
-												? componentOptions.find(c => c.value === formState.component)
-												: null
-										}
-										onChange={(selected) =>
-											setFormState({
-												...formState,
-												component: selected?.value || '',
-												element: '',
-												activity: ''
-											})
-										}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-
-
-
-								<div className="form-fields flex-4">
-									<label htmlFor="element" className="block mb-1">Element:</label>
-									<Select
-										id="element"
-										name="element"
-										options={elementOptions}
-										placeholder="Select Element..."
-										value={
-											formState.element
-												? elementOptions.find(e => e.value === formState.element)
-												: null
-										}
-										onChange={(selected) =>
-											setFormState({
-												...formState,
-												element: selected?.value || '',
-												activity: ''
-											})
-										}
-										isDisabled={!isEditable}
-									/>
-								</div>
-
-
-								<div className="form-row justify-start">
-									<div className="form-fields flex-4">
-										<label htmlFor="activity" className="block mb-1">Activity:</label>
+							<fieldset disabled={!isEditable}>
+								<div className="form-row flex-wrap">
+									<div className="form-fields flex-2">
+										<label htmlFor="project" className="block mb-1">Project:</label>
 										<Select
-											id="activity"
-											name="activity"
-											options={activityOptions}
-											placeholder="Select Activity..."
+											id="project"
+											name="project"
+											options={projectOptions}
+											value={formState.project ? { value: formState.project, label: formState.project } : null}
+											onChange={(selected) => {
+
+												const selectedProjectName = selected?.value || '';
+												const selectedProjectId = projectIdMap[selectedProjectName] || '';
+
+												setFormState({
+													...formState,
+													project: selectedProjectName,
+													projectId: selectedProjectId,
+													work: '',
+													contract: '',
+													structureType: '',
+													structure: '',
+													component: '',
+													element: '',
+													activity: ''
+												});
+
+												if (selectedProjectId) {
+													axios.get('http://localhost:8000/rfi/workNames', {
+														params: { projectId: selectedProjectId }
+													})
+														.then(response => {
+															const map = {};
+															const workOptions = response.data.map(work => {
+																map[work.workName] = work.workId;
+																return {
+																	value: work.workName,
+																	label: work.workName
+																};
+															});
+															setWorkOptions(workOptions);
+															setWorkIdMap(map);
+														})
+														.catch(error => {
+															console.error('Error fetching work options:', error);
+															setWorkOptions([]);
+														});
+												} else {
+													setWorkOptions([]);
+												}
+											}}
+											isDisabled={!isEditable}
+										/>
+									</div>
+
+
+									<div className="form-fields flex-2">
+										<label htmlFor="work" className="block mb-1">Work:</label>
+										<Select
+											id="work"
+											name="work"
+											options={workOptions}
+											value={formState.work ? workOptions.find(w => w.value === formState.work) : null}
+											onChange={(selected) => {
+												const selectedWorkName = selected?.value || '';
+												const selectedWorkId = workIdMap[selectedWorkName] || '';
+
+												setFormState({
+													...formState,
+													work: selectedWorkName,
+													contract: '',
+													structureType: '',
+													structure: '',
+													component: '',
+													element: '',
+													activity: ''
+												});
+
+												if (selectedWorkId) {
+													axios.get('http://localhost:8000/rfi/contractNames', {
+														params: { workId: selectedWorkId }  // ✅ pass actual workId
+													})
+														.then(response => {
+															const map = {};
+															const contractOptions = response.data.map(contract => {
+																const name = contract.contractShortName;
+																const id = contract.contractIdFk.trim();
+																map[name] = id;
+																return {
+																	value: name,   // user sees & selects the name
+																	label: name
+																};
+															});
+
+															setContractOptions(contractOptions);
+															setContractIdMap(map); // ✅ store the map
+														})
+														.catch(error => {
+															console.error('Error fetching contract options:', error);
+															setContractOptions([]);
+															setContractIdMap({});
+														});
+												} else {
+													setContractOptions([]);
+													setContractIdMap({});
+												}
+											}
+											}
+											isDisabled={!isEditable}
+										/>
+									</div>
+
+
+
+									<div className="form-fields flex-1">
+										<label htmlFor="contract" className="block mb-1">Contract:</label>
+										<Select
+											id="contract"
+											name="contract"
+											options={contractOptions}
+											value={formState.contract ? contractOptions.find(c => c.value === formState.contract) : null}
+											onChange={(selected) => {
+												const selectedContractName = selected?.value || '';
+												const selectedContractId = contractIdMap[selectedContractName] || '';
+
+												setFormState({
+													...formState,
+													contract: selectedContractName,
+													contractId: selectedContractId,
+													structureType: '',
+													structure: '',
+													component: '',
+													element: '',
+													activity: ''
+												});
+
+												if (selectedContractId) {
+													axios.get('http://localhost:8000/rfi/structureType', {
+														params: { contractId: selectedContractId }
+													})
+														.then(response => {
+															const options = response.data.map(type => ({
+																value: type,
+																label: type
+															}));
+															setStructureTypeOptions(options);
+														})
+														.catch(error => {
+															console.error('Error fetching structure types:', error);
+															setStructureTypeOptions([]);
+														});
+												} else {
+													setStructureTypeOptions([]);
+												}
+											}}
+											isDisabled={!isEditable}
+										/>
+									</div>
+
+									<div className="form-fields flex-4">
+										<label htmlFor="structureType" className="block mb-1">Structure Type:</label>
+										<Select
+											id="structureType"
+											name="structureType"
+											options={structureTypeOptions}
 											value={
-												formState.activity
-													? activityOptions.find(a => a.value === formState.activity)
+												formState.structureType
+													? structureTypeOptions.find(s => s.value === formState.structureType)
 													: null
 											}
 											onChange={(selected) =>
-												setFormState({ ...formState, activity: selected?.value || '' })
+												setFormState({
+													...formState,
+													structureType: selected?.value || '',
+													structure: '',
+													component: '',
+													element: '',
+													activity: ''
+												})
 											}
 											isDisabled={!isEditable}
 										/>
 									</div>
 
 									<div className="form-fields flex-4">
-										<label htmlFor="rfiDescription" className="block mb-1">RFI Description:</label>
+										<label htmlFor="structure" className="block mb-1">Structure:</label>
 										<Select
-											id="rfiDescription"
-											name="rfiDescription"
-											options={rfiDescriptionOptions}
-											value={formState.rfiDescription ? { value: formState.rfiDescription, label: formState.rfiDescription } : null}
-											onChange={(selected) => setFormState({ ...formState, rfiDescription: selected?.value || '' })}
+											id="structure"
+											name="structure"
+											options={structureOptions}
+											placeholder="Select Structure..." // ✅ Shows 'Select Structure...' when structure is ''
+											value={
+												formState.structure
+													? structureOptions.find(s => s.value === formState.structure)
+													: null
+											}
+											onChange={(selected) =>
+												setFormState({
+													...formState,
+													structure: selected?.value || '',
+													component: '',
+													element: '',
+													activity: ''
+												})
+											}
 											isDisabled={!isEditable}
 										/>
 									</div>
-								</div>
 
-							</div>
+
+
+									<div className="form-fields flex-4">
+										<label htmlFor="component" className="block mb-1">Component:</label>
+										<Select
+											id="component"
+											name="component"
+											options={componentOptions}
+											placeholder="Select Component..."
+											value={
+												formState.component
+													? componentOptions.find(c => c.value === formState.component)
+													: null
+											}
+											onChange={(selected) =>
+												setFormState({
+													...formState,
+													component: selected?.value || '',
+													element: '',
+													activity: ''
+												})
+											}
+											isDisabled={!isEditable}
+										/>
+									</div>
+
+
+
+
+									<div className="form-fields flex-4">
+										<label htmlFor="element" className="block mb-1">Element:</label>
+										<Select
+											id="element"
+											name="element"
+											options={elementOptions}
+											placeholder="Select Element..."
+											value={
+												formState.element
+													? elementOptions.find(e => e.value === formState.element)
+													: null
+											}
+											onChange={(selected) =>
+												setFormState({
+													...formState,
+													element: selected?.value || '',
+													activity: ''
+												})
+											}
+											isDisabled={!isEditable}
+										/>
+									</div>
+
+
+									<div className="form-row justify-start">
+										<div className="form-fields flex-4">
+											<label htmlFor="activity" className="block mb-1">Activity:</label>
+											<Select
+												id="activity"
+												name="activity"
+												options={activityOptions}
+												placeholder="Select Activity..."
+												value={
+													formState.activity
+														? activityOptions.find(a => a.value === formState.activity)
+														: null
+												}
+												onChange={(selected) =>
+													setFormState({ ...formState, activity: selected?.value || '' })
+												}
+												isDisabled={!isEditable}
+											/>
+										</div>
+
+										<div className="form-fields flex-4">
+											<label htmlFor="rfiDescription" className="block mb-1">RFI Description:</label>
+											<Select
+												id="rfiDescription"
+												name="rfiDescription"
+												options={rfiDescriptionOptions}
+												value={formState.rfiDescription ? { value: formState.rfiDescription, label: formState.rfiDescription } : null}
+												onChange={(selected) => setFormState({ ...formState, rfiDescription: selected?.value || '' })}
+												isDisabled={!isEditable}
+											/>
+										</div>
+									</div>
+
+								</div>
 							</fieldset>
 							<div className="d-flex justify-end">
 								<button onClick={() => setStep(2)} className="btn btn-primary">

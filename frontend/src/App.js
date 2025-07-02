@@ -19,13 +19,13 @@ import AuthLayout from './layouts/AuthLayout';
 function App() {
   const [msg, setMsg] = useState('');
 
-  useEffect(() => {
+  /*useEffect(() => {
     fetch("http://localhost:8080/api/hello")
       .then(res => res.text())
       .then(data => setMsg(data))
       .catch(err => console.error("Fetch error:", err));
   }, []);
-
+*/
   return (
       <Routes>
         {/* Default redirect to /login */}

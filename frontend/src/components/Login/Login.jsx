@@ -15,6 +15,9 @@ const Login = () => {
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [message, setMessage] = useState('');
 	const navigate = useNavigate();
+	
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
 
 	const showForgotPassword = () => {
 		setShowForgot(true);
@@ -40,7 +43,8 @@ const Login = () => {
 		}
 
 		try {
-			const response = await fetch('http://localhost:8000/api/forgot/send-otp', {
+			const response = await fetch(`${API_BASE_URL}api/forgot/send-otp`, {
+
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ emailId: email }),
@@ -66,7 +70,8 @@ const Login = () => {
 		}
 
 		try {
-			const response = await fetch('http://localhost:8000/api/forgot/verify-otp', {
+		const response = await fetch(`${API_BASE_URL}api/forgot/verify-otp`, {
+
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ emailId: email, otp: otp }),
@@ -99,7 +104,8 @@ const Login = () => {
 		}
 
 		try {
-			const response = await fetch('http://localhost:8000/api/forgot/reset-password', {
+			const response = await fetch(`${API_BASE_URL}api/forgot/reset-password`, {
+
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -125,7 +131,7 @@ const Login = () => {
 		setMessage('');
 
 		try {
-			const response = await fetch('http://localhost:8000/api/auth/login', {
+			const response = await fetch(`${API_BASE_URL}api/auth/login`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',

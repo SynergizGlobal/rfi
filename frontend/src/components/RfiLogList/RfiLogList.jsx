@@ -15,9 +15,11 @@ export default function RfiLogList() {
   const [contractOptions, setContractOptions] = useState([]);
   const [contractIdMap, setContractIdMap] = useState({});
   const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
+const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+
 
   useEffect(() => {
-    axios.get('http://localhost:8000/getAllRfiLogDetails')
+    axios.get(`${API_BASE_URL}/getAllRfiLogDetails`)
       .then(response => {
         if (response.status === 204 || !response.data || response.data.length === 0) {
           setData([]);
@@ -33,7 +35,7 @@ export default function RfiLogList() {
   }, []);
 
   useEffect(() => {
-    axios.get('http://localhost:8000/rfi/projectNames')
+    axios.get(`${API_BASE_URL}/rfi/projectNames`)
       .then(response => {
         const map = {};
         const options = response.data.map(p => {
@@ -49,7 +51,7 @@ export default function RfiLogList() {
     const { project, work, contract } = formState;
     if (!project || !work || !contract) return;
 
-    axios.get('http://localhost:8000/getRfiLogDetailsFilter', {
+    axios.get(`${API_BASE_URL}/getRfiLogDetailsFilter`, {
       params: { project, work, contract }
     })
       .then(response => {
@@ -142,7 +144,7 @@ export default function RfiLogList() {
                       setFormState({ project, work: '', contract: '' });
 
                       if (projectId) {
-                        axios.get('http://localhost:8000/rfi/workNames', { params: { projectId } })
+                        axios.get(`${API_BASE_URL}/rfi/workNames`, { params: { projectId } })
                           .then(res => {
                             const map = {};
                             const opts = res.data.map(w => {
@@ -168,7 +170,7 @@ export default function RfiLogList() {
                       setFormState(prev => ({ ...prev, work, contract: '' }));
 
                       if (workId) {
-                        axios.get('http://localhost:8000/rfi/contractNames', { params: { workId } })
+                        axios.get(`${API_BASE_URL}/rfi/contractNames`, { params: { workId } })
                           .then(res => {
                             const map = {};
                             const opts = res.data.map(c => {
@@ -226,7 +228,7 @@ export default function RfiLogList() {
 			        setFormState({ project: '', work: '', contract: '' });
 			        setWorkOptions([]);
 			        setContractOptions([]);
-			        axios.get('http://localhost:8000/getAllRfiLogDetails')
+                    axios.get(`${API_BASE_URL}/getAllRfiLogDetails`)
 			          .then(response => {
 			            if (response.status === 204 || !response.data || response.data.length === 0) {
 			              setData([]);

@@ -8,6 +8,7 @@ const DropdownMenu = ({ anchorRef, children }) => {
 	const [coords, setCoords] = useState(null);
 
 
+
 	useEffect(() => {
 		if (anchorRef.current) {
 			const rect = anchorRef.current.getBoundingClientRect();
@@ -39,18 +40,20 @@ const RfiLog = () => {
 	const buttonRefs = useRef({});
 	const [personOptions, setPersonOptions] = useState([]);
 	const [selectedPerson, setSelectedPerson] = useState('');
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+
 
 
 
 	useEffect(() => {
 		const fetchRfis = async () => {
 			try {
-				const response = await fetch('http://localhost:8000/rfi/rfi-details', {
+				const response = await fetch(`${API_BASE_URL}/rfi/rfi-details`, {
 					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					credentials: 'include', 
+					credentials: 'include',
 				});
 
 				if (!response.ok) {
@@ -83,7 +86,7 @@ const RfiLog = () => {
 	useEffect(() => {
 		const fetchRegularUsers = async () => {
 			try {
-				const response = await fetch('http://localhost:8000/api/auth/regular-roles');
+				const response = await fetch(`${API_BASE_URL}/api/auth/regular-roles`);
 				const names = await response.json();
 				setPersonOptions(names);
 			} catch (error) {
@@ -102,7 +105,7 @@ const RfiLog = () => {
 		const rfiId = selectedRow.rfiId;
 
 		try {
-			const response = await fetch('http://localhost:8000/rfi/assign-client-person', {
+			const response = await fetch(`${API_BASE_URL}/rfi/assign-client-person`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
