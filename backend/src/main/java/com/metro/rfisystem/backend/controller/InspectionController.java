@@ -46,19 +46,20 @@ public class InspectionController {
 	}
 
 	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> startInspection( HttpSession session,@RequestPart("data") String dataJson,
+	public ResponseEntity<Long> startInspection( HttpSession session,@RequestPart("data") String dataJson,
 			@RequestPart("selfie") MultipartFile selfie, @RequestPart("siteImages") MultipartFile[] siteImages) {
 		String UserRole = (String)session.getAttribute("userRoleNameFk");
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
              
-			inspectionService.startInspection(dto, selfie, siteImages,UserRole);
+			Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages,UserRole);
 
-			return ResponseEntity.ok("Inspection started successfully.");
+			return ResponseEntity.ok(inspectionId);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+
 		}
 	}
 

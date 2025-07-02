@@ -3,7 +3,7 @@ import lombok.Data;
 
 @Data
 public class RFIInspectionRequestDTO {
-	private Long id;
+	private Long inspectionId;
     private Long rfiId;
     private String location;
     private String chainage;

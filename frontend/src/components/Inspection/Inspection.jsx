@@ -128,6 +128,18 @@ const Inspection = () => {
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
 		{ Header: 'Inspection Status', accessor: 'inspectionStatus' },
 		{
+				  Header: 'Inspection Status',
+				  accessor: row => {
+				    const details = row.inspectionDetails;
+				    if (Array.isArray(details) && details.length > 0) {
+				      return details
+				        .map(item => item.inspectionStatus || 'N/A')
+				        .join(', ');
+				    }
+				    return 'N/A';
+				  }
+				},	
+		{
 			Header: 'Download Contractor Images',
 			Cell: ({ row }) => {
 				const isDownloading = downloadingId === row.original.id;

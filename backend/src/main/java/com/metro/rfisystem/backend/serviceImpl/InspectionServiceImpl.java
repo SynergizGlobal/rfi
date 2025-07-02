@@ -74,8 +74,8 @@ public class InspectionServiceImpl implements InspectionService{
 
 	}
 
-	 @Override
-	    public void startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String UserRole) {
+	    @Override
+	    public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String UserRole) {
 	        RFI rfi = rfiRepository.findById(dto.getRfiId())
 	                .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
@@ -95,6 +95,7 @@ public class InspectionServiceImpl implements InspectionService{
 	        inspection.setUploadedBy(UserRole);
 
 	        inspectionRepository.save(inspection);
+	        return inspection.getId();
 	    }
 
 	    private String saveFile(MultipartFile file) {
@@ -119,11 +120,11 @@ public class InspectionServiceImpl implements InspectionService{
 	    
 	    @Override
 		public void updateInspectionStatus( RFIInspectionRequestDTO dto, MultipartFile testDocument) {
-	    RFI rfi = rfiRepository.findById(dto.getRfiId())
-				    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
-	   
+	    	
+    RFI rfi = rfiRepository.findById(dto.getRfiId())
+			    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));	   
 			 
-		   RFIInspectionDetails inspection = inspectionRepository.findByRfiId(dto.getRfiId())
+		   RFIInspectionDetails inspection = inspectionRepository.findById(dto.getInspectionId())
 		        .orElseThrow(() -> new IllegalArgumentException("No inspection found for RFI ID: " + dto.getRfiId()));
         
 	

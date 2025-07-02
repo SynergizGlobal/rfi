@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -44,16 +45,19 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		    RFI inspection = rfiRepository.findById(dto.getRfiId())
 		        .orElseThrow(() -> new RuntimeException("Invalid inspection ID: " + dto.getRfiId()));
 
-	        RFIChecklistItem checklist = new RFIChecklistItem();
-	        checklist.setRfi(inspection);
-	        checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
-	        checklist.setDrawingApproved(dto.getDrawingApproved());
-	        checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
-	        checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
-	        checklist.setAlignmentOk(dto.getAlignmentOk());
-	        checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
-	        checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
+		    Optional<RFIChecklistItem> existingOptional = checklistRepository.findByRfi(inspection);
 
+	        RFIChecklistItem checklist = existingOptional.orElseGet(RFIChecklistItem::new);
+	        if (dto.getGradeOfConcrete() != null) checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
+
+	        if (dto.getDrawingApproved() != null) checklist.setDrawingApproved(dto.getDrawingApproved());
+	        if (dto.getDrawingRemarkContractor() != null) checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
+	        if (dto.getDrawingRemarkAE() != null) checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
+
+	        if (dto.getAlignmentOk() != null) checklist.setAlignmentOk(dto.getAlignmentOk());
+	        if (dto.getAlignmentRemarkContractor() != null) checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
+	        if (dto.getAlignmentRemarkAE() != null) checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
+	        
 	        // Save contractor signature
 	        if (contractorSig != null && !contractorSig.isEmpty()) {
 	            String contractorPath = saveFile(contractorSig);

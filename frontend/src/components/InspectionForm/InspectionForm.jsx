@@ -34,7 +34,8 @@ export default function InspectionForm() {
 	const [chainage, setChainage] = useState('');
 	const [inspectionStatus, setInspectionStatus] = useState('');
 	const [testInLab, setTestInLab] = useState(null);
-
+	const [inspectionId, setInspectionId] = useState(null);
+		
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
 
@@ -42,15 +43,29 @@ export default function InspectionForm() {
 	useEffect(() => {
 		if (id) {
 			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: 'include' })
-
-				.then(res => res.json())
-				.then(data => {
-					setRfiData(data);
-					setContractorRep(data.nameOfRepresentative || '');
-				})
-				.catch(err => console.error("Error fetching RFI:", err));
-		}
-	}, [id]);
+			
+						.then(res => res.json())
+						.then(data => {
+							setRfiData(data);
+							setContractorRep(data.nameOfRepresentative || '');
+							if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+											const latestInspection = data.inspectionDetails.reduce((latest, current) =>
+												current.id > latest.id ? current : latest
+											);
+											setInspectionId(latestInspection.id); 
+										}	
+										else {
+															// ✅ Try restoring from localStorage
+															const savedId = localStorage.getItem("latestInspectionId");
+															if (savedId) {
+																setInspectionId(parseInt(savedId));
+															}
+														}
+													})
+													.catch(err => console.error("Error fetching RFI details:", err));
+											}
+										}, [id]);
+	
 
 	const fetchLocation = () => {
 		if (navigator.geolocation) {
@@ -133,7 +148,7 @@ export default function InspectionForm() {
 	const handleSubmitConfirmed = async () => {
 		const formData = new FormData();
 		const payload = {
-			//id: rfiData.inspectionDetails?.id,               
+			inspectionId,           
 			rfiId: rfiData.id,
 			inspectionStatus,
 			testInsiteLab: testInLab
@@ -160,6 +175,7 @@ export default function InspectionForm() {
 
 			alert("Inspection submitted successfully.");
 			setConfirmPopup(false);
+			localStorage.removeItem("latestInspectionId");
 			window.location.href = "http://localhost:3000/rfiSystem/Inspection";
 		} catch (err) {
 			console.error("Submit failed:", err);
@@ -229,8 +245,12 @@ export default function InspectionForm() {
 				body: formData,
 				credentials: "include",
 			});
-			const text = await res.text();
-			alert("Saved: " + text);
+			const inspectionId = await res.text();
+						//const text = await res.text();
+						    const id = parseInt(inspectionId);               // ✅ Convert to number
+						    setInspectionId(id);                     // ✅ Save inspectionId to state
+						    alert("Inspection saved successfully. ID: " + id);
+						//alert("Saved: " + text);
 		} catch (err) {
 			console.error("Inspection save failed:", err);
 		}
