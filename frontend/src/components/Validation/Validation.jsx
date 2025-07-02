@@ -11,26 +11,37 @@ const getExtension = (filename) => {
 export default function Validation() {
 	
 		const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+		const [editModeList, setEditModeList] = useState([]);
 
 
 
-	useEffect(() => {
-		axios.get(`${API_BASE_URL}/getRfiValidations`)
-			.then(res => setRfiList(res.data))
-			.catch(err => console.error(err));
-	}, []);
+		useEffect(() => {
+		  axios.get(`${API_BASE_URL}/getRfiValidations`)
+		    .then(res => {
+		      setRfiList(res.data);
+		      setRemarksList(res.data.map(item => item.remarks || ""));
+		      setStatusList(res.data.map(item => item.status || ""));
+			  setEditModeList(res.data.map(() => false));
+		    })
+		    .catch(err => console.error(err));
+		}, []);
+
 
 	const updateRemark = (idx, value) => {
-		const updated = [...remarksList];
-		updated[idx] = value;
-		setRemarksList(updated);
+		setRemarksList(prev => prev.map((item, i) => i === idx ? value : item));
 	};
 
 	const updateStatus = (idx, value) => {
-		const updated = [...statusList];
-		updated[idx] = value;
-		setStatusList(updated);
+		setStatusList(prev => prev.map((item, i) => i === idx ? value : item));
 	};
+	
+	const toggleEditMode = (idx) => {
+	  setEditModeList(prev =>
+	    prev.map((item, i) => i === idx ? !item : item)
+	  );
+	};
+
+
 
 	const handleFileChange = (idx, file) => {
 		const updated = [...fileList];
@@ -39,17 +50,65 @@ export default function Validation() {
 	};
 
 	const submitValidation = (rfi, idx) => {
+		const remarks = remarksList[idx]?.trim();
+		const action = statusList[idx]?.trim();
+		const file = fileList[idx];
+
+		// ✅ Validate remarks and action
+		if (!remarks) {
+			alert("Please select a remark before submitting.");
+			return;
+		}
+
+		if (!action) {
+			alert("Please select a status before submitting.");
+			return;
+		}
+
+		if (!file) {
+			alert("Please upload a file before submitting.");
+			return;
+		}
+
 		const formData = new FormData();
 		formData.append("long_rfi_id", rfi.longRfiId);
 		formData.append("long_rfi_validate_id", rfi.longRfiValidateId);
-		formData.append("remarks", remarksList[idx] || '');
-		formData.append("action", statusList[idx] || '');
-		formData.append("file", fileList[idx]);
+		formData.append("remarks", remarks);
+		formData.append("action", action);
+		formData.append("file", file);
 
 		axios.post(`${API_BASE_URL}/validate`, formData)
-			.then(() => alert('Validation submitted successfully.'))
-			.catch(err => console.error('Validation error:', err));
+			.then(() => {
+				alert('Validation submitted successfully.');
+
+				// ✅ Update only the affected row in rfiList
+				setRfiList(prevList => {
+					const updated = [...prevList];
+					updated[idx] = {
+						...updated[idx],
+						remarks,
+						action
+					};
+					return updated;
+				});
+
+				// ✅ Exit edit mode for that row
+				setEditModeList(prev =>
+					prev.map((v, i) => i === idx ? false : v)
+				);
+
+				// ✅ Clear file input for this row
+				setFileList(prev =>
+					prev.map((f, i) => i === idx ? null : f)
+				);
+			})
+			.catch(err => {
+				console.error('Validation error:', err);
+				alert('Submission failed');
+			});
 	};
+
+
 
 	const fetchPreview = (rfiId) => {
 		axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`)
@@ -83,7 +142,7 @@ export default function Validation() {
 		}
 		};
 
-const [rfiList, setRfiList] = useState([]);
+  const [rfiList, setRfiList] = useState([]);
   const [remarksList, setRemarksList] = useState([]);
   const [statusList, setStatusList] = useState([]);
   const [fileList, setFileList] = useState([]);
@@ -222,15 +281,17 @@ const [rfiList, setRfiList] = useState([]);
     };
 
     await imageSection('Inspector Selfie', inspection.selfieClient);
-    await imageSection('Site Images', inspection.imagesUploadedByClient);
-    await imageSection('Enclosures', inspection.clientEnclosureFilePaths);
+    await imageSection('Inspector Site Images', inspection.imagesUploadedByClient);
+    await imageSection('Inspector Enclosures', inspection.clientEnclosureFilePaths);
     await imageSection('Contractor Selfie', inspection.selfieContractor);
+	await imageSection('Contractor Site Images',inspection.imagesUploadedByContractor);
     await imageSection('Contractor Enclosures', inspection.contractorEnclosureFilePaths);
+	await imageSection('Contractor Uploaded TEST REPORT',inspection.testSiteDocumentsContractor);
     await imageSection('GC/MRVC Signature', inspection.gcMrvcSignature);
     await imageSection('Contractor Signature', inspection.contractorSignature);
   }
 
-  doc.save('All_RFIs.pdf');
+  doc.save('RFI_Report.pdf');
 };
 
 
@@ -294,37 +355,75 @@ const [rfiList, setRfiList] = useState([]);
 							</tr>
 						</thead>
 						<tbody>
-							{rfiList.map((rfi, idx) => (
-								<tr key={idx}>
-									<td>{rfi.stringRfiId}</td>
-									<td><button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button></td>
-									<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, idx)}>⬇️</button>
-									<td>
-										<select onChange={(e) => updateRemark(idx, e.target.value)}>
-											<option value="">-- Select --</option>
-											<option value="NONO">NONO</option>
-											<option value="NONOC(B)">NONOC (B)</option>
-											<option value="NONOC(C)">NONOC (C)</option>
-											<option value="NOR">NOR</option>
-										</select>
-									</td>
-									<td>
-										<select onChange={(e) => updateStatus(idx, e.target.value)}>
-											<option value="">-- Select --</option>
-											<option value="APPROVED">Approved</option>
-											<option value="REJECTED">Rejected</option>
-											<option value="CLARIFICATION_REQUIRED">Clarification Required</option>
-										</select>
-									</td>
-									<td>
-										<input type="file" onChange={(e) => handleFileChange(idx, e.target.files[0])} />
-									</td>
-									<td>
-										<button onClick={() => submitValidation(rfi, idx)}>Validate</button>
-									</td>
-								</tr>
-							))}
+						  {rfiList.map((rfi, idx) => {
+						    const status = statusList[idx];
+						    const remarks = remarksList[idx];
+						    const isEditable = editModeList[idx];
+						    const isValidated = status && remarks; // both present
+
+						    return (
+						      <tr key={idx}>
+						        <td>{rfi.stringRfiId}</td>
+
+						        <td>
+						          <button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
+						        </td>
+
+						        <td>
+						          <button onClick={() => downloadPDFWithDetails(rfi.longRfiId, idx)}>⬇️</button>
+						        </td>
+
+						        <td>
+						          <select
+						            value={remarks || ""}
+						            onChange={(e) => updateRemark(idx, e.target.value)}
+						            disabled={isValidated && !isEditable}
+						          >
+						            <option value="">-- Select --</option>
+						            <option value="NONO">NONO</option>
+						            <option value="NONOC(B)">NONOC (B)</option>
+						            <option value="NONOC(C)">NONOC (C)</option>
+						            <option value="NOR">NOR</option>
+						          </select>
+						        </td>
+
+						        <td>
+						          <select
+						            value={status || ""}
+						            onChange={(e) => updateStatus(idx, e.target.value)}
+						            disabled={isValidated && !isEditable}
+						          >
+						            <option value="">-- Select --</option>
+						            <option value="APPROVED">Approved</option>
+						            <option value="REJECTED">Rejected</option>
+						            <option value="CLARIFICATION_REQUIRED">Clarification Required</option>
+						          </select>
+						        </td>
+
+						        <td>
+						          <input
+						            type="file"
+						            onChange={(e) => handleFileChange(idx, e.target.files[0])}
+						            disabled={isValidated && !isEditable}
+						          />
+						        </td>
+
+						        <td>
+						          {isValidated ? (
+						            isEditable ? (
+						              <button onClick={() => submitValidation(rfi, idx)}>Submit</button>
+						            ) : (
+						              <button onClick={() => toggleEditMode(idx)}>Edit</button>
+						            )
+						          ) : (
+						            <button onClick={() => submitValidation(rfi, idx)}>Validate</button>
+						          )}
+						        </td>
+						      </tr>
+						    );
+						  })}
 						</tbody>
+
 					</table>
 
 					{selectedInspection && (
@@ -512,42 +611,6 @@ const [rfiList, setRfiList] = useState([]);
 										})}
 									</div>
 								)}
-
-								{selectedInspection.testInsiteLabClient && selectedInspection.testSiteDocumentsClient && (
-									<div className="image-gallery">
-										<h4>Test Report Uploaded By Inspector</h4>
-
-										{(() => {
-											const path = selectedInspection.testSiteDocumentsClient.trim();
-											const filename = getFilename(path);
-											const extension = getExtension(filename);
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
-
-											return (
-												<a href={fileUrl} target="_blank" rel="noopener noreferrer">
-													{extension === 'pdf' ? (
-														<embed
-															src={fileUrl}
-															type="application/pdf"
-															width="100%"
-															height="500px"
-															className="preview-pdf"
-														/>
-													) : (
-														<img
-															src={fileUrl}
-															alt="Test Report"
-															className="preview-image"
-															onError={() => console.error("Image load error:", fileUrl)}
-														/>
-													)}
-												</a>
-											);
-										})()}
-									</div>
-								)}
-
-
 
 								{selectedInspection.selfieContractor && (
 									<div className="image-gallery">

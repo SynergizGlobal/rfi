@@ -7,5 +7,6 @@ public class AssignPersonDTO {
 	
 	private String rfi_Id;
 	private String assignedPersonClient;
+	private String clientDepartment;
 
 }

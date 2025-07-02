@@ -213,11 +213,13 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public boolean assignPersonToClient(String rfi_Id, String assignedPersonClient) {
+	public boolean assignPersonToClient(String rfi_Id, String assignedPersonClient, String clientDepartment) {
 		Optional<RFI> optional = rfiRepository.findByRfiId(rfi_Id);
 		if (optional.isPresent()) {
 			RFI rfi = optional.get();
+			System.out.println("Assigned: " + assignedPersonClient + ", Dept: " + clientDepartment);
 			rfi.setAssignedPersonClient(assignedPersonClient);
+			rfi.setClientDepartment(clientDepartment);
 			rfiRepository.save(rfi);
 			return true;
 		}

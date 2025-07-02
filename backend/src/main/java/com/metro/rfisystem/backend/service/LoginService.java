@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.metro.rfisystem.backend.model.pmis.User;
 
@@ -12,5 +13,5 @@ public interface LoginService {
 
 	boolean isValidUser(String userName);
 	
-	List<String> getUserNamesOfRegularUsers();
+	List<Map<String, String>> getUserNamesOfRegularUsers();
 }

@@ -18,8 +18,11 @@ public interface LoginRepository extends JpaRepository<User, String>  {
 
 	List<User> findByUserRoleNameFkIgnoreCase(String string);
 
-	@Query("SELECT u.userName FROM User u WHERE LOWER(u.userRoleNameFk) = 'Regular user'")
-	List<String> findUserNamesByRegularUserRole();
+	@Query(value = "SELECT u.user_name, d.department_name\n"
+			+ "FROM [user] u\n"
+			+ "JOIN department d ON u.department_fk = d.department\n"
+			+ "WHERE LOWER(u.user_role_name_fk) = 'regular user'",nativeQuery = true)
+	List<Object[]> findUserNamesAndDepartmentsByRegularUserRole();
 	
 	
 }

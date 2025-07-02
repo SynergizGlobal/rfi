@@ -29,15 +29,15 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     List<RFI> findByCreatedBy(String createdBy);
 
 	List<RFI> findByAssignedPersonClient(String assignedPersonClient);
-
+	 
 	int countByAssignedPersonClient(String assignedTo);
 	
 	@Query(value = "SELECT id, status FROM rfi_data WHERE id = :id", nativeQuery = true)
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);
 
-	@Query(value = "select r.rfi_id , r.id,rv.id \r\n" + "from rfi_data as r\r\n"
-			+ "right join rfi_validation as rv\r\n" + "on r.id = rv.rfi_id_fk "
-			+" ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
+	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
+			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
+			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidations();
 
 	
@@ -85,10 +85,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "  ic.site_image AS imagesUploadedByClient,\r\n"
 			+ "  ico.site_image AS imagesUploadedByContractor,\r\n"
 			+ "\r\n"
-			+ "  ic.test_insite_lab AS testInsiteLabClient,\r\n"
 			+ "  ico.test_insite_lab AS testInsiteLabContractor,\r\n"
 			+ "\r\n"
-			+ "  ic.test_site_documents AS testSiteDocumentsClient,\r\n"
 			+ "  ico.test_site_documents AS testSiteDocumentsContractor,\r\n"
 			+ "\r\n"
 			+ "  -- Signatures\r\n"

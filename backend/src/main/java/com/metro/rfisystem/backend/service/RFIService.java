@@ -32,7 +32,7 @@ public interface RFIService {
 
 	String updateRfi(Long id, RFI_DTO rfiDto);
 
-	boolean assignPersonToClient(String rfi_Id, String assignedPersonClient);
+	boolean assignPersonToClient(String rfi_Id, String assignedPersonClient, String clientDepartment);
 
 	List<RFI> getRFIsByCreatedBy(String userName);
 

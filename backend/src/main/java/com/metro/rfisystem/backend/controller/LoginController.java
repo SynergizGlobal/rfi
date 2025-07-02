@@ -101,11 +101,10 @@ public class LoginController {
 					.body(new ErrorResponse("NO_SESSION", "No active session found"));
 		}
 	}
-
+	
 	@GetMapping("/regular-roles")
-	public ResponseEntity<List<String>> getUserNamesOfRegularUsers() {
-		List<String> userNames = loginService.getUserNamesOfRegularUsers();
-		return ResponseEntity.ok(userNames);
+	public ResponseEntity<List<Map<String, String>>> getUserNamesOfRegularUsers() {
+	    List<Map<String, String>> users = loginService.getUserNamesOfRegularUsers();
+	    return ResponseEntity.ok(users);
 	}
-
 }

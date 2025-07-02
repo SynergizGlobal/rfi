@@ -41,7 +41,7 @@ const RfiLog = () => {
 	const [personOptions, setPersonOptions] = useState([]);
 	const [selectedPerson, setSelectedPerson] = useState('');
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
-
+    const [selectedDepartment, setSelectedDepartment] = useState('');
 
 
 
@@ -87,8 +87,9 @@ const RfiLog = () => {
 		const fetchRegularUsers = async () => {
 			try {
 				const response = await fetch(`${API_BASE_URL}/api/auth/regular-roles`);
-				const names = await response.json();
-				setPersonOptions(names);
+				const users = await response.json();
+				console.log('Fetched user list:', users); 
+				setPersonOptions(users);
 			} catch (error) {
 				console.error('Failed to fetch regular users:', error);
 			}
@@ -97,6 +98,12 @@ const RfiLog = () => {
 		fetchRegularUsers();
 	}, []);
 
+	const handleSelect = (e) => {
+	  const selectedUsername = e.target.value;
+	  const userObj = personOptions.find(p => p.username === selectedUsername);
+	   setSelectedPerson(userObj);
+	  setSelectedDepartment(userObj?.department || '');
+	};
 
 	const handleAssignSubmit = async () => {
 
@@ -112,7 +119,8 @@ const RfiLog = () => {
 				},
 				body: JSON.stringify({
 					rfi_Id: rfiId,
-					assignedPersonClient: selectedPerson,
+					assignedPersonClient: selectedPerson?.username,
+					clientDepartment: selectedPerson.department,
 				}),
 			});
 
@@ -120,7 +128,7 @@ const RfiLog = () => {
 				// Update UI immediately
 				setAssignedPersons((prev) => ({
 					...prev,
-					[selectedRfi]: selectedPerson,
+					[selectedRfi]: selectedPerson?.username,
 				}));
 				setShowPopup(false);
 				setSelectedPerson('');
@@ -312,9 +320,13 @@ const RfiLog = () => {
 							<div className="popup-overlay">
 								<div className="popup">
 									<h3>Select Person to Assign</h3>
-									<select onChange={(e) => setSelectedPerson(e.target.value)} defaultValue="">
+									<select onChange={handleSelect} value={selectedPerson?.username || ''}>
 										<option value="" disabled>Select</option>
-										{personOptions.map(p => <option key={p}>{p}</option>)}
+										{personOptions.map((user, idx) => (
+										    <option key={idx} value={user.username}>
+										      {user.username}
+										    </option>
+										  ))}
 									</select>
 
 									<div className="rfilog-popup-btn">

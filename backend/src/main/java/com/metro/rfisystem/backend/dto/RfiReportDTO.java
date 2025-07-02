@@ -37,9 +37,7 @@ public class RfiReportDTO {
 	private String selfieContractor;
 	private String imagesUploadedByClient;
 	private String imagesUploadedByContractor;
-	private String testInsiteLabClient;
 	private String testInsiteLabContractor;
-	private String testSiteDocumentsClient;
 	private String testSiteDocumentsContractor;
 	private String contractorSignature;
 	private String gcMrvcSignature;

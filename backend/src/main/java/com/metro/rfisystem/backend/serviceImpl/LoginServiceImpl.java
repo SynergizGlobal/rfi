@@ -8,8 +8,11 @@ import com.metro.rfisystem.backend.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class LoginServiceImpl implements LoginService {
@@ -72,10 +75,16 @@ public class LoginServiceImpl implements LoginService {
 		return loginRepo.existsById(userId);
 	}
 
-
 	@Override
-	public List<String> getUserNamesOfRegularUsers() {
-	    return loginRepo.findUserNamesByRegularUserRole();
-
-	}
+	public List<Map<String, String>> getUserNamesOfRegularUsers() {
+		 List<Object[]> results = loginRepo.findUserNamesAndDepartmentsByRegularUserRole();
+		  System.out.println("Fetched from DB: " + results.size());
+		    return results.stream().map(row -> {
+		        Map<String, String> userMap = new HashMap<>();
+		        userMap.put("username", (String) row[0]);
+		        userMap.put("department", (String) row[1]);
+		        return userMap;
+		    }).collect(Collectors.toList());
+		}
+ 
 }

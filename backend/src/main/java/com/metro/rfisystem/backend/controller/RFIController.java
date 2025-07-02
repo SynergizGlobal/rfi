@@ -182,7 +182,7 @@ public class RFIController {
 
 	@PostMapping("/assign-client-person")
 	public ResponseEntity<String> assignPersonToClient(@RequestBody AssignPersonDTO assignDTO) {
-		boolean success = rfiService.assignPersonToClient(assignDTO.getRfi_Id(), assignDTO.getAssignedPersonClient());
+		boolean success = rfiService.assignPersonToClient(assignDTO.getRfi_Id(), assignDTO.getAssignedPersonClient(),  assignDTO.getClientDepartment());
 		if (success) {
 			return ResponseEntity.ok("Assigned successfully");
 		} else {
