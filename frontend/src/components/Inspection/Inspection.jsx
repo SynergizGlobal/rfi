@@ -126,7 +126,7 @@ const Inspection = () => {
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
-		{ Header: 'Inspection Status', accessor: 'inspectionStatus' },
+		
 		{
 				  Header: 'Inspection Status',
 				  accessor: row => {
@@ -138,7 +138,7 @@ const Inspection = () => {
 				    }
 				    return 'N/A';
 				  }
-				},	
+				},
 		{
 			Header: 'Download Contractor Images',
 			Cell: ({ row }) => {

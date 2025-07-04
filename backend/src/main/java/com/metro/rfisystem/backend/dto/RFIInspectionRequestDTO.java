@@ -16,5 +16,5 @@ public class RFIInspectionRequestDTO {
     private String rfiDescription;
     private String description;
     private InspectionStatus inspectionStatus;
-	private String testInsiteLab;
+	private TestType testInsiteLab;
 }

@@ -112,17 +112,7 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 	@Override
 	public void processConfirmation(InspectionStatus status, TestType testType,
 			List<MultipartFile> files) {
-		 if (status == InspectionStatus.VISUAL) {
-	            if (testType != null || (files != null && !files.isEmpty())) {
-	                throw new IllegalArgumentException("Visual inspections shouldn't have tests or uploads.");
-	            }
-	        }
-
-	        if ((status == InspectionStatus.LAB_TEST || status == InspectionStatus.SITE_TEST)) {
-	            if (testType == null) {
-	                throw new IllegalArgumentException("testsInSiteLab is required for lab/site tests");
-	            }
-	        }
+		
 
 	        if (files != null) {
 	            files.forEach(file -> {
@@ -136,7 +126,7 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 	        }
 
 	        // Optional: persist to DB
-	        System.out.println("Saved: status=" + status + ", test=" + testType);
+	       // System.out.println("Saved: status=" + status + ", test=" + testType);
 	    }
 
 	    private void saveFile(MultipartFile file) throws Exception {

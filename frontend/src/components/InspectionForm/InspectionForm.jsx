@@ -245,10 +245,10 @@ export default function InspectionForm() {
 				body: formData,
 				credentials: "include",
 			});
-			const inspectionId = await res.text();
-						//const text = await res.text();
-						    const id = parseInt(inspectionId);               // ✅ Convert to number
-						    setInspectionId(id);                     // ✅ Save inspectionId to state
+			//const inspectionId = await res.text();
+						const text = await res.text();
+						    const id = parseInt(text);               // ✅ Convert to number
+					//	    setInspectionId(id);                     // ✅ Save inspectionId to state
 						    alert("Inspection saved successfully. ID: " + id);
 						//alert("Saved: " + text);
 		} catch (err) {
@@ -532,20 +532,20 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
-			<label>Inspection Status</label>
+			<label>Tests in Site/Lab</label>
 			<select value={inspectionStatus} onChange={e => setInspectionStatus(e.target.value)}>
 				<option value="">Select</option>
 				<option value="VISUAL">Visual</option>
 				<option value="LAB_TEST">Lab Test</option>
 				<option value="SITE_TEST">Site Test</option>
 			</select>
-			<label>Tests in Site/Lab</label>
+			<label>Inspection Status</label>
 			<select
 				value={testInLab === null ? '' : testInLab.toString()}
 				onChange={(e) => {
 					const value = e.target.value;
-					if (value === 'Accepted') setTestInLab(true);
-					else if (value === 'Rejected') setTestInLab(false);
+					if (value === 'Accepted') setTestInLab('Accepted');
+					else if (value === 'Rejected') setTestInLab('Rejected');
 					else setTestInLab(null);
 				}}
 			>

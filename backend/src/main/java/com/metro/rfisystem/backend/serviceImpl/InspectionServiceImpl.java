@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
@@ -130,7 +131,7 @@ public class InspectionServiceImpl implements InspectionService{
 	
 	    inspection.setInspectionStatus(dto.getInspectionStatus());
 	    inspection.setTestInsiteLab(dto.getTestInsiteLab());
-       
+        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
 	    //String filename = saveFile(testDocument);
        // inspection.setTestSiteDocuments(filename);
         
