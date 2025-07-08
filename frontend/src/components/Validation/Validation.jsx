@@ -13,8 +13,6 @@ export default function Validation() {
 		const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
 		const [editModeList, setEditModeList] = useState([]);
 
-
-
 		useEffect(() => {
 		  axios.get(`${API_BASE_URL}/getRfiValidations`)
 		    .then(res => {
