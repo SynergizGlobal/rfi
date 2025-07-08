@@ -59,29 +59,6 @@ const Dashboard = () => {
 			});
 	}, []);
 
-	useEffect(() => {
-		const checkSession = async () => {
-			try {
-				const response = await fetch(`${API_BASE_URL}api/auth/session`, {
-					method: 'GET',
-					credentials: 'include',
-				});
-
-				if (response.status === 401) {
-					alert('⚠️ Session expired. Please log in again.');
-					localStorage.clear();
-					navigate('/login');
-				}
-			} catch (error) {
-				console.error('Session check failed:', error);
-				alert('⚠️ Error checking session. Please log in again.');
-				localStorage.clear();
-				navigate('/login');
-			}
-		};
-
-		checkSession();
-	}, [navigate]);
 
 	return (
 		<div className="dashboard">

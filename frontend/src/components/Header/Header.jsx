@@ -34,7 +34,7 @@ const Header = () => {
 
 		<div className="top-right-menu">
 			<ul>
-				<li>
+			{/*<li>
 					<div className="notifications ping-bars">
 						<i className="fas fa-bell"></i>
 						<span className="ping-barstext">
@@ -61,7 +61,7 @@ const Header = () => {
 							</div>
 						</span>
 					</div>
-				</li>
+				</li>*/}
 				<li>
 					<div className="user-menu">
 						<div className="user-profile">
@@ -72,15 +72,15 @@ const Header = () => {
 						<div className="profile-options">
 							<ul>
 								<li>
-									<a href="http://203.153.40.44:90/pmis/profile" target="_blank" rel="noreferrer">
+									<a href="">
 										Edit Profile
 									</a>
 								</li>
 								<li>
-									<Link to="/reset-password">Change Password</Link>
+									<Link to="">Change Password</Link>
 								</li>
 								<li>
-									<Link to="/logout">Logout</Link>
+									<Link to="/login">Logout</Link>
 								</li>
 							</ul>
 						</div>
