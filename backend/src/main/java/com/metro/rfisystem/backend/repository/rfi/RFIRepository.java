@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
@@ -21,14 +22,68 @@ import java.util.List;
 @Repository
 public interface RFIRepository extends JpaRepository<RFI, Long> {	
 
+	@Query(value = """
+		    SELECT
+		        r.id AS id,
+		        r.rfi_id AS rfi_Id,
+		        r.project_name AS project,
+		        r.structure AS structure,
+		        r.element AS element,
+		        r.activity AS activity,
+		        r.created_by AS createdBy,
+		        r.assigned_person_client AS assignedPersonClient,
+		        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
+		        r.status AS status,
+		        r.action AS action,
+		        (
+		          SELECT i.inspection_status
+		          FROM rfi_inspection_details i
+		          WHERE i.rfi_id_fk = r.id
+		          LIMIT 1
+		        ) AS inspectionStatus
+		    FROM rfi_data r
+		    ORDER BY r.created_at DESC
+		""", nativeQuery = true)
+		List<RfiListDTO> findAllRfiList();
+ 
+ 
+	@Query(value = "SELECT * FROM rfi_data WHERE id = :id", nativeQuery = true)
 	 Optional<RFI> findById(Long id);
-	 
+	
     @Query("SELECT r FROM RFI r WHERE r.rfi_Id = :rfiId")
     Optional<RFI> findByRfiId(@Param("rfiId") String rfiId);
     
-    List<RFI> findByCreatedBy(String createdBy);
-
-	List<RFI> findByAssignedPersonClient(String assignedPersonClient);
+    @Query(value = """
+    	    SELECT
+    	        r.rfi_id AS rfiId,
+    	        r.project_name AS project,
+    	        r.structure AS structure,
+    	        r.element AS element,
+    	        r.activity AS activity,
+    	        r.assigned_person_client AS assignedPersonClient,
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        r.status AS status
+    	    FROM rfi_data r
+    	    WHERE r.created_by = :createdBy
+    	    ORDER BY r.created_at DESC
+    	""", nativeQuery = true)
+    	List<RfiListDTO> findByCreatedBy(@Param("createdBy") String createdBy);
+ 
+    @Query(value = """
+    	    SELECT
+    	        r.rfi_id AS rfi_Id,
+    	        r.project_name AS project,
+    	        r.structure AS structure,
+    	        r.element AS element,
+    	        r.activity AS activity,
+    	        r.assigned_person_client AS assignedPersonClient,
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        r.status AS status
+    	    FROM rfi_data r
+    	    WHERE r.assigned_person_client = :assignedPersonClient
+    	    ORDER BY r.created_at DESC
+    	""", nativeQuery = true)
+    	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
 	 
 	int countByAssignedPersonClient(String assignedTo);
 	

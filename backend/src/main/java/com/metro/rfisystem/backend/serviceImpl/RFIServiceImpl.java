@@ -14,6 +14,7 @@ import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
@@ -139,10 +140,9 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<RFI> getAllRFIs() {
-		return rfiRepository.findAll();
+	public List<RfiListDTO> getAllRFIs() {
+	    return rfiRepository.findAllRfiList();
 	}
-
 	@Override
 	public String updateRfi(Long id, RFI_DTO rfiDto) {
 		Optional<RFI> optionalRfi = rfiRepository.findById(id);
@@ -227,12 +227,12 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<RFI> getRFIsByCreatedBy(String createdBy) {
+	public List<RfiListDTO> getRFIsByCreatedBy(String createdBy) {
 		return rfiRepository.findByCreatedBy(createdBy);
 	}
-
+ 
 	@Override
-	public List<RFI> getRFIsAssignedTo(String assignedPersonClient) {
+	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {
 		return rfiRepository.findByAssignedPersonClient(assignedPersonClient);
 	}
 

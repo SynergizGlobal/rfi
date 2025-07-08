@@ -23,6 +23,7 @@ import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
@@ -109,21 +110,21 @@ public class RFIController {
 	}
 
 	@GetMapping("/rfi-details")
-	public ResponseEntity<List<RFI>> getRfisBasedOnRole(HttpSession session) {
+	public ResponseEntity<List<RfiListDTO>> getRfisBasedOnRole(HttpSession session) {
 		String userName = (String) session.getAttribute("userName");
 		String userRole = (String) session.getAttribute("userRoleNameFk");
 		String userType = (String) session.getAttribute("userTypeFk");
-
+ 
 		System.out.println("Session userName: " + userName);
 		System.out.println("Session userRoleNameFk: " + userRole);
 		System.out.println("Session userTypeFk: " + userType);
-
+ 
 		if (userName == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		}
 		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
-
+ 
 		if (isAdmin || isDyHOD) {
 			return ResponseEntity.ok(rfiService.getAllRFIs());
 		}
@@ -132,7 +133,7 @@ public class RFIController {
 		}
 		return ResponseEntity.ok(rfiService.getRFIsByCreatedBy(userName));
 	}
-
+	
 	@GetMapping("/rfi-count")
 	public ResponseEntity<Integer> getRfiCount(HttpSession session) {
 		String userName = (String) session.getAttribute("userName");

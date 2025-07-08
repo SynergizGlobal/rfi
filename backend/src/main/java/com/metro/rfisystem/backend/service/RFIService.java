@@ -4,6 +4,7 @@ import java.util.List;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 
@@ -28,15 +29,15 @@ public interface RFIService {
 	List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
 			String component, String component_id);
 
-	List<RFI> getAllRFIs();
+	List<RfiListDTO> getAllRFIs();
 
 	String updateRfi(Long id, RFI_DTO rfiDto);
 
 	boolean assignPersonToClient(String rfi_Id, String assignedPersonClient, String clientDepartment);
 
-	List<RFI> getRFIsByCreatedBy(String userName);
+	List<RfiListDTO> getRFIsByCreatedBy(String userName);
 
-	List<RFI> getRFIsAssignedTo(String userName);
+	List<RfiListDTO> getRFIsAssignedTo(String userName);
 
 	int countByAssignedTo(String userName);
 
