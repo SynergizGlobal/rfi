@@ -379,7 +379,7 @@ export default function InspectionForm() {
 								onDone={(data, contractorSign, gcSign, grade) =>
 									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
 								}
-								onClose={() => setConfirmPopup(false)}
+								onClose={() =>setChecklistPopup(null)}
 							/>
 						)}
 

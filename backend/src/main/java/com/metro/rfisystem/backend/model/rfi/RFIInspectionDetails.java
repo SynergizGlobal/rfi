@@ -61,6 +61,7 @@ public class RFIInspectionDetails {
     private String siteImage;
     
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition ="VARCHAR(20)")
     private InspectionStatus inspectionStatus;
 
    // @Column(name="test_insite_lab",columnDefinition = "VARCHAR(10)", nullable =true)

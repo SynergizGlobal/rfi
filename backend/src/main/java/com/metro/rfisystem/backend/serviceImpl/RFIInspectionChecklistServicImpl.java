@@ -48,6 +48,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		    Optional<RFIChecklistItem> existingOptional = checklistRepository.findByRfi(inspection);
 
 	        RFIChecklistItem checklist = existingOptional.orElseGet(RFIChecklistItem::new);
+	        checklist.setRfi(inspection);
 	        if (dto.getGradeOfConcrete() != null) checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
 
 	        if (dto.getDrawingApproved() != null) checklist.setDrawingApproved(dto.getDrawingApproved());
