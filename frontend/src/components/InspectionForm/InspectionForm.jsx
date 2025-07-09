@@ -4,6 +4,8 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import CameraCapture from '../CameraCapture/CameraCapture';
 import './InspectionForm.css';
 
+const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+
 const initialChecklist = [
 	{ id: 1, description: 'Drawing Approved and available', status: '', contractorRemark: '', aeRemark: '' },
 	{ id: 2, description: 'Shuttering aligned and dimensionally correct', status: '', contractorRemark: '', aeRemark: '' },
@@ -35,6 +37,8 @@ export default function InspectionForm() {
 	const [inspectionStatus, setInspectionStatus] = useState('');
 	const [testInLab, setTestInLab] = useState(null);
 	const [inspectionId, setInspectionId] = useState(null);
+	const [testReportFile, setTestReportFile] = useState(null);
+
 		
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
@@ -52,6 +56,7 @@ export default function InspectionForm() {
 											const latestInspection = data.inspectionDetails.reduce((latest, current) =>
 												current.id > latest.id ? current : latest
 											);
+
 											setInspectionId(latestInspection.id); 
 										}	
 										else {
@@ -97,7 +102,7 @@ export default function InspectionForm() {
 		}
 		return new File([u8arr], filename, { type: mime });
 	}
-
+	
 	const handleChecklistSubmit = async (id, data, contractorSign, gcSign, grade) => {
 		const dto = {
 			rfiId: rfiData.id,
@@ -151,9 +156,13 @@ export default function InspectionForm() {
 			inspectionId,           
 			rfiId: rfiData.id,
 			inspectionStatus,
-			testInsiteLab: testInLab
+			testInsiteLab: testInLab,
+
 		};
 		formData.append("data", JSON.stringify(payload));
+		if (testReportFile) {
+			formData.append("testReport", testReportFile); 
+		}
 
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/inspection/status`, {
@@ -266,7 +275,6 @@ export default function InspectionForm() {
 				<div className="dashboard-main">
 					<div className="rfi-inspection-form">
 
-						{/* Step 1 */}
 						{step === 1 && (
 							<div className="form-step">
 								<h2>RFI Inspection - Step 1</h2>
@@ -298,7 +306,6 @@ export default function InspectionForm() {
 							</div>
 						)}
 
-						{/* Step 2 */}
 						{step === 2 && (
 							<div className="form-step">
 								<h2>RFI Inspection - Step 2</h2>
@@ -337,29 +344,51 @@ export default function InspectionForm() {
 										))}
 									</div>
 								</div>
+								
+								
 
 								<h3>Enclosures</h3>
 								<table className="enclosure-table">
 									<thead>
-										<tr><th>RFI Description</th><th>Enclosure</th><th>Action</th><th>Uploaded</th></tr>
+										<tr><th>RFI Description</th><th>Enclosure</th><th>Action</th><th>Uploaded</th><th>Other</th></tr>
 									</thead>
 									<tbody>
-										{enclosuresData.map(e => {
-											const state = enclosureStates[e.id] || {};
-											return (
-												<tr key={e.id}>
-													<td>{e.rfiDescription}</td>
-													<td>{e.enclosure}</td>
-													<td>
-														<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>
-														<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
-														<button onClick={() => setUploadPopup(e.id)}>Upload</button>
-													</td>
-													<td>{state.uploadedFile?.name || ''}</td>
-												</tr>
-											);
-										})}
+									  {enclosuresData.map((e, index) => {
+									    const state = enclosureStates[e.id] || {};
+									    const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+
+									    return (
+									      <tr key={e.id}>
+									        <td>{e.rfiDescription}</td>
+									        <td>{e.enclosure}</td>
+									        <td>
+									          <button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>
+									          <button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
+									          <button onClick={() => setUploadPopup(e.id)}>Upload</button>
+									        </td>
+									        <td>{state.uploadedFile?.name || ''}</td>
+
+									        {index === 0 && (
+									          <td rowSpan={enclosuresData.length}>
+									            {rfiReportFilepath && (
+									              <button
+									                onClick={() =>
+									                  window.open(
+									                    `${API_BASE_URL}previewFiles?filepath=${encodeURIComponent(rfiReportFilepath)}`,
+									                    '_blank'
+									                  )
+									                }
+									              >
+									                View Test Report
+									              </button>
+									            )}
+									          </td>
+									        )}
+									      </tr>
+									    );
+									  })}
 									</tbody>
+
 								</table>
 
 								<div className="btn-row">
@@ -397,6 +426,8 @@ export default function InspectionForm() {
 							setInspectionStatus={setInspectionStatus}
 							testInLab={testInLab}
 							setTestInLab={setTestInLab}
+							testReportFile={testReportFile}
+							setTestReportFile={setTestReportFile}
 							onConfirm={handleSubmitConfirmed}
 							onClose={() => setConfirmPopup(false)} />}
 
@@ -528,7 +559,7 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, onConfirm }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab,testReportFile,setTestReportFile, onConfirm }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
@@ -539,21 +570,40 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<option value="LAB_TEST">Lab Test</option>
 				<option value="SITE_TEST">Site Test</option>
 			</select>
-			<label>Inspection Status</label>
-			<select
-				value={testInLab === null ? '' : testInLab.toString()}
-				onChange={(e) => {
-					const value = e.target.value;
-					if (value === 'Accepted') setTestInLab('Accepted');
-					else if (value === 'Rejected') setTestInLab('Rejected');
-					else setTestInLab(null);
-				}}
-			>
-				<option value="">Select</option>
-				<option value="Accepted">Accepted</option>
-				<option value="Rejected">Rejected</option>
-			</select>
+	
+			{userRole?.toLowerCase() === 'Regular User' && (
+				<div>
+					<label>Inspection Status</label>
+					<select
+						value={testInLab === null ? '' : testInLab.toString()}
+						onChange={(e) => {
+							const value = e.target.value;
+							if (value === 'Accepted') setTestInLab('Accepted');
+							else if (value === 'Rejected') setTestInLab('Rejected');
+							else setTestInLab(null);
+						}}
+					>
+						<option value="">Select</option>
+						<option value="Accepted">Accepted</option>
+						<option value="Rejected">Rejected</option>
+					</select>
+				</div>
+			)}
 
+
+			
+			{userRole?.toLowerCase() !== 'regular user' && inspectionStatus !== 'VISUAL' && (
+			  <div>
+			    <label>Upload Test Report Here</label>
+			    <input
+			      type="file"
+			      onChange={(e) => setTestReportFile(e.target.files[0])}
+			    />
+				{testReportFile && (
+				  <p>Selected file: <strong>{testReportFile.name}</strong></p>
+				)}
+			  </div>
+			)}
 
 			<div className="popup-actions">
 				<button onClick={onConfirm}>Done</button>

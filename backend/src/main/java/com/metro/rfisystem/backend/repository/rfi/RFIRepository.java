@@ -33,15 +33,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 		        r.created_by AS createdBy,
 		        r.assigned_person_client AS assignedPersonClient,
 		        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-		        r.status AS status,
-		        r.action AS action,
-		        (
-		          SELECT i.inspection_status
-		          FROM rfi_inspection_details i
-		          WHERE i.rfi_id_fk = r.id
-		          LIMIT 1
-		        ) AS inspectionStatus
+		        i.inspection_status AS inspectionStatus
 		    FROM rfi_data r
+            left join rfi_inspection_details as i
+            on r.id=i.rfi_id_fk
 		    ORDER BY r.created_at DESC
 		""", nativeQuery = true)
 		List<RfiListDTO> findAllRfiList();
@@ -62,8 +57,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.assigned_person_client AS assignedPersonClient,
     	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        r.status AS status
+    	        i.status AS status
     	    FROM rfi_data r
+    	    left join rfi_inspection_details as i
+    	    on r.id=i.rfi_id_fk
     	    WHERE r.created_by = :createdBy
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
@@ -71,21 +68,25 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
  
     @Query(value = """
     	    SELECT
+    		    r.id as id,
     	        r.rfi_id AS rfi_Id,
     	        r.project_name AS project,
     	        r.structure AS structure,
     	        r.element AS element,
     	        r.activity AS activity,
+    	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
     	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        r.status AS status
+    	        i.inspection_status AS inspectionStatus
     	    FROM rfi_data r
+    	    LEFT JOIN rfi_inspection_details as i
+    	    on r.id=i.rfi_id_fk
     	    WHERE r.assigned_person_client = :assignedPersonClient
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
     	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
 	 
-	int countByAssignedPersonClient(String assignedTo);
+	int countByAssignedPersonClient(String assignedTo) ;
 	
 	@Query(value = "SELECT id, status FROM rfi_data WHERE id = :id", nativeQuery = true)
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);

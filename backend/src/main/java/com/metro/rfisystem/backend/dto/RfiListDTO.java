@@ -10,8 +10,6 @@ public interface RfiListDTO {
     String getAssignedPersonClient(); // used in filtering
     String getCreatedBy();            // add this if filtering by creator
     String getdateOfSubmission();
-    String getStatus();
-    String getAction();
     String getInspectionStatus();
 }
 

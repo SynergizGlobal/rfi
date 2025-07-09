@@ -129,29 +129,11 @@ public class InspectionController {
               .body("Failed to update checklist: " + ex.getMessage());
   }
 }
-	
-	 
-	  @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	  public ResponseEntity<String> confirmInspectionDetails(
-	          @RequestPart("data") String jsonData,
-	          @RequestPart(value = "uploadDocuments", required = false) List<MultipartFile> files
-	  ) throws JsonProcessingException {
-
-	      ObjectMapper mapper = new ObjectMapper();
-	      ConfirmationRequestDTO  request =
-	              mapper.readValue(jsonData,  ConfirmationRequestDTO .class);
-
-	      rfiEnclosureService.processConfirmation(request.getInspectionStatus(), request.getTestsInSiteLab(), files);
-	      return ResponseEntity.ok("Confirmation saved successfully");
-	  }
 	  
 	  @PostMapping(value = "/inspection/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	  public ResponseEntity<String> updateInspectionStatus(
 	      @RequestPart("data") String dataJson,
-	      @RequestPart(value = "testDocument", required = false) MultipartFile testDocument) {
-		  
-		  System.out.println("Method calleddd" + dataJson);
-
+	      @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 	      try {
 	          ObjectMapper mapper = new ObjectMapper();
               RFIInspectionRequestDTO dto = mapper.readValue(dataJson,  RFIInspectionRequestDTO.class);

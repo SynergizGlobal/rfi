@@ -38,157 +38,146 @@ import org.springframework.http.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-
 @Service
 @RequiredArgsConstructor
-public class InspectionServiceImpl implements InspectionService{
-	
-
+public class InspectionServiceImpl implements InspectionService {
 
 	private final RFIRepository rfiRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
-	
 
-	    @Value("${rfi.inspection.images.upload-dir}")
-	    private String uploadDir;
-	
+	@Value("${rfi.inspection.images.upload-dir}")
+	private String uploadDir;
+
 	@Override
 	public RfiInspectionDTO getById(Long id) {
-		  RFI rfi = rfiRepository.findById(id)
-		            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + id));
-		  
-		  RfiInspectionDTO dto = new RfiInspectionDTO();
-	        dto.setId(rfi.getId());
-	        dto.setRfiId(rfi.getRfi_Id());
-	        dto.setWork(rfi.getWork());
-	        dto.setContract(rfi.getContract());
-	        dto.setContractor(rfi.getAssignedPersonContractor());
-	        dto.setActivity(rfi.getActivity());
-	        dto.setDescription(rfi.getDescription());
-	        dto.setLocation(rfi.getLocation());
-	        dto.setDataOfInspection(rfi.getDateOfInspection());
-	        dto.setTimeOfInspection(rfi.getTimeOfInspection());
-	        dto.setNameOfContractorReprsentative(rfi.getNameOfRepresentative());
-	           
+		RFI rfi = rfiRepository.findById(id).orElseThrow(() -> new RuntimeException("RFI not found with ID: " + id));
 
-	        return dto;
+		RfiInspectionDTO dto = new RfiInspectionDTO();
+		dto.setId(rfi.getId());
+		dto.setRfiId(rfi.getRfi_Id());
+		dto.setWork(rfi.getWork());
+		dto.setContract(rfi.getContract());
+		dto.setContractor(rfi.getAssignedPersonContractor());
+		dto.setActivity(rfi.getActivity());
+		dto.setDescription(rfi.getDescription());
+		dto.setLocation(rfi.getLocation());
+		dto.setDataOfInspection(rfi.getDateOfInspection());
+		dto.setTimeOfInspection(rfi.getTimeOfInspection());
+		dto.setNameOfContractorReprsentative(rfi.getNameOfRepresentative());
+
+		return dto;
 
 	}
 
-	    @Override
-	    public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String UserRole) {
-	        RFI rfi = rfiRepository.findById(dto.getRfiId())
-	                .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+	@Override
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,
+			String UserRole) {
+		RFI rfi = rfiRepository.findById(dto.getRfiId())
+				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
-	        String selfiePath = saveFile(selfie);
-	        String siteImagePaths = Arrays.stream(siteImages)
-	                .map(this::saveFile)
-	                .collect(Collectors.joining(","));
+		String selfiePath = saveFile(selfie);
+		String siteImagePaths = Arrays.stream(siteImages).map(this::saveFile).collect(Collectors.joining(","));
 
-	        RFIInspectionDetails inspection = new RFIInspectionDetails();
-	        inspection.setRfi(rfi);
-	        inspection.setLocation(dto.getLocation());
-	        inspection.setChainage(dto.getChainage());
-	        inspection.setSelfiePath(selfiePath);
-	        inspection.setSiteImage(siteImagePaths);
-	        inspection.setDateOfInspection(LocalDate.now());
-	        inspection.setTimeOfInspection(LocalTime.now());
-	        inspection.setUploadedBy(UserRole);
+		RFIInspectionDetails inspection = new RFIInspectionDetails();
+		inspection.setRfi(rfi);
+		inspection.setLocation(dto.getLocation());
+		inspection.setChainage(dto.getChainage());
+		inspection.setSelfiePath(selfiePath);
+		inspection.setSiteImage(siteImagePaths);
+		inspection.setDateOfInspection(LocalDate.now());
+		inspection.setTimeOfInspection(LocalTime.now());
+		inspection.setUploadedBy(UserRole);
 
-	        inspectionRepository.save(inspection);
-	        return inspection.getId();
-	    }
+		inspectionRepository.save(inspection);
+		return inspection.getId();
+	}
 
-	    private String saveFile(MultipartFile file) {
-	        if (file.isEmpty()) {
-	            throw new IllegalArgumentException("Cannot save empty file");
-	        }
-	        try {
-	            Path dirPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-	            Files.createDirectories(dirPath);
+	private String saveFile(MultipartFile file) {
+		if (file.isEmpty()) {
+			throw new IllegalArgumentException("Cannot save empty file");
+		}
+		try {
+			Path dirPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+			Files.createDirectories(dirPath);
 
-	            String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
-	            String newFileName = UUID.randomUUID() + "_" + originalFilename;
-	            Path targetPath = dirPath.resolve(newFileName);
+			String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
+			String newFileName = UUID.randomUUID() + "_" + originalFilename;
+			Path targetPath = dirPath.resolve(newFileName);
 
-	            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-	            return uploadDir + "/" + newFileName;
-	        } catch (IOException ex) {
-	            throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
-	        }
-	    }
-	    
-	    @Override
-		public void updateInspectionStatus( RFIInspectionRequestDTO dto, MultipartFile testDocument) {
-	    	
-    RFI rfi = rfiRepository.findById(dto.getRfiId())
-			    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));	   
-			 
-		   RFIInspectionDetails inspection = inspectionRepository.findById(dto.getInspectionId())
-		        .orElseThrow(() -> new IllegalArgumentException("No inspection found for RFI ID: " + dto.getRfiId()));
-        
-	
-	    inspection.setInspectionStatus(dto.getInspectionStatus());
-	    inspection.setTestInsiteLab(dto.getTestInsiteLab());
-        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
-	    //String filename = saveFile(testDocument);
-       // inspection.setTestSiteDocuments(filename);
-        
-			inspectionRepository.save(inspection);
+			return uploadDir + "/" + newFileName;
+		} catch (IOException ex) {
+			throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
+		}
+	}
+
+	@Override
+	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument) {
+
+		RFI rfi = rfiRepository.findById(dto.getRfiId())
+				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
+
+		RFIInspectionDetails inspection = inspectionRepository.findById(dto.getInspectionId())
+				.orElseThrow(() -> new IllegalArgumentException("No inspection found for RFI ID: " + dto.getRfiId()));
+
+		inspection.setInspectionStatus(dto.getInspectionStatus());
+		inspection.setTestInsiteLab(dto.getTestInsiteLab());
+		rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+		 String filename = saveFile(testDocument);
+		 inspection.setTestSiteDocuments(filename);
+		rfiRepository.save(rfi);
+		inspectionRepository.save(inspection);
+	}
+
+	@Override
+	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)
+			throws IOException, DocumentException {
+		List<String> imagePathRows = inspectionRepository.findSiteImagesByIdAndUploader(id, uploadedBy);
+
+		if (imagePathRows == null || imagePathRows.isEmpty()) {
+			return ResponseEntity.notFound().build();
 		}
 
-	    @Override
-	    public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException {
-	        List<String> imagePathRows = inspectionRepository.findSiteImagesByIdAndUploader(id, uploadedBy);
+		List<String> allPaths = imagePathRows.stream().filter(Objects::nonNull)
+				.flatMap(row -> Arrays.stream(row.split(","))).map(String::trim).filter(path -> !path.isEmpty())
+				.collect(Collectors.toList());
 
-	        if (imagePathRows == null || imagePathRows.isEmpty()) {
-	            return ResponseEntity.notFound().build();
-	        }
+		if (allPaths.isEmpty()) {
+			return ResponseEntity.notFound().build();
+		}
 
-	        List<String> allPaths = imagePathRows.stream()
-	                .filter(Objects::nonNull)
-	                .flatMap(row -> Arrays.stream(row.split(",")))
-	                .map(String::trim)
-	                .filter(path -> !path.isEmpty())
-	                .collect(Collectors.toList());
+		String title = "Images Uploaded by the "
+				+ (uploadedBy.equalsIgnoreCase("Contractor") ? "Contractor" : "Client");
 
-	        if (allPaths.isEmpty()) {
-	            return ResponseEntity.notFound().build();
-	        }
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Document document = new Document();
+		PdfWriter.getInstance(document, baos);
+		document.open();
 
-	        String title = "Images Uploaded by the " + (uploadedBy.equalsIgnoreCase("Contractor") ? "Contractor" : "Client");
+		Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
+		Paragraph heading = new Paragraph(title, titleFont);
+		heading.setAlignment(Element.ALIGN_CENTER);
+		document.add(heading);
+		document.add(Chunk.NEWLINE);
 
-	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	        Document document = new Document();
-	        PdfWriter.getInstance(document, baos);
-	        document.open();
+		for (String path : allPaths) {
+			try {
+				Image img = Image.getInstance(path);
+				img.scaleToFit(500, 500);
+				img.setAlignment(Element.ALIGN_CENTER);
+				document.add(img);
+				document.add(Chunk.NEWLINE);
+			} catch (Exception e) {
+				document.add(new Paragraph("Could not load image: " + path));
+			}
+		}
 
-	        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
-	        Paragraph heading = new Paragraph(title, titleFont);
-	        heading.setAlignment(Element.ALIGN_CENTER);
-	        document.add(heading);
-	        document.add(Chunk.NEWLINE);
+		document.close();
 
-	        for (String path : allPaths) {
-	            try {
-	                Image img = Image.getInstance(path);
-	                img.scaleToFit(500, 500);
-	                img.setAlignment(Element.ALIGN_CENTER);
-	                document.add(img);
-	                document.add(Chunk.NEWLINE);
-	            } catch (Exception e) {
-	                document.add(new Paragraph("Could not load image: " + path));
-	            }
-	        }
+		String filename = title.replace(" ", "_") + ".pdf";
 
-	        document.close();
-
-	        String filename = title.replace(" ", "_") + ".pdf";
-
-	        return ResponseEntity.ok()
-	                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-	                .contentType(MediaType.APPLICATION_PDF)
-	                .body(baos.toByteArray());
-	    }
+		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+				.contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
+	}
 }
