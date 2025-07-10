@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 
 public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspectionDetails, Long> {
@@ -15,5 +16,7 @@ public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspect
 	
 	@Query(value="SELECT site_image FROM rfi_inspection_details WHERE rfi_id_fk = :id AND uploaded_by= :uploadedBy",nativeQuery=true)
 	public List<String> findSiteImagesByIdAndUploader(@Param("id") Long id, @Param("uploadedBy") String uploadedBy);
+
+	Optional<RFIInspectionDetails> findByRfiAndUploadedBy(RFI rfi, String uploadedBy);
 
 }

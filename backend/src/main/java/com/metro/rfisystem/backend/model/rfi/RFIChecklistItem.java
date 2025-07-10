@@ -53,8 +53,12 @@ public class RFIChecklistItem {
      private String alignmentRemarkContractor;
      @Column(length = 1000)
      private String alignmentRemarkAE;
-
      
+     @Column(name="enclosure_name")
+     private String enclosureName;
+     @Column(name="uploaded_by")
+     private String uploadedby;
+
      private String contractorSignature;
      private String gcMrvcRepresentativeSignature;
  

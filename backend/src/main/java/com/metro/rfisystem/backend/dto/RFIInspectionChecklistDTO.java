@@ -24,4 +24,7 @@ public class RFIInspectionChecklistDTO {
 
     private MultipartFile contractorSignature;
     private MultipartFile clientSignature;
+    
+    private String enclosureName;
+    private String uploadedBy;
 }

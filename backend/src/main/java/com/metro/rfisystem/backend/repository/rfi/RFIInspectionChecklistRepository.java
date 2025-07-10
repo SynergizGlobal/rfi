@@ -10,4 +10,6 @@ import com.metro.rfisystem.backend.model.rfi.RFIChecklistItem;
 public interface RFIInspectionChecklistRepository extends JpaRepository<RFIChecklistItem, Long> {
 
 	Optional<RFIChecklistItem> findByRfi(RFI rfi);
+
+	Optional<RFIChecklistItem> findByRfiAndEnclosureName(RFI inspection, String enclosureName);
 }

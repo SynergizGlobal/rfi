@@ -26,7 +26,8 @@ export default function InspectionForm() {
 	const [contractorRep, setContractorRep] = useState('');
 	const [confirmPopup, setConfirmPopup] = useState(false);
 	const [selfieImage, setSelfieImage] = useState(null);
-	const [galleryImages, setGalleryImages] = useState({});
+	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
+	
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
 	const [uploadPopup, setUploadPopup] = useState(null);
@@ -104,8 +105,10 @@ export default function InspectionForm() {
 	}
 	
 	const handleChecklistSubmit = async (id, data, contractorSign, gcSign, grade) => {
+		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || ''; 
 		const dto = {
 			rfiId: rfiData.id,
+			enclosureName: enclosure, 
 			gradeOfConcrete: grade,
 			drawingApproved: data[0].status,
 			drawingRemarkContractor: data[0].contractorRemark,
@@ -124,6 +127,7 @@ export default function InspectionForm() {
 			const res = await fetch(`${API_BASE_URL}rfi/save`, {
 				method: "POST",
 				body: formData,
+				credentials: "include",
 			});
 			const text = await res.text();
 			if (!res.ok) {
@@ -152,8 +156,9 @@ export default function InspectionForm() {
 
 	const handleSubmitConfirmed = async () => {
 		const formData = new FormData();
+		const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
 		const payload = {
-			inspectionId,           
+			inspectionId: id,          
 			rfiId: rfiData.id,
 			inspectionStatus,
 			testInsiteLab: testInLab,
@@ -194,15 +199,18 @@ export default function InspectionForm() {
 
 
 	const handleUploadSubmit = async (id, file) => {
+				const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || ''; 
 		const formData = new FormData();
 
 		formData.append('rfiId', rfiData.id);
 		formData.append('file', file);
+		formData.append('enclosureName', enclosure); 
 
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/upload`, {
 				method: 'POST',
 				body: formData,
+				credentials: "include",
 			});
 			const text = await res.text();
 			if (!res.ok) {
@@ -242,9 +250,12 @@ export default function InspectionForm() {
 		}
 
 
-		Object.entries(galleryImages).forEach(([key, file]) => {
-			if (file instanceof File) {
-				formData.append('siteImages', file);
+          galleryImages.forEach((img, index) => {
+			if (img instanceof File) {
+				formData.append('siteImages', img);
+			} else if (typeof img === 'string' && img.startsWith('data:image/')) {
+				const converted = dataURLtoFile(img, `siteImage${index + 1}.jpg`);
+				formData.append('siteImages', converted);
 			}
 		});
 
@@ -254,12 +265,13 @@ export default function InspectionForm() {
 				body: formData,
 				credentials: "include",
 			});
-			//const inspectionId = await res.text();
-						const text = await res.text();
-						    const id = parseInt(text);               // ✅ Convert to number
-					//	    setInspectionId(id);                     // ✅ Save inspectionId to state
+			 	const idText = await res.text();
+						const id = parseInt(idText);       
+				    	    setInspectionId(id);  
+							localStorage.setItem("latestInspectionId", id);                    
+					
 						    alert("Inspection saved successfully. ID: " + id);
-						//alert("Saved: " + text);
+					
 		} catch (err) {
 			console.error("Inspection save failed:", err);
 		}
@@ -321,10 +333,10 @@ export default function InspectionForm() {
 										<input value={contractorRep} onChange={e => setContractorRep(e.target.value)} />
 									</div>
 									<div className="upload-grid">
-										{[1, 2, 3, 4].map(i => (
+										{[0,1, 2, 3].map(i => (
 											<div key={i} className="capture-option">
 												<button onClick={() => { setCameraMode('environment'); setShowCamera(`gallery-${i}`); }}>
-													📷 Capture Image {i}
+													📷 Capture Image {i + 1}
 												</button>
 												<input
 													type="file"
@@ -332,13 +344,17 @@ export default function InspectionForm() {
 													onChange={e => {
 														const file = e.target.files[0];
 														if (file) {
-															setGalleryImages(prev => ({ ...prev, [`gallery-${i}`]: file }));
+															const updated = [...galleryImages];
+															         updated[i] = file;
+															         setGalleryImages(updated);	
 														}
 
 													}}
 												/>
-												{galleryImages[`gallery-${i}`] && (
-													<img src={galleryImages[`gallery-${i}`]} alt={`Site ${i}`} className="gallery-preview" />
+												{galleryImages[i] && (
+													<img src={galleryImages[i] instanceof File ? URL.createObjectURL(galleryImages[i]) : galleryImages[i] } 
+													alt={`Site ${i+1}`} 
+													className="gallery-preview" />
 												)}
 											</div>
 										))}
@@ -438,7 +454,14 @@ export default function InspectionForm() {
 									facingMode={cameraMode}
 									onCapture={(img) => {
 										if (showCamera === 'selfie') setSelfieImage(img);
-										else setGalleryImages(prev => ({ ...prev, [showCamera]: img }));
+										else {
+											const index = parseInt(showCamera.split('-')[1]);
+											if (!isNaN(index)) {
+												const updated = [...galleryImages];
+												updated[index] = img;
+												setGalleryImages(updated);
+											}
+										}
 										setShowCamera(false);
 									}}
 									onCancel={() => setShowCamera(false)}
@@ -571,7 +594,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<option value="SITE_TEST">Site Test</option>
 			</select>
 	
-			{userRole?.toLowerCase() === 'Regular User' && (
+			{userRole?.toLowerCase() === 'regular user' && (
 				<div>
 					<label>Inspection Status</label>
 					<select

@@ -39,7 +39,7 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
     private String uploadDir;
     
     @Override
-    public String uploadEnclosureFile( Long rfiId, MultipartFile file) {
+    public String uploadEnclosureFile( Long rfiId, String enclosureName, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("No file provided.");
         }
@@ -60,18 +60,26 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
             Path filePath = uploadPath.resolve(fileName);
             file.transferTo(filePath.toFile());
 
-            // Save to database
-            
-         //   RFIInspectionDetails inspection = inspectionRepository.findById(rfiId)
-                 //   .orElseThrow(() -> new IllegalArgumentException("Invalid Inspection ID"));
+            RFI rfi = rfiRepository.findById(rfiId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
 
-            RFI inspection =rfiRepository.findById(rfiId).orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
-            RFIEnclosure enclosure = new RFIEnclosure();
-            enclosure.setEnclosureUploadFile(filePath.toString());
-          //  enclosure.setRfiInspection(inspection);
-            enclosure.setRfi(inspection);
-            //enclosure.setFilePath(filePath.toString());
-           
+            
+            Optional<RFIEnclosure> existing = enclosureRepository
+                    .findByRfiIdAndEnclosureName(rfiId, enclosureName);
+
+            RFIEnclosure enclosure;
+            if (existing.isPresent()) {
+               
+                enclosure = existing.get();
+                enclosure.setEnclosureUploadFile(filePath.toString());
+            } else {
+               
+                enclosure = new RFIEnclosure();
+                enclosure.setRfi(rfi);
+                enclosure.setEnclosureName(enclosureName);
+                enclosure.setEnclosureUploadFile(filePath.toString());
+            }
+            
             enclosureRepository.save(enclosure);
 
             return fileName;

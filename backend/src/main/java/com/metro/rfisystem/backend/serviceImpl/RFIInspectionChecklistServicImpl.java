@@ -38,39 +38,33 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 
 	@Override
 	public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, MultipartFile contractorSig,
-			MultipartFile clientSig) throws IOException {
+			MultipartFile clientSig, String UserRole) throws IOException {
 		
 	
 		  //  Fetch the RFIInspectionDetails using the ID
 		    RFI inspection = rfiRepository.findById(dto.getRfiId())
 		        .orElseThrow(() -> new RuntimeException("Invalid inspection ID: " + dto.getRfiId()));
 
-		    Optional<RFIChecklistItem> existingOptional = checklistRepository.findByRfi(inspection);
+		    Optional<RFIChecklistItem> existingOptional = checklistRepository.findByRfiAndEnclosureName(inspection, dto.getEnclosureName());
 
 	        RFIChecklistItem checklist = existingOptional.orElseGet(RFIChecklistItem::new);
 	        checklist.setRfi(inspection);
-	        if (dto.getGradeOfConcrete() != null) checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
-
-	        if (dto.getDrawingApproved() != null) checklist.setDrawingApproved(dto.getDrawingApproved());
-	        if (dto.getDrawingRemarkContractor() != null) checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
-	        if (dto.getDrawingRemarkAE() != null) checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
-
-	        if (dto.getAlignmentOk() != null) checklist.setAlignmentOk(dto.getAlignmentOk());
-	        if (dto.getAlignmentRemarkContractor() != null) checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
-	        if (dto.getAlignmentRemarkAE() != null) checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
-	        
-	        // Save contractor signature
-	        if (contractorSig != null && !contractorSig.isEmpty()) {
-	            String contractorPath = saveFile(contractorSig);
-	            checklist.setContractorSignature(contractorPath);
+	        checklist.setEnclosureName(dto.getEnclosureName());
+	        checklist.setUploadedby(UserRole);
+	        checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
+	        if ("Contractor".equalsIgnoreCase(UserRole)) {
+	            checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
+	            checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
+	            checklist.setContractorSignature(contractorSig != null ? saveFile(contractorSig) : checklist.getContractorSignature());
+	        } else if ("Regular User".equalsIgnoreCase(UserRole)) {
+	            checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
+	            checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
+	            checklist.setGcMrvcRepresentativeSignature(clientSig != null ? saveFile(clientSig) : checklist.getGcMrvcRepresentativeSignature());
 	        }
 
-	        // Save client signature
-	        if (clientSig != null && !clientSig.isEmpty()) {
-	            String clientPath = saveFile(clientSig);
-	            checklist.setGcMrvcRepresentativeSignature(clientPath);
-	        }
-
+	        checklist.setDrawingApproved(dto.getDrawingApproved());
+	        checklist.setAlignmentOk(dto.getAlignmentOk());
+	       
 	        checklistRepository.save(checklist);
 	    }
 

@@ -9,10 +9,14 @@ import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.TestType;
 
 public interface RFIEnclosureService {
-    String uploadEnclosureFile( Long rfiId, MultipartFile file);
+	String uploadEnclosureFile(Long rfiId, String enclosureName, MultipartFile file);
     
     public RFIInspectionAutofillDTO getAutofillData(Long rfiId);
 
     public void processConfirmation(InspectionStatus status, TestType testType,
 			List<MultipartFile> files);
+
+	
+
+	
 }

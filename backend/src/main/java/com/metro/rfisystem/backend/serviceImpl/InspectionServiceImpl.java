@@ -37,6 +37,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -78,7 +79,11 @@ public class InspectionServiceImpl implements InspectionService {
 		String selfiePath = saveFile(selfie);
 		String siteImagePaths = Arrays.stream(siteImages).map(this::saveFile).collect(Collectors.joining(","));
 
-		RFIInspectionDetails inspection = new RFIInspectionDetails();
+		Optional<RFIInspectionDetails> existingInspectionOpt = inspectionRepository
+				.findByRfiAndUploadedBy(rfi, UserRole);
+
+		RFIInspectionDetails inspection =  existingInspectionOpt.orElse(new RFIInspectionDetails());
+
 		inspection.setRfi(rfi);
 		inspection.setLocation(dto.getLocation());
 		inspection.setChainage(dto.getChainage());
@@ -124,8 +129,10 @@ public class InspectionServiceImpl implements InspectionService {
 		inspection.setInspectionStatus(dto.getInspectionStatus());
 		inspection.setTestInsiteLab(dto.getTestInsiteLab());
 		rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
-		 String filename = saveFile(testDocument);
-		 inspection.setTestSiteDocuments(filename);
+		if (testDocument != null && !testDocument.isEmpty()) {
+			String filename = saveFile(testDocument);
+			inspection.setTestSiteDocuments(filename);
+		}
 		rfiRepository.save(rfi);
 		inspectionRepository.save(inspection);
 	}
