@@ -4,14 +4,17 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import { useNavigate } from 'react-router-dom';
 import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
+import DropdownPortal from '../DropdownPortal/DropdownPortal';
 import axios from 'axios';
 
 
-const DropdownMenu = ({ children }) => {
+const DropdownMenu = ({ style, children }) => {
 	return (
-		<div className="drop-down-menu" onClick={(e) => e.stopPropagation()}>
-			{children}
-		</div>
+		<DropdownPortal>
+			<div className="drop-down-menu" style={style} onClick={(e) => e.stopPropagation()}>
+				{children}
+			</div>
+		</DropdownPortal>
 	);
 };
 
@@ -23,6 +26,7 @@ const Inspection = () => {
 	const [assignedPersons, setAssignedPersons] = useState({});
 	const [pageSize, setPageSize] = useState(5);
 	const [openDropdownRow, setOpenDropdownRow] = useState(null);
+	  const [dropdownInfo, setDropdownInfo] = useState({ rowId: null, targetRef: null });
 	const buttonRefs = useRef({});
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
@@ -62,24 +66,17 @@ const Inspection = () => {
 
 	useEffect(() => {
 		const handleClickOutside = (e) => {
-			const dropdowns = document.querySelectorAll('.drop-down-menu');
-			const refs = Object.values(buttonRefs.current);
-
-			const clickedInsideDropdown = Array.from(dropdowns).some((menu) =>
-				menu.contains(e.target)
-			);
-			const clickedInsideButton = refs.some((ref) =>
-				ref?.current?.contains(e.target)
-			);
-
-			if (!clickedInsideDropdown && !clickedInsideButton) {
-				setOpenDropdownRow(null);
-			}
+		  const portalEl = document.querySelector('.inspection-dropdown');
+		  const isInsidePortal = portalEl && portalEl.contains(e.target);
+		  const isInsideButton = Object.values(buttonRefs.current).some((ref) => ref?.contains(e.target));
+		  if (!isInsidePortal && !isInsideButton) {
+			setDropdownInfo({ rowId: null, targetRef: null });
+			setOpenDropdownRow(null);
+		  }
 		};
-
-		document.addEventListener('click', handleClickOutside);
-		return () => document.removeEventListener('click', handleClickOutside);
-	}, []);
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	  }, []);
 
 	const handleInspectionComplete = (rfi) => {
 		navigate(`/InspectionForm`, { state: { rfi } });
@@ -158,94 +155,100 @@ const Inspection = () => {
 			}
 		},
 		{
-			Header: 'Action',
-			Cell: ({ row }) => {
-				return (
-					<div className="action-dropdown">
-						<button
-							className="action-button"
-							onClick={(e) => {
-								e.stopPropagation();
-								setOpenDropdownRow(openDropdownRow === row.id ? null : row.id);
-							}}
-						>
-							⋮
-						</button>
-						{openDropdownRow === row.id && (
-							<DropdownMenu>
-								<button
-									onClick={(e) => {
-										e.stopPropagation();
-										handleInspectionComplete(row.original.id);
-										setOpenDropdownRow(null);
-									}}
-								>
-									Start Inspection Online
-								</button>
-								<button>Start Inspection Offline</button>
+      Header: 'Action',
+      Cell: ({ row }) => {
+        const btnRef = useRef(null);
 
-								{userRole !== 'regular user' && (
-									<button
-										onClick={(e) => {
-											e.stopPropagation();
-											navigate('/InspectionForm', {
-												state: { rfi: row.original.id, skipSelfie: true },
-											});
-											setOpenDropdownRow(null);
-										}}
-									>
-										Upload Test Results
-									</button>
-								)}
+        useEffect(() => {
+          buttonRefs.current[row.id] = btnRef.current;
+        }, [row.id]);
 
-								<button
-									onClick={(e) => {
-										e.stopPropagation();
-										navigate('/InspectionForm', {
-											state: { rfi: row.original.id, skipSelfie: true },
-										});
-										setOpenDropdownRow(null);
-									}}
-								>
-									View
-								</button>
+        const isDropdownOpen = openDropdownRow === row.id;
 
-								{userRole !=='contractor'  && (
-									<button
-										onClick={(e) => {
-											e.stopPropagation();
-											setConfirmPopupData({
-												message: "Do you want to Submit the Inspection report for Validation?",
-												onConfirm: async () => {
-													try {
-														const rfiLongId = row.original.id;
-														const response = await axios.put(`${API_BASE_URL}rfi/${rfiLongId}/send-for-validation`);
-														alert(response.data); // or use toast if available
-													} catch (error) {
-														console.error("Validation submission failed:", error);
-														alert("Failed to submit RFI for validation.");
-													} finally {
-														setOpenDropdownRow(null);
-														setConfirmPopupData(null);
-													}
-												},
-											});
-										}}
-									>
-										Send for Validation
-									</button>
-								)}
+        return (
+          <div className="action-dropdown">
+            <button
+              ref={btnRef}
+              className="action-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = btnRef.current;
+                if (isDropdownOpen) {
+                  setOpenDropdownRow(null);
+                  setDropdownInfo({ rowId: null, targetRef: null });
+                } else {
+                  setOpenDropdownRow(row.id);
+                  setDropdownInfo({ rowId: row.id, targetRef: target });
+                }
+              }}
+            >
+              ⋮
+            </button>
 
-
-								{userRole !== 'regular user' && (
-									<button>Submit</button>
-								)}
-							</DropdownMenu>
-						)}
-					</div>
-				);
-			},
-		},
+            {isDropdownOpen && dropdownInfo.targetRef && (
+              <DropdownPortal
+                targetRef={dropdownInfo.targetRef}
+                onClose={() => {
+                  setOpenDropdownRow(null);
+                  setDropdownInfo({ rowId: null, targetRef: null });
+                }}
+              >
+                <button onClick={() => handleInspectionComplete(row.original.id)}>Start Inspection Online</button>
+                <button>Start Inspection Offline</button>
+                {userRole !== 'regular user' && (
+                  <button
+                    onClick={() => {
+                      navigate('/InspectionForm', {
+                        state: { rfi: row.original.id, skipSelfie: true },
+                      });
+                      setOpenDropdownRow(null);
+                      setDropdownInfo({ rowId: null, targetRef: null });
+                    }}
+                  >
+                    Upload Test Results
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    navigate('/InspectionForm', {
+                      state: { rfi: row.original.id, skipSelfie: true },
+                    });
+                    setOpenDropdownRow(null);
+                    setDropdownInfo({ rowId: null, targetRef: null });
+                  }}
+                >
+                  View
+                </button>
+                {userRole !== 'contractor' && (
+                  <button
+                    onClick={() => {
+                      setConfirmPopupData({
+                        message: "Do you want to Submit the Inspection report for Validation?",
+                        onConfirm: async () => {
+                          try {
+                            const response = await axios.put(`${API_BASE_URL}rfi/${row.original.id}/send-for-validation`);
+                            alert(response.data);
+                          } catch {
+                            alert("Failed to submit RFI for validation.");
+                          } finally {
+                            setOpenDropdownRow(null);
+                            setDropdownInfo({ rowId: null, targetRef: null });
+                            setConfirmPopupData(null);
+                          }
+                        },
+                      });
+                    }}
+                  >
+                    Send for Validation
+                  </button>
+                )}
+                {userRole !== 'regular user' && <button>Submit</button>}
+              </DropdownPortal>
+            )}
+          </div>
+        );
+      }
+    }
 	], [openDropdownRow, data]);
 
 	const {
@@ -267,7 +270,7 @@ const Inspection = () => {
 			columns,
 			data,
 			initialState: { pageSize },
-			getRowId: (row) => row.rfi_Id,
+			getRowId: row => row.rfi_Id,
 		},
 		useGlobalFilter,
 		usePagination
