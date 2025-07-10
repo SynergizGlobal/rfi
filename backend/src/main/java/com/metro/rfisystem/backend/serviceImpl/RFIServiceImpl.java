@@ -230,6 +230,12 @@ public class RFIServiceImpl implements RFIService {
 	public List<RfiListDTO> getRFIsByCreatedBy(String createdBy) {
 		return rfiRepository.findByCreatedBy(createdBy);
 	}
+	
+	@Override
+	public List<RfiListDTO> getRFIsCreatedBy(String createdBy)
+	{
+		return rfiRepository.getRFIsCreatedBy(createdBy);
+	}
  
 	@Override
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {
@@ -240,6 +246,11 @@ public class RFIServiceImpl implements RFIService {
 	public int countByAssignedTo(String assignedTo) {
 		return rfiRepository.countByAssignedPersonClient(assignedTo);
 
+	}
+
+	@Override
+	public int countByCreatedBy(String createdBy) {
+		return rfiRepository.countByCreatedBy(createdBy);
 	}
 
 }

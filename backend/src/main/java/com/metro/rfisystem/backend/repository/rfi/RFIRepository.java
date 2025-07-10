@@ -65,6 +65,27 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
     	List<RfiListDTO> findByCreatedBy(@Param("createdBy") String createdBy);
+    
+    
+    @Query(value = """
+    	    SELECT
+    		    r.id as id,
+    	        r.rfi_id AS rfi_Id,
+    	        r.project_name AS project,
+    	        r.structure AS structure,
+    	        r.element AS element,
+    	        r.activity AS activity,
+    	        r.created_by as createdBy,
+    	        r.assigned_person_client AS assignedPersonClient,
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        i.inspection_status AS inspectionStatus
+    	    FROM rfi_data r
+    	    LEFT JOIN rfi_inspection_details as i
+    	    on r.id=i.rfi_id_fk
+    	    WHERE r.created_by = :createdBy
+    	    ORDER BY r.created_at DESC
+    	""", nativeQuery = true)
+    List<RfiListDTO> getRFIsCreatedBy(String createdBy);
  
     @Query(value = """
     	    SELECT
@@ -87,6 +108,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
 	 
 	int countByAssignedPersonClient(String assignedTo) ;
+	
+	int countByCreatedBy(String createdBy);
 	
 	@Query(value = "SELECT id, status FROM rfi_data WHERE id = :id", nativeQuery = true)
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);

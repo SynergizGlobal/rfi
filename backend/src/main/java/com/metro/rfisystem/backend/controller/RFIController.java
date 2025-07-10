@@ -125,8 +125,12 @@ public class RFIController {
 		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
  
-		if (isAdmin || isDyHOD) {
+		if (isAdmin || isDyHOD ) {
 			return ResponseEntity.ok(rfiService.getAllRFIs());
+		}
+		if(userRole.equalsIgnoreCase("Contractor"))
+		{
+			return ResponseEntity.ok(rfiService.getRFIsCreatedBy(userName));
 		}
 		if (userRole.equalsIgnoreCase("Regular User")) {
 			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
@@ -149,6 +153,10 @@ public class RFIController {
 		if (isAdmin || isDyHOD) {
 			int count = rfiService.getAllRFIs().size();
 			return ResponseEntity.ok(count);
+		}
+		if(userRole.equalsIgnoreCase("Contractor"))
+		{
+			return ResponseEntity.ok(rfiService.countByCreatedBy(userName));
 		}
 		if (userRole.equalsIgnoreCase("Regular User")) {
 			return ResponseEntity.ok(rfiService.countByAssignedTo(userName));
