@@ -23,22 +23,31 @@ public class RfiReportDTO {
 	private String contractorRepresentative;
 	private String clientRepresentative;
 	private String descriptionByContractor;
-	private String drawingStatus;
-	private String alignmentStatus;
-	private String drawingRemarksContracotr;
-	private String drawingRemarksClient;
-	private String alignmentoCntractorRemarks;
-	private String alignmentClientRemarks;
+	// checklist for the Enclosure Level Sheet
+	private String drawingStatusLS;
+	private String alignmentStatusLS;
+	private String drawingRemarksContracotrLS;
+	private String drawingRemarksClientLS;
+	private String alignmentoCntractorRemarksLS;
+	private String alignmentClientRemarksLS;
+	
+	// checklist for the Enclosure Pour Card
+
+	private String drawingStatusPC;
+	private String alignmentStatusPC;
+	private String drawingRemarksContracotrPC;
+	private String drawingRemarksClientPC;
+	private String alignmentoCntractorRemarksPC;
+	private String alignmentClientRemarksPC;
+	
 	private String status;
 	private String remarks;
 	private String contractorEnclosureFilePaths;
-	private String clientEnclosureFilePaths;
 	private String selfieClient;
 	private String selfieContractor;
 	private String imagesUploadedByClient;
 	private String imagesUploadedByContractor;
 	private String testInsiteLabContractor;
 	private String testSiteDocumentsContractor;
-	private String contractorSignature;
-	private String gcMrvcSignature;
+
 }

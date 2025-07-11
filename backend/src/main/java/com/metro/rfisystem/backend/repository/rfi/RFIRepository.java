@@ -106,6 +106,9 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
     	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
+    
+    @Query(value="SELECT COUNT(id) FROM rfi_data",nativeQuery=true)
+    int countOfAllRfiCreatedSoFar();
 	 
 	int countByAssignedPersonClient(String assignedTo) ;
 	
@@ -140,14 +143,23 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "  r.name_of_representative AS contractorRepresentative,\r\n"
 			+ "  r.assigned_person_client AS clientRepresentative,\r\n"
 			+ "  r.description AS descriptionByContractor,\r\n"
+			+ "  \r\n"
+			+ "  \r\n"
+			+ "    -- Checklist for Level Sheeet\r\n"
+			+ "  cl.drawing_approved AS drawingStatusLS,\r\n"
+			+ "  cl.alignment_ok AS alignmentStatusLS,\r\n"
+			+ "  cl.drawing_remark_contractor AS drawingRemarksContracotrLS,\r\n"
+			+ "  cl.drawing_remarkae AS drawingRemarksClientLS,\r\n"
+			+ "  cl.alignment_remark_contractor AS alignmentoCntractorRemarksLS,\r\n"
+			+ "  cl.alignment_remarkae AS alignmentClientRemarksLS,\r\n"
 			+ "\r\n"
-			+ "  -- Checklist\r\n"
-			+ "  c.drawing_approved AS drawingStatus,\r\n"
-			+ "  c.alignment_ok AS alignmentStatus,\r\n"
-			+ "  c.drawing_remark_contractor AS drawingRemarksContracotr,\r\n"
-			+ "  c.drawing_remarkae AS drawingRemarksClient,\r\n"
-			+ "  c.alignment_remark_contractor AS alignmentoCntractorRemarks,\r\n"
-			+ "  c.alignment_remarkae AS alignmentClientRemarks,\r\n"
+			+ "    -- Checklist for Level Sheeet\r\n"
+			+ "  cp.drawing_approved AS drawingStatusPC,\r\n"
+			+ "  cp.alignment_ok AS alignmentStatusPC,\r\n"
+			+ "  cp.drawing_remark_contractor AS drawingRemarksContracotrPC,\r\n"
+			+ "  cp.drawing_remarkae AS drawingRemarksClientPC,\r\n"
+			+ "  cp.alignment_remark_contractor AS alignmentoCntractorRemarksPC,\r\n"
+			+ "  cp.alignment_remarkae AS alignmentClientRemarksPC,\r\n"
 			+ "\r\n"
 			+ "  -- Validation\r\n"
 			+ "  v.action AS status,\r\n"
@@ -155,22 +167,14 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "\r\n"
 			+ "  -- Enclosure paths by role\r\n"
 			+ "  enc_contractor.enclosureFilePaths AS contractorEnclosureFilePaths,\r\n"
-			+ "  enc_client.enclosureFilePaths AS clientEnclosureFilePaths,\r\n"
 			+ "\r\n"
 			+ "  -- Inspection details by role\r\n"
 			+ "  ic.selfie_path AS selfieClient,\r\n"
 			+ "  ico.selfie_path AS selfieContractor,\r\n"
-			+ "\r\n"
 			+ "  ic.site_image AS imagesUploadedByClient,\r\n"
 			+ "  ico.site_image AS imagesUploadedByContractor,\r\n"
-			+ "\r\n"
 			+ "  ico.test_insite_lab AS testInsiteLabContractor,\r\n"
-			+ "\r\n"
-			+ "  ico.test_site_documents AS testSiteDocumentsContractor,\r\n"
-			+ "\r\n"
-			+ "  -- Signatures\r\n"
-			+ "  c.contractor_signature AS contractorSignature,\r\n"
-			+ "  c.gc_mrvc_representative_signature AS gcMrvcSignature\r\n"
+			+ "  ico.test_site_documents AS testSiteDocumentsContractor\r\n"
 			+ "\r\n"
 			+ "FROM rfi_data r\r\n"
 			+ "\r\n"
@@ -181,8 +185,9 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "  ON r.id = ico.rfi_id_fk AND ico.uploaded_by = 'Contractor'\r\n"
 			+ "\r\n"
 			+ "-- Checklist and validation joins\r\n"
-			+ "JOIN rfi_validation v ON v.rfi_id_fk = r.id\r\n"
-			+ "JOIN rfi_checklist_item c ON c.rfi_id_fk = r.id\r\n"
+			+ "Left JOIN rfi_validation v ON v.rfi_id_fk = r.id\r\n"
+			+ "left JOIN rfi_checklist_item cl ON cl.rfi_id_fk = r.id and cl.enclosure_name = 'Level Sheet'\r\n"
+			+ "LEFT JOIN rfi_checklist_item cp ON cp.rfi_id_fk = r.id and cp.enclosure_name = 'Pour Card'\r\n"
 			+ "\r\n"
 			+ "-- Enclosures split by uploaded_by\r\n"
 			+ "LEFT JOIN (\r\n"
@@ -191,10 +196,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "      GROUP_CONCAT(enclosure_upload_file SEPARATOR ', ') AS enclosureFilePaths\r\n"
 			+ "    FROM rfi_enclosure\r\n"
 			+ "    WHERE uploaded_by = 'Contractor'\r\n"
-			+ "    GROUP BY rfi_id_fk\r\n"
+			+ "    GROUP BY rfi_id_fk			\r\n"
 			+ ") enc_contractor ON enc_contractor.rfi_id_fk = r.id\r\n"
 			+ "\r\n"
-			+ "LEFT JOIN (\r\n"
+			+ "LEFT JOIN (  \r\n"
 			+ "    SELECT \r\n"
 			+ "      rfi_id_fk,\r\n"
 			+ "      GROUP_CONCAT(enclosure_upload_file SEPARATOR ', ') AS enclosureFilePaths\r\n"
@@ -224,7 +229,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "",nativeQuery=true)
 	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
 	
-	@Query(value="SELECT \r\n"
+	@Query(value="SELECT\r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
 			+ "    DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,\r\n"
@@ -239,14 +244,12 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "FROM \r\n"
 			+ "    rfi_data AS r\r\n"
 			+ "LEFT JOIN \r\n"
-			+ "    rfi_inspection_details AS i \r\n"
-			+ "    ON r.id = i.rfi_id_fk\r\n"
+			+ "    rfi_inspection_details AS i ON r.id = i.rfi_id_fk\r\n"
 			+ "LEFT JOIN \r\n"
-			+ "    rfi_validation AS rv \r\n"
-			+ "    ON rv.rfi_id_fk = r.id\r\n"
+			+ "    rfi_validation AS rv ON rv.rfi_id_fk = r.id\r\n"
+			+ "    group by r.id\r\n"
 			+ "ORDER BY \r\n"
-			+ "    r.created_at DESC;\r\n"
-			+ "",nativeQuery=true)
+			+ "    r.created_at DESC;",nativeQuery=true)
 	List<RfiLogDTO> listAllRfiLog();
 
 

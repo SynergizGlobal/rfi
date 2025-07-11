@@ -27,7 +27,7 @@ export default function InspectionForm() {
 	const [confirmPopup, setConfirmPopup] = useState(false);
 	const [selfieImage, setSelfieImage] = useState(null);
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
-	
+
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
 	const [uploadPopup, setUploadPopup] = useState(null);
@@ -40,7 +40,7 @@ export default function InspectionForm() {
 	const [inspectionId, setInspectionId] = useState(null);
 	const [testReportFile, setTestReportFile] = useState(null);
 
-		
+
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
 
@@ -48,30 +48,30 @@ export default function InspectionForm() {
 	useEffect(() => {
 		if (id) {
 			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: 'include' })
-			
-						.then(res => res.json())
-						.then(data => {
-							setRfiData(data);
-							setContractorRep(data.nameOfRepresentative || '');
-							if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
-											const latestInspection = data.inspectionDetails.reduce((latest, current) =>
-												current.id > latest.id ? current : latest
-											);
 
-											setInspectionId(latestInspection.id); 
-										}	
-										else {
-															// ✅ Try restoring from localStorage
-															const savedId = localStorage.getItem("latestInspectionId");
-															if (savedId) {
-																setInspectionId(parseInt(savedId));
-															}
-														}
-													})
-													.catch(err => console.error("Error fetching RFI details:", err));
-											}
-										}, [id]);
-	
+				.then(res => res.json())
+				.then(data => {
+					setRfiData(data);
+					setContractorRep(data.nameOfRepresentative || '');
+					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+						const latestInspection = data.inspectionDetails.reduce((latest, current) =>
+							current.id > latest.id ? current : latest
+						);
+
+						setInspectionId(latestInspection.id);
+					}
+					else {
+						// ✅ Try restoring from localStorage
+						const savedId = localStorage.getItem("latestInspectionId");
+						if (savedId) {
+							setInspectionId(parseInt(savedId));
+						}
+					}
+				})
+				.catch(err => console.error("Error fetching RFI details:", err));
+		}
+	}, [id]);
+
 
 	const fetchLocation = () => {
 		if (navigator.geolocation) {
@@ -103,12 +103,12 @@ export default function InspectionForm() {
 		}
 		return new File([u8arr], filename, { type: mime });
 	}
-	
+
 	const handleChecklistSubmit = async (id, data, contractorSign, gcSign, grade) => {
-		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || ''; 
+		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || '';
 		const dto = {
 			rfiId: rfiData.id,
-			enclosureName: enclosure, 
+			enclosureName: enclosure,
 			gradeOfConcrete: grade,
 			drawingApproved: data[0].status,
 			drawingRemarkContractor: data[0].contractorRemark,
@@ -158,7 +158,7 @@ export default function InspectionForm() {
 		const formData = new FormData();
 		const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
 		const payload = {
-			inspectionId: id,          
+			inspectionId: id,
 			rfiId: rfiData.id,
 			inspectionStatus,
 			testInsiteLab: testInLab,
@@ -166,7 +166,7 @@ export default function InspectionForm() {
 		};
 		formData.append("data", JSON.stringify(payload));
 		if (testReportFile) {
-			formData.append("testReport", testReportFile); 
+			formData.append("testReport", testReportFile);
 		}
 
 		try {
@@ -199,12 +199,12 @@ export default function InspectionForm() {
 
 
 	const handleUploadSubmit = async (id, file) => {
-				const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || ''; 
+		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || '';
 		const formData = new FormData();
 
 		formData.append('rfiId', rfiData.id);
 		formData.append('file', file);
-		formData.append('enclosureName', enclosure); 
+		formData.append('enclosureName', enclosure);
 
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/upload`, {
@@ -250,7 +250,7 @@ export default function InspectionForm() {
 		}
 
 
-          galleryImages.forEach((img, index) => {
+		galleryImages.forEach((img, index) => {
 			if (img instanceof File) {
 				formData.append('siteImages', img);
 			} else if (typeof img === 'string' && img.startsWith('data:image/')) {
@@ -265,13 +265,13 @@ export default function InspectionForm() {
 				body: formData,
 				credentials: "include",
 			});
-			 	const idText = await res.text();
-						const id = parseInt(idText);       
-				    	    setInspectionId(id);  
-							localStorage.setItem("latestInspectionId", id);                    
-					
-						    alert("Inspection saved successfully. ID: " + id);
-					
+			const idText = await res.text();
+			const id = parseInt(idText);
+			setInspectionId(id);
+			localStorage.setItem("latestInspectionId", id);
+
+			alert("Inspection saved successfully. ID: " + id);
+
 		} catch (err) {
 			console.error("Inspection save failed:", err);
 		}
@@ -333,7 +333,7 @@ export default function InspectionForm() {
 										<input value={contractorRep} onChange={e => setContractorRep(e.target.value)} />
 									</div>
 									<div className="upload-grid">
-										{[0,1, 2, 3].map(i => (
+										{[0, 1, 2, 3].map(i => (
 											<div key={i} className="capture-option">
 												<button onClick={() => { setCameraMode('environment'); setShowCamera(`gallery-${i}`); }}>
 													📷 Capture Image {i + 1}
@@ -345,64 +345,92 @@ export default function InspectionForm() {
 														const file = e.target.files[0];
 														if (file) {
 															const updated = [...galleryImages];
-															         updated[i] = file;
-															         setGalleryImages(updated);	
+															updated[i] = file;
+															setGalleryImages(updated);
 														}
 
 													}}
 												/>
 												{galleryImages[i] && (
-													<img src={galleryImages[i] instanceof File ? URL.createObjectURL(galleryImages[i]) : galleryImages[i] } 
-													alt={`Site ${i+1}`} 
-													className="gallery-preview" />
+													<img src={galleryImages[i] instanceof File ? URL.createObjectURL(galleryImages[i]) : galleryImages[i]}
+														alt={`Site ${i + 1}`}
+														className="gallery-preview" />
 												)}
 											</div>
 										))}
 									</div>
 								</div>
-								
-								
+
+
 
 								<h3>Enclosures</h3>
 								<table className="enclosure-table">
 									<thead>
-										<tr><th>RFI Description</th><th>Enclosure</th><th>Action</th><th>Uploaded</th><th>Other</th></tr>
+										<tr><th>RFI Description</th>
+											<th>Enclosure</th>
+											<th>Action</th>
+											<th>Uploaded</th>
+											<th>Other</th>
+										</tr>
 									</thead>
 									<tbody>
-									  {enclosuresData.map((e, index) => {
-									    const state = enclosureStates[e.id] || {};
-									    const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+										{enclosuresData.map((e, index) => {
+											const state = enclosureStates[e.id] || {};
+											const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+											return (
+												<tr key={e.id}>
+													<td>{e.rfiDescription}</td>
+													<td>{e.enclosure}</td>
+													<td>
+														<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>
+														<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
 
-									    return (
-									      <tr key={e.id}>
-									        <td>{e.rfiDescription}</td>
-									        <td>{e.enclosure}</td>
-									        <td>
-									          <button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>
-									          <button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
-									          <button onClick={() => setUploadPopup(e.id)}>Upload</button>
-									        </td>
-									        <td>{state.uploadedFile?.name || ''}</td>
+														{userRole?.toLowerCase() !== 'regular user' && (
+															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
+														)}
+													</td>
+													<td>
+														{(() => {
+															const enclosureFile = rfiData.enclosure?.find(
+																enc => enc.enclosureName?.trim() === e.enclosure?.trim()
+															)?.enclosureUploadFile;
 
-									        {index === 0 && (
-									          <td rowSpan={enclosuresData.length}>
-									            {rfiReportFilepath && (
-									              <button
-									                onClick={() =>
-									                  window.open(
-									                    `${API_BASE_URL}previewFiles?filepath=${encodeURIComponent(rfiReportFilepath)}`,
-									                    '_blank'
-									                  )
-									                }
-									              >
-									                View Test Report
-									              </button>
-									            )}
-									          </td>
-									        )}
-									      </tr>
-									    );
-									  })}
+															return enclosureFile ? (
+																<button
+																	onClick={() => window.open(
+																		`${API_BASE_URL}/previewFiles?filepath=${encodeURIComponent(enclosureFile)}`,
+																		'_blank'
+																	)}
+																	style={{ padding: '4px 10px', cursor: 'pointer' }}
+																>
+																	ViewEnclosure
+																</button>
+															) : (
+																'---'
+															);
+														})()}
+													</td>
+
+
+													{index === 0 && (
+														<td rowSpan={enclosuresData.length}>
+															{rfiReportFilepath && (
+																<button
+																	onClick={() =>
+																		window.open(
+																			`${API_BASE_URL}previewFiles?filepath=${encodeURIComponent(rfiReportFilepath)}`,
+																			'_blank'
+																		)
+																	}
+																>
+																	View Test Report
+																</button>
+															)}
+														</td>
+													)}
+												</tr>
+											);
+										})}
 									</tbody>
 
 								</table>
@@ -424,7 +452,7 @@ export default function InspectionForm() {
 								onDone={(data, contractorSign, gcSign, grade) =>
 									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
 								}
-								onClose={() =>setChecklistPopup(null)}
+								onClose={() => setChecklistPopup(null)}
 							/>
 						)}
 
@@ -582,7 +610,7 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab,testReportFile,setTestReportFile, onConfirm }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
@@ -593,7 +621,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<option value="LAB_TEST">Lab Test</option>
 				<option value="SITE_TEST">Site Test</option>
 			</select>
-	
+
 			{userRole?.toLowerCase() === 'regular user' && (
 				<div>
 					<label>Inspection Status</label>
@@ -614,18 +642,18 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 			)}
 
 
-			
+
 			{userRole?.toLowerCase() !== 'regular user' && inspectionStatus !== 'VISUAL' && (
-			  <div>
-			    <label>Upload Test Report Here</label>
-			    <input
-			      type="file"
-			      onChange={(e) => setTestReportFile(e.target.files[0])}
-			    />
-				{testReportFile && (
-				  <p>Selected file: <strong>{testReportFile.name}</strong></p>
-				)}
-			  </div>
+				<div>
+					<label>Upload Test Report Here</label>
+					<input
+						type="file"
+						onChange={(e) => setTestReportFile(e.target.files[0])}
+					/>
+					{testReportFile && (
+						<p>Selected file: <strong>{testReportFile.name}</strong></p>
+					)}
+				</div>
 			)}
 
 			<div className="popup-actions">

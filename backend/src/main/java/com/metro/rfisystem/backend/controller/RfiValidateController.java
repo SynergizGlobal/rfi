@@ -80,23 +80,21 @@ public class RfiValidateController {
 
 	@GetMapping("/previewFiles")
 	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
-	    Path file = Paths.get(filepath).toAbsolutePath();
-	    System.out.println("Serving file: " + file);
+		Path file = Paths.get(filepath);
+		Resource resource = new UrlResource(file.toUri());
 
-	    if (!Files.exists(file) || !Files.isReadable(file)) {
-	        return ResponseEntity.notFound().build();
-	    }
+		if (!resource.exists() || !resource.isReadable()) {
+			return ResponseEntity.notFound().build();
+		}
 
-	    Resource resource = new UrlResource(file.toUri());
-	    String contentType = Files.probeContentType(file);
-	    if (contentType == null || !contentType.equals("application/pdf")) {
-	        contentType = "application/pdf";
-	    }
+		String contentType = Files.probeContentType(file);
+		if (contentType == null) {
+			contentType = "application/octet-stream";
+		}
 
-	    return ResponseEntity.ok()
-	            .contentType(MediaType.parseMediaType(contentType))
-	            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
-	            .body(resource);
+		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
+				.body(resource);
 	}
 
 

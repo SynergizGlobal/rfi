@@ -151,8 +151,7 @@ public class RFIController {
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
 
 		if (isAdmin || isDyHOD) {
-			int count = rfiService.getAllRFIs().size();
-			return ResponseEntity.ok(count);
+			return ResponseEntity.ok(rfiService.countByTotalRfiCreated());
 		}
 		if(userRole.equalsIgnoreCase("Contractor"))
 		{

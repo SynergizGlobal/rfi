@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 import autoTable from 'jspdf-autotable';
 import './Validation.css';
 import HeaderRight from '../HeaderRight/HeaderRight';
@@ -9,20 +10,22 @@ const getExtension = (filename) => {
 	return filename?.split('.').pop()?.toLowerCase();
 };
 export default function Validation() {
-	
-		const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
-		const [editModeList, setEditModeList] = useState([]);
 
-		useEffect(() => {
-		  axios.get(`${API_BASE_URL}/getRfiValidations`)
-		    .then(res => {
-		      setRfiList(res.data);
-		      setRemarksList(res.data.map(item => item.remarks || ""));
-		      setStatusList(res.data.map(item => item.status || ""));
-			  setEditModeList(res.data.map(() => false));
-		    })
-		    .catch(err => console.error(err));
-		}, []);
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+	const [editModeList, setEditModeList] = useState([]);
+
+	useEffect(() => {
+		axios.get(`${API_BASE_URL}/getRfiValidations`)
+			.then(res => {
+				setRfiList(res.data);
+				setRemarksList(res.data.map(item => item.remarks || ""));
+				setStatusList(res.data.map(item => item.status || ""));
+				setEditModeList(res.data.map(() => false));
+				setSubmittedList(res.data.map(item => item.remarks && item.status ? true : false));
+
+			})
+			.catch(err => console.error(err));
+	}, []);
 
 
 	const updateRemark = (idx, value) => {
@@ -32,11 +35,11 @@ export default function Validation() {
 	const updateStatus = (idx, value) => {
 		setStatusList(prev => prev.map((item, i) => i === idx ? value : item));
 	};
-	
+
 	const toggleEditMode = (idx) => {
-	  setEditModeList(prev =>
-	    prev.map((item, i) => i === idx ? !item : item)
-	  );
+		setEditModeList(prev =>
+			prev.map((item, i) => i === idx ? !item : item)
+		);
 	};
 
 
@@ -46,6 +49,7 @@ export default function Validation() {
 		updated[idx] = file;
 		setFileList(updated);
 	};
+	const [submittedList, setSubmittedList] = useState([]);
 
 	const submitValidation = (rfi, idx) => {
 		const remarks = remarksList[idx]?.trim();
@@ -78,8 +82,6 @@ export default function Validation() {
 		axios.post(`${API_BASE_URL}/validate`, formData)
 			.then(() => {
 				alert('Validation submitted successfully.');
-
-				// ✅ Update only the affected row in rfiList
 				setRfiList(prevList => {
 					const updated = [...prevList];
 					updated[idx] = {
@@ -89,24 +91,21 @@ export default function Validation() {
 					};
 					return updated;
 				});
-
-				// ✅ Exit edit mode for that row
-				setEditModeList(prev =>
-					prev.map((v, i) => i === idx ? false : v)
+				setSubmittedList(prev =>
+					prev.map((item, i) => i === idx ? true : item)
 				);
-
-				// ✅ Clear file input for this row
+				setEditModeList(prev =>
+					prev.map((item, i) => i === idx ? false : item)
+				);
 				setFileList(prev =>
 					prev.map((f, i) => i === idx ? null : f)
 				);
 			})
 			.catch(err => {
 				console.error('Validation error:', err);
-				alert('Submission failed');
+				alert('Submission failed.');
 			});
 	};
-
-
 
 	const fetchPreview = (rfiId) => {
 		axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`)
@@ -124,210 +123,250 @@ export default function Validation() {
 
 	const safe = (val) => val || '-';
 
+
+	const [rfiList, setRfiList] = useState([]);
+	const [remarksList, setRemarksList] = useState([]);
+	const [statusList, setStatusList] = useState([]);
+	const [fileList, setFileList] = useState([]);
+	const [selectedInspection, setSelectedInspection] = useState(null);
+
+	useEffect(() => {
+		axios.get(`${API_BASE_URL}/getRfiValidations`)
+			.then(res => setRfiList(res.data))
+			.catch(err => console.error(err));
+	}, []);
+
+
+	async function mergeTestReport(doc, testReportBlob) {
+		const jsPDFBytes = doc.output('arraybuffer');
+		const currentPDF = await PDFDocument.load(jsPDFBytes);
+		const testReportPDF = await PDFDocument.load(await testReportBlob.arrayBuffer());
+
+		const testPages = await currentPDF.copyPages(testReportPDF, testReportPDF.getPageIndices());
+		testPages.forEach((page) => currentPDF.addPage(page));
+
+		const mergedPdfBytes = await currentPDF.save();
+		const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(blob);
+		link.download = 'RfiReport.pdf';
+		link.click();
+	}
+
+	// helper: convert image URL to base64
 	const toBase64 = async (url) => {
-		try {
-			const response = await fetch(url, { mode: 'cors' });
-			const blob = await response.blob();
-			return await new Promise((resolve, reject) => {
+		const response = await fetch(url);
+		const blob = await response.blob();
+		return new Promise((resolve) => {
 			const reader = new FileReader();
 			reader.onloadend = () => resolve(reader.result);
-			reader.onerror = reject;
 			reader.readAsDataURL(blob);
+		});
+	};
+
+	// PDF generation function
+	const generatePDF = async (inspectionList) => {
+		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+		const safe = (val) => val || '---';
+		const logoUrl = 'https://upload.wikimedia.org/wikipedia/en/thumb/1/13/Mrvc_logo.jpg/600px-Mrvc_logo.jpg';
+		const logo = await toBase64(logoUrl);
+		const pageWidth = doc.internal.pageSize.getWidth();
+		const pageHeight = doc.internal.pageSize.getHeight();
+		const margin = 10;
+		const contentWidth = pageWidth - 2 * margin;
+		const imageWidth = 60;
+		const imageHeight = 40;
+		const lineHeight = 6;
+
+		for (let idx = 0; idx < inspectionList.length; idx++) {
+			const inspection = inspectionList[idx];
+			if (idx !== 0) doc.addPage();
+			let y = margin;
+
+			if (logo) {
+				doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
+			}
+
+			y += 18;
+			doc.setFontSize(14).setFont(undefined, 'bold');
+			doc.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, y, { align: 'center' });
+
+			y += 10;
+			doc.setFontSize(10).setFont(undefined, 'normal');
+
+			const fields = [
+				['Client', inspection.client],
+				['Consultant', inspection.consultant],
+				['Contract', inspection.contract],
+				['Contractor', inspection.contractor],
+				['Contract ID', inspection.contractId],
+				['RFI ID', inspection.rfiId],
+				['Date of Inspection', inspection.dateOfInspection],
+				['Location', inspection.location],
+				['Proposed Time', inspection.proposedInspectionTime],
+				['Actual Time', inspection.actualInspectionTime],
+				['RFI Description', inspection.rfiDescription],
+				["Contractor's Representative", inspection.contractorRepresentative],
+				['Client Representative', inspection.clientRepresentative],
+				['Description by Contractor', inspection.descriptionByContractor],
+				['Enclosures', inspection.enclosures],
+			];
+
+			for (let i = 0; i < fields.length; i += 2) {
+				const left = `${fields[i][0]}: ${safe(fields[i][1])}`;
+				const right = fields[i + 1] ? `${fields[i + 1][0]}: ${safe(fields[i + 1][1])}` : '';
+
+				const wrappedLeft = doc.splitTextToSize(left, contentWidth / 2 - 5);
+				const wrappedRight = doc.splitTextToSize(right, contentWidth / 2 - 5);
+				const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
+
+				for (let j = 0; j < maxLines; j++) {
+					const leftText = wrappedLeft[j] || '';
+					const rightText = wrappedRight[j] || '';
+					doc.text(leftText, margin, y);
+					doc.text(rightText, pageWidth / 2 + 5, y);
+					y += lineHeight;
+
+					if (y > pageHeight - 20) {
+						doc.addPage();
+						y = margin;
+					}
+				}
+			}
+
+			y += 2;
+			doc.setFont(undefined, 'bold').text('Checklist - Level Sheet:', margin, y);
+			y += 2;
+
+			doc.autoTable({
+				startY: y,
+				head: [['ID', 'Description', 'Status', 'Contractor Remarks', 'AE Remarks']],
+				body: [
+					['1', 'Drawing', safe(inspection.drawingStatusLS), safe(inspection.drawingRemarksContracotrLS), safe(inspection.drawingRemarksClientLS)],
+					['2', 'Alignment', safe(inspection.alignmentStatusLS), safe(inspection.alignmentoCntractorRemarksLS), safe(inspection.alignmentClientRemarksLS)],
+				],
+				styles: { fontSize: 9 },
+				headStyles: { fillColor: [0, 102, 153], textColor: 255 },
+				theme: 'grid',
+				didDrawPage: (data) => { y = data.cursor.y + 5; }
 			});
-		} catch (error) {
-			console.error("Base64 conversion error for URL:", url, error);
-			return null;
+
+			doc.setFont(undefined, 'bold').text('Checklist - Pour Card:', margin, y);
+			y += 2;
+
+			doc.autoTable({
+				startY: y,
+				head: [['ID', 'Description', 'Status', 'Contractor Remarks', 'AE Remarks']],
+				body: [
+					['1', 'Drawing', safe(inspection.drawingStatusPC), safe(inspection.drawingRemarksContracotrPC), safe(inspection.drawingRemarksClientPC)],
+					['2', 'Alignment', safe(inspection.alignmentStatusPC), safe(inspection.alignmentoCntractorRemarksPC), safe(inspection.alignmentClientRemarksPC)],
+				],
+				styles: { fontSize: 9 },
+				headStyles: { fillColor: [0, 102, 153], textColor: 255 },
+				theme: 'grid',
+				didDrawPage: (data) => { y = data.cursor.y + 5; }
+			});
+
+			doc.setFont(undefined, 'bold').text('Status:', margin, y);
+			doc.setFont(undefined, 'normal').text(safe(inspection.status), margin + 20, y);
+			y += lineHeight;
+
+			doc.setFont(undefined, 'bold').text('Remarks:', margin, y);
+			y += 4;
+			const remarksText = doc.splitTextToSize(safe(inspection.remarks), contentWidth);
+			doc.setFont(undefined, 'normal').text(remarksText, margin, y);
+			y += remarksText.length * 5 + 5;
+
+			const imageSection = async (label, paths) => {
+				if (!paths || !paths.trim()) return;
+				const files = paths.split(',').map(f => f.trim()).filter(Boolean);
+				if (!files.length) return;
+
+				doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
+				y += 5;
+
+				for (const file of files) {
+					const filename = file.split('/').pop().split('\\').pop();
+					const extension = filename.split('.').pop().toLowerCase();
+
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+
+					if (extension === 'pdf') {
+						doc.setFont(undefined, 'normal').setTextColor(0, 0, 255);
+						doc.textWithLink(`View PDF: ${filename}`, margin, y, { url: fileUrl });
+						y += 6;
+						doc.setTextColor(0, 0, 0);
+					} else {
+						const imgData = await toBase64(fileUrl);
+						if (imgData) {
+							if (y + imageHeight > pageHeight - 20) {
+								doc.addPage();
+								y = margin;
+							}
+							doc.addImage(imgData, 'JPEG', margin, y, imageWidth, imageHeight);
+							y += imageHeight + 5;
+						} else {
+							doc.setDrawColor(0);
+							doc.setLineWidth(0.2);
+							doc.rect(margin, y, imageWidth, imageHeight);
+							doc.text('Image not available', margin + 3, y + 20);
+							y += imageHeight + 5;
+						}
+					}
+				}
+			};
+
+			// Images
+			await imageSection('Inspector Selfie', inspection.selfieClient);
+			await imageSection('Inspector Site Images', inspection.imagesUploadedByClient);
+			await imageSection('Contractor Selfie', inspection.selfieContractor);
+			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor);
+			await imageSection('Contractor Enclosures & Test Report', inspection.contractorEnclosureFilePaths);
+
+			if (inspection.testSiteDocumentsContractor) {
+				/*    
+				commented because of already showing above like Contractor Enclosures & Test Report
+				    doc.addPage();
+						doc.setFont(undefined, 'bold').text("Test Report Uploaded by Contractor", 20, 30);*/
+
+				let testReportBlob;
+				if (typeof inspection.testSiteDocumentsContractor === 'string') {
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(inspection.testSiteDocumentsContractor)}`;
+					console.log('Fetching test report from preview API:', fileUrl);
+
+					const response = await fetch(fileUrl);
+					if (!response.ok) throw new Error('Failed to fetch test report');
+					testReportBlob = await response.blob();
+				}
+				else {
+					testReportBlob = inspection.testSiteDocumentsContractor;
+				}
+
+				await mergeTestReport(doc, testReportBlob);
+			}
 		}
-		};
-
-  const [rfiList, setRfiList] = useState([]);
-  const [remarksList, setRemarksList] = useState([]);
-  const [statusList, setStatusList] = useState([]);
-  const [fileList, setFileList] = useState([]);
-  const [selectedInspection, setSelectedInspection] = useState(null);
-
-  useEffect(() => {
-		axios.get(`${API_BASE_URL}/getRfiValidations`)
-      .then(res => setRfiList(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
-  const generatePDF = async (inspectionList) => {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const safe = (val) => val || '---';
-  const logoUrl = 'https://upload.wikimedia.org/wikipedia/en/thumb/1/13/Mrvc_logo.jpg/600px-Mrvc_logo.jpg';
-  const logo = await toBase64(logoUrl);
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 10;
-  const contentWidth = pageWidth - 2 * margin;
-  const imageWidth = 60;
-  const imageHeight = 40;
-  const lineHeight = 6;
-
-  for (let idx = 0; idx < inspectionList.length; idx++) {
-    const inspection = inspectionList[idx];
-    if (idx !== 0) doc.addPage();
-    let y = margin;
-
-    if (logo) {
-      doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
-    }
-
-    y += 18;
-    doc.setFontSize(14).setFont(undefined, 'bold');
-    doc.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, y, { align: 'center' });
-
-    y += 10;
-    doc.setFontSize(10).setFont(undefined, 'normal');
-
-    const fields = [
-      ['Client', inspection.client],
-      ['Consultant', inspection.consultant],
-      ['Contract', inspection.contract],
-      ['Contractor', inspection.contractor],
-      ['Contract ID', inspection.contractId],
-      ['RFI ID', inspection.rfiId],
-      ['Date of Inspection', inspection.dateOfInspection],
-      ['Location', inspection.location],
-      ['Proposed Time', inspection.proposedInspectionTime],
-      ['Actual Time', inspection.actualInspectionTime],
-      ['RFI Description', inspection.rfiDescription],
-      ["Contractor's Representative", inspection.contractorRepresentative],
-      ['Client Representative', inspection.clientRepresentative],
-      ['Description by Contractor', inspection.descriptionByContractor],
-      ['Enclosures', inspection.enclosures],
-    ];
-
-    for (let i = 0; i < fields.length; i += 2) {
-      const left = `${fields[i][0]}: ${safe(fields[i][1])}`;
-      const right = fields[i + 1] ? `${fields[i + 1][0]}: ${safe(fields[i + 1][1])}` : '';
-
-      const wrappedLeft = doc.splitTextToSize(left, contentWidth / 2 - 5);
-      const wrappedRight = doc.splitTextToSize(right, contentWidth / 2 - 5);
-      const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
-
-      for (let j = 0; j < maxLines; j++) {
-        const leftText = wrappedLeft[j] || '';
-        const rightText = wrappedRight[j] || '';
-        doc.text(leftText, margin, y);
-        doc.text(rightText, pageWidth / 2 + 5, y);
-        y += lineHeight;
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = margin;
-        }
-      }
-    }
-
-    y += 2;
-    doc.setFont(undefined, 'bold').text('Checklist:', margin, y);
-    y += 2;
-
-    doc.autoTable({
-      startY: y,
-      head: [['ID', 'Description', 'Status', 'Contractor Remarks', 'AE Remarks']],
-      body: [
-        ['1', 'Drawing', safe(inspection.drawingStatus), safe(inspection.drawingRemarksContracotr), safe(inspection.drawingRemarksClient)],
-        ['2', 'Alignment', safe(inspection.alignmentStatus), safe(inspection.alignmentoCntractorRemarks), safe(inspection.alignmentClientRemarks)],
-      ],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [0, 102, 153], textColor: 255 },
-      theme: 'grid',
-    });
-
-    y = doc.lastAutoTable.finalY + 5;
-
-    doc.setFont(undefined, 'bold').text('Status:', margin, y);
-    doc.setFont(undefined, 'normal').text(safe(inspection.status), margin + 20, y);
-    y += lineHeight;
-
-    doc.setFont(undefined, 'bold').text('Remarks:', margin, y);
-    y += 4;
-    const remarksText = doc.splitTextToSize(safe(inspection.remarks), contentWidth);
-    doc.setFont(undefined, 'normal').text(remarksText, margin, y);
-    y += remarksText.length * 5 + 5;
-
-    const imageSection = async (label, paths) => {
-      if (!paths || !paths.trim()) return;
-      const files = paths.split(',').map(f => f.trim()).filter(Boolean);
-      if (!files.length) return;
-
-      doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
-      y += 5;
-
-      for (const file of files) {
-        const imgData = await toBase64(`${fileBaseURL}?filepath=${encodeURIComponent(file)}`);
-
-        if (y + imageHeight > pageHeight - 20) {
-          doc.addPage();
-          y = margin;
-        }
-
-        if (imgData) {
-          doc.addImage(imgData, 'JPEG', margin, y, imageWidth, imageHeight);
-        } else {
-          // Draw placeholder for missing image
-          doc.setDrawColor(0);
-          doc.setLineWidth(0.2);
-          doc.rect(margin, y, imageWidth, imageHeight);
-          doc.text('Image not available', margin + 3, y + 20);
-        }
-
-        y += imageHeight + 5;
-      }
-    };
-
-    await imageSection('Inspector Selfie', inspection.selfieClient);
-    await imageSection('Inspector Site Images', inspection.imagesUploadedByClient);
-    await imageSection('Inspector Enclosures', inspection.clientEnclosureFilePaths);
-    await imageSection('Contractor Selfie', inspection.selfieContractor);
-	await imageSection('Contractor Site Images',inspection.imagesUploadedByContractor);
-    await imageSection('Contractor Enclosures', inspection.contractorEnclosureFilePaths);
-	await imageSection('Contractor Uploaded TEST REPORT',inspection.testSiteDocumentsContractor);
-    await imageSection('GC/MRVC Signature', inspection.gcMrvcSignature);
-    await imageSection('Contractor Signature', inspection.contractorSignature);
-  }
-
-  doc.save('RFI_Report.pdf');
-};
-
-
+	};
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
 			const res = await axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`);
+
 			if (res.data?.length > 0) {
 				const inspection = res.data[0];
-
-				// Inject remarks and status
 				inspection.remarks = remarksList[idx] || '';
-				inspection.rfiStatus = statusList[idx] || '';
-
-				// Convert image URLs to base64 and assign
-				const baseURL = `${API_BASE_URL}/previewFiles?filepath=`;
-
-				const convert = async (src) => (src ? await toBase64(baseURL + encodeURIComponent(src.trim())) : null);
-
-				// Convert images
-				inspection.selfieImage = await convert(inspection.selfieClient);
-				inspection.contractorSign = await convert(inspection.contractorSignature);
-				inspection.gcSign = await convert(inspection.gcMrvcSignature);
-
-				const galleryImgs = inspection.imagesUploadedByClient?.split(',') || [];
-				inspection.galleryImages = {};
-				for (let i = 0; i < galleryImgs.length; i++) {
-					inspection.galleryImages[i] = await convert(galleryImgs[i]);
-				}
-
+				inspection.status = statusList[idx] || '';
 				await generatePDF([inspection]);
+
 			} else {
 				alert("No inspection details found.");
 			}
 		} catch (err) {
 			console.error("Error fetching details for PDF:", err);
+			alert("Failed to generate PDF. Please try again.");
 		}
 	};
+
 
 
 
@@ -353,73 +392,73 @@ export default function Validation() {
 							</tr>
 						</thead>
 						<tbody>
-						  {rfiList.map((rfi, idx) => {
-						    const status = statusList[idx];
-						    const remarks = remarksList[idx];
-						    const isEditable = editModeList[idx];
-						    const isValidated = status && remarks; // both present
+							{rfiList.map((rfi, idx) => {
+								const status = statusList[idx];
+								const remarks = remarksList[idx];
+								const isValidated = submittedList[idx];  // <-- you're declaring this
+								const isEditable = editModeList[idx];    // <-- and this// both present
 
-						    return (
-						      <tr key={idx}>
-						        <td>{rfi.stringRfiId}</td>
+								return (
+									<tr key={idx}>
+										<td>{rfi.stringRfiId}</td>
 
-						        <td>
-						          <button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
-						        </td>
+										<td>
+											<button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
+										</td>
 
-						        <td>
-						          <button onClick={() => downloadPDFWithDetails(rfi.longRfiId, idx)}>⬇️</button>
-						        </td>
+										<td>
+											<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, idx)}>⬇️</button>
+										</td>
 
-						        <td>
-						          <select
-						            value={remarks || ""}
-						            onChange={(e) => updateRemark(idx, e.target.value)}
-						            disabled={isValidated && !isEditable}
-						          >
-						            <option value="">-- Select --</option>
-						            <option value="NONO">NONO</option>
-						            <option value="NONOC(B)">NONOC (B)</option>
-						            <option value="NONOC(C)">NONOC (C)</option>
-						            <option value="NOR">NOR</option>
-						          </select>
-						        </td>
+										<td>
+											<select
+												value={remarks || ""}
+												onChange={(e) => updateRemark(idx, e.target.value)}
+												disabled={isValidated && !isEditable}
+											>
+												<option value="">-- Select --</option>
+												<option value="NONO">NONO</option>
+												<option value="NONOC(B)">NONOC (B)</option>
+												<option value="NONOC(C)">NONOC (C)</option>
+												<option value="NOR">NOR</option>
+											</select>
+										</td>
 
-						        <td>
-						          <select
-						            value={status || ""}
-						            onChange={(e) => updateStatus(idx, e.target.value)}
-						            disabled={isValidated && !isEditable}
-						          >
-						            <option value="">-- Select --</option>
-						            <option value="APPROVED">Approved</option>
-						            <option value="REJECTED">Rejected</option>
-						            <option value="CLARIFICATION_REQUIRED">Clarification Required</option>
-						          </select>
-						        </td>
+										<td>
+											<select
+												value={status || ""}
+												onChange={(e) => updateStatus(idx, e.target.value)}
+												disabled={isValidated && !isEditable}
+											>
+												<option value="">-- Select --</option>
+												<option value="APPROVED">Approved</option>
+												<option value="REJECTED">Rejected</option>
+												<option value="CLARIFICATION_REQUIRED">Clarification Required</option>
+											</select>
+										</td>
 
-						        <td>
-						          <input
-						            type="file"
-						            onChange={(e) => handleFileChange(idx, e.target.files[0])}
-						            disabled={isValidated && !isEditable}
-						          />
-						        </td>
+										<td>
+											<input
+												type="file"
+												onChange={(e) => handleFileChange(idx, e.target.files[0])}
+												disabled={isValidated && !isEditable}
+											/>
+										</td>
 
-						        <td>
-						          {isValidated ? (
-						            isEditable ? (
-						              <button onClick={() => submitValidation(rfi, idx)}>Submit</button>
-						            ) : (
-						              <button onClick={() => toggleEditMode(idx)}>Edit</button>
-						            )
-						          ) : (
-						            <button onClick={() => submitValidation(rfi, idx)}>Validate</button>
-						          )}
-						        </td>
-						      </tr>
-						    );
-						  })}
+										<td>
+											{isValidated ? (
+												isEditable ? (
+													<button onClick={() => submitValidation(rfi, idx)}>Submit</button>
+												) : (
+													<button onClick={() => toggleEditMode(idx)}>Edit</button>
+												)
+											) : (
+												<button onClick={() => submitValidation(rfi, idx)}>Validate</button>
+											)}
+										</td>
+									</tr>
+								);
+							})}
 						</tbody>
 
 					</table>
@@ -435,7 +474,7 @@ export default function Validation() {
 									</div>
 								</div>
 								<div className="d-flex justify-center">
-										<h3 style={{ gridColumn: 'span 1' }}>Request For Information (RFI)</h3>
+									<h3 style={{ gridColumn: 'span 1' }}>Request For Information (RFI)</h3>
 								</div>
 								<div className="form-row align-start">
 									<div className="form-fields">
@@ -510,7 +549,7 @@ export default function Validation() {
 
 								</div>
 
-								<h4>Checklist</h4>
+								<h4>Checklist Level Sheet</h4>
 								<table className="preview-table">
 									<thead>
 										<tr>
@@ -526,17 +565,48 @@ export default function Validation() {
 										<tr>
 											<td>1</td>
 											<td>Drawing</td>
-											<td>{selectedInspection.drawingStatus || '---'}</td>
-											<td>{selectedInspection.drawingRemarksContracotr || '---'}</td>
-											<td>{selectedInspection.drawingRemarksClient || '---'}</td>
+											<td>{selectedInspection.drawingStatusLS || '---'}</td>
+											<td>{selectedInspection.drawingRemarksContracotrLS || '---'}</td>
+											<td>{selectedInspection.drawingRemarksClientLS || '---'}</td>
 										</tr>
 										{/* Alignment row */}
 										<tr>
 											<td>2</td>
 											<td>Alignment</td>
-											<td>{selectedInspection.alignmentStatus || '---'}</td>
-											<td>{selectedInspection.alignmentoCntractorRemarks || '---'}</td>
-											<td>{selectedInspection.alignmentClientRemarks || '---'}</td>
+											<td>{selectedInspection.alignmentStatusLS || '---'}</td>
+											<td>{selectedInspection.alignmentoCntractorRemarksLS || '---'}</td>
+											<td>{selectedInspection.alignmentClientRemarksLS || '---'}</td>
+										</tr>
+									</tbody>
+								</table>
+
+								<h4>Checklist Pour Card</h4>
+								<table className="preview-table">
+									<thead>
+										<tr>
+											<th>ID</th>
+											<th>Description</th>
+											<th>Status</th>
+											<th>Contractor Remarks</th>
+											<th>AE Remarks</th>
+										</tr>
+									</thead>
+									<tbody>
+										{/* Drawing row */}
+										<tr>
+											<td>1</td>
+											<td>Drawing</td>
+											<td>{selectedInspection.drawingStatusPC || '---'}</td>
+											<td>{selectedInspection.drawingRemarksContracotrPC || '---'}</td>
+											<td>{selectedInspection.drawingRemarksClientPC || '---'}</td>
+										</tr>
+										{/* Alignment row */}
+										<tr>
+											<td>2</td>
+											<td>Alignment</td>
+											<td>{selectedInspection.alignmentStatusPC || '---'}</td>
+											<td>{selectedInspection.alignmentoCntractorRemarksPC || '---'}</td>
+											<td>{selectedInspection.alignmentClientRemarksPC || '---'}</td>
 										</tr>
 									</tbody>
 								</table>
@@ -572,27 +642,6 @@ export default function Validation() {
 									<div className="image-gallery">
 										<h4>Site Images By Inspector</h4>
 										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
-								)}
-
-								{selectedInspection.clientEnclosureFilePaths && (
-									<div className="image-gallery">
-										<h4>Enclosures Uploaded By Inspector</h4>
-										{selectedInspection.clientEnclosureFilePaths.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
@@ -722,54 +771,6 @@ export default function Validation() {
 									</div>
 								)}
 
-
-
-
-
-
-
-								{selectedInspection.contractorSignature && (
-									<div className="image-gallery">
-										<h4>Contractor Signature</h4>
-										{selectedInspection.contractorSignature.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
-								)}
-
-
-								{selectedInspection.gcMrvcSignature && (
-									<div className="image-gallery">
-										<h4>GC/MRVC Signature</h4>
-										{selectedInspection.gcMrvcSignature.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
-								)}
 
 								<div className="popup-actions">
 									<button onClick={() => setSelectedInspection(null)}>Close</button>

@@ -38,6 +38,8 @@ public interface RFIService {
 	List<RfiListDTO> getRFIsByCreatedBy(String userName);
 
 	List<RfiListDTO> getRFIsAssignedTo(String userName);
+	
+	int countByTotalRfiCreated();
 
 	int countByAssignedTo(String userName);
 	

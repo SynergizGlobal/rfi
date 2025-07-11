@@ -241,6 +241,12 @@ public class RFIServiceImpl implements RFIService {
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {
 		return rfiRepository.findByAssignedPersonClient(assignedPersonClient);
 	}
+	
+	@Override
+	public int countByTotalRfiCreated()
+	{
+		return rfiRepository.countOfAllRfiCreatedSoFar();
+	}
 
 	@Override
 	public int countByAssignedTo(String assignedTo) {
