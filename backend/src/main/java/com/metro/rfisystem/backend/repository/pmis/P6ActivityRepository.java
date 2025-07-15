@@ -27,21 +27,19 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			@Param("contractId") String contractId, @Param("structure") String structure);
 
 	@Query(value = """
-						   SELECT
-			distinct a.component_id
-			FROM
-			    p6_activities a
-			LEFT JOIN
-			    structure s11 ON s11.structure_id = a.structure_id_fk
-			WHERE
-			    a.p6_activity_id IS NOT NULL
-			    AND (a.component_details != 'OBC' OR a.component_details IS NULL)
-			    AND a.scope <> ISNULL(a.completed, 0)
-			    AND s11.structure_type_fk = :structureType
-			    AND s11.structure = :structure
-			    AND a.component = :component;
+						   	SELECT DISTINCT
+    component_id AS strip_chart_component_id_name
+FROM p6_activities a
+LEFT JOIN structure s ON s.structure_id = a.structure_id_fk
+WHERE component_id IS NOT NULL
+  AND (component_details != 'OBC' OR component_details IS NULL)
+  AND component_id <> ''
+  AND a.contract_id_fk = :contractId
+  AND s.structure_type_fk = :structureType
+  AND s.structure = :structure
+  AND component = :component
 						    """, nativeQuery = true)
-	List<String> findElementByStructureTypeAndStructureAndComponent(@Param("structureType") String structureType,
+	List<String> findElementByStructureTypeAndStructureAndComponent(@Param("contractId") String contractId,@Param("structureType") String structureType,
 			@Param("structure") String structure, @Param("component") String component);
 
 	@Query(value = """
@@ -54,7 +52,6 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			WHERE
 			 a.p6_activity_id IS NOT NULL
 			 AND (a.component_details != 'OBC' OR a.component_details IS NULL)
-			 AND a.scope <> ISNULL(a.completed, 0)
 			 AND s11.structure_type_fk = :structureType
 			 AND s11.structure = :structure
 			 AND a.component = :component

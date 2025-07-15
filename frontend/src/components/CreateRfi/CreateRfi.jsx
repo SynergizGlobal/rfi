@@ -375,12 +375,13 @@ const CreateRfi = () => {
 	const [elementOptions, setElementOptions] = useState([]);
 
 	useEffect(() => {
-		const { structureType, structure, component } = formState;
+		const { contractId, structureType, structure, component } = formState;
 
 		if (structureType && structure && component) {
 			axios
 				.get(`${API_BASE_URL}rfi/element`, {
 					params: {
+						contractId:contractId,
 						structureType: structureType,
 						structure: structure,
 						component: component

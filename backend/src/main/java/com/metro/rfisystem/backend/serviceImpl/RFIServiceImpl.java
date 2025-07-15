@@ -126,9 +126,9 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<String> getElementByStructureStructureTypeComponent(String structureType, String structure,
+	public List<String> getElementByStructureStructureTypeComponent(String contractId,String structureType, String structure,
 			String component) {
-		return p6ActivityRepository.findElementByStructureTypeAndStructureAndComponent(structureType, structure,
+		return p6ActivityRepository.findElementByStructureTypeAndStructureAndComponent(contractId,structureType, structure,
 				component);
 	}
 

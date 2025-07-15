@@ -93,10 +93,11 @@ public class RFIController {
 
 	@GetMapping("/element")
 	public List<String> getElementByStructureTypeStructureComponent(
+			@RequestParam(name = "contractId", required = false) String contractId,
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component) {
-		return rfiService.getElementByStructureStructureTypeComponent(structureType, structure, component);
+		return rfiService.getElementByStructureStructureTypeComponent(contractId,structureType, structure, component);
 	}
 
 	@GetMapping("/activityNames")

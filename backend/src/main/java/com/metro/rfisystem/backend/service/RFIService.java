@@ -24,7 +24,8 @@ public interface RFIService {
 	List<String> getComponentByStructureStructureTypeContractId(String structureType, String contractId,
 			String structure);
 
-	List<String> getElementByStructureStructureTypeComponent(String structureType, String structure, String component);
+	List<String> getElementByStructureStructureTypeComponent(String contractId, String structureType, String structure,
+			String component);
 
 	List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
 			String component, String component_id);
@@ -38,11 +39,11 @@ public interface RFIService {
 	List<RfiListDTO> getRFIsByCreatedBy(String userName);
 
 	List<RfiListDTO> getRFIsAssignedTo(String userName);
-	
+
 	int countByTotalRfiCreated();
 
 	int countByAssignedTo(String userName);
-	
+
 	int countByCreatedBy(String createdBy);
 
 	List<RfiListDTO> getRFIsCreatedBy(String createdBy);
