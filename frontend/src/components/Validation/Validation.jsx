@@ -737,7 +737,7 @@ export default function Validation() {
 								)}
 
 
-								{selectedInspection.testInsiteLabContractor && selectedInspection.testSiteDocumentsContractor && (
+								{ selectedInspection.testSiteDocumentsContractor && (
 									<div className="image-gallery">
 										<h4>Test Report Uploaded By Contractor</h4>
 

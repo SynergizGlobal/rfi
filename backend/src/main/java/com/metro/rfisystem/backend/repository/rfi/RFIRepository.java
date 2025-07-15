@@ -204,7 +204,6 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "      rfi_id_fk,\r\n"
 			+ "      GROUP_CONCAT(enclosure_upload_file SEPARATOR ', ') AS enclosureFilePaths\r\n"
 			+ "    FROM rfi_enclosure\r\n"
-			+ "    WHERE uploaded_by = 'Regular User'\r\n"
 			+ "    GROUP BY rfi_id_fk\r\n"
 			+ ") enc_client ON enc_client.rfi_id_fk = r.id\r\n"
 			+ "\r\n"
