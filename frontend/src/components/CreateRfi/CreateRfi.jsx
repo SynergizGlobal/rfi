@@ -315,7 +315,7 @@ const CreateRfi = () => {
 
 		if (contractId && structureType) {
 			axios
-			.get(`${API_BASE_URL}rfi/structure`, {
+				.get(`${API_BASE_URL}rfi/structure`, {
 					params: {
 						contractId: contractId,
 						structureType: structureType
@@ -347,7 +347,7 @@ const CreateRfi = () => {
 
 		if (contractId && structureType && structure) {
 			axios
-			.get(`${API_BASE_URL}rfi/component`, {
+				.get(`${API_BASE_URL}rfi/component`, {
 					params: {
 						contractId: contractId,
 						structureType: structureType,
@@ -379,7 +379,7 @@ const CreateRfi = () => {
 
 		if (structureType && structure && component) {
 			axios
-			.get(`${API_BASE_URL}rfi/element`, {
+				.get(`${API_BASE_URL}rfi/element`, {
 					params: {
 						structureType: structureType,
 						structure: structure,
@@ -412,7 +412,7 @@ const CreateRfi = () => {
 
 		if (structureType && structure && component) {
 			axios
-			.get(`${API_BASE_URL}rfi/activityNames`, {
+				.get(`${API_BASE_URL}rfi/activityNames`, {
 					params: {
 						structureType,
 						structure,
@@ -501,7 +501,7 @@ const CreateRfi = () => {
 												});
 
 												if (selectedProjectId) {
-													axios.get('http://localhost:8000/rfi/workNames', {
+													axios.get(`${API_BASE_URL}rfi/workNames`, {
 														params: { projectId: selectedProjectId }
 													})
 														.then(response => {
@@ -552,7 +552,7 @@ const CreateRfi = () => {
 												});
 
 												if (selectedWorkId) {
-													axios.get('http://localhost:8000/rfi/contractNames', {
+													axios.get(`${API_BASE_URL}rfi/contractNames`, {
 														params: { workId: selectedWorkId }  // ✅ pass actual workId
 													})
 														.then(response => {
@@ -610,7 +610,7 @@ const CreateRfi = () => {
 												});
 
 												if (selectedContractId) {
-													axios.get('http://localhost:8000/rfi/structureType', {
+													axios.get(`${API_BASE_URL}rfi/structureType`, {
 														params: { contractId: selectedContractId }
 													})
 														.then(response => {
