@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,7 +22,11 @@ import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
+
+import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -56,17 +61,6 @@ public class RfiValidateController {
 		return ResponseEntity.ok(list);
 	}
 
-//	@GetMapping("/rfiDownload/{id}")
-//    public void downloadRfiReport(@PathVariable long id, HttpServletResponse response) {
-//        response.setContentType("application/pdf");
-//        response.setHeader("Content-Disposition", "attachment; filename=RFI_Report_" + id + ".pdf");
-//
-//       try (OutputStream out = response.getOutputStream()) {
-//        	rfiValidationService.generateRfiPdf(id, out);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error generating PDF", e);
-//        }
-//    }
 
 	@GetMapping("/getRfiReportDetails/{id}")
 	public ResponseEntity<List<RfiReportDTO>> getRfiReportDetails(@PathVariable long id) {
@@ -80,21 +74,23 @@ public class RfiValidateController {
 
 	@GetMapping("/previewFiles")
 	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
-		Path file = Paths.get(filepath);
-		Resource resource = new UrlResource(file.toUri());
-
-		if (!resource.exists() || !resource.isReadable()) {
-			return ResponseEntity.notFound().build();
-		}
-
-		String contentType = Files.probeContentType(file);
-		if (contentType == null) {
-			contentType = "application/octet-stream";
-		}
-
-		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
-				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
-				.body(resource);
+	    String decodedPath = URLDecoder.decode(filepath, StandardCharsets.UTF_8);
+	    Path file = Paths.get(decodedPath.replace("\\", File.separator).replace("/", File.separator));
+ 
+	    if (!Files.exists(file) || !Files.isReadable(file)) {
+	        return ResponseEntity.notFound().build();
+	    }
+ 
+	    Resource resource = new UrlResource(file.toUri());
+	    String contentType = Files.probeContentType(file);
+	    if (contentType == null) {
+	        contentType = "application/octet-stream";
+	    }
+ 
+	    return ResponseEntity.ok()
+	        .contentType(MediaType.parseMediaType(contentType))
+	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
+	        .body(resource);
 	}
 
 

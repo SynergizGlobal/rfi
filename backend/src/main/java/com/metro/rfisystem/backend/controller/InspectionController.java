@@ -1,13 +1,15 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.io.File;
+
 import java.io.IOException;
+import java.net.URLDecoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -22,6 +24,14 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -97,31 +107,12 @@ public class InspectionController {
 		}
 	}
 
-	@PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> updateChecklist(
 
-			@RequestPart("data") String checklistJson,
-			@RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
-			@RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
-
-		try {
-			// ObjectMapper mapper = new ObjectMapper();
-			RFIInspectionChecklistDTO dto = new ObjectMapper().readValue(checklistJson,
-					RFIInspectionChecklistDTO.class);
-
-			// Be sure the DTO carries the FK (rfiId) that already exists.
-			checklistService.updateChecklistWithFiles(dto, contractorSignature, clientSignature);
-
-			return ResponseEntity.ok("Checklist updated successfully");
-		} catch (Exception ex) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("Failed to update checklist: " + ex.getMessage());
-		}
-	}
 
 	@PostMapping(value = "/inspection/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<String> updateInspectionStatus(@RequestPart("data") String dataJson,
-			@RequestPart(value = "testDocument", required = false) MultipartFile testDocument) {
+			@RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
+	
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
@@ -139,4 +130,58 @@ public class InspectionController {
 
 		return inspectionService.generateSiteImagesPdf(id, uploadedBy);
 	}
+	
+	 @GetMapping("/getChecklist")
+	    public ResponseEntity<RFIInspectionChecklistDTO> getChecklist(
+	            @RequestParam("rfiId") Long rfiId,
+	            @RequestParam("enclosureName") String enclosureName) {
+       
+	        try {
+	        	RFIInspectionChecklistDTO dto = checklistService.getChecklist(rfiId, enclosureName);
+	        	
+	            return ResponseEntity.ok(dto);
+	        } catch (EntityNotFoundException ex) {
+	        	 System.err.println("Entity not found: " + ex.getMessage());
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+	        } catch (Exception ex) {
+	        	ex.printStackTrace(); //
+	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+	        }
+	    }
+	 
+	 @GetMapping("/DownloadPrev")
+
+	 public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
+
+	     String decodedPath = URLDecoder.decode(filepath, StandardCharsets.UTF_8);
+
+	     Path file = Paths.get(decodedPath.replace("\\", File.separator).replace("/", File.separator));
+	  
+	     if (!Files.exists(file) || !Files.isReadable(file)) {
+
+	         return ResponseEntity.notFound().build();
+
+	     }
+	  
+	     Resource resource = new UrlResource(file.toUri());
+
+	     String contentType = Files.probeContentType(file);
+
+	     if (contentType == null) {
+
+	         contentType = "application/octet-stream";
+
+	     }
+	  
+	     return ResponseEntity.ok()
+
+	         .contentType(MediaType.parseMediaType(contentType))
+
+	         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName().toString() + "\"") // <-- FORCE DOWNLOAD
+
+	         .body(resource);
+
+	 }
+
+	  
 }

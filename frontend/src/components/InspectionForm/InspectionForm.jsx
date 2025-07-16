@@ -277,6 +277,46 @@ export default function InspectionForm() {
 		}
 	};
 
+	const fetchChecklistData = async (rfiId, enclosureName) => {
+	  try {
+	    const res = await fetch(
+	      `${API_BASE_URL}rfi/getChecklist?rfiId=${rfiId}&enclosureName=${encodeURIComponent(enclosureName)}`,
+	      { credentials: 'include' }
+	    );
+		if (!res.ok) throw new Error(`Checklist fetch failed: ${res.status}`);
+
+		    const flat = await res.json();
+
+		    const checklist = [
+		      {
+		        id: 1,
+		        description: "Drawing Approved and available",
+		        status: flat.drawingApproved,
+		        contractorRemark: flat.drawingRemarkContractor,
+		        aeRemark: flat.drawingRemarkAE,
+		      },
+		      {
+		        id: 2,
+		        description: "Shuttering aligned and dimensionally correct",
+		        status: flat.alignmentOk,
+		        contractorRemark: flat.alignmentRemarkContractor,
+		        aeRemark: flat.alignmentRemarkAE,
+		      }
+		    ];
+
+		    return {
+		      checklist,
+		      gradeOfConcrete: flat.gradeOfConcrete || "",
+		      contractorSign: flat.contractorSignature || null,
+		      gcSign: flat.clientSignature || null,
+		    };
+
+		  } catch (error) {
+		    console.error("Error fetching checklist:", error);
+		    return null;
+		  }
+	};
+
 
 	if (!rfiData) return <div>Loading RFI details...</div>;
 
@@ -364,76 +404,81 @@ export default function InspectionForm() {
 
 
 								<h3>Enclosures</h3>
-								<table className="enclosure-table">
-									<thead>
-										<tr><th>RFI Description</th>
-											<th>Enclosure</th>
-											<th>Action</th>
-											<th>Uploaded</th>
-											<th>Other</th>
-										</tr>
-									</thead>
-									<tbody>
-										{enclosuresData.map((e, index) => {
-											const state = enclosureStates[e.id] || {};
-											const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
-											return (
-												<tr key={e.id}>
-													<td>{e.rfiDescription}</td>
-													<td>{e.enclosure}</td>
-													<td>
-														<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>
-														<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
-
-														{userRole?.toLowerCase() !== 'regular user' && (
-															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
-														)}
-													</td>
-													<td>
-														{(() => {
-															const enclosureFile = rfiData.enclosure?.find(
-																enc => enc.enclosureName?.trim() === e.enclosure?.trim()
-															)?.enclosureUploadFile;
-
-															return enclosureFile ? (
-																<button
-																	onClick={() => window.open(
-																		`${API_BASE_URL}/previewFiles?filepath=${encodeURIComponent(enclosureFile)}`,
-																		'_blank'
-																	)}
-																	style={{ padding: '4px 10px', cursor: 'pointer' }}
-																>
-																	ViewEnclosure
-																</button>
-															) : (
-																'---'
-															);
-														})()}
-													</td>
-
-
-													{index === 0 && (
-														<td rowSpan={enclosuresData.length}>
-															{rfiReportFilepath && (
-																<button
-																	onClick={() =>
-																		window.open(
-																			`${API_BASE_URL}previewFiles?filepath=${encodeURIComponent(rfiReportFilepath)}`,
-																			'_blank'
-																		)
-																	}
-																>
-																	View Test Report
-																</button>
-															)}
-														</td>
-													)}
-												</tr>
-											);
-										})}
-									</tbody>
-
-								</table>
+																<table className="enclosure-table">
+																	<thead>
+																		<tr><th>RFI Description</th><th>Enclosure</th><th>Action</th>
+																			<th>Uploaded</th>
+																			<th>Other</th></tr>
+																	</thead>
+																	<tbody>
+																		{enclosuresData.map((e, index) => {
+																			const state = enclosureStates[e.id] || {};
+																			const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+								 
+																			// Find enclosure file for the current row based on name match
+																			const enclosureFile = rfiData.enclosure?.find(enc =>
+																				enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+																			)?.enclosureUploadFile;
+								 
+																			return (
+																				<tr key={e.id}>
+																					<td>{e.rfiDescription}</td>
+																					<td>{e.enclosure}</td>
+								 
+																					<td>
+																						<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>{' '}
+																						<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
+																						{userRole?.toLowerCase() !== 'regular user' && (
+																							<button onClick={() => setUploadPopup(e.id)}>Upload</button>
+																						)}
+																					</td>
+								 
+								 
+								 
+																					<td>
+																					{enclosureFile ? (
+																					  <button
+																					    onClick={() => {
+																					      const link = document.createElement('a');
+																					      link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(enclosureFile)}`;
+																					      link.download = enclosureFile.split(/[\\/]/).pop(); // Extract file name
+																					      document.body.appendChild(link);
+																					      link.click();
+																					      document.body.removeChild(link);
+																					    }}
+																					    style={{ padding: '4px 10px', cursor: 'pointer' }}
+																					  >
+																					    Download Enclosure
+																					  </button>
+																					) : (
+																					  '---'
+																					)}
+																					</td>
+								 
+																					{index === 0 && (
+																						<td rowSpan={enclosuresData.length}>
+																							{rfiReportFilepath && (
+																								<button
+																								  onClick={() => {
+																								    const link = document.createElement('a');
+																								    link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
+																								    link.download = rfiReportFilepath.split(/[\\/]/).pop(); // filename
+																								    document.body.appendChild(link);
+																								    link.click();
+																								    document.body.removeChild(link);
+																								  }}
+																								>
+																								  Download Test Report
+																								</button>
+								 
+																							)}
+																						</td>
+																					)}
+																				</tr>
+																			);
+																		})}
+																	</tbody>
+																</table>
 
 								<div className="btn-row">
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
@@ -446,9 +491,11 @@ export default function InspectionForm() {
 						{checklistPopup && (
 							<ChecklistPopup
 								rfiData={rfiData} // pass rfiData
+								enclosureName={enclosuresData.find(e => e.id === checklistPopup)?.enclosure}
 								data={enclosureStates[checklistPopup]?.checklist || initialChecklist}
 								contractorSign={enclosureStates[checklistPopup]?.contractorSign || null}
 								gcSign={enclosureStates[checklistPopup]?.gcSign || null}
+								fetchChecklistData={fetchChecklistData}
 								onDone={(data, contractorSign, gcSign, grade) =>
 									handleChecklistSubmit(checklistPopup, data, contractorSign, gcSign, grade)
 								}
@@ -503,13 +550,28 @@ export default function InspectionForm() {
 	);
 }
 
-function ChecklistPopup({ rfiData, data, contractorSign, gcSign, onDone, onClose }) {
+function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,fetchChecklistData, onDone, onClose }) {
 	const [checklist, setChecklist] = useState(data);
 	const [contractorSignature, setContractorSignature] = useState(contractorSign);
 	const [gcSignature, setGcSignature] = useState(gcSign);
 	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
 
-
+	useEffect(() => {
+			const fetchData = async () => {
+				if (!rfiData?.id || !enclosureName) return;
+				const result = await fetchChecklistData(rfiData.id, enclosureName);
+				console.log("Fetched checklist result:");
+				console.dir(result);
+				if (result?.checklist) {
+					setChecklist(result.checklist);
+					setGradeOfConcrete(result.gradeOfConcrete || '');
+					// You can also set contractorSign and gcSign if returned
+				}
+			};
+			if (rfiData?.id && enclosureName) {
+				fetchData();
+			}
+		}, [rfiData?.id, enclosureName, fetchChecklistData]);
 
 
 	const handleChange = (id, field, value) => {

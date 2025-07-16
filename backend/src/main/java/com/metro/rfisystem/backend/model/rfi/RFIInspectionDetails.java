@@ -2,16 +2,10 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.TestType;
-
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,18 +15,18 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "rfi_inspection_details")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "rfi")
 public class RFIInspectionDetails {
 
     @Id
@@ -64,8 +58,7 @@ public class RFIInspectionDetails {
     @Column(columnDefinition ="VARCHAR(20)")
     private InspectionStatus inspectionStatus;
 
-   // @Column(name="test_insite_lab",columnDefinition = "VARCHAR(10)", nullable =true)
-   // private String testInsiteLab;
+   
     @Enumerated(EnumType.STRING)
     @Column(name="test_insite_lab", nullable =true)
     private TestType testInsiteLab;

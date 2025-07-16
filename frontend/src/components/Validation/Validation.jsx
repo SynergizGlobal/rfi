@@ -42,8 +42,6 @@ export default function Validation() {
 		);
 	};
 
-
-
 	const handleFileChange = (idx, file) => {
 		const updated = [...fileList];
 		updated[idx] = file;
@@ -56,7 +54,6 @@ export default function Validation() {
 		const action = statusList[idx]?.trim();
 		const file = fileList[idx];
 
-		// ✅ Validate remarks and action
 		if (!remarks) {
 			alert("Please select a remark before submitting.");
 			return;
@@ -137,24 +134,6 @@ export default function Validation() {
 	}, []);
 
 
-	async function mergeTestReport(doc, testReportBlob) {
-		const jsPDFBytes = doc.output('arraybuffer');
-		const currentPDF = await PDFDocument.load(jsPDFBytes);
-		const testReportPDF = await PDFDocument.load(await testReportBlob.arrayBuffer());
-
-		const testPages = await currentPDF.copyPages(testReportPDF, testReportPDF.getPageIndices());
-		testPages.forEach((page) => currentPDF.addPage(page));
-
-		const mergedPdfBytes = await currentPDF.save();
-		const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-
-		const link = document.createElement('a');
-		link.href = URL.createObjectURL(blob);
-		link.download = 'RfiReport.pdf';
-		link.click();
-	}
-
-	// helper: convert image URL to base64
 	const toBase64 = async (url) => {
 		const response = await fetch(url);
 		const blob = await response.blob();
@@ -165,7 +144,26 @@ export default function Validation() {
 		});
 	};
 
-	// PDF generation function
+	const isPdfFile = (file) => {
+		return typeof file === 'string' && file.toLowerCase().endsWith('.pdf');
+	};
+
+	const externalPdfBlobs = [];
+
+	async function mergeWithExternalPdfs(jsPDFDoc) {
+		const mainPdfBytes = jsPDFDoc.output('arraybuffer');
+		const mainPdf = await PDFDocument.load(mainPdfBytes);
+
+		for (const fileBlob of externalPdfBlobs) {
+			const externalPDF = await PDFDocument.load(await fileBlob.arrayBuffer());
+			const pages = await mainPdf.copyPages(externalPDF, externalPDF.getPageIndices());
+			pages.forEach((page) => mainPdf.addPage(page));
+		}
+
+		const mergedPdfBytes = await mainPdf.save();
+		return new Blob([mergedPdfBytes], { type: 'application/pdf' });
+	}
+
 	const generatePDF = async (inspectionList) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 		const safe = (val) => val || '---';
@@ -184,67 +182,49 @@ export default function Validation() {
 			if (idx !== 0) doc.addPage();
 			let y = margin;
 
-			if (logo) {
-				doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
-			}
-
+			if (logo) doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
 			y += 18;
 			doc.setFontSize(14).setFont(undefined, 'bold');
 			doc.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, y, { align: 'center' });
-
 			y += 10;
 			doc.setFontSize(10).setFont(undefined, 'normal');
 
 			const fields = [
-				['Client', inspection.client],
-				['Consultant', inspection.consultant],
-				['Contract', inspection.contract],
-				['Contractor', inspection.contractor],
-				['Contract ID', inspection.contractId],
-				['RFI ID', inspection.rfiId],
-				['Date of Inspection', inspection.dateOfInspection],
-				['Location', inspection.location],
-				['Proposed Time', inspection.proposedInspectionTime],
-				['Actual Time', inspection.actualInspectionTime],
-				['RFI Description', inspection.rfiDescription],
-				["Contractor's Representative", inspection.contractorRepresentative],
-				['Client Representative', inspection.clientRepresentative],
-				['Description by Contractor', inspection.descriptionByContractor],
-				['Enclosures', inspection.enclosures],
+				['Client', inspection.client], ['Consultant', inspection.consultant],
+				['Contract', inspection.contract], ['Contractor', inspection.contractor],
+				['Contract ID', inspection.contractId], ['RFI ID', inspection.rfiId],
+				['Date of Inspection', inspection.dateOfInspection], ['Location', inspection.location],
+				['Proposed Time', inspection.proposedInspectionTime], ['Actual Time', inspection.actualInspectionTime],
+				['RFI Description', inspection.rfiDescription], ["Contractor's Representative", inspection.contractorRepresentative],
+				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
+				['Enclosures', inspection.enclosures]
 			];
 
 			for (let i = 0; i < fields.length; i += 2) {
 				const left = `${fields[i][0]}: ${safe(fields[i][1])}`;
 				const right = fields[i + 1] ? `${fields[i + 1][0]}: ${safe(fields[i + 1][1])}` : '';
-
 				const wrappedLeft = doc.splitTextToSize(left, contentWidth / 2 - 5);
 				const wrappedRight = doc.splitTextToSize(right, contentWidth / 2 - 5);
 				const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
-
 				for (let j = 0; j < maxLines; j++) {
 					const leftText = wrappedLeft[j] || '';
 					const rightText = wrappedRight[j] || '';
 					doc.text(leftText, margin, y);
 					doc.text(rightText, pageWidth / 2 + 5, y);
 					y += lineHeight;
-
-					if (y > pageHeight - 20) {
-						doc.addPage();
-						y = margin;
-					}
+					if (y > pageHeight - 20) { doc.addPage(); y = margin; }
 				}
 			}
 
 			y += 2;
 			doc.setFont(undefined, 'bold').text('Checklist - Level Sheet:', margin, y);
 			y += 2;
-
 			doc.autoTable({
 				startY: y,
 				head: [['ID', 'Description', 'Status', 'Contractor Remarks', 'AE Remarks']],
 				body: [
 					['1', 'Drawing', safe(inspection.drawingStatusLS), safe(inspection.drawingRemarksContracotrLS), safe(inspection.drawingRemarksClientLS)],
-					['2', 'Alignment', safe(inspection.alignmentStatusLS), safe(inspection.alignmentoCntractorRemarksLS), safe(inspection.alignmentClientRemarksLS)],
+					['2', 'Alignment', safe(inspection.alignmentStatusLS), safe(inspection.alignmentoCntractorRemarksLS), safe(inspection.alignmentClientRemarksLS)]
 				],
 				styles: { fontSize: 9 },
 				headStyles: { fillColor: [0, 102, 153], textColor: 255 },
@@ -254,13 +234,12 @@ export default function Validation() {
 
 			doc.setFont(undefined, 'bold').text('Checklist - Pour Card:', margin, y);
 			y += 2;
-
 			doc.autoTable({
 				startY: y,
 				head: [['ID', 'Description', 'Status', 'Contractor Remarks', 'AE Remarks']],
 				body: [
 					['1', 'Drawing', safe(inspection.drawingStatusPC), safe(inspection.drawingRemarksContracotrPC), safe(inspection.drawingRemarksClientPC)],
-					['2', 'Alignment', safe(inspection.alignmentStatusPC), safe(inspection.alignmentoCntractorRemarksPC), safe(inspection.alignmentClientRemarksPC)],
+					['2', 'Alignment', safe(inspection.alignmentStatusPC), safe(inspection.alignmentoCntractorRemarksPC), safe(inspection.alignmentClientRemarksPC)]
 				],
 				styles: { fontSize: 9 },
 				headStyles: { fillColor: [0, 102, 153], textColor: 255 },
@@ -282,21 +261,19 @@ export default function Validation() {
 				if (!paths || !paths.trim()) return;
 				const files = paths.split(',').map(f => f.trim()).filter(Boolean);
 				if (!files.length) return;
-
 				doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
 				y += 5;
 
 				for (const file of files) {
-					const filename = file.split('/').pop().split('\\').pop();
-					const extension = filename.split('.').pop().toLowerCase();
-
+					const extension = file.split('.').pop().toLowerCase();
 					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
 					if (extension === 'pdf') {
-						doc.setFont(undefined, 'normal').setTextColor(0, 0, 255);
-						doc.textWithLink(`View PDF: ${filename}`, margin, y, { url: fileUrl });
-						y += 6;
-						doc.setTextColor(0, 0, 0);
+						const response = await fetch(fileUrl);
+						if (response.ok) {
+							const blob = await response.blob();
+							externalPdfBlobs.push(blob);
+						}
 					} else {
 						const imgData = await toBase64(fileUrl);
 						if (imgData) {
@@ -317,47 +294,49 @@ export default function Validation() {
 				}
 			};
 
-			// Images
+			const handlePdfOrImage = async (label, filePaths) => {
+				if (!filePaths) return;
+				const files = filePaths.split(',').map(f => f.trim()).filter(Boolean);
+				for (const file of files) {
+					if (isPdfFile(file)) {
+						const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+						const response = await fetch(fileUrl);
+						if (response.ok) {
+							const blob = await response.blob();
+							externalPdfBlobs.push(blob);
+						}
+					} else {
+						await imageSection(label, file);
+					}
+				}
+			};
+
 			await imageSection('Inspector Selfie', inspection.selfieClient);
 			await imageSection('Inspector Site Images', inspection.imagesUploadedByClient);
 			await imageSection('Contractor Selfie', inspection.selfieContractor);
 			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor);
 			await imageSection('Contractor Enclosures & Test Report', inspection.contractorEnclosureFilePaths);
 
-			if (inspection.testSiteDocumentsContractor) {
-				/*    
-				commented because of already showing above like Contractor Enclosures & Test Report
-				    doc.addPage();
-						doc.setFont(undefined, 'bold').text("Test Report Uploaded by Contractor", 20, 30);*/
-
-				let testReportBlob;
-				if (typeof inspection.testSiteDocumentsContractor === 'string') {
-					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(inspection.testSiteDocumentsContractor)}`;
-					console.log('Fetching test report from preview API:', fileUrl);
-
-					const response = await fetch(fileUrl);
-					if (!response.ok) throw new Error('Failed to fetch test report');
-					testReportBlob = await response.blob();
-				}
-				else {
-					testReportBlob = inspection.testSiteDocumentsContractor;
-				}
-
-				await mergeTestReport(doc, testReportBlob);
-			}
+			await handlePdfOrImage('Level Sheet', inspection.levelSheetFilePath);
+			await handlePdfOrImage('Pour Card', inspection.pourCardFilePath);
+			await handlePdfOrImage('Test Report Uploaded by Contractor', inspection.testSiteDocumentsContractor);
 		}
+
+		const mergedBlob = await mergeWithExternalPdfs(doc);
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(mergedBlob);
+		link.download = 'RfiReport.pdf';
+		link.click();
 	};
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
 			const res = await axios.get(`${API_BASE_URL}/getRfiReportDetails/${rfiId}`);
-
 			if (res.data?.length > 0) {
 				const inspection = res.data[0];
 				inspection.remarks = remarksList[idx] || '';
 				inspection.status = statusList[idx] || '';
 				await generatePDF([inspection]);
-
 			} else {
 				alert("No inspection details found.");
 			}
@@ -366,8 +345,6 @@ export default function Validation() {
 			alert("Failed to generate PDF. Please try again.");
 		}
 	};
-
-
 
 
 	const printPreview = () => window.print();
@@ -546,6 +523,11 @@ export default function Validation() {
 										<p>{selectedInspection.descriptionByContractor}</p>
 									</div>
 
+									<div className="form-fields">
+										<label>Test Report Approval By Inspector:</label>
+										<p>{selectedInspection.testStatus}</p>
+									</div>
+
 
 								</div>
 
@@ -619,7 +601,7 @@ export default function Validation() {
 								{selectedInspection.selfieClient && (
 									<div className="image-gallery">
 										<h4>Inspector Selfie</h4>
-										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
+										{selectedInspection.selfieClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
@@ -704,10 +686,10 @@ export default function Validation() {
 
 
 
-								{selectedInspection.contractorEnclosureFilePaths && (
+								{selectedInspection.levelSheetFilePath && (
 									<div className="image-gallery">
-										<h4>Enclosures Uploaded By Contractor</h4>
-										{selectedInspection.contractorEnclosureFilePaths.split(',').map((rawPath, idx) => {
+										<h4>Enclosures Uploaded (LEVEL SHEET)</h4>
+										{selectedInspection.levelSheetFilePath.split(',').map((rawPath, idx) => {
 											const path = rawPath.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
 											const extension = getExtension(path); // assuming this returns 'pdf', 'jpg', etc.
@@ -737,7 +719,41 @@ export default function Validation() {
 								)}
 
 
-								{ selectedInspection.testSiteDocumentsContractor && (
+								{selectedInspection.pourCardFilePath && (
+									<div className="image-gallery">
+										<h4>Enclosures Uploaded (POUR CARD)</h4>
+										{selectedInspection.pourCardFilePath.split(',').map((rawPath, idx) => {
+											const path = rawPath.trim();
+											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+											const extension = getExtension(path); // assuming this returns 'pdf', 'jpg', etc.
+
+											return (
+												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+													{extension === 'pdf' ? (
+														<embed
+															src={fileUrl}
+															type="application/pdf"
+															width="100%"
+															height="500px"
+															className="preview-pdf"
+														/>
+													) : (
+														<img
+															src={fileUrl}
+															alt={`Enclosure ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													)}
+												</a>
+											);
+										})}
+									</div>
+								)}
+
+
+
+								{selectedInspection.testSiteDocumentsContractor && (
 									<div className="image-gallery">
 										<h4>Test Report Uploaded By Contractor</h4>
 

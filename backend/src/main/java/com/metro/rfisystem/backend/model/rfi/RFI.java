@@ -1,7 +1,8 @@
 package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,12 +31,14 @@ import jakarta.persistence.TemporalType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "rfi_data")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"inspectionDetails", "rfiValidation"})
 public class RFI {
 
 	@Id
@@ -111,8 +114,6 @@ public class RFI {
 	@Column(name = "client_department")
 	private String clientDepartment;
  
-//	@Column(name = "client_user_id")
-//	private String clientUserId;
 	
     @Column(name = "assigned_person_contractor")
     private String assignedPersonContractor;

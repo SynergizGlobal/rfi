@@ -2,8 +2,8 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDateTime;
 
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.metro.rfisystem.backend.constants.EnumValidation;
 
 import jakarta.persistence.Column;
@@ -18,12 +18,14 @@ import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = "rfi")
 public class RfiValidation {
 	
 	@Id

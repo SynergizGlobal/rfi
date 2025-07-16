@@ -22,6 +22,7 @@ import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -30,7 +31,6 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	
 	
 	 private final RFIInspectionChecklistRepository checklistRepository;
-	 private final RFIInspectionDetailsRepository inspectionDetailsRepository;
 	 private final RFIRepository rfiRepository;
 	 @Value("${file.upload-dir}")
 	 private String uploadDir;
@@ -51,19 +51,20 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	        checklist.setRfi(inspection);
 	        checklist.setEnclosureName(dto.getEnclosureName());
 	        checklist.setUploadedby(UserRole);
-	        checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
-	        if ("Contractor".equalsIgnoreCase(UserRole)) {
+	        if ("Contractor".equalsIgnoreCase(UserRole) || "IT Admin".equalsIgnoreCase(UserRole)) {
+	        	checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
+	        	checklist.setDrawingApproved(dto.getDrawingApproved());
+		        checklist.setAlignmentOk(dto.getAlignmentOk());
 	            checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
 	            checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
 	            checklist.setContractorSignature(contractorSig != null ? saveFile(contractorSig) : checklist.getContractorSignature());
-	        } else if ("Regular User".equalsIgnoreCase(UserRole)) {
+	        } else if ("Regular User".equalsIgnoreCase(UserRole) || "IT Admin".equalsIgnoreCase(UserRole)) {
 	            checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
 	            checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
 	            checklist.setGcMrvcRepresentativeSignature(clientSig != null ? saveFile(clientSig) : checklist.getGcMrvcRepresentativeSignature());
 	        }
 
-	        checklist.setDrawingApproved(dto.getDrawingApproved());
-	        checklist.setAlignmentOk(dto.getAlignmentOk());
+	      
 	       
 	        checklistRepository.save(checklist);
 	    }
@@ -76,43 +77,39 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	        return path.toString();
 	    }
 
+
+
 		@Override
-		public void updateChecklistWithFiles( RFIInspectionChecklistDTO dto,
-				MultipartFile contractorSignature, MultipartFile clientSignature) throws IOException {
-			
-			 // Fetch the associated RFI
-		  //  RFI rfi = rfiRepository.findById(dto.getRfiId())
-		   //     .orElseThrow(() -> new RuntimeException("Invalid inspection ID: " + dto.getRfiId()));
+		public RFIInspectionChecklistDTO getChecklist(Long rfiId, String enclosureName) {
+			  RFI rfi = rfiRepository.findById(rfiId)
+		                .orElseThrow(() -> new EntityNotFoundException("RFI not found with ID: " + rfiId));
 
-		    // Find the existing checklist for that RFI
-		    RFIChecklistItem checklist = checklistRepository.findById(dto.getChecklistId())
-		        .orElseThrow(() -> new RuntimeException("Checklist not found for RFI ID: " + dto.getChecklistId()));
-
-		    // Update fields
-		    checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
-		    checklist.setDrawingApproved(dto.getDrawingApproved());
-		    checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
-		    checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
-		    checklist.setAlignmentOk(dto.getAlignmentOk());
-		    checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
-		    checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
-
-		    // Optional: replace contractor signature
-		    if (contractorSignature != null && !contractorSignature.isEmpty()) {
-		        String contractorPath = saveFile(contractorSignature);
-		        checklist.setContractorSignature(contractorPath);
-		    }
-
-		    // Optional: replace client signature
-		    if (clientSignature != null && !clientSignature.isEmpty()) {
-		        String clientPath = saveFile(clientSignature);
-		        checklist.setGcMrvcRepresentativeSignature(clientPath);
-		    }
-
-		        checklistRepository.save(checklist);
-		        
-		}
+		        RFIChecklistItem checklistItem = checklistRepository.findByRfiAndEnclosureName(rfi, enclosureName)
+		                .orElseThrow(() -> new EntityNotFoundException("Checklist not found for enclosure: " + enclosureName));
+      System.out.println("Checklist" + checklistItem.getId());
+		        return mapToDto(checklistItem);
+		    }	
 		
+		   private RFIInspectionChecklistDTO mapToDto(RFIChecklistItem entity) {
+			   RFIInspectionChecklistDTO dto = new RFIInspectionChecklistDTO();
+		        dto.setRfiId(entity.getRfi().getId());
+		        dto.setEnclosureName(entity.getEnclosureName());
+		        dto.setGradeOfConcrete(entity.getGradeOfConcrete());
+		        dto.setDrawingApproved(entity.getDrawingApproved());
+		        dto.setAlignmentOk(entity.getAlignmentOk());
+		        dto.setDrawingRemarkContractor(entity.getDrawingRemarkContractor());
+		        dto.setAlignmentRemarkContractor(entity.getAlignmentRemarkContractor());
+		       // dto.setContractorSignature()
+		      //  dto.setContractorSignature(null);
+		        
+
+		        // AE / Regular User fields
+		        dto.setDrawingRemarkAE(entity.getDrawingRemarkAE());
+		        dto.setAlignmentRemarkAE(entity.getAlignmentRemarkAE());
+		    //    dto.setGcMrvcRepresentativeSignature(entity.getGcMrvcRepresentativeSignature());
+
+		        return dto;
+		    }
 	
 }
 

@@ -42,12 +42,13 @@ public class RfiReportDTO {
 	
 	private String status;
 	private String remarks;
-	private String contractorEnclosureFilePaths;
+	private String levelSheetFilePath;
+	private String pourCardFilePath;
 	private String selfieClient;
 	private String selfieContractor;
 	private String imagesUploadedByClient;
 	private String imagesUploadedByContractor;
-	private String testInsiteLabContractor;
+	private String testStatus;
 	private String testSiteDocumentsContractor;
 
 }

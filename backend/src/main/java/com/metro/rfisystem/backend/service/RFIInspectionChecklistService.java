@@ -11,8 +11,7 @@ import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 		public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, MultipartFile contractorSignature,
 				MultipartFile clientSignature, String userRole) throws Exception;
     
-	public void updateChecklistWithFiles( RFIInspectionChecklistDTO dto,
-			MultipartFile contractorSignature, MultipartFile clientSignature) throws Exception;
+	    public RFIInspectionChecklistDTO getChecklist(Long rfiId, String enclosureName);
 
 
 }

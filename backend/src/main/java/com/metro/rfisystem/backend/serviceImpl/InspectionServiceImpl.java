@@ -140,8 +140,12 @@ public class InspectionServiceImpl implements InspectionService {
 	@Override
 	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)
 			throws IOException, DocumentException {
-		List<String> imagePathRows = inspectionRepository.findSiteImagesByIdAndUploader(id, uploadedBy);
-
+     List<String> imagePathRows;
+       if ("Regular User".equals(uploadedBy)) {
+	    imagePathRows = inspectionRepository.findSiteImagesByIdAndUploadedByClient(id);
+	} else {
+	    imagePathRows = inspectionRepository.findSiteImagesByIdAndUploadedByContractor(id);
+	}
 		if (imagePathRows == null || imagePathRows.isEmpty()) {
 			return ResponseEntity.notFound().build();
 		}
