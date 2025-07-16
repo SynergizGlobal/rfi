@@ -1,6 +1,8 @@
 package com.metro.rfisystem.backend.service;
 
 import java.util.List;
+
+import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
@@ -47,5 +49,7 @@ public interface RFIService {
 	int countByCreatedBy(String createdBy);
 
 	List<RfiListDTO> getRFIsCreatedBy(String createdBy);
+
+	List<ContractDropdownDTO> getAllowedContractsForUser(String userId);
 
 }

@@ -10,6 +10,8 @@ const CreateRfi = () => {
 	const [formData, setFormData] = useState({});
 	const [mode, setMode] = useState('create');
 	const [loading, setLoading] = useState(true);
+	const [allowedContractNames, setAllowedContractNames] = useState(new Set());
+
 	const [isEditable, setIsEditable] = useState(mode?.toLowerCase() !== 'edit');
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
@@ -76,6 +78,9 @@ const CreateRfi = () => {
 
 	const handleSubmit = async () => {
 
+
+
+
 		setMessage('');
 		const url =
 			mode === 'edit'
@@ -106,6 +111,40 @@ const CreateRfi = () => {
 			setMessage('❌ Failed to submit RFI. Please try again.');
 		}
 	};
+
+	useEffect(() => {
+		const fetchContracts = async () => {
+			try {
+				const response = await fetch(`${API_BASE_URL}rfi/allowedContracts`, {
+					method: 'GET',
+					credentials: 'include'
+				});
+				const data = await response.json();
+
+				const mappedOptions = data.map(c => ({
+					label: c.contractShortName,
+					value: c.contractShortName
+				}));
+
+				const idMap = {};
+				const allowedSet = new Set();
+
+				data.forEach(c => {
+					idMap[c.contractShortName] = c.contractIdFk.trim();
+					allowedSet.add(c.contractShortName);
+				});
+
+				setContractOptions(mappedOptions);
+				setContractIdMap(idMap);
+				setAllowedContractNames(allowedSet); // ✅ used later to filter contracts
+			} catch (err) {
+				console.error('Failed to load allowed contract list:', err);
+			}
+		};
+
+		fetchContracts();
+	}, []);
+
 
 	const [projectOptions, setProjectOptions] = useState([]);
 	const [projectIdMap, setProjectIdMap] = useState({});
@@ -381,7 +420,7 @@ const CreateRfi = () => {
 			axios
 				.get(`${API_BASE_URL}rfi/element`, {
 					params: {
-						contractId:contractId,
+						contractId: contractId,
 						structureType: structureType,
 						structure: structure,
 						component: component
@@ -554,29 +593,32 @@ const CreateRfi = () => {
 
 												if (selectedWorkId) {
 													axios.get(`${API_BASE_URL}rfi/contractNames`, {
-														params: { workId: selectedWorkId }  // ✅ pass actual workId
+														params: { workId: selectedWorkId }
 													})
 														.then(response => {
 															const map = {};
-															const contractOptions = response.data.map(contract => {
-																const name = contract.contractShortName;
-																const id = contract.contractIdFk.trim();
-																map[name] = id;
-																return {
-																	value: name,   // user sees & selects the name
-																	label: name
-																};
-															});
+															const contractOptions = response.data
+																.filter(contract => allowedContractNames.has(contract.contractShortName)) // ✅ filter
+																.map(contract => {
+																	const name = contract.contractShortName;
+																	const id = contract.contractIdFk.trim();
+																	map[name] = id;
+																	return {
+																		value: name,
+																		label: name
+																	};
+																});
 
 															setContractOptions(contractOptions);
-															setContractIdMap(map); // ✅ store the map
+															setContractIdMap(map);
 														})
 														.catch(error => {
 															console.error('Error fetching contract options:', error);
 															setContractOptions([]);
 															setContractIdMap({});
 														});
-												} else {
+												}
+												else {
 													setContractOptions([]);
 													setContractIdMap({});
 												}

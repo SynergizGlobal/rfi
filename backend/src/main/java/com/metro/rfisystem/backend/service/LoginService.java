@@ -14,4 +14,6 @@ public interface LoginService {
 	boolean isValidUser(String userName);
 	
 	List<Map<String, String>> getUserNamesOfRegularUsers();
+
+	List<String> getAllowedContractIds(User user);
 }

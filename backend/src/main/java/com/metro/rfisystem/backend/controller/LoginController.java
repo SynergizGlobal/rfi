@@ -21,6 +21,7 @@ import com.metro.rfisystem.backend.dto.LoginResponse;
 import com.metro.rfisystem.backend.exception.AuthenticationException;
 import com.metro.rfisystem.backend.exception.UserNotFoundException;
 import com.metro.rfisystem.backend.model.pmis.User;
+import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.service.LoginService;
 
 import jakarta.servlet.http.HttpSession;
@@ -33,6 +34,8 @@ public class LoginController {
 
 	@Autowired
 	private LoginService loginService;
+	
+
 
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpSession session) {
@@ -40,17 +43,20 @@ public class LoginController {
 			logger.info("Login attempt for user: {}", loginRequest.getUserName());
 
 			User user = loginService.authenticate(loginRequest.getUserName(), loginRequest.getPassword());
+	        List<String> allowedContracts = loginService.getAllowedContractIds(user);
+
 
 			session.setAttribute("user", user);
 			session.setAttribute("userId", user.getUserId());
 			session.setAttribute("userName", user.getUserName());
 			session.setAttribute("userRoleNameFk", user.getUserRoleNameFk());
 			session.setAttribute("userTypeFk", user.getUserTypeFk());
+	        session.setAttribute("allowedContracts", allowedContracts); // REQUIRED
 
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
 			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),
-					user.getUserTypeFk());
+					user.getUserTypeFk(), allowedContracts);
 
 			logger.info("Login successful for user: {}", user.getUserName());
 			return ResponseEntity.ok(response);
@@ -79,7 +85,7 @@ public class LoginController {
 			session.invalidate();
 
 			logger.info("Logout successful for user: {}", userName);
-			return ResponseEntity.ok(new LoginResponse(null, null, null, "Logged out successfully"));
+			return ResponseEntity.ok(new LoginResponse(null, null, null, "Logged out successfully", null));
 
 		} catch (Exception e) {
 			logger.error("Error during logout", e);
@@ -94,7 +100,7 @@ public class LoginController {
 
 		if (user != null) {
 			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),
-					"Session active");
+					"Session active", null);
 			return ResponseEntity.ok(response);
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

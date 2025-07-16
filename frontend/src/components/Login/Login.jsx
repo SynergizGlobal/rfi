@@ -144,6 +144,10 @@ const Login = () => {
 				localStorage.setItem('userName', data.userName);
 				localStorage.setItem('userRoleNameFk', data.userRoleNameFk);
 				localStorage.setItem('userTypeFk', data.userTypeFk);
+				
+				if (data.allowedContractIds) {
+				localStorage.setItem('allowedContracts', JSON.stringify(data.allowedContractIds));
+			}
 
 				window.location.href = "/rfiSystem/dashboard";
 

@@ -3,11 +3,14 @@ package com.metro.rfisystem.backend.serviceImpl;
 import com.metro.rfisystem.backend.config.EncryptDecrypt;
 import com.metro.rfisystem.backend.exception.AuthenticationException;
 import com.metro.rfisystem.backend.model.pmis.User;
+import com.metro.rfisystem.backend.repository.pmis.ContractExecutiveRepository;
+import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,12 @@ public class LoginServiceImpl implements LoginService {
 
 	@Autowired
 	private LoginRepository loginRepo;
+	
+	@Autowired
+	private ContractRepository contractRepo;
+	
+	@Autowired
+	private ContractExecutiveRepository contractExecutiveRepo;
 
 	@Override
 	public User authenticate(String userName, String password) throws AuthenticationException {
@@ -58,6 +67,28 @@ public class LoginServiceImpl implements LoginService {
 		return matchedUser;
 	}
 	
+	
+	public List<String> getAllowedContractIds(User user) {
+	    String userId = user.getUserId();
+	    String role = user.getUserRoleNameFk();
+	    String type = user.getUserTypeFk();
+
+	    
+	    if ("IT Admin".equalsIgnoreCase(role)) {
+	        // Fetch all contracts
+	        return contractRepo.findAllContractIds();
+	    }
+	    else if ("Contractor".equalsIgnoreCase(role)) {
+	        return contractRepo.findContractIdsByContractorId(userId);
+	    } else if ("DyHOD".equalsIgnoreCase(type)) {
+	        return contractRepo.findContractIdsByDyHodUserId(userId);
+	    } else if ("Regular User".equalsIgnoreCase(role)) {
+	        return contractExecutiveRepo.findContractIdsByExecutiveUserId(userId);
+	    } else {
+	        return Collections.emptyList();
+	    }
+	}
+
 	
 
 	@Override

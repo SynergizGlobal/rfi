@@ -2,22 +2,27 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
+import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
+import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
 import com.metro.rfisystem.backend.repository.pmis.ProjectRepository;
 import com.metro.rfisystem.backend.repository.pmis.StructureRepository;
@@ -42,12 +47,15 @@ public class RFIServiceImpl implements RFIService {
 	private final StructureRepository structureRepository;
 
 	private final P6ActivityRepository p6ActivityRepository;
+	  
+	private final  LoginRepository loginRepo;
+	
 
 	@Override
 	@Transactional
 	public RFI createRFI(RFI_DTO dto, String userName) {
 
-		String contractShortName = dto.getContractId();
+		String contractShortName = dto.getContract(); 
 
 		String contractId = contractRepository.findContractIdByShortName(contractShortName);
 
@@ -60,13 +68,14 @@ public class RFIServiceImpl implements RFIService {
 		String date = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"));
 		String revision = "R0";
 
-		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractShortName, userName, date, dto.getActivity(),
+		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractId, userName, date, dto.getActivity(),
 				rfiNumber, revision);
 
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
 
 		rfi.setContract(dto.getContract());
+	    rfi.setContract(contractId); // ✅ save with actual contract ID
 
 		rfi.setProject(dto.getProject());
 		rfi.setWork(dto.getWork());
@@ -91,7 +100,19 @@ public class RFIServiceImpl implements RFIService {
 
 		return rfiRepository.save(rfi);
 	}
+	@Override
+	public List<ContractDropdownDTO> getAllowedContractsForUser(String userId) {
+		User user = loginRepo.findById(userId).orElse(null);
+	    if (user == null) return Collections.emptyList();
 
+	    if ("IT Admin".equalsIgnoreCase(user.getUserRoleNameFk())) {
+	        return contractRepository.findAllContractShortNames();
+	    }
+
+	    return contractRepository.findAllowedContractShortNames(userId);
+	}
+
+	
 	@Override
 	public List<ProjectDTO> getAllProjectNames() {
 		return projectRepository.findDistinctProjectNames();
