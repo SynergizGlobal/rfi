@@ -30,8 +30,7 @@ public class RFIEnclosure {
 
     
     private String enclosureName;
-    private String view;
-    
+ 
     
     @Column(length = 1000)
     private String enclosureUploadFile;
