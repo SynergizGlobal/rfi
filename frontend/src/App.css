@@ -80,6 +80,7 @@ label{
 
 .form-fields p{
 	text-align: left;
+	word-wrap : break-down;
 }
 
 .form-fields img {

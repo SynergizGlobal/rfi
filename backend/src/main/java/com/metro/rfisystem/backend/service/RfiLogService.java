@@ -8,6 +8,6 @@ public interface RfiLogService {
 	
 	public List<RfiLogDTO> listRfiDetailsByFilter(String project,String work,String contract);
 	
-	public List<RfiLogDTO> listAllRfiLog();
+	public List<RfiLogDTO> listAllRfiLog(String UserRole,String UserName);
 
 }

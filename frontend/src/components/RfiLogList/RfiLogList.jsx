@@ -16,23 +16,22 @@ export default function RfiLogList() {
   const [contractIdMap, setContractIdMap] = useState({});
   const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
 const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+useEffect(() => {
+  axios.get(`${API_BASE_URL}/getAllRfiLogDetails`, { withCredentials: true })
+    .then(response => {
+      if (response.status === 204 || !response.data || response.data.length === 0) {
+        setData([]);
+        setMessage('No RFIs found.');
+      } else {
+        setData(response.data);
+        setMessage('');
+      }
+    })
+    .catch(() => {
+      setMessage('Error loading RFI data.');
+    });
+}, []);
 
-
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/getAllRfiLogDetails`)
-      .then(response => {
-        if (response.status === 204 || !response.data || response.data.length === 0) {
-          setData([]);
-          setMessage('No RFIs found.');
-        } else {
-          setData(response.data);
-          setMessage('');
-        }
-      })
-      .catch(() => {
-        setMessage('Error loading RFI data.');
-      });
-  }, []);
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/rfi/projectNames`)
@@ -49,10 +48,11 @@ const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
 
   useEffect(() => {
     const { project, work, contract } = formState;
-    if (!project || !work || !contract) return;
+
+    if (!project || !work) return;
 
     axios.get(`${API_BASE_URL}/getRfiLogDetailsFilter`, {
-      params: { project, work, contract }
+      params: { project, work, contract: contract || '' } 
     })
       .then(response => {
         if (response.status === 204 || !response.data || response.data.length === 0) {
@@ -68,6 +68,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
         setMessage('Error loading filtered data.');
       });
   }, [formState]);
+
 
   const columns = useMemo(() => [
     { Header: 'RFI ID', accessor: 'rfiId' },
@@ -228,7 +229,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
 			        setFormState({ project: '', work: '', contract: '' });
 			        setWorkOptions([]);
 			        setContractOptions([]);
-                    axios.get(`${API_BASE_URL}/getAllRfiLogDetails`)
+					axios.get(`${API_BASE_URL}/getAllRfiLogDetails`, { withCredentials: true })
 			          .then(response => {
 			            if (response.status === 204 || !response.data || response.data.length === 0) {
 			              setData([]);

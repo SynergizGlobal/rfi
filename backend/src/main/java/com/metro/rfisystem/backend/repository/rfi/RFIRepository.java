@@ -164,8 +164,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "  v.remarks AS remarks,\r\n"
 			+ "\r\n"
 			+ "  -- Enclosure paths by role\r\n"
-			+ "  MAX(CASE WHEN re.enclosure_name = 'Level Sheet' THEN re.enclosure_upload_file END) AS levelSheetFilePath,\r\n"
-			+ "  MAX(CASE WHEN re.enclosure_name = 'Pour Card' THEN re.enclosure_upload_file END) AS pourCardFilePath,\r\n"
+			+ "  MAX(CASE WHEN re.enclosure_name = 'Level Sheet' THEN re.enclosure_upload_file  ELSE NULL END) AS levelSheetFilePath,\r\n"
+			+ "  MAX(CASE WHEN re.enclosure_name = 'Pour Card' THEN re.enclosure_upload_file ELSE NULL END) AS pourCardFilePath,\r\n"
 			+ "\r\n"
 			+ "  -- Inspection details by role\r\n"
 			+ "  ic.selfie_path AS selfieClient,\r\n"
@@ -199,18 +199,30 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
 	
-	@Query(value="select r.id as id, r.rfi_id as rfiId, DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') as dateOfSubmission,r.description as rfiDescription,\r\n"
-			+ "r.created_by as rfiRequestedBy,r.client_department as department,r.assigned_person_client as person,DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') as dateRaised,\r\n"
-			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') as dateResponded,r.status as status,rv.remarks as notes\r\n"
-			+ "from rfi_data as r\r\n"
-			+ "left join rfi_inspection_details as i \r\n"
-			+ "on r.id = i.rfi_id_fk\r\n"
-			+ "left join rfi_validation as rv\r\n"
-			+ "on rv.rfi_id_fk = r.id\r\n"
-			+ "where r.project_name=:project\r\n"
-			+ "and r.work_short_name =:work\r\n"
-			+ "and r.contract_short_name=:contract\r\n"
-			+ "order by created_at desc\r\n"
+	@Query(value="SELECT \r\n"
+			+ "    r.id AS id,\r\n"
+			+ "    r.rfi_id AS rfiId,\r\n"
+			+ "    DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,\r\n"
+			+ "    r.description AS rfiDescription,\r\n"
+			+ "    r.created_by AS rfiRequestedBy,\r\n"
+			+ "    r.client_department AS department,\r\n"
+			+ "    r.assigned_person_client AS person,\r\n"
+			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
+			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
+			+ "    r.status AS status,\r\n"
+			+ "    rv.remarks AS notes\r\n"
+			+ "FROM \r\n"
+			+ "    rfi_data r\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_inspection_details i ON r.id = i.rfi_id_fk\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_validation rv ON rv.rfi_id_fk = r.id\r\n"
+			+ "WHERE \r\n"
+			+ "    (:project IS NULL OR :project = '' OR r.project_name = :project)\r\n"
+			+ "    AND (:work IS NULL OR :work = '' OR r.work_short_name = :work)\r\n"
+			+ "    AND (:contract IS NULL OR :contract = '' OR r.contract_short_name = :contract)\r\n"
+			+ "ORDER BY \r\n"
+			+ "    r.created_at DESC;\r\n"
 			+ "",nativeQuery=true)
 	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
 	
@@ -235,7 +247,33 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    group by r.id\r\n"
 			+ "ORDER BY \r\n"
 			+ "    r.created_at DESC;",nativeQuery=true)
-	List<RfiLogDTO> listAllRfiLog();
+	List<RfiLogDTO> listAllRfiLogItAdmin();
+	
+	@Query(value="SELECT\r\n"
+			+ "    r.id AS id,\r\n"
+			+ "    r.rfi_id AS rfiId,\r\n"
+			+ "    DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,\r\n"
+			+ "    r.description AS rfiDescription,\r\n"
+			+ "    r.created_by AS rfiRequestedBy,\r\n"
+			+ "    r.client_department AS department,\r\n"
+			+ "    r.assigned_person_client AS person,\r\n"
+			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
+			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
+			+ "    r.status AS status,\r\n"
+			+ "    rv.remarks AS notes\r\n"
+			+ "FROM \r\n"
+			+ "    rfi_data AS r\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_inspection_details AS i ON r.id = i.rfi_id_fk\r\n"
+			+ "LEFT JOIN \r\n"
+			+ "    rfi_validation AS rv ON rv.rfi_id_fk = r.id\r\n"
+			+ "    where r.created_by = :userName\r\n"
+			+ "GROUP BY \r\n"
+			+ "    r.id\r\n"
+			+ "ORDER BY \r\n"
+			+ "    r.created_at DESC;\r\n"
+			+ "",nativeQuery=true)
+	List<RfiLogDTO> listAllRfiLogByCreatedBy(String userName  );
 
 
 	long countByStatus(EnumRfiStatus status);
