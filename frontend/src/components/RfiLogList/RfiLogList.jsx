@@ -68,6 +68,14 @@ useEffect(() => {
         setMessage('Error loading filtered data.');
       });
   }, [formState]);
+  
+  const processedData = useMemo(() => 
+    data.map(row => ({
+      ...row,
+      displayStatus: row.status === 'INSPECTION_DONE' ? 'Closed' : 'Open',
+    })), 
+  [data]);
+
 
 
   const columns = useMemo(() => [
@@ -84,11 +92,10 @@ useEffect(() => {
     },
     { Header: 'Date Raised', accessor: 'dateRaised' },
     { Header: 'Date Responded', accessor: 'dateResponded' },
-    {
-      Header: 'Status',
-      accessor: 'status',
-      Cell: ({ value }) => value === 'INSPECTION_DONE' ? 'Closed' : 'Open'
-    },
+	{
+	  Header: 'Status',
+	  accessor: 'displayStatus',
+	},
     { Header: 'Notes', accessor: 'notes' },
     {
       Header: 'View',
@@ -117,7 +124,7 @@ useEffect(() => {
     setGlobalFilter,
     setPageSize
   } = useTable(
-    { columns, data, initialState: { pageSize: 5 } },
+    { columns, data: processedData, initialState: { pageSize: 5 } },
     useGlobalFilter,
     usePagination
   );
@@ -285,6 +292,10 @@ useEffect(() => {
 
           
             <div className="pagination-bar">
+			<span>
+				Showing {pageIndex * pageSize + 1} to{' '}
+				{Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
+			</span>
               <button onClick={() => previousPage()} disabled={!canPreviousPage}>&lt; Prev</button>
               <span>Page <strong>{pageIndex + 1} of {pageOptions.length}</strong></span>
               <button onClick={() => nextPage()} disabled={!canNextPage}>Next &gt;</button>
