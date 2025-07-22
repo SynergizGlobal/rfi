@@ -73,10 +73,8 @@ public class RFIServiceImpl implements RFIService {
 
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
-
 		rfi.setContract(dto.getContract());
-	    rfi.setContract(contractId); // ✅ save with actual contract ID
-
+		rfi.setContractId(contractId);
 		rfi.setProject(dto.getProject());
 		rfi.setWork(dto.getWork());
 		rfi.setStructureType(dto.getStructureType());

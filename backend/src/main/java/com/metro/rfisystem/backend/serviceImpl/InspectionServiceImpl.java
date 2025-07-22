@@ -73,7 +73,7 @@ public class InspectionServiceImpl implements InspectionService {
 	@Override
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,
 			String UserRole) {
-		System.out.println("DTO" + dto);
+	
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 		

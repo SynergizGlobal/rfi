@@ -117,6 +117,9 @@ public class RFI {
 	
     @Column(name = "assigned_person_contractor")
     private String assignedPersonContractor;
+    
+    @Column(name="contract_id")
+    private String contractId;
 	
     
 	@OneToOne(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
