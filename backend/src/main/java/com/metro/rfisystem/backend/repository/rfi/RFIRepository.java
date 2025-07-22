@@ -33,10 +33,16 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 		        r.created_by AS createdBy,
 		        r.assigned_person_client AS assignedPersonClient,
 		        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-		        i.inspection_status AS inspectionStatus
+		        ico.inspection_status AS inspectionStatus,
+                ic.site_image as imgClient,
+                ico.site_image as imgContractor
 		    FROM rfi_data r
-            left join rfi_inspection_details as i
-            on r.id=i.rfi_id_fk
+            left join (select rfi_id_fk,site_image from rfi_inspection_details 
+            where uploaded_by = 'Regular User') ic
+            on r.id= ic.rfi_id_fk  
+            left join(select rfi_id_fk, inspection_status,site_image from rfi_inspection_details
+            where uploaded_by != 'Regular User') as ico
+            on r.id = ico.rfi_id_fk
 		    ORDER BY r.created_at DESC
 		""", nativeQuery = true)
 		List<RfiListDTO> findAllRfiList();

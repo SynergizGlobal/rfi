@@ -124,38 +124,49 @@ const Inspection = () => {
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
-		{Header: 'Inspectio Status', accessor: 'inspectionStatus'},
 		{
-			Header: 'Download Contractor Images',
-			Cell: ({ row }) => {
-				const isDownloading = downloadingId === row.original.id;
-				return (
-					<button
-						onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
-						className="btn-download"
-						disabled={isDownloading}
-					>
-						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-					</button>
-				);
-			}
+		  Header: 'Inspection Status',
+		  accessor: 'inspectionStatus'
 		},
 		{
-			Header: 'Download Client Images',
-			Cell: ({ row }) => {
-				const isDownloading = downloadingId === `client-${row.original.id}`;
-				return (
-					<button
-						onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
-						className="btn-download"
-						disabled={isDownloading}
-					>
-						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-					</button>
-				);
-			}
+		  Header: 'Download Contractor Images',
+		  Cell: ({ row }) => {
+		    const isDownloading = downloadingId === row.original.id;
+		    const hasContractorImage = row.original.imgContractor !== null;
+
+		    return hasContractorImage ? (
+		      <button
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+		        className="btn-download"
+		        disabled={isDownloading}
+		      >
+		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
+		      </button>
+		    ) : (
+		      <span style={{ color: '#888' }}>Not Uploaded</span>
+		    );
+		  }
 		},
 		{
+		  Header: 'Download Client Images',
+		  Cell: ({ row }) => {
+		    const isDownloading = downloadingId === `client-${row.original.id}`;
+		    const hasClientImage = row.original.imgClient !== null;
+
+		    return hasClientImage ? (
+		      <button
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+		        className="btn-download"
+		        disabled={isDownloading}
+		      >
+		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
+		      </button>
+		    ) : (
+		      <span style={{ color: '#888' }}>Not Uploaded</span>
+		    );
+		  }
+		},
+				{
       Header: 'Action',
       Cell: ({ row }) => {
         const btnRef = useRef(null);
