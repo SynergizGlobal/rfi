@@ -15,7 +15,7 @@ export default function Validation() {
 	const [editModeList, setEditModeList] = useState([]);
 
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}/getRfiValidations`)
+		axios.get(`${API_BASE_URL}/getRfiValidations`, { withCredentials: true })
 			.then(res => {
 				setRfiList(res.data);
 				setRemarksList(res.data.map(item => item.remarks || ""));
@@ -177,8 +177,12 @@ export default function Validation() {
 		const imageHeight = 40;
 		const lineHeight = 6;
 
+		let rfiName = null;
+
 		for (let idx = 0; idx < inspectionList.length; idx++) {
 			const inspection = inspectionList[idx];
+			rfiName = inspection.rfiId;
+
 			if (idx !== 0) doc.addPage();
 			let y = margin;
 
@@ -199,6 +203,8 @@ export default function Validation() {
 				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
 				['Enclosures', inspection.enclosures]
 			];
+
+			rfiName = inspection.rfiId;
 
 			for (let i = 0; i < fields.length; i += 2) {
 				const left = `${fields[i][0]}: ${safe(fields[i][1])}`;
@@ -320,12 +326,15 @@ export default function Validation() {
 			await handlePdfOrImage('Level Sheet', inspection.levelSheetFilePath);
 			await handlePdfOrImage('Pour Card', inspection.pourCardFilePath);
 			await handlePdfOrImage('Test Report Uploaded by Contractor', inspection.testSiteDocumentsContractor);
+
 		}
 
 		const mergedBlob = await mergeWithExternalPdfs(doc);
 		const link = document.createElement('a');
 		link.href = URL.createObjectURL(mergedBlob);
-		link.download = 'RfiReport.pdf';
+		if (rfiName) {
+			link.download = `${rfiName}_RfiReport.pdf`;
+		}
 		link.click();
 	};
 
@@ -349,12 +358,53 @@ export default function Validation() {
 
 	const printPreview = () => window.print();
 
+
+	// pagination variables 
+
+
+	const [pageIndex, setPageIndex] = useState(0);
+	const [pageSize, setPageSize] = useState(5);
+
+	const totalEntries = rfiList.length;
+	const pageCount = Math.ceil(totalEntries / pageSize);
+
+	const currentData = rfiList.slice(
+		pageIndex * pageSize,
+		(pageIndex + 1) * pageSize
+	);
+
+
+
+
+
 	return (
 		<div className="dashboard validation">
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
 					<h2 className="validation-heading">Validation</h2>
+
+
+					<div className="left-align">
+						<label>
+							Show{' '}
+							<select
+								value={pageSize}
+								onChange={(e) => {
+									setPageSize(Number(e.target.value));
+									setPageIndex(0); // Reset to first page
+								}}
+							>
+								{[5, 10, 20, 50].map((size) => (
+									<option key={size} value={size}>
+										{size}
+									</option>
+								))}
+							</select>{' '}
+							entries
+						</label>
+					</div>
+
 
 					<table className="validation-table">
 						<thead>
@@ -369,11 +419,11 @@ export default function Validation() {
 							</tr>
 						</thead>
 						<tbody>
-							{rfiList.map((rfi, idx) => {
-								const status = statusList[idx];
-								const remarks = remarksList[idx];
-								const isValidated = submittedList[idx];  // <-- you're declaring this
-								const isEditable = editModeList[idx];    // <-- and this// both present
+							{currentData.map((rfi, idx) => {
+								const status = statusList[pageIndex * pageSize + idx];
+								const remarks = remarksList[pageIndex * pageSize + idx];
+								const isValidated = submittedList[pageIndex * pageSize + idx];
+								const isEditable = editModeList[pageIndex * pageSize + idx];    // <-- and this// both present
 
 								return (
 									<tr key={idx}>
@@ -439,6 +489,36 @@ export default function Validation() {
 						</tbody>
 
 					</table>
+
+
+
+
+
+					<div className="">
+						<div >
+							<span>
+								Showing {rfiList.length === 0 ? 0 : pageIndex * pageSize + 1} to{' '}
+								{Math.min((pageIndex + 1) * pageSize, rfiList.length)} of {rfiList.length} entries
+							</span>
+
+							<button
+								onClick={() => setPageIndex((prev) => Math.max(prev - 1, 0))}
+								disabled={pageIndex === 0}
+							>
+								&laquo;
+							</button>
+							<span style={{ margin: '0 10px' }}>
+								Page {pageIndex + 1} of {pageCount}
+							</span>
+							<button
+								onClick={() => setPageIndex((prev) => Math.min(prev + 1, pageCount - 1))}
+								disabled={pageIndex >= pageCount - 1}
+							>
+								&raquo;
+							</button>
+						</div>
+					</div>
+
 
 					{selectedInspection && (
 						<div className="popup-overlay" onClick={() => setSelectedInspection(null)}>
