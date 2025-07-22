@@ -36,6 +36,7 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	
 
 	useEffect(() => {
 		fetch(`${API_BASE_URL}rfi/rfi-details`, {
@@ -257,7 +258,7 @@ const Inspection = () => {
 		headerGroups,
 		page,
 		prepareRow,
-		state,
+		state: { pageIndex, globalFilter },
 		setGlobalFilter,
 		nextPage,
 		previousPage,
@@ -265,18 +266,22 @@ const Inspection = () => {
 		canPreviousPage,
 		pageOptions,
 		gotoPage,
+		setPageSize: tableSetPageSize,
 	} = useTable(
 		{
 			columns,
 			data,
-			initialState: { pageSize },
+			initialState: { pageIndex: 0, pageSize }, 
 			getRowId: row => row.rfi_Id,
 		},
 		useGlobalFilter,
 		usePagination
 	);
 
-	const { pageIndex, globalFilter } = state;
+	useEffect(() => {
+	   tableSetPageSize(pageSize);
+	 }, [pageSize, tableSetPageSize]);
+
 
 	return (
 		<div className="dashboard credted-rfi inspection">

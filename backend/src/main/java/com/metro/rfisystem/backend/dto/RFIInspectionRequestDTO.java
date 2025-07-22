@@ -17,4 +17,6 @@ public class RFIInspectionRequestDTO {
     private String description;
     private InspectionStatus inspectionStatus;
 	private TestType testInsiteLab;
+	private String nameOfRepresentative;
+   
 }

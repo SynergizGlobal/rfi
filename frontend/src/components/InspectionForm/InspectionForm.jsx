@@ -39,7 +39,9 @@ export default function InspectionForm() {
 	const [testInLab, setTestInLab] = useState(null);
 	const [inspectionId, setInspectionId] = useState(null);
 	const [testReportFile, setTestReportFile] = useState(null);
-
+	const [dateOfInspection, setDateOfInspection] = useState('');
+	const [timeOfInspection, setTimeOfInspection] = useState('');
+	
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
@@ -52,7 +54,7 @@ export default function InspectionForm() {
 				.then(res => res.json())
 				.then(data => {
 					setRfiData(data);
-					setContractorRep(data.nameOfRepresentative || '');
+					//setContractorRep(data.nameOfRepresentative || '');
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
 						const latestInspection = data.inspectionDetails.reduce((latest, current) =>
 							current.id > latest.id ? current : latest
@@ -235,6 +237,7 @@ export default function InspectionForm() {
 			rfiId: rfiData.id,
 			location: locationText,
 			chainage: chainage,
+			nameOfRepresentative: contractorRep
 
 		};
 
@@ -366,11 +369,11 @@ export default function InspectionForm() {
 										<label>Location:</label>
 										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)} />
 										<label>Date of Inspection:</label>
-										<input type="date" value={rfiData.dateOfInspection} readOnly />
+										<input type="date" value={dateOfInspection} onChange={e => setDateOfInspection(e.target.value)} />
 										<label>Time of Inspection:</label>
-										<input type="time" value={rfiData.timeOfInspection} readOnly />
+										<input type="time" value={timeOfInspection} onChange={e => setTimeOfInspection(e.target.value)} />
 										<label>Contractor's Representative:</label>
-										<input value={contractorRep} onChange={e => setContractorRep(e.target.value)} />
+										<input type="text"  value={contractorRep} onChange={e => setContractorRep(e.target.value)} />
 									</div>
 									<div className="upload-grid">
 										{[0, 1, 2, 3].map(i => (
