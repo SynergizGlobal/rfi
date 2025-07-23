@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -237,7 +238,15 @@ public class RFIController {
 	public ResponseEntity<Map<String, Long>> getRfiStatusCounts() {
 	    Map<String, Long> counts = new HashMap<>();
 	    counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
-	    counts.put("PENDING", rfiRepository.countByStatus(EnumRfiStatus.CREATED)); // or another logic
+	    List<EnumRfiStatus> pendingStatuses = Arrays.asList(
+	            EnumRfiStatus.CREATED,
+	            EnumRfiStatus.UPDATED,
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.INSPECTED_BY_AE,
+	            EnumRfiStatus.VALIDATION_PENDING
+	        );
+	        counts.put("PENDING", rfiRepository.countByStatuses(pendingStatuses));
+ 
 	    counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
 	    return ResponseEntity.ok(counts);
 	}

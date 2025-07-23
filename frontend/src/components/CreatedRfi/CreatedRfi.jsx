@@ -3,13 +3,19 @@ import { useTable, usePagination, useGlobalFilter } from 'react-table';
 import { useNavigate } from 'react-router-dom';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import './CreatedRfi.css';
+import { useLocation } from "react-router-dom";
 
 const CreatedRfi = () => {
 	const [rfiData, setRfiData] = useState([]);
 	const navigate = useNavigate();
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	
+		const location = useLocation();
+		const filterStatus = location.state?.filterStatus || [];
 
+		const [allRfis, setAllRfis] = useState([]);
 
+		
 	useEffect(() => {
 		fetch(`${API_BASE_URL}rfi/rfi-details`, {
 			method: 'GET',
@@ -37,15 +43,25 @@ const CreatedRfi = () => {
 					submissionDate: item.dateOfSubmission || '',
 					status: item.status,
 				}));
-				setRfiData(transformed);
+				if (filterStatus.length > 0) {
+					const filtered = transformed.filter(item => filterStatus.includes(item.status));
+					setRfiData(filtered);
+				} else {
+					setRfiData(transformed);
+				}
 			})
 			.catch(error => {
 				console.error('❌ Error fetching RFI data:', error);
 				alert('Failed to fetch RFI data. Please check if you are logged in.');
 			});
 	}, []);
+	
+	
+	const filteredRfis = allRfis.filter((rfi) =>
+			filterStatus.includes(rfi.status)
+		);
 
-
+		
 	const handleEdit = (rfi) => {
 		console.log("🟢 rfi object:", rfi);
 		navigate('/CreateRfi', { state: { id: rfi.id, mode: 'edit' } });
@@ -63,7 +79,16 @@ const CreatedRfi = () => {
 				.then((res) => {
 					if (res.ok) {
 						alert('RFI deleted successfully');
-						setRfiData(prev => prev.filter(item => item.id !== rfi.id));
+
+						setRfiData(prev => {
+							const updatedData = prev.filter(item => item.id !== rfi.id);
+							const newPageCount = Math.ceil(updatedData.length / pageSize);
+							const currentPageIndex = pageIndex;
+							const safePage = Math.min(currentPageIndex, newPageCount - 1);
+							gotoPage(safePage >= 0 ? safePage : 0);
+
+							return updatedData;
+						});
 					} else {
 						alert(`Failed to delete RFI (Status: ${res.status})`);
 					}
@@ -71,6 +96,7 @@ const CreatedRfi = () => {
 				.catch((err) => console.error('Error deleting RFI:', err));
 		}
 	};
+
 
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfiId' },
@@ -111,6 +137,7 @@ const CreatedRfi = () => {
 		state,
 		setGlobalFilter,
 		setPageSize,
+		gotoPage,
 	} = useTable(
 		{ columns, data: rfiData, initialState: { pageSize: 5 } },
 		useGlobalFilter,

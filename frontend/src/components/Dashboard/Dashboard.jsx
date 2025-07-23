@@ -101,7 +101,11 @@ const Dashboard = () => {
 								</div>
 
 								{/* Card 2: Inspections */}
-								<div className="cards">
+								<div
+									className="cards"
+									onClick={() => navigate("/Inspection")}
+									style={{ cursor: 'pointer' }}
+								>
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
@@ -119,8 +123,13 @@ const Dashboard = () => {
 									</div>
 								</div>
 
+
 								{/* Card 3: Pending */}
-								<div className="cards">
+								<div
+									className="cards"
+									onClick={() => navigate("/CreatedRfi", { state: { filterStatus: ["CREATED", "UPDATED", "REASSIGNED", "INSPECTED_BY_AE", "VALIDATION_PENDING"] } })}
+									style={{ cursor: 'pointer' }}
+								>
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
@@ -139,7 +148,11 @@ const Dashboard = () => {
 								</div>
 
 								{/* Card 4: Rescheduled */}
-								<div className="cards">
+								<div
+									className="cards"
+									onClick={() => navigate("/CreatedRfi", { state: { filterStatus: ["RESCHEDULED"] } })}
+									style={{ cursor: 'pointer' }}
+								>
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
@@ -164,6 +177,6 @@ const Dashboard = () => {
 			</div>
 		</div>
 	);
-};
+}
 
 export default Dashboard;

@@ -286,6 +286,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	long countByStatus(EnumRfiStatus status);
 
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses")
+	long countByStatuses(@Param("statuses") List<EnumRfiStatus> statuses);
 
 
 }
