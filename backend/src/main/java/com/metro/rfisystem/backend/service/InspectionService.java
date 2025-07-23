@@ -13,7 +13,8 @@ public interface InspectionService {
 
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String UserRole);
 
-	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument);
+	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument, String userRole);
+	
     ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException;
 
 

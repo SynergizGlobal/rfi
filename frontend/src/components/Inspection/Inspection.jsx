@@ -143,7 +143,7 @@ const Inspection = () => {
 		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
 		      </button>
 		    ) : (
-		      <span style={{ color: '#888' }}>Not Uploaded</span>
+		      <span style={{ color: '#888' }}></span>
 		    );
 		  }
 		},
@@ -162,7 +162,7 @@ const Inspection = () => {
 		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
 		      </button>
 		    ) : (
-		      <span style={{ color: '#888' }}>Not Uploaded</span>
+		      <span style={{ color: '#888' }}></span>
 		    );
 		  }
 		},

@@ -126,5 +126,14 @@
 .validation .popup .form-fields{
   flex: 1 1 30%;
 }
+.validation-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.validation-table td button {
+  display: block;
+  margin: 0 auto;
+}
 
 

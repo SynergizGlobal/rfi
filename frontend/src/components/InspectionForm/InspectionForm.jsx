@@ -166,6 +166,7 @@ export default function InspectionForm() {
 			testInsiteLab: testInLab,
 
 		};
+		
 		formData.append("data", JSON.stringify(payload));
 		if (testReportFile) {
 			formData.append("testReport", testReportFile);
@@ -175,6 +176,7 @@ export default function InspectionForm() {
 			const res = await fetch(`${API_BASE_URL}rfi/inspection/status`, {
 				method: "POST",
 				body: formData,
+				credentials: "include",
 			});
 
 			const text = await res.text();
@@ -523,7 +525,9 @@ export default function InspectionForm() {
 							testReportFile={testReportFile}
 							setTestReportFile={setTestReportFile}
 							onConfirm={handleSubmitConfirmed}
-							onClose={() => setConfirmPopup(false)} />}
+							onClose={() => setConfirmPopup(false)} 
+							onCancel={() => setConfirmPopup(false)}
+							/>}
 
 
 						{showCamera && (
@@ -675,7 +679,7 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm }) {
+function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm, onCancel }) {
 	return (
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
@@ -723,6 +727,18 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 
 			<div className="popup-actions">
 				<button onClick={onConfirm}>Done</button>
+				<button
+				         onClick={() => {
+				           setInspectionStatus('');
+				           setTestInLab(null);
+				           setTestReportFile(null);
+
+				          
+				           onCancel();
+				         }}
+				       >
+				         Cancel
+				       </button>
 			</div>
 		</div>
 	);

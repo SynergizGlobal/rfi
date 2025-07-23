@@ -25,6 +25,8 @@ import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
@@ -125,21 +127,31 @@ public class InspectionServiceImpl implements InspectionService {
 	}
 
 	@Override
-	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument) {
+	@Transactional
+	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument, String userRole) {
 
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
+		
+		
+		 RFIInspectionDetails inspection = inspectionRepository
+			        .findByRfiAndUploadedBy(rfi, userRole)
+			        .orElseGet(() -> {
+			            RFIInspectionDetails newInsp = new RFIInspectionDetails();
+			            newInsp.setRfi(rfi);
+			            newInsp.setUploadedBy(userRole);
+			            return newInsp;
+			        });
 
-		RFIInspectionDetails inspection = inspectionRepository.findById(dto.getInspectionId())
-				.orElseThrow(() -> new IllegalArgumentException("No inspection found for RFI ID: " + dto.getRfiId()));
 
-		inspection.setInspectionStatus(dto.getInspectionStatus());
-		inspection.setTestInsiteLab(dto.getTestInsiteLab());
-		rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+	    // Update or overwrite the inspection
+	    inspection.setInspectionStatus(dto.getInspectionStatus());
+	    inspection.setTestInsiteLab(dto.getTestInsiteLab());
 		if (testDocument != null && !testDocument.isEmpty()) {
 			String filename = saveFile(testDocument);
 			inspection.setTestSiteDocuments(filename);
 		}
+		rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
 		rfiRepository.save(rfi);
 		inspectionRepository.save(inspection);
 	}

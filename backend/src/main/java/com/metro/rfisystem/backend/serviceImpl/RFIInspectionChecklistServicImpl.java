@@ -86,7 +86,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 
 		        RFIChecklistItem checklistItem = checklistRepository.findByRfiAndEnclosureName(rfi, enclosureName)
 		                .orElseThrow(() -> new EntityNotFoundException("Checklist not found for enclosure: " + enclosureName));
-      System.out.println("Checklist" + checklistItem.getId());
+     
 		        return mapToDto(checklistItem);
 		    }	
 		

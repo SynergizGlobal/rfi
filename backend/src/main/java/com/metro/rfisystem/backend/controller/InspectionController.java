@@ -110,13 +110,15 @@ public class InspectionController {
 
 
 	@PostMapping(value = "/inspection/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> updateInspectionStatus(@RequestPart("data") String dataJson,
+	public ResponseEntity<String> updateInspectionStatus(HttpSession session,@RequestPart("data") String dataJson,
 			@RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 	
+		String userRole = (String) session.getAttribute("userRoleNameFk");
+		
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-			inspectionService.updateInspectionStatus(dto, testDocument);
+			inspectionService.updateInspectionStatus(dto, testDocument, userRole);
 			return ResponseEntity.ok("Inspection status updated successfully");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

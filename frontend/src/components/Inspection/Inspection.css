@@ -90,4 +90,21 @@
 .inspection-dropdown button:nth-last-child(1){
   border-bottom: 0;
 }
+.btn-download {
+  display: block;
+  margin: 0 auto;              
+  padding: 6px 12px;           
+  border: 1.9px solid #007bff;   
+  border-radius: 5px;          /* Optional: rounded corners */
+  background-color: white;    
+  color: #007bff;              /* Text color to match border */
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.btn-download:hover {
+  background-color: #007bff;
+  color: white;
+}
 
