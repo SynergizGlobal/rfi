@@ -11,6 +11,8 @@ public interface RfiListDTO {
     String getCreatedBy();            // add this if filtering by creator
     String getdateOfSubmission();
     String getInspectionStatus();
+    String getStatus();
+    String getAction();
     String getImgClient();
     String getImgContractor();
 

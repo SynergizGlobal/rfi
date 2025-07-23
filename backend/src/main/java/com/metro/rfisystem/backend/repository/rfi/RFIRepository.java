@@ -34,6 +34,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 		        r.assigned_person_client AS assignedPersonClient,
 		        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
 		        ico.inspection_status AS inspectionStatus,
+		        r.status as status,
+		        r.action as action,
                 ic.site_image as imgClient,
                 ico.site_image as imgContractor
 		    FROM rfi_data r
