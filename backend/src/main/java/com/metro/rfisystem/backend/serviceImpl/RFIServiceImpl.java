@@ -73,8 +73,9 @@ public class RFIServiceImpl implements RFIService {
 
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
+
 		rfi.setContract(dto.getContract());
-		rfi.setContractId(contractId);
+
 		rfi.setProject(dto.getProject());
 		rfi.setWork(dto.getWork());
 		rfi.setStructureType(dto.getStructureType());
@@ -99,15 +100,16 @@ public class RFIServiceImpl implements RFIService {
 		return rfiRepository.save(rfi);
 	}
 	@Override
-	public List<ContractDropdownDTO> getAllowedContractsForUser(String userId) {
+	public List<ContractDropdownDTO> getAllowedContractsForUser(String userId, String ContractorId) {
 		User user = loginRepo.findById(userId).orElse(null);
+		
 	    if (user == null) return Collections.emptyList();
 
 	    if ("IT Admin".equalsIgnoreCase(user.getUserRoleNameFk())) {
 	        return contractRepository.findAllContractShortNames();
 	    }
 
-	    return contractRepository.findAllowedContractShortNames(userId);
+	    return contractRepository.findAllowedContractShortNames(userId, ContractorId);
 	}
 
 	
@@ -273,6 +275,7 @@ public class RFIServiceImpl implements RFIService {
 
 	}
 
+	
 	@Override
 	public int countByCreatedBy(String createdBy) {
 		return rfiRepository.countByCreatedBy(createdBy);

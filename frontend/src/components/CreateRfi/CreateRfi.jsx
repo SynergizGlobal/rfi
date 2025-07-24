@@ -5,8 +5,11 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import './CreateRfi.css';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+
 const CreateRfi = () => {
 	const location = useLocation();
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState({});
 	const [mode, setMode] = useState('create');
 	const [loading, setLoading] = useState(true);
@@ -73,13 +76,17 @@ const CreateRfi = () => {
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
+		if (name === "dateOfSubmission") {
+    const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
+    if (value < today) {
+      alert("Date of Submission should not be prior to today's date.");
+      return; // stop further execution
+    }
+  }
 		setFormState({ ...formState, [name]: value });
 	};
 
 	const handleSubmit = async () => {
-
-
-
 
 		setMessage('');
 		const url =
@@ -87,6 +94,7 @@ const CreateRfi = () => {
 				? `${API_BASE_URL}rfi/update/${location.state.id}`
 				: `${API_BASE_URL}rfi/create`;
 		const method = mode === 'edit' ? 'PUT' : 'POST';
+
 
 		try {
 			const response = await fetch(url, {
@@ -106,11 +114,14 @@ const CreateRfi = () => {
 			const message = await response.text();
 			setMessage(message);
 			alert(message);
+			navigate('/Dashboard');
 		} catch (error) {
 			console.error('Error submitting RFI:', error);
 			setMessage('❌ Failed to submit RFI. Please try again.');
 		}
 	};
+
+	const [loadingContracts, setLoadingContracts] = useState(true);
 
 	useEffect(() => {
 		const fetchContracts = async () => {
@@ -121,29 +132,18 @@ const CreateRfi = () => {
 				});
 				const data = await response.json();
 
-				const mappedOptions = data.map(c => ({
-					label: c.contractShortName,
-					value: c.contractShortName
-				}));
-
-				const idMap = {};
 				const allowedSet = new Set();
-
-				data.forEach(c => {
-					idMap[c.contractShortName] = c.contractIdFk.trim();
-					allowedSet.add(c.contractShortName);
-				});
-
-				setContractOptions(mappedOptions);
-				setContractIdMap(idMap);
-				setAllowedContractNames(allowedSet); // ✅ used later to filter contracts
+				data.forEach(c => allowedSet.add(c.contractShortName));
+				setAllowedContractNames(allowedSet);
 			} catch (err) {
 				console.error('Failed to load allowed contract list:', err);
+				setAllowedContractNames(new Set());
 			}
 		};
 
 		fetchContracts();
 	}, []);
+
 
 
 	const [projectOptions, setProjectOptions] = useState([]);
@@ -591,40 +591,42 @@ const CreateRfi = () => {
 													activity: ''
 												});
 
-												if (selectedWorkId) {
-													axios.get(`${API_BASE_URL}rfi/contractNames`, {
-														params: { workId: selectedWorkId }
-													})
-														.then(response => {
-															const map = {};
-															const contractOptions = response.data
-																.filter(contract => allowedContractNames.has(contract.contractShortName)) // ✅ filter
-																.map(contract => {
-																	const name = contract.contractShortName;
-																	const id = contract.contractIdFk.trim();
-																	map[name] = id;
-																	return {
-																		value: name,
-																		label: name
-																	};
-																});
-
-															setContractOptions(contractOptions);
-															setContractIdMap(map);
-														})
-														.catch(error => {
-															console.error('Error fetching contract options:', error);
-															setContractOptions([]);
-															setContractIdMap({});
-														});
-												}
-												else {
+												if (!selectedWorkId || allowedContractNames.size === 0) {
+													console.warn('Work ID or allowed contracts not loaded yet.');
 													setContractOptions([]);
 													setContractIdMap({});
+													return;
 												}
+
+												axios.get(`${API_BASE_URL}rfi/contractNames`, {
+													params: { workId: selectedWorkId }
+												})
+													.then(response => {
+														const map = {};
+														const contractOptions = response.data
+															.filter(contract => allowedContractNames.has(contract.contractShortName)) 
+															.map(contract => {
+																const name = contract.contractShortName;
+																const id = contract.contractIdFk.trim();
+																map[name] = id;
+																return {
+																	value: name,
+																	label: name
+																};
+															});
+
+														setContractOptions(contractOptions);
+														setContractIdMap(map);
+													})
+													.catch(error => {
+														console.error('Error fetching contract options:', error);
+														setContractOptions([]);
+														setContractIdMap({});
+													});
 											}
+
 											}
-											isDisabled={!isEditable}
+										isDisabled={!isEditable}
 										/>
 									</div>
 
@@ -899,16 +901,18 @@ const CreateRfi = () => {
 
 									/>
 								</div>
-								<div className="form-fields flex-1">
-									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
-									<input
-										type="date"
-										id="dateOfSubmission"
-										name="dateOfSubmission"
-										value={formState.dateOfSubmission}
-										onChange={handleChange}
-									/>
-								</div>
+						<div className="form-fields flex-1">
+  <label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
+  <input
+    type="date"
+    id="dateOfSubmission"
+    name="dateOfSubmission"
+    value={formState.dateOfSubmission}
+    onChange={handleChange}
+    min={new Date().toISOString().split('T')[0]} // 👈 sets min to today's date
+  />
+</div>
+
 
 								<div className="form-fields flex-1">
 									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection:</label>

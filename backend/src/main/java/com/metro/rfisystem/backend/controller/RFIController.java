@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.SessionAttribute;
 
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
@@ -31,6 +33,7 @@ import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
+import com.metro.rfisystem.backend.repository.pmis.ContractorRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIService;
 
@@ -49,6 +52,9 @@ public class RFIController {
 	
 	private final ContractRepository contractRepository;
 	
+	@Autowired
+	private ContractorRepository contractorRepo;
+	
 	private static final Logger logger = LoggerFactory.getLogger(RFIController.class);
 
 
@@ -58,34 +64,51 @@ public class RFIController {
 	    String userName = (String) session.getAttribute("userName");
 	    @SuppressWarnings("unchecked")
 	    List<String> allowedContracts = (List<String>) session.getAttribute("allowedContracts");
-	    
+
 	    if (userName == null) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
 	    }
-	    String contractShortName = dto.getContract(); // passed from frontend dropdown
-	    String contractId = contractRepository.findContractIdByShortName(contractShortName);
 
-	    if (contractId == null || allowedContracts == null || !allowedContracts.contains(contractId)) {
-	        logger.warn("Unauthorized RFI create attempt by user: {}, contractShortName: {}, contractId: {}",
-	            userName, contractShortName, contractId);
-	        
-	        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-	            .body("❌ You are not authorized to create RFI for this contract.");
-	    } 
+	    String contractShortName = dto.getContract();
+	    String contractId = Optional.ofNullable(contractRepository.findContractIdByShortName(contractShortName))
+	                                .map(String::trim)
+	                                .orElse(null);
+
+	    System.out.println("Session user: " + userName);
+	    System.out.println("Allowed contracts: " + allowedContracts);
+	    System.out.println("Selected contract short name: " + contractShortName);
+	    System.out.println("Resolved contractId: '" + contractId + "'");
+
+//	    if (contractId == null || allowedContracts == null || 
+//	        allowedContracts.stream().noneMatch(id -> id != null && id.trim().equalsIgnoreCase(contractId))) {
+//	        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+//	            .body("❌ You are not authorized to create RFI for this contract.");
+//	    }
+
 	    RFI saved = rfiService.createRFI(dto, userName);
 	    return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");
 	}
 	
+
 	@GetMapping("/allowedContracts")
-	public ResponseEntity<List<ContractDropdownDTO>> getAllowedContracts(HttpSession session) {
-	    String userId = (String) session.getAttribute("userId");
+	public ResponseEntity<List<ContractDropdownDTO>> getAllowedContracts(
+	    @SessionAttribute(name = "userId", required = false) String userId,
+	    HttpSession session) {
+
+	    System.out.println("Session ID: " + session.getId());
+	    System.out.println("User ID from session: " + userId);
 	    if (userId == null) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 	    }
 
-	    List<ContractDropdownDTO> allowedContracts = rfiService.getAllowedContractsForUser(userId);
+	    String contractorId = contractorRepo.findContractorIdByUserId(userId);
+	    System.out.println("Resolved contractorId for user " + userId + ": " + contractorId);
+
+	    List<ContractDropdownDTO> allowedContracts = rfiService.getAllowedContractsForUser(userId, contractorId);
 	    return ResponseEntity.ok(allowedContracts);
 	}
+
+
 
 
 
@@ -150,6 +173,7 @@ public class RFIController {
 		String userName = (String) session.getAttribute("userName");
 		String userRole = (String) session.getAttribute("userRoleNameFk");
 		String userType = (String) session.getAttribute("userTypeFk");
+		String userDepartment =(String) session.getAttribute("departmentFk");
  
 		System.out.println("Session userName: " + userName);
 		System.out.println("Session userRoleNameFk: " + userRole);
@@ -168,7 +192,7 @@ public class RFIController {
 		{
 			return ResponseEntity.ok(rfiService.getRFIsCreatedBy(userName));
 		}
-		if (userRole.equalsIgnoreCase("Regular User")) {
+		if (userDepartment.equalsIgnoreCase("Engg")) {
 			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
 		}
 		return ResponseEntity.ok(rfiService.getRFIsByCreatedBy(userName));
@@ -233,6 +257,7 @@ public class RFIController {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
 		}
 	}
+	
 	
 	@GetMapping("/status-counts")
 	public ResponseEntity<Map<String, Long>> getRfiStatusCounts() {

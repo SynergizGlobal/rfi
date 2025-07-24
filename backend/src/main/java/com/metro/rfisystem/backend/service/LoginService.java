@@ -3,6 +3,8 @@ package com.metro.rfisystem.backend.service;
 import java.util.List;
 import java.util.Map;
 
+import com.metro.rfisystem.backend.dto.AllowedContractDTO;
+import com.metro.rfisystem.backend.dto.ContractDesignationEngineersDTO;
 import com.metro.rfisystem.backend.model.pmis.User;
 
 public interface LoginService {
@@ -13,7 +15,24 @@ public interface LoginService {
 
 	boolean isValidUser(String userName);
 	
+//	List<Map<String, String>> getUserNamesOfRegularUsers();
+
+//	List<String> getAllowedContractIds(User user);
+
+	List<AllowedContractDTO> getAllowedContractsWithDesignation(User user);
+
+
+	List<ContractDesignationEngineersDTO> getDesignationWithEngineers(User user);
+
+
 	List<Map<String, String>> getUserNamesOfRegularUsers();
 
-	List<String> getAllowedContractIds(User user);
+	String resolveLoginDepartment(User user);
+
+
+
+
+
+
+
 }

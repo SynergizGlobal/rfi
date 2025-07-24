@@ -3,23 +3,21 @@ import { Link } from 'react-router-dom';
 import './HeaderRight.css';
 
 const HeaderRight = () => {
-
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	const loginDepartment = localStorage.getItem("loginDepartment")?.toLowerCase();
 
-	// Normalize values to lowercase to avoid case mismatch issues
-	const isContractor = userRole === "contractor";
+	const isContractor = userRole === "contractor" && loginDepartment !== "engg";
 	const isRegularUser = userRole === "regular user";
 	const isITAdmin = userRole === "it admin";
-	const isDyHOD = userType === "dyhod"; // Only from userType
-
-	const hasFullAccess = isITAdmin || isDyHOD;
+	const isDyHOD = userType === "dyhod";
+	const isEnggDept = loginDepartment === "engg";
 
 	useEffect(() => {
 		const menuItems = document.querySelectorAll('.dashboard-menu li');
 		const handleClick = (item) => () => {
 			menuItems.forEach(el => el.classList.remove('active'));
-			item.classList.toggle('active');
+			item.classList.add('active');
 		};
 
 		menuItems.forEach(item => {
@@ -41,45 +39,52 @@ const HeaderRight = () => {
 	return (
 		<div className="left">
 			<div className="scroll">
-				<div className="mobile-close" onClick={closeSideBar}><i className="fas fa-times-circle"></i></div>
+				<div className="mobile-close" onClick={closeSideBar}>
+					<i className="fas fa-times-circle"></i>
+				</div>
 
 				<ul className="dashboard-menu">
 					<li><Link to="/dashboard"><div className="menu-text"><i className="fas fa-home"></i> <span>Home</span></div></Link></li>
 
-					{(isContractor || hasFullAccess) && (
+					{/* Engineer Department Specific */}
+					{isEnggDept && !isContractor && !isITAdmin && (
 						<>
-							<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
-							<li><Link to="/CreatedRfi"><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span>Update RFI</span></div></Link>
-								{/*<span><i className="fa-solid fa-file-pen"></i> Update RFI <i className="fas fa-chevron-down"></i></span>
-									<ul className="sub-menu">
-									<li><Link to="/rfiSystem/upload-contract-schedules">Upload RFI</Link></li>
-									<li><Link to="/rfiSystem/boqList">Select RFI</Link></li>
-								</ul> */}
-							</li>
+							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 						</>
 					)}
 
-					{(isContractor || isRegularUser || hasFullAccess) && (
+					{/* Contractor Menu */}
+					{isContractor && (
 						<>
+							<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
+							<li><Link to="/CreatedRfi"><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span>Update RFI</span></div></Link></li>
+							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
-
-							{isRegularUser && (
-								<>
-									<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
-									<li><Link to="/RfiLog"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
-								</>
-							)}
+							<li><Link to="#"><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div></Link></li>
 						</>
 					)}
 
-
-					{hasFullAccess && (
-						<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+					{/* IT Admin Menu */}
+					{isITAdmin && (
+						<>
+							<li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
+							<li><Link to="/CreatedRfi"><div className="menu-text"><i className="fa-solid fa-file-pen"></i> <span>Update RFI</span></div></Link></li>
+							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
+							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+							<li><Link to="#"><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div></Link></li>
+						</>
 					)}
 
-					{(isContractor || hasFullAccess) && (
-						<li><Link><span><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div> </span></Link></li>
+					{/* Shared menus for regular user, dyhod if not engg */}
+					{(!isEnggDept && (isRegularUser || isDyHOD)) && (
+						<>
+							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
+						</>
 					)}
 				</ul>
 			</div>

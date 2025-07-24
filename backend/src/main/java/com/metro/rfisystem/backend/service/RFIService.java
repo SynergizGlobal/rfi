@@ -50,6 +50,8 @@ public interface RFIService {
 
 	List<RfiListDTO> getRFIsCreatedBy(String createdBy);
 
-	List<ContractDropdownDTO> getAllowedContractsForUser(String userId);
+//	List<ContractDropdownDTO> getAllowedContractsForUser(String userId);
+
+	List<ContractDropdownDTO> getAllowedContractsForUser(String userId, String ContractorId);
 
 }

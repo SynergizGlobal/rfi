@@ -15,7 +15,7 @@ const Login = () => {
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [message, setMessage] = useState('');
 	const navigate = useNavigate();
-	
+
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
 
@@ -70,7 +70,7 @@ const Login = () => {
 		}
 
 		try {
-		const response = await fetch(`${API_BASE_URL}api/forgot/verify-otp`, {
+			const response = await fetch(`${API_BASE_URL}api/forgot/verify-otp`, {
 
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -144,10 +144,15 @@ const Login = () => {
 				localStorage.setItem('userName', data.userName);
 				localStorage.setItem('userRoleNameFk', data.userRoleNameFk);
 				localStorage.setItem('userTypeFk', data.userTypeFk);
-				
+				localStorage.setItem('departmentFk', data.departmentFk);
+				localStorage.setItem('loginDepartment', data.loginDepartment);
+
+				console.log(localStorage.getItem('loginDepartment'));
+
+
 				if (data.allowedContractIds) {
-				localStorage.setItem('allowedContracts', JSON.stringify(data.allowedContractIds));
-			}
+					localStorage.setItem('allowedContracts', JSON.stringify(data.allowedContractIds));
+				}
 
 				window.location.href = "/rfiSystem/dashboard";
 

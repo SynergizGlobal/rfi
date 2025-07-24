@@ -41,7 +41,10 @@ const RfiLog = () => {
 	const [personOptions, setPersonOptions] = useState([]);
 	const [selectedPerson, setSelectedPerson] = useState('');
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
-    const [selectedDepartment, setSelectedDepartment] = useState('');
+	const [selectedDepartment, setSelectedDepartment] = useState('');
+	const [selectedContractId, setSelectedContractId] = useState('');
+	const [engineerOptions, setEngineerOptions] = useState([]);
+
 
 
 
@@ -62,6 +65,7 @@ const RfiLog = () => {
 
 				const result = await response.json();
 				const formatted = result.map((item, index) => ({
+
 					rfiId: item.rfi_Id,
 					project: item.project,
 					structure: item.structure,
@@ -70,8 +74,12 @@ const RfiLog = () => {
 					contractor: item.createdBy,
 					submissionDate: item.dateOfSubmission || '—',
 					clientPerson: item.assignedPersonClient || '—',
+					contractId: item.rfi_Id.split('/')[0],
+
 				}));
 				setData(formatted);
+				console.log("Formatted RFIs:", formatted);
+
 			} catch (error) {
 				console.error("Failed to fetch RFI data:", error);
 			} finally {
@@ -83,26 +91,47 @@ const RfiLog = () => {
 	}, []);
 
 
-	useEffect(() => {
-		const fetchRegularUsers = async () => {
-			try {
-				const response = await fetch(`${API_BASE_URL}/api/auth/regular-roles`);
-				const users = await response.json();
-				console.log('Fetched user list:', users); 
-				setPersonOptions(users);
-			} catch (error) {
-				console.error('Failed to fetch regular users:', error);
-			}
-		};
+	const userName = localStorage.getItem('userName');
+	console.log("👤 userName from sessionStorage:", userName);
+	if (!userName) {
+		console.warn("⚠️ userName not found in sessionStorage — engineer fetch will fail.");
+	}
 
-		fetchRegularUsers();
-	}, []);
+	const fetchEngineersForContract = async (contractId) => {
+		if (!contractId) {
+			console.error("❌ No contractId provided to fetch engineers");
+			return;
+		}
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/api/auth/engineer-names?userName=${encodeURIComponent(userName)}&contractId=${encodeURIComponent(contractId)}`
+			);
+
+			console.log(`Request URL: ${API_BASE_URL}/api/auth/engineer-names?userName=${userName}&contractId=${contractId}`);
+			console.log("Response OK?", response.ok, "Status:", response.status);
+
+			const contentType = response.headers.get("Content-Type");
+			const body = contentType && contentType.includes("application/json")
+				? await response.json()
+				: await response.text();
+
+			if (!response.ok) {
+				console.error("❌ Backend error:", body);
+				throw new Error(`Failed to fetch engineers for ${contractId}`);
+			}
+
+			console.log("✅ Engineers:", body);
+			setEngineerOptions(body); // assuming it's an array
+		} catch (err) {
+			console.error("🔥 Fetch error:", err);
+		}
+	};
+
+
 
 	const handleSelect = (e) => {
-	  const selectedUsername = e.target.value;
-	  const userObj = personOptions.find(p => p.username === selectedUsername);
-	   setSelectedPerson(userObj);
-	  setSelectedDepartment(userObj?.department || '');
+		const selectedUsername = e.target.value;
+		setSelectedPerson({ username: selectedUsername, department: selectedDepartment }); // minimal object
 	};
 
 	const handleAssignSubmit = async () => {
@@ -184,9 +213,19 @@ const RfiLog = () => {
 								<button
 									onMouseDown={(e) => {
 										e.preventDefault();
-										setSelectedRfi(row.values.rfiId);
+										const contractId = row.original.contractId;
+										 setSelectedRfi(row.values.rfiId);
+										setSelectedContractId(contractId);
 										setShowPopup(true);
 										setOpenDropdownRow(null);
+										console.log("🧩 contractId from row.values:", row.values.contractId);
+										console.log("🧩 contractId from row.original:", row.original.contractId);
+
+										if (contractId) {
+											fetchEngineersForContract(contractId);
+										} else {
+											console.warn("⚠️ No contractId found in row:", row);
+										}
 									}}
 								>
 									Assign RFI
@@ -200,6 +239,7 @@ const RfiLog = () => {
 			}
 		}
 	], [assignedPersons, selectedRfi, openDropdownRow]);
+
 
 	const {
 		getTableProps,
@@ -221,6 +261,7 @@ const RfiLog = () => {
 			data,
 			initialState: { pageSize },
 			getRowId: row => row.rfiId,
+			autoResetPage: false,
 		},
 		useGlobalFilter,
 		usePagination
@@ -322,11 +363,10 @@ const RfiLog = () => {
 									<h3>Select Person to Assign</h3>
 									<select onChange={handleSelect} value={selectedPerson?.username || ''}>
 										<option value="" disabled>Select</option>
-										{personOptions.map((user, idx) => (
-										    <option key={idx} value={user.username}>
-										      {user.username}
-										    </option>
-										  ))}
+										{engineerOptions.map((username, idx) => (
+											<option key={idx} value={username}>{username}</option>
+										))}
+
 									</select>
 
 									<div className="rfilog-popup-btn">
