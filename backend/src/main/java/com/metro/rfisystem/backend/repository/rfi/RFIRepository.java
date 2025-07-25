@@ -64,8 +64,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.element AS element,
     	        r.activity AS activity,
     	        r.assigned_person_client AS assignedPersonClient,
-    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        i.status AS status
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
+    	        i.status AS status,
+    	         r.status as status,
+		        r.action as action
     	    FROM rfi_data r
     	    left join rfi_inspection_details as i
     	    on r.id=i.rfi_id_fk
@@ -85,8 +87,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
-    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        i.inspection_status AS inspectionStatus
+    	         DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
+    	        i.inspection_status AS inspectionStatus,
+    	         r.status as status,
+		        r.action as action
     	    FROM rfi_data r
     	    LEFT JOIN rfi_inspection_details as i
     	    on r.id=i.rfi_id_fk
@@ -105,8 +109,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
-    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        i.inspection_status AS inspectionStatus
+    	         DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
+    	        i.inspection_status AS inspectionStatus,
+    	         r.status as status,
+		        r.action as action
     	    FROM rfi_data r
     	    LEFT JOIN rfi_inspection_details as i
     	    on r.id=i.rfi_id_fk
@@ -288,6 +294,18 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses")
 	long countByStatuses(@Param("statuses") List<EnumRfiStatus> statuses);
+
+	// For Contractor
+	long countByStatusAndCreatedBy(EnumRfiStatus status, String createdBy);
+
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.createdBy = :createdBy")
+	long countByStatusesAndCreatedBy(@Param("statuses") List<EnumRfiStatus> statuses, @Param("createdBy") String createdBy);
+
+	// For Regular User
+	long countByStatusAndAssignedPersonClient(EnumRfiStatus status, String assignedTo);
+
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.assignedPersonClient = :assignedTo")
+	long countByStatusesAndAssignedPersonClient(@Param("statuses") List<EnumRfiStatus> statuses, @Param("assignedTo") String assignedTo);
 
 
 }

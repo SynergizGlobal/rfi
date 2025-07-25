@@ -20,6 +20,11 @@ const Dashboard = () => {
 
 	const hasFullAccess = isITAdmin || isDyHOD;
 
+	// Inside Dashboard component
+	const navigateWithStatus = (status) => {
+		navigate("/CreatedRfi", { state: { filterStatus: status } });
+	};
+
 	useEffect(() => {
 
 		fetch(`${API_BASE_URL}rfi/rfi-count`, {
@@ -103,7 +108,7 @@ const Dashboard = () => {
 								{/* Card 2: Inspections */}
 								<div
 									className="cards"
-									onClick={() => navigate("/Inspection")}
+									onClick={() => navigateWithStatus("INSPECTION_DONE")}
 									style={{ cursor: 'pointer' }}
 								>
 									<div className="card-inner">

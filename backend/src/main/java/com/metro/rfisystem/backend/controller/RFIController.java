@@ -260,10 +260,25 @@ public class RFIController {
 	
 	
 	@GetMapping("/status-counts")
-	public ResponseEntity<Map<String, Long>> getRfiStatusCounts() {
+	public ResponseEntity<Map<String, Long>> getRfiStatusCounts(HttpSession session) {
+	    String userName = (String) session.getAttribute("userName");
+	    String userRole = (String) session.getAttribute("userRoleNameFk");
+	    String userType = (String) session.getAttribute("userTypeFk");
+
+	    if (userName == null || (userRole == null && userType == null)) {
+	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+	    }
+
+	    boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
+	    boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
+
 	    Map<String, Long> counts = new HashMap<>();
-	    counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
-	    List<EnumRfiStatus> pendingStatuses = Arrays.asList(
+
+	    if (isAdmin || isDyHOD) {
+	        // Show total counts for Admin or DyHOD
+	        counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
+	        counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
+	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
 	            EnumRfiStatus.REASSIGNED,
@@ -271,8 +286,34 @@ public class RFIController {
 	            EnumRfiStatus.VALIDATION_PENDING
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatuses(pendingStatuses));
- 
-	    counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
+	    } 
+	    else if (userRole.equalsIgnoreCase("Contractor")) {
+	        // Filter counts for RFIs created by this user
+	        counts.put("INSPECTION_DONE", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.RESCHEDULED, userName));
+	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
+	            EnumRfiStatus.CREATED,
+	            EnumRfiStatus.UPDATED,
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.INSPECTED_BY_AE,
+	            EnumRfiStatus.VALIDATION_PENDING
+	        );
+	        counts.put("PENDING", rfiRepository.countByStatusesAndCreatedBy(pendingStatuses, userName));
+	    } 
+	    else if (userRole.equalsIgnoreCase("Regular User")) {
+	        // Filter counts for RFIs assigned to this user
+	        counts.put("INSPECTION_DONE", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
+	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
+	            EnumRfiStatus.CREATED,
+	            EnumRfiStatus.UPDATED,
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.INSPECTED_BY_AE,
+	            EnumRfiStatus.VALIDATION_PENDING
+	        );
+	        counts.put("PENDING", rfiRepository.countByStatusesAndAssignedPersonClient(pendingStatuses, userName));
+	    }
+
 	    return ResponseEntity.ok(counts);
 	}
 
