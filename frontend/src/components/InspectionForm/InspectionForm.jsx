@@ -54,7 +54,7 @@ export default function InspectionForm() {
 				.then(res => res.json())
 				.then(data => {
 					setRfiData(data);
-					//setContractorRep(data.nameOfRepresentative || '');
+					setContractorRep(data.nameOfRepresentative || '');
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
 						const latestInspection = data.inspectionDetails.reduce((latest, current) =>
 							current.id > latest.id ? current : latest
@@ -73,6 +73,18 @@ export default function InspectionForm() {
 				.catch(err => console.error("Error fetching RFI details:", err));
 		}
 	}, [id]);
+	useEffect(() => {
+			const now = new Date();
+
+			// Format YYYY-MM-DD
+			const date = now.toISOString().split("T")[0];
+
+			// Format HH:MM (24-hour)
+			const time = now.toTimeString().split(" ")[0].slice(0, 5);
+
+			setDateOfInspection(date);
+			setTimeOfInspection(time);
+		}, []);
 
 
 	const fetchLocation = () => {
@@ -166,7 +178,7 @@ export default function InspectionForm() {
 			testInsiteLab: testInLab,
 
 		};
-		
+		console.log("RFI ID" , rfiData.id);
 		formData.append("data", JSON.stringify(payload));
 		if (testReportFile) {
 			formData.append("testReport", testReportFile);
@@ -191,10 +203,10 @@ export default function InspectionForm() {
 				return;
 			}
 
-			alert("Inspection submitted successfully.");
+			alert("Inspection Status submitted successfully.");
 			setConfirmPopup(false);
 			localStorage.removeItem("latestInspectionId");
-			window.location.href = "http://localhost:3000/rfiSystem/Inspection";
+			//window.location.href = `${window.location.origin}/rfiSystem/Inspection';
 		} catch (err) {
 			console.error("Submit failed:", err);
 			alert("Error: " + err.message);
@@ -433,7 +445,7 @@ export default function InspectionForm() {
 																					<td>
 																						<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>{' '}
 																						<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
-																						{userRole?.toLowerCase() !== 'regular user' && (
+																						{userRole?.toLowerCase() !== 'engg' && (
 																							<button onClick={() => setUploadPopup(e.id)}>Upload</button>
 																						)}
 																					</td>
@@ -691,7 +703,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<option value="SITE_TEST">Site Test</option>
 			</select>
 
-			{userRole?.toLowerCase() === 'regular user' && (
+			{userRole?.toLowerCase() === 'engg' && (
 				<div>
 					<label>Inspection Status</label>
 					<select
@@ -712,7 +724,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 
 
 
-			{userRole?.toLowerCase() !== 'regular user' && inspectionStatus !== 'VISUAL' && (
+			{userRole?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
 				<div>
 					<label>Upload Test Report Here</label>
 					<input
@@ -729,11 +741,12 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<button onClick={onConfirm}>Done</button>
 				<button
 				         onClick={() => {
+				           // Reset values optionally (comment out if undesired)
 				           setInspectionStatus('');
 				           setTestInLab(null);
 				           setTestReportFile(null);
 
-				          
+				           // Close popup
 				           onCancel();
 				         }}
 				       >

@@ -85,7 +85,7 @@ const Inspection = () => {
 
 	const [downloadingId, setDownloadingId] = useState(null);
 	const handleDownloadImagesPdf = async (id, uploadedBy) => {
-		const uniqueId = uploadedBy === "Contractor" ? id : `client-${id}`;
+		const uniqueId = uploadedBy === "Con" ? id : `client-${id}`;
 		try {
 			setDownloadingId(uniqueId);
 
@@ -102,7 +102,7 @@ const Inspection = () => {
 			const url = window.URL.createObjectURL(blob);
 			const link = document.createElement("a");
 			link.href = url;
-			const filename = `Images_Uploaded_by_the_${uploadedBy === "Contractor" ? "Contractor" : "Client"}.pdf`;
+			const filename = `Images_Uploaded_by_the_${uploadedBy === "Con" ? "Con" : "Client"}.pdf`;
 			link.setAttribute("download", filename);
 			document.body.appendChild(link);
 			link.click();
@@ -136,7 +136,7 @@ const Inspection = () => {
 
 		    return hasContractorImage ? (
 		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Con')}
 		        className="btn-download"
 		        disabled={isDownloading}
 		      >
@@ -155,7 +155,7 @@ const Inspection = () => {
 
 		    return hasClientImage ? (
 		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Engg')}
 		        className="btn-download"
 		        disabled={isDownloading}
 		      >
@@ -207,7 +207,7 @@ const Inspection = () => {
               >
                 <button onClick={() => handleInspectionComplete(row.original.id)}>Start Inspection Online</button>
                 <button>Start Inspection Offline</button>
-                {userRole !== 'regular user' && (
+                {userRole !== 'Engg' && (
                   <button
                     onClick={() => {
                       navigate('/InspectionForm', {
@@ -231,7 +231,7 @@ const Inspection = () => {
                 >
                   View
                 </button>
-                {userRole !== 'contractor' && (
+                {userRole !== 'con' && (
                   <button
                     onClick={() => {
                       setConfirmPopupData({
@@ -254,7 +254,7 @@ const Inspection = () => {
                     Send for Validation
                   </button>
                 )}
-                {userRole !== 'regular user' && <button>Submit</button>}
+                {userRole !== 'engg' && <button>Submit</button>}
               </DropdownPortal>
             )}
           </div>

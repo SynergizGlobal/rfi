@@ -65,12 +65,15 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.assigned_person_client AS assignedPersonClient,
     	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-    	        i.status AS status,
-    	         r.status as status,
-		        r.action as action
+    	        ico.inspection_status AS inspectionStatus,
+		        r.status as status,
+    	        ico.site_image as imgContractor,
+    	        ic.site_image as imgClient
     	    FROM rfi_data r
-    	    left join rfi_inspection_details as i
-    	    on r.id=i.rfi_id_fk
+    	    left join (select rfi_id_fk,site_image,inspection_status from rfi_inspection_details) as ico
+    	    on r.id=ico.rfi_id_fk
+    	    left join (select rfi_id_fk,site_image from rfi_inspection_details) as ic
+    	    on r.id=ic.rfi_id_fk
     	    WHERE r.created_by = :createdBy
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
@@ -87,17 +90,23 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
-    	         DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-    	        i.inspection_status AS inspectionStatus,
-    	         r.status as status,
-		        r.action as action
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        ico.inspection_status AS inspectionStatus,
+		        r.status as status,
+    	        ico.site_image as imgContractor,
+    	        ic.site_image as imgClient
     	    FROM rfi_data r
-    	    LEFT JOIN rfi_inspection_details as i
-    	    on r.id=i.rfi_id_fk
+    	    LEFT JOIN (select rfi_id_fk, site_image, inspection_status from rfi_inspection_details 
+    	    where uploaded_by != 'Engg') ico
+    	    on r.id = ico.rfi_id_fk
+    	    LEFT JOIN (select rfi_id_fk, site_image from rfi_inspection_details 
+    	    where uploaded_by = 'Engg') ic
+    	    on r.id = ic.rfi_id_fk
     	    WHERE r.created_by = :createdBy
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)
     List<RfiListDTO> getRFIsCreatedBy(String createdBy);
+ 
  
     @Query(value = """
     	    SELECT
@@ -109,13 +118,17 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
-    	         DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-    	        i.inspection_status AS inspectionStatus,
-    	         r.status as status,
-		        r.action as action
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        ico.inspection_status AS status,
+    	        ico.site_image as imgContractor,
+    	        ic.site_image as imgClient
     	    FROM rfi_data r
-    	    LEFT JOIN rfi_inspection_details as i
-    	    on r.id=i.rfi_id_fk
+    	    LEFT JOIN (select rfi_id_fk, site_image, inspection_status from rfi_inspection_details 
+    	    where uploaded_by != 'Engg') ico
+    	    on r.id = ico.rfi_id_fk
+    	    LEFT JOIN (select rfi_id_fk, site_image from rfi_inspection_details 
+    	    where uploaded_by = 'Engg') ic
+    	    on r.id = ic.rfi_id_fk
     	    WHERE r.assigned_person_client = :assignedPersonClient
     	    ORDER BY r.created_at DESC
     	""", nativeQuery = true)

@@ -52,13 +52,13 @@ public class InspectionController {
 	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Long> startInspection(HttpSession session, @RequestPart("data") String dataJson,
 			@RequestPart("selfie") MultipartFile selfie, @RequestPart("siteImages") MultipartFile[] siteImages) {
-		String UserRole = (String) session.getAttribute("userRoleNameFk");
-
+		String deptFk = (String) session.getAttribute("departmentFk");
+		          
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-			Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, UserRole);
+			Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, deptFk);
 
 			return ResponseEntity.ok(inspectionId);
 		} catch (Exception e) {
@@ -93,13 +93,13 @@ public class InspectionController {
 	public ResponseEntity<String> saveChecklist(HttpSession session, @RequestPart("data") String checklistJson,
 			@RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
 			@RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
-		String UserRole = (String) session.getAttribute("userRoleNameFk");
+		String deptFk = (String) session.getAttribute("departmentFk");
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 
 			RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
 
-			checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature, UserRole);
+			checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature, deptFk);
 			return ResponseEntity.ok("Checklist saved successfully");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -113,12 +113,12 @@ public class InspectionController {
 	public ResponseEntity<String> updateInspectionStatus(HttpSession session,@RequestPart("data") String dataJson,
 			@RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 	
-		String userRole = (String) session.getAttribute("userRoleNameFk");
+		String deptFk = (String) session.getAttribute("departmentFk");
 		
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-			inspectionService.updateInspectionStatus(dto, testDocument, userRole);
+			inspectionService.updateInspectionStatus(dto, testDocument, deptFk);
 			return ResponseEntity.ok("Inspection status updated successfully");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

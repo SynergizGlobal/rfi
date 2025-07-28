@@ -38,7 +38,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 
 	@Override
 	public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, MultipartFile contractorSig,
-			MultipartFile clientSig, String UserRole) throws IOException {
+			MultipartFile clientSig, String deptFk) throws IOException {
 		
 	
 		  //  Fetch the RFIInspectionDetails using the ID
@@ -50,15 +50,15 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	        RFIChecklistItem checklist = existingOptional.orElseGet(RFIChecklistItem::new);
 	        checklist.setRfi(inspection);
 	        checklist.setEnclosureName(dto.getEnclosureName());
-	        checklist.setUploadedby(UserRole);
-	        if ("Contractor".equalsIgnoreCase(UserRole) || "IT Admin".equalsIgnoreCase(UserRole)) {
+	        checklist.setUploadedby(deptFk);
+	        if ("Con".equalsIgnoreCase(deptFk)) {
 	        	checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
 	        	checklist.setDrawingApproved(dto.getDrawingApproved());
 		        checklist.setAlignmentOk(dto.getAlignmentOk());
 	            checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
 	            checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
 	            checklist.setContractorSignature(contractorSig != null ? saveFile(contractorSig) : checklist.getContractorSignature());
-	        } else if ("Regular User".equalsIgnoreCase(UserRole) || "IT Admin".equalsIgnoreCase(UserRole)) {
+	        } else if ("Engg".equalsIgnoreCase(deptFk)) {
 	            checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
 	            checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
 	            checklist.setGcMrvcRepresentativeSignature(clientSig != null ? saveFile(clientSig) : checklist.getGcMrvcRepresentativeSignature());

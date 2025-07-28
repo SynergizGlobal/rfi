@@ -74,7 +74,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Override
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,
-			String UserRole) {
+			String deptFk) {
 	
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
@@ -89,7 +89,7 @@ public class InspectionServiceImpl implements InspectionService {
 		String siteImagePaths = Arrays.stream(siteImages).map(this::saveFile).collect(Collectors.joining(","));
 
 		Optional<RFIInspectionDetails> existingInspectionOpt = inspectionRepository
-				.findByRfiAndUploadedBy(rfi, UserRole);
+				.findByRfiAndUploadedBy(rfi, deptFk);
 
 		RFIInspectionDetails inspection =  existingInspectionOpt.orElse(new RFIInspectionDetails());
 
@@ -100,7 +100,7 @@ public class InspectionServiceImpl implements InspectionService {
 		inspection.setSiteImage(siteImagePaths);
 		inspection.setDateOfInspection(LocalDate.now());
 		inspection.setTimeOfInspection(LocalTime.now());
-		inspection.setUploadedBy(UserRole);
+		inspection.setUploadedBy(deptFk);
 
 		inspectionRepository.save(inspection);
 		return inspection.getId();
@@ -128,18 +128,18 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Override
 	@Transactional
-	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument, String userRole) {
+	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
 
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
 		
 		
 		 RFIInspectionDetails inspection = inspectionRepository
-			        .findByRfiAndUploadedBy(rfi, userRole)
+			        .findByRfiAndUploadedBy(rfi, deptFk)
 			        .orElseGet(() -> {
 			            RFIInspectionDetails newInsp = new RFIInspectionDetails();
 			            newInsp.setRfi(rfi);
-			            newInsp.setUploadedBy(userRole);
+			            newInsp.setUploadedBy(deptFk);
 			            return newInsp;
 			        });
 

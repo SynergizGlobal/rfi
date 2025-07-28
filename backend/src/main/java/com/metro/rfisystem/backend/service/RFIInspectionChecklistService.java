@@ -9,7 +9,7 @@ import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 
 
 		public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, MultipartFile contractorSignature,
-				MultipartFile clientSignature, String userRole) throws Exception;
+				MultipartFile clientSignature, String deptFk) throws Exception;
     
 	    public RFIInspectionChecklistDTO getChecklist(Long rfiId, String enclosureName);
 
