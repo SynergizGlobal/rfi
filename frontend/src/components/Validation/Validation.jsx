@@ -17,15 +17,27 @@ export default function Validation() {
 	useEffect(() => {
 		axios.get(`${API_BASE_URL}/getRfiValidations`, { withCredentials: true })
 			.then(res => {
-				setRfiList(res.data);
-				setRemarksList(res.data.map(item => item.remarks || ""));
-				setStatusList(res.data.map(item => item.status || ""));
-				setEditModeList(res.data.map(() => false));
-				setSubmittedList(res.data.map(item => item.remarks && item.status ? true : false));
+				console.log("GET /getRfiValidations response:", res.data);
 
+				const data = Array.isArray(res.data) ? res.data : [];
+
+				setRfiList(data);
+				setRemarksList(data.map(item => item.remarks || ""));
+				setStatusList(data.map(item => item.status || ""));
+				setEditModeList(data.map(() => false));
+				setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
 			})
-			.catch(err => console.error(err));
+			
+			.catch(err => {
+				console.error("Error fetching RFI validations:", err);
+				setRfiList([]); // fallback
+				setRemarksList([]);
+				setStatusList([]);
+				setEditModeList([]);
+				setSubmittedList([]);
+			});
 	}, []);
+
 
 
 	const updateRemark = (idx, value) => {
@@ -127,11 +139,7 @@ export default function Validation() {
 	const [fileList, setFileList] = useState([]);
 	const [selectedInspection, setSelectedInspection] = useState(null);
 
-	useEffect(() => {
-		axios.get(`${API_BASE_URL}/getRfiValidations`)
-			.then(res => setRfiList(res.data))
-			.catch(err => console.error(err));
-	}, []);
+
 
 
 	const toBase64 = async (url) => {

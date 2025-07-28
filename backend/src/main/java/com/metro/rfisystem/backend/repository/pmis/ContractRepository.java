@@ -16,7 +16,8 @@ import com.metro.rfisystem.backend.model.pmis.Contract;
 public interface ContractRepository extends JpaRepository<Contract, String> {
 
 	@Query(value = """
-			SELECT DISTINCT c.contract_short_name AS contractShortName, CAST(c.contract_id AS CHAR) AS contractIdFk
+			SELECT DISTINCT c.contract_short_name AS contractShortName, CAST(c.contract_id AS CHAR) AS contractIdFk,
+			c.dy_hod_user_id_fk as dyHodUserId
 			FROM p6_activities a
 			LEFT JOIN structure s ON s.structure_id = a.structure_id_fk
 			LEFT OUTER JOIN contract c ON a.contract_id_fk = c.contract_id

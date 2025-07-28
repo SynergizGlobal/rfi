@@ -8,6 +8,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+
+import java.util.Collections;
 import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,8 @@ import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
+
+import jakarta.servlet.http.HttpSession;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,14 +56,25 @@ public class RfiValidateController {
 	}
 
 	@GetMapping("/getRfiValidations")
-	public ResponseEntity<List<GetRfiDTO>> showRfiIdsForValidations() {
-		List<GetRfiDTO> list = rfiValidationService.showRfiValidations();
+	public ResponseEntity<List<GetRfiDTO>> showRfiIdsForValidations(HttpSession session) {
+		String userType = (String) session.getAttribute("userTypeFk");
+		String userId = (String) session.getAttribute("userId");
+		
+		List<GetRfiDTO> list;
+
+		if ("DyHOD".equalsIgnoreCase(userType)) {
+			list = rfiValidationService.showRfiValidationsDyHod(userId);
+		} else {
+			list = rfiValidationService.showRfiValidationsItAdmin();
+		}
 
 		if (list.isEmpty()) {
-			return ResponseEntity.noContent().build();
+			return ResponseEntity.ok(Collections.emptyList()); // ✅ return empty list with 200
 		}
+
 		return ResponseEntity.ok(list);
 	}
+
 
 
 	@GetMapping("/getRfiReportDetails/{id}")

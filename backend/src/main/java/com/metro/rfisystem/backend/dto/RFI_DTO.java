@@ -35,5 +35,6 @@ public class RFI_DTO {
 	private String activity;
 	private String status;
     private String contractor;
+    private String dyHodUserId;
 
 }

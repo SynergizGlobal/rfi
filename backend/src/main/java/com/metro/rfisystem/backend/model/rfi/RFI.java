@@ -120,6 +120,9 @@ public class RFI {
     
     @Column(name="contract_id")
     private String contractId;
+    
+    @Column(name = "dy_hod_user_id")
+    private String dyHodUserId;
 	
     
 	@OneToOne(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)

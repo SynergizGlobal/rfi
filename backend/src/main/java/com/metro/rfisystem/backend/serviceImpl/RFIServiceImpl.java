@@ -57,7 +57,7 @@ public class RFIServiceImpl implements RFIService {
 
 		String contractShortName = dto.getContract(); 
 
-		String contractId = contractRepository.findContractIdByShortName(contractShortName);
+		String contractId = dto.getContractId();
 
 		if (contractId == null) {
 			throw new RuntimeException("No contract ID found for short name: " + contractShortName);
@@ -73,9 +73,8 @@ public class RFIServiceImpl implements RFIService {
 
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
-
 		rfi.setContract(dto.getContract());
-
+		rfi.setContractId(dto.getContractId());
 		rfi.setProject(dto.getProject());
 		rfi.setWork(dto.getWork());
 		rfi.setStructureType(dto.getStructureType());
@@ -94,7 +93,7 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
 		rfi.setDateOfInspection(dto.getDateOfInspection());
 		rfi.setCreatedBy(userName);
-		
+		rfi.setDyHodUserId(dto.getDyHodUserId());
 		rfi.setStatus(EnumRfiStatus.CREATED);
 
 		return rfiRepository.save(rfi);

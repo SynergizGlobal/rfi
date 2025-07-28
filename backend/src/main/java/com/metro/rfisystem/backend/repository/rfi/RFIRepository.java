@@ -147,7 +147,16 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
 			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
-	public List<GetRfiDTO> showRfiValidations();
+	public List<GetRfiDTO> showRfiValidationsItAdmin();
+
+
+	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
+			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
+			+"where dy_hod_user_id =:userId\r\n"
+			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
+	public List<GetRfiDTO> showRfiValidationsDyHod(String userId);
+	
+	
 
 	
 	@Query(value = "\r\n"
@@ -322,4 +331,3 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 
 }
- 

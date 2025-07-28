@@ -29,6 +29,7 @@ const CreateRfi = () => {
 		project: '',
 		work: '',
 		contract: '',
+		contractId: '',
 		structureType: '',
 		structure: '',
 		component: '',
@@ -45,6 +46,7 @@ const CreateRfi = () => {
 		enclosures: '',
 		location: '',
 		description: '',
+		dyHodUserId: '',
 	});
 	const [message, setMessage] = useState('');
 
@@ -608,10 +610,12 @@ const CreateRfi = () => {
 															.map(contract => {
 																const name = contract.contractShortName;
 																const id = contract.contractIdFk.trim();
+																const dyHodUserId = contract.dyHodUserId.trim();
 																map[name] = id;
 																return {
 																	value: name,
-																	label: name
+																	label: name,
+																	dyHodUserId:dyHodUserId
 																};
 															});
 
@@ -642,11 +646,13 @@ const CreateRfi = () => {
 											onChange={(selected) => {
 												const selectedContractName = selected?.value || '';
 												const selectedContractId = contractIdMap[selectedContractName] || '';
+												const selectedDyHodUserId = selected?.dyHodUserId || '';
 
 												setFormState({
 													...formState,
 													contract: selectedContractName,
 													contractId: selectedContractId,
+													dyHodUserId: selectedDyHodUserId,
 													structureType: '',
 													structure: '',
 													component: '',

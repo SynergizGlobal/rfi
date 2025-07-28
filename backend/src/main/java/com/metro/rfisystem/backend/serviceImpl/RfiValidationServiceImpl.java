@@ -63,8 +63,14 @@ public class RfiValidationServiceImpl implements RfiValidationService {
     }
  
 	@Override
-	public List<GetRfiDTO> showRfiValidations() {
-		return rfiRepository.showRfiValidations();
+	public List<GetRfiDTO> showRfiValidationsItAdmin() {
+		return rfiRepository.showRfiValidationsItAdmin();
+	}
+
+
+	@Override
+	public List<GetRfiDTO> showRfiValidationsDyHod(String userId) {
+		return rfiRepository.showRfiValidationsDyHod(userId) ;
 	}
 	@Override
 	@Transactional

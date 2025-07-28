@@ -62,28 +62,10 @@ public class RFIController {
 	@PostMapping("/create")
 	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto, HttpSession session) {
 	    String userName = (String) session.getAttribute("userName");
-	    @SuppressWarnings("unchecked")
-	    List<String> allowedContracts = (List<String>) session.getAttribute("allowedContracts");
 
 	    if (userName == null) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
 	    }
-
-	    String contractShortName = dto.getContract();
-	    String contractId = Optional.ofNullable(contractRepository.findContractIdByShortName(contractShortName))
-	                                .map(String::trim)
-	                                .orElse(null);
-
-	    System.out.println("Session user: " + userName);
-	    System.out.println("Allowed contracts: " + allowedContracts);
-	    System.out.println("Selected contract short name: " + contractShortName);
-	    System.out.println("Resolved contractId: '" + contractId + "'");
-
-//	    if (contractId == null || allowedContracts == null || 
-//	        allowedContracts.stream().noneMatch(id -> id != null && id.trim().equalsIgnoreCase(contractId))) {
-//	        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-//	            .body("❌ You are not authorized to create RFI for this contract.");
-//	    }
 
 	    RFI saved = rfiService.createRFI(dto, userName);
 	    return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");

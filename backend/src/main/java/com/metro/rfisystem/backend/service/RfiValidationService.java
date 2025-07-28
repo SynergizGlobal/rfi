@@ -3,7 +3,6 @@ package com.metro.rfisystem.backend.service;
 import java.io.OutputStream;
 import java.util.List;
 
-import org.springframework.web.bind.annotation.RequestParam;
 
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
@@ -13,7 +12,8 @@ public interface RfiValidationService {
 
 	boolean sendRfiForValidation(Long id);
 
-	List<GetRfiDTO> showRfiValidations();
+	List<GetRfiDTO> showRfiValidationsItAdmin();
+	List<GetRfiDTO> showRfiValidationsDyHod(String userId);
 
 	void validateRfiWithFile(RfiValidateDTO dto);
 	
