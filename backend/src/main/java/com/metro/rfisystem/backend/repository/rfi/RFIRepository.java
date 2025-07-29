@@ -67,6 +67,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
     	        ico.inspection_status AS inspectionStatus,
 		        r.status as status,
+		        r.action as action,
     	        ico.site_image as imgContractor,
     	        ic.site_image as imgClient
     	    FROM rfi_data r
@@ -92,9 +93,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.activity AS activity,
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
-    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
+    	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
     	        ico.inspection_status AS inspectionStatus,
 		        r.status as status,
+		        r.action as action,
     	        ico.site_image as imgContractor,
     	        ic.site_image as imgClient
     	    FROM rfi_data r
@@ -121,7 +123,9 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        r.created_by as createdBy,
     	        r.assigned_person_client AS assignedPersonClient,
     	        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS submissionDate,
-    	        ico.inspection_status AS status,
+    	        ico.inspection_status AS  inspectionstatus,
+    	        r.status as status,
+    	        r.action as action,
     	        ico.site_image as imgContractor,
     	        ic.site_image as imgClient
     	    FROM rfi_data r
