@@ -34,8 +34,10 @@ public class RfiLogController {
 
 		String UserName = (String) session.getAttribute("userName");
 		String UserRole = (String) session.getAttribute("userRoleNameFk");
+		String UserId = (String) session.getAttribute("userId");
+		String UserType = (String) session.getAttribute("userTypeFk");
 
-		List<RfiLogDTO> list = logService.listAllRfiLog(UserRole, UserName);
+		List<RfiLogDTO> list = logService.listAllRfiLog(UserRole, UserName, UserId,UserType);
 
 		if (list.isEmpty()) {
 			return ResponseEntity.noContent().build();
