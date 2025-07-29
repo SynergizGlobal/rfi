@@ -136,7 +136,7 @@ const Inspection = () => {
 
 		    return hasContractorImage ? (
 		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Con')}
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
 		        className="btn-download"
 		        disabled={isDownloading}
 		      >
@@ -155,7 +155,7 @@ const Inspection = () => {
 
 		    return hasClientImage ? (
 		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Engg')}
+		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
 		        className="btn-download"
 		        disabled={isDownloading}
 		      >

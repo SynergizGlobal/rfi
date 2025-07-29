@@ -40,10 +40,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
                 ico.site_image as imgContractor
 		    FROM rfi_data r
             left join (select rfi_id_fk,site_image from rfi_inspection_details 
-            where uploaded_by = 'Regular User') ic
+            where uploaded_by = 'Engg') ic
             on r.id= ic.rfi_id_fk  
             left join(select rfi_id_fk, inspection_status,site_image from rfi_inspection_details
-            where uploaded_by != 'Regular User') as ico
+            where uploaded_by != 'Engg') as ico
             on r.id = ico.rfi_id_fk
 		    ORDER BY r.created_at DESC
 		""", nativeQuery = true)
@@ -70,9 +70,11 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	        ico.site_image as imgContractor,
     	        ic.site_image as imgClient
     	    FROM rfi_data r
-    	    left join (select rfi_id_fk,site_image,inspection_status from rfi_inspection_details) as ico
+    	    left join (select rfi_id_fk,site_image,inspection_status from rfi_inspection_details
+    	    where uploaded_by != 'Engg') as ico
     	    on r.id=ico.rfi_id_fk
-    	    left join (select rfi_id_fk,site_image from rfi_inspection_details) as ic
+    	    left join (select rfi_id_fk,site_image from rfi_inspection_details
+    	    Where uploaded_by = 'Engg') as ic
     	    on r.id=ic.rfi_id_fk
     	    WHERE r.created_by = :createdBy
     	    ORDER BY r.created_at DESC

@@ -5,6 +5,7 @@ import CameraCapture from '../CameraCapture/CameraCapture';
 import './InspectionForm.css';
 
 const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 
 const initialChecklist = [
 	{ id: 1, description: 'Drawing Approved and available', status: '', contractorRemark: '', aeRemark: '' },
@@ -206,7 +207,8 @@ export default function InspectionForm() {
 			alert("Inspection Status submitted successfully.");
 			setConfirmPopup(false);
 			localStorage.removeItem("latestInspectionId");
-			//window.location.href = `${window.location.origin}/rfiSystem/Inspection';
+			window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
+
 		} catch (err) {
 			console.error("Submit failed:", err);
 			alert("Error: " + err.message);
@@ -445,7 +447,7 @@ export default function InspectionForm() {
 																					<td>
 																						<button disabled={state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Open</button>{' '}
 																						<button disabled={!state.checklistDone} onClick={() => setChecklistPopup(e.id)}>Edit</button>
-																						{userRole?.toLowerCase() !== 'engg' && (
+																						{deptFK?.toLowerCase() !== 'engg' && (
 																							<button onClick={() => setUploadPopup(e.id)}>Upload</button>
 																						)}
 																					</td>
@@ -703,7 +705,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 				<option value="SITE_TEST">Site Test</option>
 			</select>
 
-			{userRole?.toLowerCase() === 'engg' && (
+			{deptFK?.toLowerCase() === 'engg' && (
 				<div>
 					<label>Inspection Status</label>
 					<select
@@ -724,7 +726,7 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 
 
 
-			{userRole?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
+			{deptFK?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
 				<div>
 					<label>Upload Test Report Here</label>
 					<input
