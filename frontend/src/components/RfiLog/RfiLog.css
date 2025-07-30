@@ -105,7 +105,7 @@ table {
 .right,
 .dashboard {
   height: auto;   
-  overflow: visible;
+  overflow: auto;
 }
 
 .responsive-table {

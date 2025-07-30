@@ -158,8 +158,11 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsDyHod(String userId);
 	
-	
-
+	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
+			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
+			+"where assigned_person_client =:userName\r\n"
+			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
+	public List<GetRfiDTO> showRfiValidationsAssignedBy(String userName);
 	
 	@Query(value = "\r\n"
 			+ "SELECT\r\n"

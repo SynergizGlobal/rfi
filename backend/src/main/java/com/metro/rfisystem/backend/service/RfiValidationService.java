@@ -12,8 +12,7 @@ public interface RfiValidationService {
 
 	boolean sendRfiForValidation(Long id);
 
-	List<GetRfiDTO> showRfiValidationsItAdmin();
-	List<GetRfiDTO> showRfiValidationsDyHod(String userId);
+	List<GetRfiDTO> showValidations(String UserRole,String UserType, String UserId,String Department,String UserName);
 
 	void validateRfiWithFile(RfiValidateDTO dto);
 	

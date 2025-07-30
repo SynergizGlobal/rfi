@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
  
@@ -61,17 +62,21 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 		}
 		return false;
     }
- 
-	@Override
-	public List<GetRfiDTO> showRfiValidationsItAdmin() {
-		return rfiRepository.showRfiValidationsItAdmin();
-	}
-
+	
 
 	@Override
-	public List<GetRfiDTO> showRfiValidationsDyHod(String userId) {
-		return rfiRepository.showRfiValidationsDyHod(userId) ;
+	public List<GetRfiDTO> showValidations(String UserRole, String UserType, String UserId, String Department,
+			String UserName) {
+		if("IT Admin".equalsIgnoreCase(UserRole)) {
+			return rfiRepository.showRfiValidationsItAdmin();
+		}
+		else if ("DyHOD".equalsIgnoreCase(UserType)) {
+			return rfiRepository.showRfiValidationsDyHod(UserId);
+		}
+		// Query for the Role Engineer.
+		return rfiRepository.showRfiValidationsAssignedBy(UserName);
 	}
+	
 	@Override
 	@Transactional
 	public void validateRfiWithFile(RfiValidateDTO dto) {
@@ -121,6 +126,10 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	public List<RfiReportDTO> getRfiReportDetails(long id) {
 		return rfiRepository.getRfiReportDetails(id);
 	}
+
+
+
+
 //	@Override
 //    public void generateRfiPdf(long id, OutputStream out) throws Exception {
 //        RfiReportDTO dto = rfiRepository.getRfiReportDetails(id);

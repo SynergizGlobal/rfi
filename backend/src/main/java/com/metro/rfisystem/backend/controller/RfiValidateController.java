@@ -9,6 +9,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.http.MediaType;
@@ -57,19 +58,16 @@ public class RfiValidateController {
 
 	@GetMapping("/getRfiValidations")
 	public ResponseEntity<List<GetRfiDTO>> showRfiIdsForValidations(HttpSession session) {
+		String userRole = (String) session.getAttribute("userRoleNameFk");
 		String userType = (String) session.getAttribute("userTypeFk");
 		String userId = (String) session.getAttribute("userId");
+		String department = (String) session.getAttribute("departmentFk");
+		String userName = (String) session.getAttribute("userName");
 		
-		List<GetRfiDTO> list;
-
-		if ("DyHOD".equalsIgnoreCase(userType)) {
-			list = rfiValidationService.showRfiValidationsDyHod(userId);
-		} else {
-			list = rfiValidationService.showRfiValidationsItAdmin();
-		}
+		List<GetRfiDTO> list = rfiValidationService.showValidations(userRole, userType, userId, department, userName);
 
 		if (list.isEmpty()) {
-			return ResponseEntity.ok(Collections.emptyList()); // ✅ return empty list with 200
+			return ResponseEntity.ok(Collections.emptyList()); 
 		}
 
 		return ResponseEntity.ok(list);
