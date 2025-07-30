@@ -17,7 +17,7 @@ const CreateRfi = () => {
 
 	const [isEditable, setIsEditable] = useState(mode?.toLowerCase() !== 'edit');
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
-
+	const getTodayISO = () => new Date().toISOString().split('T')[0];
 
 
 	useEffect(() => {
@@ -41,7 +41,7 @@ const CreateRfi = () => {
 		nameOfRepresentative: '',
 		timeOfInspection: '',
 		rfi_Id: '',
-		dateOfSubmission: '',
+		dateOfSubmission: getTodayISO(),
 		dateOfInspection: '',
 		enclosures: '',
 		location: '',
@@ -83,6 +83,13 @@ const CreateRfi = () => {
     if (value < today) {
       alert("Date of Submission should not be prior to today's date.");
       return; // stop further execution
+    }
+  }
+  if (e.target.name === "dateOfInspection") {
+    const today = new Date().toISOString().split("T")[0];
+    if (value < today) {
+      alert("Inspection date cannot be in the future.");
+      return;
     }
   }
 		setFormState({ ...formState, [name]: value });
@@ -487,16 +494,20 @@ const CreateRfi = () => {
 		{ value: 'Steel Cage lowering & approval of concreting for Concreting', label: 'Steel Cage lowering & approval of concreting for Concreting' },
 	];
 	const typeOfRfiOptions = [
-		{ value: 'typeOfRFI 1', label: 'typeOfRFI 1' },
-		{ value: 'typeOfRFI 2', label: 'typeOfRFI 2' },
+		{ value: 'Regular RFI', label: 'Regular RFI' },
+		{ value: 'SPOT RFI', label: 'SPOT RFI' },
 	];
 	const nameOfRepresentativeOptions = [
 		{ value: 'nameOfRepresentative 1', label: 'nameOfRepresentative 1' },
 		{ value: 'nameOfRepresentative 2', label: 'nameOfRepresentative 2' },
 	];
 	const addRfiEnclosuresOptions = [
-		{ value: 'addRfiEnclosures 1', label: 'addRfiEnclosures 1' },
-		{ value: 'addRfiEnclosures 2', label: 'addRfiEnclosures 2' },
+		{ value: 'FDD', label: 'FDD' },
+		{ value: 'Level', label: 'Level' },
+		{ value: 'Gradation', label: 'Gradation' },
+		{ value: 'Measurement Sheet', label: 'Measurement Sheet' },
+		{ value: 'Drawing', label: 'Drawing' },
+		{ value: 'Other', label: 'Other' },
 	];
 	return (
 		<div className="dashboard create-rfi">
@@ -895,18 +906,7 @@ const CreateRfi = () => {
 									/>
 								</div>
 
-								<div className="form-fields flex-1">
-									<input
-										type="hidden"
-										id="rfi_Id"
-										name="rfi_Id"
-										value={formState.rfi_Id}
-										onChange={handleChange}
-										placeholder="Enter value"
-
-
-									/>
-								</div>
+							
 						<div className="form-fields flex-1">
   <label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
   <input
@@ -915,7 +915,7 @@ const CreateRfi = () => {
     name="dateOfSubmission"
     value={formState.dateOfSubmission}
     onChange={handleChange}
-    min={new Date().toISOString().split('T')[0]} // 👈 sets min to today's date
+    min={getTodayISO()}
   />
 </div>
 
@@ -928,6 +928,7 @@ const CreateRfi = () => {
 										name="dateOfInspection"
 										value={formState.dateOfInspection}
 										onChange={handleChange}
+										min={new Date().toISOString().split('T')[0]}
 									/>
 								</div>
 
