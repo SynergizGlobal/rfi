@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
@@ -15,9 +14,6 @@ import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import java.util.List;
-
-
-
 
 @Repository
 public interface RFIRepository extends JpaRepository<RFI, Long> {	
@@ -241,33 +237,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
 	
-	@Query(value="SELECT \r\n"
-			+ "    r.id AS id,\r\n"
-			+ "    r.rfi_id AS rfiId,\r\n"
-			+ "    DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,\r\n"
-			+ "    r.description AS rfiDescription,\r\n"
-			+ "    r.created_by AS rfiRequestedBy,\r\n"
-			+ "    r.client_department AS department,\r\n"
-			+ "    r.assigned_person_client AS person,\r\n"
-			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
-			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
-			+ "    r.status AS status,\r\n"
-			+ "    rv.remarks AS notes\r\n"
-			+ "FROM \r\n"
-			+ "    rfi_data r\r\n"
-			+ "LEFT JOIN \r\n"
-			+ "    rfi_inspection_details i ON r.id = i.rfi_id_fk\r\n"
-			+ "LEFT JOIN \r\n"
-			+ "    rfi_validation rv ON rv.rfi_id_fk = r.id\r\n"
-			+ "WHERE \r\n"
-			+ "    (:project IS NULL OR :project = '' OR r.project_name = :project)\r\n"
-			+ "    AND (:work IS NULL OR :work = '' OR r.work_short_name = :work)\r\n"
-			+ "    AND (:contract IS NULL OR :contract = '' OR r.contract_short_name = :contract)\r\n"
-			+ "ORDER BY \r\n"
-			+ "    r.created_at DESC;\r\n"
-			+ "",nativeQuery=true)
-	List<RfiLogDTO> listRfiLogByFilter(String project,String work,String contract);
-	
+
+// IT-Admin RFI log query
 	@Query(value="SELECT\r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
@@ -279,7 +250,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
 			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
 			+ "    r.status AS status,\r\n"
-			+ "    rv.remarks AS notes\r\n"
+			+ "    rv.remarks AS notes,\r\n"
+			+ "    r.project_name AS project,\r\n"
+			+ "    r.work_short_name AS work,\r\n"
+			+ "    r.contract_short_name AS contract\r\n"
 			+ "FROM \r\n"
 			+ "    rfi_data AS r\r\n"
 			+ "LEFT JOIN \r\n"
@@ -290,7 +264,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "ORDER BY \r\n"
 			+ "    r.created_at DESC;",nativeQuery=true)
 	List<RfiLogDTO> listAllRfiLogItAdmin();
-	
+
+//For Contractor query using the field "created_by" in the rfi_table.
 	@Query(value="SELECT\r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
@@ -302,7 +277,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
 			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
 			+ "    r.status AS status,\r\n"
-			+ "    rv.remarks AS notes\r\n"
+			+ "    rv.remarks AS notes,\r\n"
+			+ "    r.project_name AS project,\r\n"
+			+ "    r.work_short_name AS work,\r\n"
+			+ "    r.contract_short_name AS contract\r\n"
 			+ "FROM \r\n"
 			+ "    rfi_data AS r\r\n"
 			+ "LEFT JOIN \r\n"
@@ -318,7 +296,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	List<RfiLogDTO> listAllRfiLogByCreatedBy(String userName  );
 	
 	
-	
+// Query for the Engineer filtering by using the "assigned_person_client" field in the rfi_table...
 	@Query(value="SELECT\r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
@@ -330,7 +308,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
 			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
 			+ "    r.status AS status,\r\n"
-			+ "    rv.remarks AS notes\r\n"
+			+ "    rv.remarks AS notes,\r\n"
+			+ "    r.project_name AS project,\r\n"
+			+ "    r.work_short_name AS work,\r\n"
+			+ "    r.contract_short_name AS contract\r\n"
 			+ "FROM \r\n"
 			+ "    rfi_data AS r\r\n"
 			+ "LEFT JOIN \r\n"
@@ -346,7 +327,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	List<RfiLogDTO> listAllRfiLogByAssignedBy(String userName  );
 	
 
-	
+// Query for the DyHod user filtering by using the field "dy_hod_user_id_fk" in the rfi_table..
 	@Query(value="SELECT\r\n"
 			+ "    r.id AS id,\r\n"
 			+ "    r.rfi_id AS rfiId,\r\n"
@@ -358,7 +339,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "    DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,\r\n"
 			+ "    DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,\r\n"
 			+ "    r.status AS status,\r\n"
-			+ "    rv.remarks AS notes\r\n"
+			+ "    rv.remarks AS notes,\r\n"
+			+ "    r.project_name AS project,\r\n"
+			+ "    r.work_short_name AS work,\r\n"
+			+ "    r.contract_short_name AS contract\r\n"
 			+ "FROM \r\n"
 			+ "    rfi_data AS r\r\n"
 			+ "LEFT JOIN \r\n"
@@ -373,9 +357,6 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "",nativeQuery=true)
 	List<RfiLogDTO> listAllRfiLogByDyHod(String userId  );
 	
-	
-	
-	
 
 	long countByStatus(EnumRfiStatus status);
 
@@ -388,7 +369,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.createdBy = :createdBy")
 	long countByStatusesAndCreatedBy(@Param("statuses") List<EnumRfiStatus> statuses, @Param("createdBy") String createdBy);
 
-	// For Regular User
+	// For Engineer
 	long countByStatusAndAssignedPersonClient(EnumRfiStatus status, String assignedTo);
 
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.assignedPersonClient = :assignedTo")

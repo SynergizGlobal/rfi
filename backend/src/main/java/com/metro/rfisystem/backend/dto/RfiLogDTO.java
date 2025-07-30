@@ -19,5 +19,8 @@ public class RfiLogDTO {
     private String dateResponded;
     private String status;
     private String notes;
+    private String project;
+    private String work;
+    private String contract;
 
 }
