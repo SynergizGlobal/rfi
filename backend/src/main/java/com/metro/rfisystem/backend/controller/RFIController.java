@@ -160,6 +160,7 @@ public class RFIController {
 		System.out.println("Session userName: " + userName);
 		System.out.println("Session userRoleNameFk: " + userRole);
 		System.out.println("Session userTypeFk: " + userType);
+		System.out.println("Session userDepartment : " + userDepartment);
  
 		if (userName == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -185,6 +186,7 @@ public class RFIController {
 		String userName = (String) session.getAttribute("userName");
 		String userRole = (String) session.getAttribute("userRoleNameFk");
 		String userType = (String) session.getAttribute("userTypeFk");
+		String userDepartment =(String) session.getAttribute("departmentFk");
 
 		if (userName == null || (userRole == null && userType == null)) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -199,7 +201,7 @@ public class RFIController {
 		{
 			return ResponseEntity.ok(rfiService.countByCreatedBy(userName));
 		}
-		if (userRole.equalsIgnoreCase("Regular User")) {
+		if (userDepartment.equalsIgnoreCase("Engg")) {
 			return ResponseEntity.ok(rfiService.countByAssignedTo(userName));
 		}
 
@@ -246,7 +248,8 @@ public class RFIController {
 	    String userName = (String) session.getAttribute("userName");
 	    String userRole = (String) session.getAttribute("userRoleNameFk");
 	    String userType = (String) session.getAttribute("userTypeFk");
-
+	    String userDepartment =(String) session.getAttribute("departmentFk");
+	    
 	    if (userName == null || (userRole == null && userType == null)) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 	    }
@@ -282,7 +285,7 @@ public class RFIController {
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndCreatedBy(pendingStatuses, userName));
 	    } 
-	    else if (userRole.equalsIgnoreCase("Regular User")) {
+	    else if (userDepartment.equalsIgnoreCase("Engg")) {
 	        // Filter counts for RFIs assigned to this user
 	        counts.put("INSPECTION_DONE", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
