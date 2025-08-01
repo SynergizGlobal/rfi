@@ -9,7 +9,7 @@ const HeaderRight = () => {
 
 	const isContractor = userRole === "contractor" && loginDepartment !== "engg";
 	const isRegularUser = userRole === "regular user";
-	const isITAdmin = userRole === "it admin";
+	const isITAdmin = userRole === "it admin" ;
 	const isDyHOD = userType === "dyhod";
 	const isEnggDept = loginDepartment === "engg";
 
@@ -79,7 +79,7 @@ const HeaderRight = () => {
 					)}
 
 					{/* Shared menus for regular user, dyhod if not engg */}
-					{(!isEnggDept && (isRegularUser || isDyHOD)) && (
+					{(!isEnggDept && (isRegularUser || isDyHOD) && !isITAdmin) && (
 						<>
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>

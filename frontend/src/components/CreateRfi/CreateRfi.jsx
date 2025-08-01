@@ -893,6 +893,17 @@ const CreateRfi = () => {
 										onChange={(selected) => setFormState({ ...formState, nameOfRepresentative: selected?.value || '' })}
 									/>
 								</div>
+								<div className="form-fields flex-1">
+								  <label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
+								  <input
+								    type="date"
+								    id="dateOfSubmission"
+								    name="dateOfSubmission"
+								    value={formState.dateOfSubmission}
+								    onChange={handleChange}
+								    min={getTodayISO()}
+								  />
+								</div>
 
 								<div className="form-fields flex-1">
 									<label htmlFor="timeOfInspection" className="block mb-1">Time Of Inspection:</label>
@@ -905,21 +916,6 @@ const CreateRfi = () => {
 										placeholder="Enter value"
 									/>
 								</div>
-
-							
-						<div className="form-fields flex-1">
-  <label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
-  <input
-    type="date"
-    id="dateOfSubmission"
-    name="dateOfSubmission"
-    value={formState.dateOfSubmission}
-    onChange={handleChange}
-    min={getTodayISO()}
-  />
-</div>
-
-
 								<div className="form-fields flex-1">
 									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection:</label>
 									<input

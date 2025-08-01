@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import CameraCapture from '../CameraCapture/CameraCapture';
@@ -45,7 +45,8 @@ export default function InspectionForm() {
 	
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
-
+	const selfieRef = useRef(null);
+	const firstGalleryRef = useRef(null);
 
 
 	useEffect(() => {
@@ -199,7 +200,7 @@ export default function InspectionForm() {
 
 
 			if (!res.ok) {
-				alert(`❌ Failed to submit inspection status:\nStatus: ${res.status}\nMessage: ${text}`);
+				alert(`❌ Failed to submit inspection status`);
 
 				return;
 			}
@@ -246,9 +247,19 @@ export default function InspectionForm() {
 	};
 
 	const handleSaveInspection = async () => {
+		
+		if (!selfieImage) {
+			      alert('❌ Selfie image is required.');
+			      selfieRef.current?.focus();
+			      return;
+			    }
+				const hasGallery = Object.values(galleryImages).some((img) => img);
+				   if (!hasGallery) {
+				     alert('❌ At least one site image is required.');
+				     firstGalleryRef.current?.focus();
+				     return;
+				   }
 		const formData = new FormData();
-
-
 		const inspectionPayload = {
 			rfiId: rfiData.id,
 			location: locationText,
@@ -293,7 +304,9 @@ export default function InspectionForm() {
 
 		} catch (err) {
 			console.error("Inspection save failed:", err);
+			alert(`❌ Inspection save failed: ${err.message}`);
 		}
+			
 	};
 
 	const fetchChecklistData = async (rfiId, enclosureName) => {
@@ -415,14 +428,13 @@ export default function InspectionForm() {
 														alt={`Site ${i + 1}`}
 														className="gallery-preview" />
 												)}
-											</div>
-										))}
-									</div>
-								</div>
+				                         		</div>
+								             		))}
+							              		</div>
+				                 				</div>
 
 
-
-								<h3>Enclosures</h3>
+					                        		         	<h3>Enclosures</h3>
 																<table className="enclosure-table">
 																	<thead>
 																		<tr><th>RFI Description</th><th>Enclosure</th><th>Action</th>
@@ -576,6 +588,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 	const [contractorSignature, setContractorSignature] = useState(contractorSign);
 	const [gcSignature, setGcSignature] = useState(gcSign);
 	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
+	const [errorMsg, setErrorMsg] = useState('');
 
 	useEffect(() => {
 			const fetchData = async () => {
@@ -599,6 +612,15 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 		setChecklist(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
 	};
 
+	const handleDone = () => {
+	   const invalid = checklist.filter(row => !['YES','NO','NA'].includes(row.status));
+	   if (invalid.length > 0) {
+	     setErrorMsg('⚠️ Please select YES, NO, or N/A for **all** checklist items.');
+	     return;
+	   }
+	   setErrorMsg('');
+	   onDone(checklist, contractorSignature, gcSignature, gradeOfConcrete);
+	 };
 	return (
 		<div className="popup">
 			<div className="form-row">
@@ -644,6 +666,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 				</div>
 			</div>
 			<h3>CHECKLIST FOR CONCRETE/SHUTTERING & REINFORCEMENT</h3>
+			
 			<table>
 				<thead>
 					<tr><th>ID</th><th>Description</th><th>Yes</th><th>No</th><th>N/A</th><th>Contractor Remark</th><th>AE Remark</th></tr>
@@ -665,13 +688,16 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 					))}
 				</tbody>
 			</table>
+			{errorMsg && (
+						       <div style={{ color: 'red', marginBottom: '1rem' }}>{errorMsg}</div>
+						     )}
 			<label>Contractor Signature:</label>
 			<input type="file" onChange={(e) => setContractorSignature(e.target.files[0])} />
 			<label>GC Signature:</label>
 			<input type="file" onChange={(e) => setGcSignature(e.target.files[0])} />
 
 			<div className="popup-actions">
-				<button onClick={() => onDone(checklist, contractorSignature, gcSignature, gradeOfConcrete)}>Done</button>
+				<button onClick={handleDone}>Done</button>
 				<button onClick={onClose}>Cancel</button>
 			</div>
 		</div>
@@ -723,8 +749,6 @@ function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, s
 					</select>
 				</div>
 			)}
-
-
 
 			{deptFK?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
 				<div>

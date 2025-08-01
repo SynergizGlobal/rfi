@@ -4,15 +4,13 @@
   overflow-x: auto;
   display: block;
   max-width: 100%;
-  padding: 0 15px;
 }
 
 .validation .validation-table th,
 .validation .validation-table td {
   padding: 10px;
   text-align: left;
-  white-space: break-spaces;
-  width: 11.3%;
+  white-space: nowrap;
 }
 
 
@@ -113,7 +111,6 @@
   border: 1px solid #ccc;
   padding: 6px 8px;
   text-align: left;
-  
 }
 
 .validation .popup-content .form-fields{
@@ -129,6 +126,7 @@
 .validation .popup .form-fields{
   flex: 1 1 30%;
 }
+/* CSS file or style tag */
 .validation-table td {
   text-align: center;
   vertical-align: middle;
