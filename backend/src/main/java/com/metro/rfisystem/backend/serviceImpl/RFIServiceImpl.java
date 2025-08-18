@@ -245,6 +245,7 @@ public class RFIServiceImpl implements RFIService {
 		}
 		return false;
 	}
+	
 
 	@Override
 	public List<RfiListDTO> getRFIsByCreatedBy(String createdBy) {
