@@ -86,6 +86,7 @@ public class LoginServiceImpl implements LoginService {
 	    String userDepartment = user.getDepartmentFk();
 	    String userRole = user.getUserRoleNameFk();
 	    
+	    
 	    logger.info("Resolving loginDepartment for user: {}, Role: {}, Dept: {}",
                 user.getUserName(), userRole, userDepartment);
 
@@ -93,7 +94,8 @@ public class LoginServiceImpl implements LoginService {
 	        return "IT Admin";
 	    } else if ("Engg".equalsIgnoreCase(userDepartment)) {
 	        return "Engg";
-	    } else {
+	    }
+	    else {
 	        return userRole;
 	    }
 	}
