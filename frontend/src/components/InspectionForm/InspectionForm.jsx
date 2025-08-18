@@ -87,6 +87,8 @@ export default function InspectionForm() {
 			setDateOfInspection(date);
 			setTimeOfInspection(time);
 		}, []);
+		
+
 
 
 	const fetchLocation = () => {
@@ -372,7 +374,7 @@ export default function InspectionForm() {
 										<label>RFI Description:</label><input type="text" readOnly value={rfiData.rfiDescription} />
 										<label>Description:</label><input type="text" readOnly value={rfiData.description} />
 										<label>Chainage:</label>
-										<input type="text" value={chainage} onChange={e => setChainage(e.target.value)} />
+										<input type="text" value={rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.chainage} onChange={e => setChainage(e.target.value)} />
 
 
 									</div>
@@ -550,6 +552,7 @@ export default function InspectionForm() {
 							setTestInLab={setTestInLab}
 							testReportFile={testReportFile}
 							setTestReportFile={setTestReportFile}
+							rfiData={rfiData} 
 							onConfirm={handleSubmitConfirmed}
 							onClose={() => setConfirmPopup(false)} 
 							onCancel={() => setConfirmPopup(false)}
@@ -719,17 +722,28 @@ function UploadPopup({ onSubmit, onClose }) {
 	);
 }
 
-function ConfirmationPopup({ inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm, onCancel }) {
+
+
+function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm, onCancel }) {
 	return (
+		
 		<div className="popup">
 			<h3>Confirm Inspection</h3>
 			<label>Tests in Site/Lab</label>
-			<select value={inspectionStatus} onChange={e => setInspectionStatus(e.target.value)}>
-				<option value="">Select</option>
-				<option value="VISUAL">Visual</option>
-				<option value="LAB_TEST">Lab Test</option>
-				<option value="SITE_TEST">Site Test</option>
-			</select>
+			      {deptFK?.toLowerCase() === "engg" ? (
+					<p>{rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.inspectionStatus || "Not Uploaded"}</p>
+			      ) : (
+			        <select
+			          value={inspectionStatus}
+			          onChange={(e) => setInspectionStatus(e.target.value)}
+			        >
+			          <option value="">Select</option>
+			          <option value="VISUAL">Visual</option>
+			          <option value="LAB_TEST">Lab Test</option>
+			          <option value="SITE_TEST">Site Test</option>
+			        </select>
+			      )}
+			
 
 			{deptFK?.toLowerCase() === 'engg' && (
 				<div>
