@@ -139,7 +139,7 @@ public class LoginController {
 		List<User> users = loginRepo.findByUserName(userName);
 		System.out.println("get the username: " + users);
 
-		// 🛠 Fix: Find the correct user (e.g., DyHOD or specific designation)
+
 		User user = users.stream().filter(u -> "DyHOD".equalsIgnoreCase(u.getUserTypeFk())).findFirst().orElse(null);
 
 		if (user == null) {
@@ -149,6 +149,7 @@ public class LoginController {
 		List<ContractDesignationEngineersDTO> result = loginService.getDesignationWithEngineers(user);
 		return ResponseEntity.ok(result);
 	}
+	
 
 	@GetMapping("/engineer-names")
 	public ResponseEntity<List<String>> getEngineerNamesForContract(@RequestParam String userName,
@@ -162,7 +163,6 @@ public class LoginController {
 		System.out.println("➡ userName: " + userName);
 		System.out.println("➡ contractId: " + contractId);
 
-		// Step 1: Get dyHodUserIdFk from contract table
 		Optional<String> dyHodUserIdOptional = contractRepo.findDyHodUserIdByContractId(contractId);
 		if (!dyHodUserIdOptional.isPresent()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
@@ -170,14 +170,13 @@ public class LoginController {
 
 		String dyHodUserId = dyHodUserIdOptional.get();
 
-		// Step 2: Match with the correct user (by user_id)
+	
 		User matchedUser = users.stream().filter(u -> u.getUserId().equals(dyHodUserId)).findFirst().orElse(null);
 
 		if (matchedUser == null) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
 		}
 
-		// Step 3: Check if the user has access to the contract
 		List<AllowedContractDTO> allowedContracts = loginService.getAllowedContractsWithDesignation(matchedUser);
 
 		boolean isAllowed = allowedContracts.stream().anyMatch(c -> c.getContractId().equals(contractId));
@@ -186,7 +185,6 @@ public class LoginController {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
 		}
 
-		// Step 4: Return engineers list
 		List<String> engineers = contractExecutiveRepo.findEngineeringUsernamesByContractId(contractId);
 		return ResponseEntity.ok(engineers);
 	}
