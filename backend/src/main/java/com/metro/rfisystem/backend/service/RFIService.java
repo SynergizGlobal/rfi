@@ -55,5 +55,4 @@ public interface RFIService {
 	List<ContractDropdownDTO> getAllowedContractsForUser(String userId, String ContractorId);
 
 
-
 }
