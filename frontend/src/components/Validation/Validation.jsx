@@ -10,7 +10,7 @@ const getExtension = (filename) => {
 	return filename?.split('.').pop()?.toLowerCase();
 };
 export default function Validation() {
-	
+
 	const [message, setMessage] = useState('');
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
@@ -22,33 +22,33 @@ export default function Validation() {
 	const [editModeList, setEditModeList] = useState([]);
 
 	useEffect(() => {
-	  axios.get(`${API_BASE_URL}/getRfiValidations`, { withCredentials: true })
-	    .then(res => {
-	      console.log("GET /getRfiValidations response:", res.data);
+		axios.get(`${API_BASE_URL}/getRfiValidations`, { withCredentials: true })
+			.then(res => {
+				console.log("GET /getRfiValidations response:", res.data);
 
-	      const data = Array.isArray(res.data) ? res.data : [];
+				const data = Array.isArray(res.data) ? res.data : [];
 
-	      setRfiList(data);
-	      setRemarksList(data.map(item => item.remarks || ""));
-	      setStatusList(data.map(item => item.status || ""));
-	      setEditModeList(data.map(() => false));
-	      setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
+				setRfiList(data);
+				setRemarksList(data.map(item => item.remarks || ""));
+				setStatusList(data.map(item => item.status || ""));
+				setEditModeList(data.map(() => false));
+				setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
 
-	      if (data.length === 0) {
-	        setMessage('No RFI validations found.');
-	      } else {
-	        setMessage('');
-	      }
-	    })
-	    .catch(err => {
-	      console.error("Error fetching RFI validations:", err);
-	      setRfiList([]);
-	      setRemarksList([]);
-	      setStatusList([]);
-	      setEditModeList([]);
-	      setSubmittedList([]);
-	      setMessage('Error loading RFI validations.');
-	    });
+				if (data.length === 0) {
+					setMessage('No RFI validations found.');
+				} else {
+					setMessage('');
+				}
+			})
+			.catch(err => {
+				console.error("Error fetching RFI validations:", err);
+				setRfiList([]);
+				setRemarksList([]);
+				setStatusList([]);
+				setEditModeList([]);
+				setSubmittedList([]);
+				setMessage('Error loading RFI validations.');
+			});
 	}, []);
 
 
@@ -401,12 +401,12 @@ export default function Validation() {
 
 	return (
 		<div className="dashboard validation">
-		
+
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
 					<h2 className="validation-heading">Validation</h2>
-					
+
 
 
 					<div className="left-align">
@@ -441,107 +441,110 @@ export default function Validation() {
 								{isDyHOD || isITAdmin && (
 									<th>File</th>
 								)}
-								{isDyHOD || isITAdmin &&  (
+								{isDyHOD || isITAdmin && (
 									<th>Action</th>
 								)}
 							</tr>
 						</thead>
 						<tbody>
-						  {rfiList.length > 0 ? (
-						    rfiList.map((rfi, idx) => {
-						      const remarks = remarksList[idx];
-						      const status = statusList[idx];
-						      const isValidated = submittedList[idx];
-						      const isEditable = editModeList[idx];
+							{rfiList.length > 0 ? (
+								rfiList
+									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize) // 👈 only take current page
+									.map((rfi, idx) => {
+										const globalIndex = pageIndex * pageSize + idx; // 👈 actual index in full list
+										const remarks = remarksList[globalIndex];
+										const status = statusList[globalIndex];
+										const isValidated = submittedList[globalIndex];
+										const isEditable = editModeList[globalIndex];
 
-						      return (
-						        <tr key={idx}>
-						          <td>{rfi.stringRfiId}</td>
+										return (
+											<tr key={globalIndex}>
+												<td>{rfi.stringRfiId}</td>
 
-						          <td>
-						            <button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
-						          </td>
+												<td>
+													<button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
+												</td>
 
-						          <td>
-						            <button onClick={() => downloadPDFWithDetails(rfi.longRfiId, idx)}>⬇️</button>
-						          </td>
+												<td>
+													<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, globalIndex)}>⬇️</button>
+												</td>
 
-						          {/* Remarks column */}
-						          <td>
-						            {isDyHOD || isITAdmin ? (
-						              <select
-						                value={remarks || ""}
-						                onChange={(e) => updateRemark(idx, e.target.value)}
-						                disabled={isValidated && !isEditable}
-						              >
-						                <option value="">-- Select --</option>
-						                <option value="NONO">NONO</option>
-						                <option value="NONOC(B)">NONOC (B)</option>
-						                <option value="NONOC(C)">NONOC (C)</option>
-						                <option value="NOR">NOR</option>
-						              </select>
-						            ) : (
-						              remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
-						            )}
-						          </td>
+												{/* Remarks column */}
+												<td>
+													{isDyHOD || isITAdmin ? (
+														<select
+															value={remarks || ""}
+															onChange={(e) => updateRemark(globalIndex, e.target.value)}
+															disabled={isValidated && !isEditable}
+														>
+															<option value="">-- Select --</option>
+															<option value="NONO">NONO</option>
+															<option value="NONOC(B)">NONOC (B)</option>
+															<option value="NONOC(C)">NONOC (C)</option>
+															<option value="NOR">NOR</option>
+														</select>
+													) : (
+														remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+													)}
+												</td>
 
-						          {/* Status column */}
-						          <td>
-						            {isDyHOD || isITAdmin ? (
-						              <select
-						                value={status || ""}
-						                onChange={(e) => updateStatus(idx, e.target.value)}
-						                disabled={isValidated && !isEditable}
-						              >
-						                <option value="">-- Select --</option>
-						                <option value="APPROVED">Approved</option>
-						                <option value="REJECTED">Rejected</option>
-						                <option value="CLARIFICATION_REQUIRED">Clarification Required</option>
-						              </select>
-						            ) : (
-						              status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
-						            )}
-						          </td>
+												{/* Status column */}
+												<td>
+													{isDyHOD || isITAdmin ? (
+														<select
+															value={status || ""}
+															onChange={(e) => updateStatus(globalIndex, e.target.value)}
+															disabled={isValidated && !isEditable}
+														>
+															<option value="">-- Select --</option>
+															<option value="APPROVED">Approved</option>
+															<option value="REJECTED">Rejected</option>
+															<option value="CLARIFICATION_REQUIRED">Clarification Required</option>
+														</select>
+													) : (
+														status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+													)}
+												</td>
 
-						          {/* File input (DyHOD or Admin only) */}
-						          {(isDyHOD || isITAdmin) && (
-						            <td>
-						              <input
-						                type="file"
-						                onChange={(e) => handleFileChange(idx, e.target.files[0])}
-						                disabled={isValidated && !isEditable}
-						              />
-						            </td>
-						          )}
+												{/* File input */}
+												{(isDyHOD || isITAdmin) && (
+													<td>
+														<input
+															type="file"
+															onChange={(e) => handleFileChange(globalIndex, e.target.files[0])}
+															disabled={isValidated && !isEditable}
+														/>
+													</td>
+												)}
 
-						          {/* Action buttons */}
-						          {(isDyHOD || isITAdmin) && (
-						            <td>
-						              {isValidated ? (
-						                isEditable ? (
-						                  <button onClick={() => submitValidation(rfi, idx)}>Submit</button>
-						                ) : (
-						                  <button onClick={() => toggleEditMode(idx)}>Edit</button>
-						                )
-						              ) : (
-						                <button onClick={() => submitValidation(rfi, idx)}>Validate</button>
-						              )}
-						            </td>
-						          )}
-						        </tr>
-						      );
-						    })
-						  ) : (
-						    <tr>
-						      <td colSpan="7">
-						        {message && (
-						          <div className="alert alert-info" role="alert">
-						            {message}
-						          </div>
-						        )}
-						      </td>
-						    </tr>
-						  )}
+												{/* Action */}
+												{(isDyHOD || isITAdmin) && (
+													<td>
+														{isValidated ? (
+															isEditable ? (
+																<button onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
+															) : (
+																<button onClick={() => toggleEditMode(globalIndex)}>Edit</button>
+															)
+														) : (
+															<button onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
+														)}
+													</td>
+												)}
+											</tr>
+										);
+									})
+							) : (
+								<tr>
+									<td colSpan="7">
+										{message && (
+											<div className="alert alert-info" role="alert">
+												{message}
+											</div>
+										)}
+									</td>
+								</tr>
+							)}
 						</tbody>
 
 
