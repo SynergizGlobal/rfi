@@ -8,11 +8,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class CorsConfig {
-	
 
-    @Value("${REACT_APP_API_FRONTEND_URL}")
-    private String frontendUrl;
-
+	@Value("${REACT_APP_API_FRONTEND_URL}")
+	private String frontendUrl;
 
 	@Bean
 	public WebMvcConfigurer corsConfigurer() {
@@ -20,7 +18,9 @@ public class CorsConfig {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**").allowedOrigins(frontendUrl) // React dev server
-						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS").allowedHeaders("*");
+						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS").allowedHeaders("*").
+	            allowCredentials(true);
+
 			}
 		};
 	}
