@@ -7,6 +7,7 @@ import './InspectionForm.css';
 const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 
+
 const initialChecklist = [
 	{ id: 1, description: 'Drawing Approved and available', status: '', contractorRemark: '', aeRemark: '' },
 	{ id: 2, description: 'Shuttering aligned and dimensionally correct', status: '', contractorRemark: '', aeRemark: '' },
@@ -87,8 +88,6 @@ export default function InspectionForm() {
 			setDateOfInspection(date);
 			setTimeOfInspection(time);
 		}, []);
-		
-
 
 
 	const fetchLocation = () => {
@@ -374,7 +373,7 @@ export default function InspectionForm() {
 										<label>RFI Description:</label><input type="text" readOnly value={rfiData.rfiDescription} />
 										<label>Description:</label><input type="text" readOnly value={rfiData.description} />
 										<label>Chainage:</label>
-										<input type="text" value={rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.chainage} onChange={e => setChainage(e.target.value)} />
+					                	<input type="text" value={rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.chainage} onChange={e => setChainage(e.target.value)} />
 
 
 									</div>
@@ -672,21 +671,22 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 			
 			<table>
 				<thead>
-					<tr><th>ID</th><th>Description</th><th>Yes</th><th>No</th><th>N/A</th><th>Contractor Remark</th><th>AE Remark</th></tr>
+					<tr><th>ID</th><th>Description</th><th>Yes</th><th>No</th><th>N/A</th><th>Contractor Remark</th><th>Engineer Remark</th></tr>
 				</thead>
 				<tbody>
 					{checklist.map(row => (
 						<tr key={row.id}>
 							<td>{row.id}</td>
 							<td>{row.description}</td>
-							<td><input type="radio" checked={row.status === 'YES'} onChange={() => handleChange(row.id, 'status', 'YES')} />
+							<td><input type="radio" checked={row.status === 'YES'} onChange={() => handleChange(row.id, 'status', 'YES')} readOnly={deptFK !== 'contractor'} />
 							</td>
-							<td><input type="radio" checked={row.status === 'NO'} onChange={() => handleChange(row.id, 'status', 'NO')} />
+							<td><input type="radio" checked={row.status === 'NO'} onChange={() => handleChange(row.id, 'status', 'NO')} readOnly={deptFK !== 'contractor'}  />
 							</td>
-							<td><input type="radio" checked={row.status === 'NA'} onChange={() => handleChange(row.id, 'status', 'NA')} />
+							<td><input type="radio" checked={row.status === 'NA'} onChange={() => handleChange(row.id, 'status', 'NA')} readOnly={deptFK !== 'contractor'} />
 							</td>
-							<td><input value={row.contractorRemark} onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)} /></td>
-							<td><input value={row.aeRemark} onChange={e => handleChange(row.id, 'aeRemark', e.target.value)} /></td>
+							<td><input value={row.contractorRemark} onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)} disabled={deptFK !== 'contractor'} /></td>
+							<td><input value={row.aeRemark} onChange={e => handleChange(row.id, 'aeRemark', e.target.value)} disabled={deptFK !== 'engg'} /></td>
+							
 						</tr>
 					))}
 				</tbody>
@@ -696,7 +696,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 						     )}
 			<label>Contractor Signature:</label>
 			<input type="file" onChange={(e) => setContractorSignature(e.target.files[0])} />
-			<label>GC Signature:</label>
+			<label>Engineer Signature:</label>
 			<input type="file" onChange={(e) => setGcSignature(e.target.files[0])} />
 
 			<div className="popup-actions">
@@ -721,9 +721,6 @@ function UploadPopup({ onSubmit, onClose }) {
 		</div>
 	);
 }
-
-
-
 function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, testInLab, setTestInLab, testReportFile, setTestReportFile, onConfirm, onCancel }) {
 	return (
 		
@@ -744,7 +741,6 @@ function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, test
 			        </select>
 			      )}
 			
-
 			{deptFK?.toLowerCase() === 'engg' && (
 				<div>
 					<label>Inspection Status</label>
