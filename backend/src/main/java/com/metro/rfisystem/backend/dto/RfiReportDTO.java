@@ -14,6 +14,7 @@ public class RfiReportDTO {
 	private String contractor;
 	private String contractId;
 	private String rfiId;
+	private String rfiStatus;
 	private String dateOfInspection;
 	private String location;
 	private String proposedInspectionTime;
@@ -40,7 +41,7 @@ public class RfiReportDTO {
 	private String alignmentoCntractorRemarksPC;
 	private String alignmentClientRemarksPC;
 	
-	private String status;
+	private String validationStatus;
 	private String remarks;
 	private String levelSheetFilePath;
 	private String pourCardFilePath;

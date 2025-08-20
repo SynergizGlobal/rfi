@@ -177,8 +177,8 @@ export default function InspectionForm() {
 		const payload = {
 			inspectionId: id,
 			rfiId: rfiData.id,
-			inspectionStatus,
-			testInsiteLab: testInLab,
+			inspectionStatus: inspectionStatus || null,
+			testInsiteLab: testInLab || null,
 
 		};
 		console.log("RFI ID" , rfiData.id);
@@ -188,26 +188,20 @@ export default function InspectionForm() {
 		}
 
 		try {
-			const res = await fetch(`${API_BASE_URL}rfi/inspection/status`, {
+			const res = await fetch(`${API_BASE_URL}rfi/inspection/submit`, {
 				method: "POST",
 				body: formData,
 				credentials: "include",
 			});
-
-			const text = await res.text();
-			// Debug response info
-			console.log("Response status:", res.status);
-			console.log("Response text:", text);
-
-
 			if (!res.ok) {
-				alert(`❌ Failed to submit inspection status`);
-
+				const errorText = await res.text();
+				alert(`❌ Failed to submit inspection: ${errorText}`);
 				return;
 			}
 
-			alert("Inspection Status submitted successfully.");
-			setConfirmPopup(false);
+			const message = await res.text();
+			alert(message);
+						setConfirmPopup(false);
 			localStorage.removeItem("latestInspectionId");
 			window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
 
@@ -585,7 +579,7 @@ export default function InspectionForm() {
 	);
 }
 
-function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,fetchChecklistData, onDone, onClose }) {
+function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign, fetchChecklistData, onDone, onClose }) {
 	const [checklist, setChecklist] = useState(data);
 	const [contractorSignature, setContractorSignature] = useState(contractorSign);
 	const [gcSignature, setGcSignature] = useState(gcSign);
@@ -694,10 +688,6 @@ function ChecklistPopup({ rfiData, enclosureName, data, contractorSign, gcSign,f
 			{errorMsg && (
 						       <div style={{ color: 'red', marginBottom: '1rem' }}>{errorMsg}</div>
 						     )}
-			<label>Contractor Signature:</label>
-			<input type="file" onChange={(e) => setContractorSignature(e.target.files[0])} />
-			<label>Engineer Signature:</label>
-			<input type="file" onChange={(e) => setGcSignature(e.target.files[0])} />
 
 			<div className="popup-actions">
 				<button onClick={handleDone}>Done</button>
@@ -728,7 +718,11 @@ function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, test
 			<h3>Confirm Inspection</h3>
 			<label>Tests in Site/Lab</label>
 			      {deptFK?.toLowerCase() === "engg" ? (
-					<p>{rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.inspectionStatus || "Not Uploaded"}</p>
+					<p>					{
+					rfiData?.inspectionDetails
+						?.find(d => d.uploadedBy === "CON")
+						?.inspectionStatus || "Not Uploaded"
+				}</p>
 			      ) : (
 			        <select
 			          value={inspectionStatus}
@@ -741,11 +735,16 @@ function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, test
 			        </select>
 			      )}
 			
+
 			{deptFK?.toLowerCase() === 'engg' && (
 				<div>
 					<label>Inspection Status</label>
 					<select
-						value={testInLab === null ? '' : testInLab.toString()}
+						value={
+							testInLab !== null && testInLab !== undefined
+								? testInLab.toString()
+								: rfiData?.inspectionDetails?.find(d => d.uploadedBy === "Engg")?.testInsiteLab || ''
+						}
 						onChange={(e) => {
 							const value = e.target.value;
 							if (value === 'Accepted') setTestInLab('Accepted');

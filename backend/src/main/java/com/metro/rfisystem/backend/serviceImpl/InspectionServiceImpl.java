@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
@@ -20,12 +21,13 @@ import com.itextpdf.text.Element;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
+import com.metro.rfisystem.backend.model.rfi.RfiValidation;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import com.itextpdf.text.Document;
@@ -93,7 +95,14 @@ public class InspectionServiceImpl implements InspectionService {
 
 		RFIInspectionDetails inspection =  existingInspectionOpt.orElse(new RFIInspectionDetails());
 
+
 		inspection.setRfi(rfi);
+		
+		if (deptFk.equalsIgnoreCase("Engg")) {
+			rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+		} else {
+			rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
+		}
 		inspection.setLocation(dto.getLocation());
 		inspection.setChainage(dto.getChainage());
 		inspection.setSelfiePath(selfiePath);
@@ -125,14 +134,43 @@ public class InspectionServiceImpl implements InspectionService {
 			throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
 		}
 	}
+	
+// hepler function for submiRfi to send for validation by Engineer Only	
+	@Transactional
+	public boolean sendRfiForValidation(Long rfiId) {
+		Optional<RfiStatusProjection> rfiProjOpt = rfiRepository.findStatusById(rfiId);
+ 
+		if (rfiProjOpt.isPresent()) {
+		    RfiStatusProjection rfi = rfiProjOpt.get();
+ 
+		    if ( !EnumRfiStatus.INSPECTED_BY_AE.name().equalsIgnoreCase(rfi.getStatus())) {
+		        return false;
+		    }
+		    RFI fullRfi = rfiRepository.findById(rfi.getId())
+		                               .orElseThrow(() -> new RuntimeException("RFI not found"));
+		    fullRfi.setStatus(EnumRfiStatus.VALIDATION_PENDING);
+ 
+		    RfiValidation validation = new RfiValidation();
+		    validation.setRfi(fullRfi);
+		    validation.setSentForValidationAt(LocalDateTime.now());
+ 
+		    fullRfi.setRfiValidation(validation);
+ 
+		    rfiRepository.save(fullRfi);
+ 
+		    return true;
+		}
+		return false;
+    }
 
 	@Override
 	@Transactional
-	public void updateInspectionStatus(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
-
+	public boolean SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
+		
+		boolean sentForValidation = false;
+		
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
-		
 		
 		 RFIInspectionDetails inspection = inspectionRepository
 			        .findByRfiAndUploadedBy(rfi, deptFk)
@@ -142,20 +180,23 @@ public class InspectionServiceImpl implements InspectionService {
 			            newInsp.setUploadedBy(deptFk);
 			            return newInsp;
 			        });
-
-
-	    // Update or overwrite the inspection
+		 
 	    inspection.setInspectionStatus(dto.getInspectionStatus());
-	    inspection.setTestInsiteLab(dto.getTestInsiteLab());
 		if (testDocument != null && !testDocument.isEmpty()) {
 			String filename = saveFile(testDocument);
 			inspection.setTestSiteDocuments(filename);
 		}
-		rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+		 if ("Engg".equalsIgnoreCase(deptFk) && rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE) {
+			    inspection.setTestInsiteLab(dto.getTestInsiteLab());
+	            sentForValidation = sendRfiForValidation(dto.getRfiId());
+	        }
 		rfiRepository.save(rfi);
 		inspectionRepository.save(inspection);
+		return sentForValidation;
 	}
 
+	
+	
 	@Override
 	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)
 			throws IOException, DocumentException {

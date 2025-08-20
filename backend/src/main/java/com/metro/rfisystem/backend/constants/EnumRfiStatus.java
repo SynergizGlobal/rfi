@@ -6,6 +6,7 @@ public enum EnumRfiStatus {
 	    UPDATED,
 	    RESCHEDULED,
 	    REASSIGNED,
+	    INSPECTED_BY_CON,
 	    INSPECTED_BY_AE,
 	    VALIDATION_PENDING,
 	    INSPECTION_DONE,

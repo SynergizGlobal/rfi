@@ -584,12 +584,21 @@ export default function Validation() {
 						<div className="popup-overlay" onClick={() => setSelectedInspection(null)}>
 							<div className="popup-content" onClick={(e) => e.stopPropagation()}>
 								<h3>RFI Preview</h3>
-								<div className="form-row">
-									<div className="form-fields" style={{ gridColumn: 'span 1' }}>
-										<label>Client:</label>
-										<p>Mumbai Rail Vikas Corporation</p>
+								<div className="form-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+								  <div className="form-fields">
+								    <label>Client:</label>
+								    <p>Mumbai Rail Vikas Corporation</p>
+								  </div>
+									<div style={{ textAlign: 'right' }}>
+										<label style={{color:'#636363'}}>RFI Status:</label>
+										<p style={{
+											color: selectedInspection.rfiStatus === "INSPECTION_DONE" ? "red" : "green",
+											fontWeight: "bold",
+										}}
+										>{selectedInspection.rfiStatus === "INSPECTION_DONE" ? "Closed" : "Active"}</p>
 									</div>
 								</div>
+
 								<div className="d-flex justify-center">
 									<h3 style={{ gridColumn: 'span 1' }}>Request For Information (RFI)</h3>
 								</div>
@@ -734,8 +743,8 @@ export default function Validation() {
 								</table>
 
 
-								<h4>Status & Remarks</h4>
-								<p><strong>Status:</strong> {selectedInspection.status || '---'}</p>
+								<h4>Validation Status & Remarks</h4>
+								<p><strong> Status:</strong> {selectedInspection.validationStatus || '---'}</p>
 								<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
 
 								{selectedInspection.selfieClient && (

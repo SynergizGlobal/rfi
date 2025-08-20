@@ -109,22 +109,35 @@ public class InspectionController {
 
 
 
-	@PostMapping(value = "/inspection/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> updateInspectionStatus(HttpSession session,@RequestPart("data") String dataJson,
+	@PostMapping(value = "/inspection/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> submitInspection(HttpSession session, @RequestPart("data") String dataJson,
 			@RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
-	
+
 		String deptFk = (String) session.getAttribute("departmentFk");
-		
+
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-			inspectionService.updateInspectionStatus(dto, testDocument, deptFk);
-			return ResponseEntity.ok("Inspection status updated successfully");
+		
+			boolean isEngineer = inspectionService.SubmitInspection(dto, testDocument, deptFk);
+			
+			if (deptFk.equalsIgnoreCase("Engg")) {
+
+				if (isEngineer) {
+					return ResponseEntity.ok("Inspection Submitted And Sent For Validation.");
+				} else
+					return ResponseEntity.ok("RFI Submisson Failed..!");
+			} else {
+				return ResponseEntity.ok("Inspection Submitted successfully");
+			}
+
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("Failed to update inspection status: " + e.getMessage());
+					.body("Failed to submit inspection : " + e.getMessage());
 		}
 	}
+	
+	
 
 	@GetMapping("/downloadSiteImagesPdf")
 	public ResponseEntity<byte[]> downloadSiteImagesPdf(@RequestParam Long id, @RequestParam String uploadedBy)

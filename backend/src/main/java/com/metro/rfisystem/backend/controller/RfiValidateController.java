@@ -8,26 +8,20 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.http.MediaType;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
-
 import jakarta.servlet.http.HttpSession;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -40,15 +34,7 @@ public class RfiValidateController {
 
 	private final RfiValidationService rfiValidationService;
 
-	@PutMapping("/rfi/{id}/send-for-validation")
-	public ResponseEntity<String> sendForValidation(@PathVariable Long id) {
-		boolean success = rfiValidationService.sendRfiForValidation(id);
-		if (success) {
-			return ResponseEntity.ok("RFI sent for validation");
-		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("RFI not found or not eligible");
-		}
-	}
+
 
 	@PostMapping(value = "/validate", consumes = { "multipart/form-data" })
 	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
