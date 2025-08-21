@@ -29,6 +29,7 @@ import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
@@ -149,6 +150,13 @@ public class RFIController {
 		return rfiService.getActivityNamesByStructureStructureTypeComponentComponentId(structureType, structure,
 				component, component_id);
 	}
+	
+	
+	 @GetMapping("/rfi-descriptions")
+	    public ResponseEntity<List<RfiDescriptionDTO>> getRfiDescriptions(@RequestParam String activity) {
+	        List<RfiDescriptionDTO> descriptions = rfiService.getRfiDescriptionsByActivity(activity);
+	        return ResponseEntity.ok(descriptions);
+	    }
 
 	@GetMapping("/rfi-details")
 	public ResponseEntity<List<RfiListDTO>> getRfisBasedOnRole(HttpSession session) {

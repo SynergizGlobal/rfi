@@ -79,19 +79,19 @@ const CreateRfi = () => {
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		if (name === "dateOfSubmission") {
-    const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
-    if (value < today) {
-      alert("Date of Submission should not be prior to today's date.");
-      return; // stop further execution
-    }
-  }
-  if (e.target.name === "dateOfInspection") {
-    const today = new Date().toISOString().split("T")[0];
-    if (value < today) {
-      alert("Inspection date cannot be in the future.");
-      return;
-    }
-  }
+			const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
+			if (value < today) {
+				alert("Date of Submission should not be prior to today's date.");
+				return; // stop further execution
+			}
+		}
+		if (e.target.name === "dateOfInspection") {
+			const today = new Date().toISOString().split("T")[0];
+			if (value < today) {
+				alert("Inspection date cannot be in the future.");
+				return;
+			}
+		}
 		setFormState({ ...formState, [name]: value });
 	};
 
@@ -486,13 +486,53 @@ const CreateRfi = () => {
 		}
 	}, [formState.structureType, formState.structure, formState.component, formState.element]);
 
+	const [rfiDescriptionOptions, setRfiDescriptionOptions] = useState([]);
+	const [addRfiEnclosuresOptions, setAddRfiEnclosuresOptions] = useState([]);
 
-	const rfiDescriptionOptions = [
-		{ value: 'Start of Pile Boring Work', label: 'Start of Pile Boring Work' },
-		{ value: 'Pile Depth Checking', label: 'Pile Depth Checking' },
-		{ value: 'Reinforcement Cage Checking', label: 'Reinforcement Cage Checking' },
-		{ value: 'Steel Cage lowering & approval of concreting for Concreting', label: 'Steel Cage lowering & approval of concreting for Concreting' },
-	];
+	useEffect(() => {
+		if (formState.activity) {
+			axios
+				.get(`${API_BASE_URL}rfi/rfi-descriptions`, {
+					params: { activity: formState.activity }
+				})
+				.then(response => {
+					console.log("RFI Description API Response:", response.data);
+
+					// Map RFI Descriptions
+					const rfiOptions = response.data.map(item => ({
+						value: item.rfiDescription,
+						label: item.rfiDescription
+					}));
+					setRfiDescriptionOptions(rfiOptions);
+
+					// ✅ Map Enclosures (flatten all arrays)
+					const enclosureOptions = response.data.flatMap(item =>
+						item.enclosures.map(enc => ({
+							value: enc,
+							label: enc
+						}))
+					);
+
+					// ✅ Remove duplicates if needed
+					const uniqueEnclosures = Array.from(
+						new Map(enclosureOptions.map(e => [e.value, e])).values()
+					);
+
+					setAddRfiEnclosuresOptions(uniqueEnclosures);
+				})
+				.catch(error => {
+					console.error("Error fetching RFI descriptions:", error);
+					setRfiDescriptionOptions([]);
+					setAddRfiEnclosuresOptions([]);
+				});
+		}
+	}, [formState.activity]);
+
+
+
+
+
+
 	const typeOfRfiOptions = [
 		{ value: 'Regular RFI', label: 'Regular RFI' },
 		{ value: 'SPOT RFI', label: 'SPOT RFI' },
@@ -501,14 +541,7 @@ const CreateRfi = () => {
 		{ value: 'nameOfRepresentative 1', label: 'nameOfRepresentative 1' },
 		{ value: 'nameOfRepresentative 2', label: 'nameOfRepresentative 2' },
 	];
-	const addRfiEnclosuresOptions = [
-		{ value: 'FDD', label: 'FDD' },
-		{ value: 'Level', label: 'Level' },
-		{ value: 'Gradation', label: 'Gradation' },
-		{ value: 'Measurement Sheet', label: 'Measurement Sheet' },
-		{ value: 'Drawing', label: 'Drawing' },
-		{ value: 'Other', label: 'Other' },
-	];
+
 	return (
 		<div className="dashboard create-rfi">
 			<HeaderRight />
@@ -617,7 +650,7 @@ const CreateRfi = () => {
 													.then(response => {
 														const map = {};
 														const contractOptions = response.data
-															.filter(contract => allowedContractNames.has(contract.contractShortName)) 
+															.filter(contract => allowedContractNames.has(contract.contractShortName))
 															.map(contract => {
 																const name = contract.contractShortName;
 																const id = contract.contractIdFk.trim();
@@ -626,7 +659,7 @@ const CreateRfi = () => {
 																return {
 																	value: name,
 																	label: name,
-																	dyHodUserId:dyHodUserId
+																	dyHodUserId: dyHodUserId
 																};
 															});
 
@@ -641,7 +674,7 @@ const CreateRfi = () => {
 											}
 
 											}
-										isDisabled={!isEditable}
+											isDisabled={!isEditable}
 										/>
 									</div>
 
@@ -823,8 +856,14 @@ const CreateRfi = () => {
 												id="rfiDescription"
 												name="rfiDescription"
 												options={rfiDescriptionOptions}
-												value={formState.rfiDescription ? { value: formState.rfiDescription, label: formState.rfiDescription } : null}
-												onChange={(selected) => setFormState({ ...formState, rfiDescription: selected?.value || '' })}
+												value={
+													formState.rfiDescription
+														? { value: formState.rfiDescription, label: formState.rfiDescription }
+														: null
+												}
+												onChange={(selected) =>
+													setFormState({ ...formState, rfiDescription: selected?.value || '' })
+												}
 												isDisabled={!isEditable}
 											/>
 										</div>
@@ -884,7 +923,7 @@ const CreateRfi = () => {
 								</div>
 
 								<div className="form-fields flex-1">
-									<label htmlFor="nameOfRepresentative" className="block mb-1">Name Of Representative:</label>
+									<label htmlFor="nameOfRepresentative" className="block mb-1">Name of Contractor's Representative:</label>
 									<Select
 										id="nameOfRepresentative"
 										name="nameOfRepresentative"
@@ -894,15 +933,15 @@ const CreateRfi = () => {
 									/>
 								</div>
 								<div className="form-fields flex-1">
-								  <label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
-								  <input
-								    type="date"
-								    id="dateOfSubmission"
-								    name="dateOfSubmission"
-								    value={formState.dateOfSubmission}
-								    onChange={handleChange}
-								    min={getTodayISO()}
-								  />
+									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
+									<input
+										type="date"
+										id="dateOfSubmission"
+										name="dateOfSubmission"
+										value={formState.dateOfSubmission}
+										onChange={handleChange}
+										min={getTodayISO()}
+									/>
 								</div>
 
 								<div className="form-fields flex-1">
@@ -948,14 +987,25 @@ const CreateRfi = () => {
 								<div className="form-fields flex-1">
 									<label htmlFor="enclosures" className="block mb-1">Enclosures:</label>
 									<Select
-										id="enclosures"
-										name="enclosures"
-										options={addRfiEnclosuresOptions}
-										value={formState.enclosures ? { value: formState.enclosures, label: formState.enclosures } : null}
-										onChange={(selected) => setFormState({ ...formState, enclosures: selected?.value || '' })}
-									/>
+    id="enclosures"
+    name="enclosures"
+    options={addRfiEnclosuresOptions}
+    value={
+        formState.enclosures
+            ? { value: formState.enclosures, label: formState.enclosures }
+            : null
+    }
+    onChange={(selected) =>
+        setFormState({
+            ...formState,
+            enclosures: selected ? selected.value : ''
+        })
+    }
+/>
+
+
 								</div>
-								<div className="form-fields flex-1">
+								{	/*	<div className="form-fields flex-1">
 									<label htmlFor="location" className="block mb-1">Location:</label>
 									<input
 										type="text"
@@ -965,7 +1015,7 @@ const CreateRfi = () => {
 										onChange={handleChange}
 										placeholder="Enter value"
 									/>
-								</div>
+								</div>*/}
 
 								<div className="form-fields flex-1">
 									<label htmlFor="description" className="block mb-1">Description:</label>

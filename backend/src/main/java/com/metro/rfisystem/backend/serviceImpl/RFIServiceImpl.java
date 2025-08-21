@@ -2,9 +2,11 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,10 +19,12 @@ import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
+import com.metro.rfisystem.backend.model.rfi.RfiDescription;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
@@ -28,6 +32,7 @@ import com.metro.rfisystem.backend.repository.pmis.ProjectRepository;
 import com.metro.rfisystem.backend.repository.pmis.StructureRepository;
 import com.metro.rfisystem.backend.repository.pmis.WorkRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
+import com.metro.rfisystem.backend.repository.rfi.RfiDescriptionRepository;
 import com.metro.rfisystem.backend.service.RFIService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,6 +54,8 @@ public class RFIServiceImpl implements RFIService {
 	private final P6ActivityRepository p6ActivityRepository;
 	  
 	private final  LoginRepository loginRepo;
+	
+	private final RfiDescriptionRepository rfiDescriptionRepository;
 	
 
 	@Override
@@ -158,6 +165,20 @@ public class RFIServiceImpl implements RFIService {
 		return p6ActivityRepository.findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(structureType,
 				structure, component, component_id);
 	}
+	
+	public List<RfiDescriptionDTO> getRfiDescriptionsByActivity(String activity) {
+	    List<RfiDescription> descriptions = rfiDescriptionRepository.findByActivity(activity);
+
+	    return descriptions.stream()
+	            .map(desc -> new RfiDescriptionDTO(
+	                    desc.getRfiDescription(),
+	                    Arrays.stream(desc.getEnclosures().split(","))
+	                            .map(String::trim)
+	                            .collect(Collectors.toList())
+	            ))
+	            .collect(Collectors.toList());
+	}
+
 
 	@Override
 	public List<RfiListDTO> getAllRFIs() {

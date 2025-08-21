@@ -6,6 +6,7 @@ import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
+import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
@@ -53,6 +54,8 @@ public interface RFIService {
 //	List<ContractDropdownDTO> getAllowedContractsForUser(String userId);
 
 	List<ContractDropdownDTO> getAllowedContractsForUser(String userId, String ContractorId);
+
+	List<RfiDescriptionDTO> getRfiDescriptionsByActivity(String activity);
 
 	
 }
