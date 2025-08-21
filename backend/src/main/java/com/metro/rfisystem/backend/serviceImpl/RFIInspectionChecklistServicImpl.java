@@ -1,24 +1,19 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
-import java.io.File;
 
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+
 
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIChecklistItem;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionChecklistRepository;
-import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
+
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
 
@@ -37,8 +32,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 
 
 	@Override
-	public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto, MultipartFile contractorSig,
-			MultipartFile clientSig, String deptFk) throws IOException {
+	public void saveChecklistWithFiles(RFIInspectionChecklistDTO dto,String deptFk) throws IOException {
 		
 	
 		  //  Fetch the RFIInspectionDetails using the ID
@@ -57,27 +51,61 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		        checklist.setAlignmentOk(dto.getAlignmentOk());
 	            checklist.setDrawingRemarkContractor(dto.getDrawingRemarkContractor());
 	            checklist.setAlignmentRemarkContractor(dto.getAlignmentRemarkContractor());
-	            checklist.setContractorSignature(contractorSig != null ? saveFile(contractorSig) : checklist.getContractorSignature());
+	            checklist.setCleaningOk(dto.getCleaningOk());
+	            checklist.setCleaningRemarkContractor(dto.getCleaningRemarkContractor());
+	            checklist.setJointPacking(dto.getJointPacking());
+	            checklist.setJointPackingRemarkContractor(dto.getJointPackingRemarkContractor());
+	            checklist.setBarBendingApproved(dto.getBarBendingApproved());
+	            checklist.setBarBendingRemarkContractor(dto.getBarBendingRemarkContractor());
+	            checklist.setCoverBlockProvided(dto.getCoverBlockProvided());
+	            checklist.setCoverBlockRemarkContractor(dto.getCoverBlockRemarkContractor());
+	            checklist.setReinforcementAlignment(dto.getReinforcementAlignment());
+	            checklist.setReinforcementRemarkContractor(dto.getReinforcementRemarkContractor());
+	            checklist.setWalkwayAvailable(dto.getWalkwayAvailable());
+	            checklist.setWalkwayRemarkContractor(dto.getWalkwayRemarkContractor());
+	            checklist.setMixDesignApproved(dto.getMixDesignApproved());
+	            checklist.setMixDesignRemarkContractor(dto.getMixDesignRemarkContractor());
+	            checklist.setVibratorsAvailable(dto.getVibratorsAvailable());
+	            checklist.setVibratorsRemarkContractor(dto.getVibratorsRemarkContractor());
+	            checklist.setPropsProvided(dto.getPropsProvided());
+	            checklist.setPropsRemarkContractor(dto.getPropsRemarkContractor());
+	            checklist.setLevelPegsFixed(dto.getLevelPegsFixed());
+	            checklist.setLevelPegsRemarkContractor(dto.getLevelPegsRemarkContractor());
+	            checklist.setConcretePumpAvailable(dto.getConcretePumpAvailable());
+	            checklist.setConcretePumpRemarkContractor(dto.getConcretePumpRemarkContractor());
+	            checklist.setDgLightingAvailable(dto.getDgLightingAvailable());
+	            checklist.setDgLightingRemarkContractor(dto.getDgLightingRemarkContractor());
+	            checklist.setCuringArrangements(dto.getCuringArrangements());
+	            checklist.setCuringRemarkContractor(dto.getCuringRemarkContractor());
+	            checklist.setTransitMixerApproach(dto.getTransitMixerApproach());
+	            checklist.setTransitMixerRemarkContractor(dto.getTransitMixerRemarkContractor());
+	            checklist.setPpeProvided(dto.getPpeProvided());
+	            checklist.setPpeRemarkContractor(dto.getPpeRemarkContractor());
+	            
 	        } else if ("Engg".equalsIgnoreCase(deptFk)) {
 	            checklist.setDrawingRemarkAE(dto.getDrawingRemarkAE());
 	            checklist.setAlignmentRemarkAE(dto.getAlignmentRemarkAE());
-	            checklist.setGcMrvcRepresentativeSignature(clientSig != null ? saveFile(clientSig) : checklist.getGcMrvcRepresentativeSignature());
+	            checklist.setCleaningRemarkEngineer(dto.getCleaningRemarkEngineer());
+	            checklist.setJointPackingRemarkEngineer(dto.getJointPackingRemarkEngineer());
+	            checklist.setBarBendingRemarkEngineer(dto.getBarBendingRemarkEngineer());
+	            checklist.setCoverBlockRemarEngineer(dto.getCoverBlockRemarkEngineer());
+	            checklist.setReinforcementRemarkEngineer(dto.getReinforcementRemarkEngineer());
+	            checklist.setWalkwayRemarkEngineer(dto.getWalkwayRemarkEngineer());
+	            checklist.setMixDesignRemarEngineer(dto.getMixDesignRemarkEngineer());
+	            checklist.setVibratorsRemarkEngineer(dto.getVibratorsRemarkEngineer());
+	            checklist.setPropsRemarkEngineer(dto.getPropsRemarkEngineer());
+	            checklist.setLevelPegsRemarkEngineer(dto.getLevelPegsRemarkEngineer());
+	            checklist.setConcretePumpRemarkEngineer(dto.getConcretePumpRemarkEngineer());
+	            checklist.setDgLightingRemarkEngineer(dto.getDgLightingRemarkEngineer());
+	            checklist.setCuringRemarkEngineer(dto.getCuringRemarkEngineer());
+	            checklist.setTransitMixerRemarkEngineer(dto.getTransitMixerRemarkEngineer());
+	            checklist.setPpeRemarkEngineer(dto.getPpeRemarkEngineer());
 	        }
 
 	      
 	       
 	        checklistRepository.save(checklist);
 	    }
-
-	    private String saveFile(MultipartFile file) throws IOException {
-	        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-	        Path path = Paths.get(uploadDir + File.separator + filename);
-	        Files.createDirectories(path.getParent());
-	        Files.write(path, file.getBytes());
-	        return path.toString();
-	    }
-
-
 
 		@Override
 		public RFIInspectionChecklistDTO getChecklist(Long rfiId, String enclosureName) {
@@ -99,15 +127,57 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		        dto.setAlignmentOk(entity.getAlignmentOk());
 		        dto.setDrawingRemarkContractor(entity.getDrawingRemarkContractor());
 		        dto.setAlignmentRemarkContractor(entity.getAlignmentRemarkContractor());
-		       // dto.setContractorSignature()
-		      //  dto.setContractorSignature(null);
+		        dto.setCleaningOk(entity.getCleaningOk());
+	            dto.setCleaningRemarkContractor(entity.getCleaningRemarkContractor());
+	            dto.setJointPacking(entity.getJointPacking());
+	            dto.setJointPackingRemarkContractor(entity.getJointPackingRemarkContractor());
+	            dto.setBarBendingApproved(entity.getBarBendingApproved());
+	            dto.setBarBendingRemarkContractor(entity.getBarBendingRemarkContractor());
+	            dto.setCoverBlockProvided(entity.getCoverBlockProvided());
+	            dto.setCoverBlockRemarkContractor(entity.getCoverBlockRemarkContractor());
+	            dto.setReinforcementAlignment(entity.getReinforcementAlignment());
+	            dto.setReinforcementRemarkContractor(entity.getReinforcementRemarkContractor());
+	            dto.setWalkwayAvailable(entity.getWalkwayAvailable());
+	            dto.setWalkwayRemarkContractor(entity.getWalkwayRemarkContractor());
+	            dto.setMixDesignApproved(entity.getMixDesignApproved());
+	            dto.setMixDesignRemarkContractor(entity.getMixDesignRemarkContractor());
+	            dto.setVibratorsAvailable(entity.getVibratorsAvailable());
+	            dto.setVibratorsRemarkContractor(entity.getVibratorsRemarkContractor());
+	            dto.setPropsProvided(entity.getPropsProvided());
+	            dto.setPropsRemarkContractor(entity.getPropsRemarkContractor());
+	            dto.setLevelPegsFixed(entity.getLevelPegsFixed());
+	            dto.setLevelPegsRemarkContractor(entity.getLevelPegsRemarkContractor());
+	            dto.setConcretePumpAvailable(entity.getConcretePumpAvailable());
+	            dto.setConcretePumpRemarkContractor(entity.getConcretePumpRemarkContractor());
+	            dto.setDgLightingAvailable(entity.getDgLightingAvailable());
+	            dto.setDgLightingRemarkContractor(entity.getDgLightingRemarkContractor());
+	            dto.setCuringArrangements(entity.getCuringArrangements());
+	            dto.setCuringRemarkContractor(entity.getCuringRemarkContractor());
+	            dto.setTransitMixerApproach(entity.getTransitMixerApproach());
+	            dto.setTransitMixerRemarkContractor(entity.getTransitMixerRemarkContractor());
+	            dto.setPpeProvided(entity.getPpeProvided());
+	            dto.setPpeRemarkContractor(entity.getPpeRemarkContractor());
+	            
 		        
 
-		        // AE / Regular User fields
+		        //  Engineer fields
 		        dto.setDrawingRemarkAE(entity.getDrawingRemarkAE());
 		        dto.setAlignmentRemarkAE(entity.getAlignmentRemarkAE());
-		    //    dto.setGcMrvcRepresentativeSignature(entity.getGcMrvcRepresentativeSignature());
-
+		        dto.setCleaningRemarkEngineer(entity.getCleaningRemarkEngineer());
+		        dto.setJointPackingRemarkEngineer(entity.getJointPackingRemarkEngineer());
+		        dto.setBarBendingRemarkEngineer(entity.getBarBendingRemarkEngineer());
+		        dto.setCoverBlockRemarkEngineer(entity.getCoverBlockRemarEngineer());
+		        dto.setReinforcementRemarkEngineer(entity.getReinforcementRemarkEngineer());
+		        dto.setWalkwayRemarkEngineer(entity.getWalkwayRemarkEngineer());
+		        dto.setMixDesignRemarkEngineer(entity.getMixDesignRemarEngineer());
+		        dto.setVibratorsRemarkEngineer(entity.getVibratorsRemarkEngineer());
+		        dto.setPropsRemarkEngineer(entity.getPropsRemarkEngineer());
+		        dto.setLevelPegsRemarkEngineer(entity.getLevelPegsRemarkEngineer());
+		        dto.setConcretePumpRemarkEngineer(entity.getConcretePumpRemarkEngineer());
+		        dto.setDgLightingRemarkEngineer(entity.getDgLightingRemarkEngineer());
+		        dto.setCuringRemarkEngineer(entity.getCuringRemarkEngineer());
+		        dto.setTransitMixerRemarkEngineer(entity.getTransitMixerRemarkEngineer());
+		        dto.setPpeRemarkEngineer(entity.getPpeRemarkEngineer());
 		        return dto;
 		    }
 	

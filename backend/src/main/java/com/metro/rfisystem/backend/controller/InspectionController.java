@@ -91,16 +91,14 @@ public class InspectionController {
 	}
 
 	@PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> saveChecklist(HttpSession session, @RequestPart("data") String checklistJson,
-			@RequestPart(value = "contractorSignature", required = false) MultipartFile contractorSignature,
-			@RequestPart(value = "clientSignature", required = false) MultipartFile clientSignature) {
+	public ResponseEntity<String> saveChecklist(HttpSession session, @RequestPart("data") String checklistJson) {
 		String deptFk = (String) session.getAttribute("departmentFk");
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 
 			RFIInspectionChecklistDTO dto = mapper.readValue(checklistJson, RFIInspectionChecklistDTO.class);
 
-			checklistService.saveChecklistWithFiles(dto, contractorSignature, clientSignature, deptFk);
+			checklistService.saveChecklistWithFiles(dto, deptFk);
 			return ResponseEntity.ok("Checklist saved successfully");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
