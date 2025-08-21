@@ -1,0 +1,67 @@
+.assign-executive .dashboard-main, .assign-executive .right {
+    height: 100%;
+    overflow: initial;
+    min-height: 100vh;
+}
+.assign-executive .assign-form {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.assign-executive .form-group {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.assign-executive .multi-select-input {
+  border: 1px solid #ccc;
+  padding: 8px;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 4px;
+  display: flex;
+    justify-content: space-between;
+}
+
+.assign-executive .multi-select-dropdown {
+  border: 1px solid #ccc;
+    background: #fff;
+    position: absolute;
+    margin-top: -4px;
+    z-index: 100;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    top: 100%;
+}
+
+.assign-executive .dropdown-option {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  gap: 10px;
+  margin: 0;
+}
+
+.assign-executive .dropdown-option:hover {
+  background: #f0f0f0;
+}
+
+.assign-executive .save-btn {
+  background: teal;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.assign-executive .form-group{
+  flex: 0 0 47%;
+}
+.assign-executive .form-group select{
+  width: 100%;
+  padding: 10px;
+}
