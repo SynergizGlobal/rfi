@@ -637,11 +637,14 @@ export default function InspectionForm() {
 
 						{confirmPopup && <ConfirmationPopup
 
-							inspectionStatus={inspectionStatus}
+							inspectionStatus={
+								inspectionStatus ||
+								rfiData?.inspectionDetails?.find(d => d.uploadedBy === "CON")?.inspectionStatus || ""
+							}
 							setInspectionStatus={setInspectionStatus}
 							testInLab={testInLab}
 							setTestInLab={setTestInLab}
-							testReportFile={testReportFile}
+							testReportFile={testReportFile || ""}
 							setTestReportFile={setTestReportFile}
 							rfiData={rfiData}
 							onConfirm={handleSubmitConfirmed}
@@ -823,9 +826,7 @@ function ConfirmationPopup({ rfiData, inspectionStatus, setInspectionStatus, tes
 				}</p>
 			) : (
 				<select
-					value={rfiData?.inspectionDetails
-						?.find(d => d.uploadedBy === "CON")
-						?.inspectionStatus}
+					value={inspectionStatus}
 					onChange={(e) => setInspectionStatus(e.target.value)}
 				>
 					<option value="">Select</option>
