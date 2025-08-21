@@ -79,6 +79,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
     	List<RfiListDTO> findByCreatedBy(@Param("createdBy") String createdBy);
     
     
+    
     @Query(value = """
     	    SELECT
     		    r.id as id,

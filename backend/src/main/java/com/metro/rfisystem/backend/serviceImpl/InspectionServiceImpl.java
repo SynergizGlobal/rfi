@@ -114,6 +114,7 @@ public class InspectionServiceImpl implements InspectionService {
 		inspectionRepository.save(inspection);
 		return inspection.getId();
 	}
+	
 
 	private String saveFile(MultipartFile file) {
 		if (file.isEmpty()) {

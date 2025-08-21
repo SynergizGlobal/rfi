@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.constants;
 
 public enum EnumRfiStatus {
 	
+	
 	    CREATED,
 	    UPDATED,
 	    RESCHEDULED,

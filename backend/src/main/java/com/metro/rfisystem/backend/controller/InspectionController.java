@@ -48,6 +48,7 @@ public class InspectionController {
 	public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
 		return ResponseEntity.ok(inspectionService.getById(id));
 	}
+	
 
 	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Long> startInspection(HttpSession session, @RequestPart("data") String dataJson,

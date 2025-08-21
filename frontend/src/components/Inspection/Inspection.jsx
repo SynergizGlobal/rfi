@@ -26,7 +26,7 @@ const Inspection = () => {
 	const [assignedPersons, setAssignedPersons] = useState({});
 	const [pageSize, setPageSize] = useState(5);
 	const [openDropdownRow, setOpenDropdownRow] = useState(null);
-	  const [dropdownInfo, setDropdownInfo] = useState({ rowId: null, targetRef: null });
+	const [dropdownInfo, setDropdownInfo] = useState({ rowId: null, targetRef: null });
 	const buttonRefs = useRef({});
 	const navigate = useNavigate();
 	const [data, setData] = useState([]);
@@ -36,7 +36,7 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
-	
+
 
 	useEffect(() => {
 		fetch(`${API_BASE_URL}rfi/rfi-details`, {
@@ -67,21 +67,37 @@ const Inspection = () => {
 
 	useEffect(() => {
 		const handleClickOutside = (e) => {
-		  const portalEl = document.querySelector('.inspection-dropdown');
-		  const isInsidePortal = portalEl && portalEl.contains(e.target);
-		  const isInsideButton = Object.values(buttonRefs.current).some((ref) => ref?.contains(e.target));
-		  if (!isInsidePortal && !isInsideButton) {
-			setDropdownInfo({ rowId: null, targetRef: null });
-			setOpenDropdownRow(null);
-		  }
+			const portalEl = document.querySelector('.inspection-dropdown');
+			const isInsidePortal = portalEl && portalEl.contains(e.target);
+			const isInsideButton = Object.values(buttonRefs.current).some((ref) => ref?.contains(e.target));
+			if (!isInsidePortal && !isInsideButton) {
+				setDropdownInfo({ rowId: null, targetRef: null });
+				setOpenDropdownRow(null);
+			}
 		};
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
-	  }, []);
+	}, []);
 
-	const handleInspectionComplete = (rfi) => {
+
+
+	const handleInspectionComplete = (rfi, status) => {
+
+		if (status === "INSPECTION_DONE") {
+			alert("Inspection is already closed. Further inspection not allowed.")
+		}
+		const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
+
+		if (deptFK === "engg") {
+			const allowedStatuses = ["INSPECTED_BY_CON", "INSPECTED_BY_ENGINEER",];
+			if (!allowedStatuses.includes(status)) {
+				alert("Engineer inspection not allowed until contractor has inspected.");
+				return;
+			}
+		}
 		navigate(`/InspectionForm`, { state: { rfi } });
 	};
+
 
 	const [downloadingId, setDownloadingId] = useState(null);
 	const handleDownloadImagesPdf = async (id, uploadedBy) => {
@@ -125,142 +141,119 @@ const Inspection = () => {
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
 		{
-		  Header: 'Inspection Status',
-		  accessor: 'inspectionStatus'
+			Header: 'Inspection Status',
+			accessor: 'inspectionStatus'
 		},
 		{
-		  Header: 'Download Contractor Images',
-		  Cell: ({ row }) => {
-		    const isDownloading = downloadingId === row.original.id;
-		    const hasContractorImage = row.original.imgContractor !== null;
+			Header: 'Download Contractor Images',
+			Cell: ({ row }) => {
+				const isDownloading = downloadingId === row.original.id;
+				const hasContractorImage = row.original.imgContractor !== null;
 
-		    return hasContractorImage ? (
-		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
-		        className="btn-download"
-		        disabled={isDownloading}
-		      >
-		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
-		      </button>
-		    ) : (
-		      <span style={{ color: '#888' }}></span>
-		    );
-		  }
+				return hasContractorImage ? (
+					<button
+						onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+						className="btn-download"
+						disabled={isDownloading}
+					>
+						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+					</button>
+				) : (
+					<span style={{ color: '#888' }}></span>
+				);
+			}
 		},
 		{
-		  Header: 'Download Client Images',
-		  Cell: ({ row }) => {
-		    const isDownloading = downloadingId === `client-${row.original.id}`;
-		    const hasClientImage = row.original.imgClient !== null;
+			Header: 'Download Client Images',
+			Cell: ({ row }) => {
+				const isDownloading = downloadingId === `client-${row.original.id}`;
+				const hasClientImage = row.original.imgClient !== null;
 
-		    return hasClientImage ? (
-		      <button
-		        onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
-		        className="btn-download"
-		        disabled={isDownloading}
-		      >
-		        {isDownloading ? '⏳ Downloading...' : '⬇️'}
-		      </button>
-		    ) : (
-		      <span style={{ color: '#888' }}></span>
-		    );
-		  }
+				return hasClientImage ? (
+					<button
+						onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+						className="btn-download"
+						disabled={isDownloading}
+					>
+						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+					</button>
+				) : (
+					<span style={{ color: '#888' }}></span>
+				);
+			}
 		},
-				{
-      Header: 'Action',
-      Cell: ({ row }) => {
-        const btnRef = useRef(null);
+		{
+			Header: 'Action',
+			Cell: ({ row }) => {
+				const btnRef = useRef(null);
 
-        useEffect(() => {
-          buttonRefs.current[row.id] = btnRef.current;
-        }, [row.id]);
+				useEffect(() => {
+					buttonRefs.current[row.id] = btnRef.current;
+				}, [row.id]);
 
-        const isDropdownOpen = openDropdownRow === row.id;
+				const isDropdownOpen = openDropdownRow === row.id;
 
-        return (
-          <div className="action-dropdown">
-            <button
-              ref={btnRef}
-              className="action-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const target = btnRef.current;
-                if (isDropdownOpen) {
-                  setOpenDropdownRow(null);
-                  setDropdownInfo({ rowId: null, targetRef: null });
-                } else {
-                  setOpenDropdownRow(row.id);
-                  setDropdownInfo({ rowId: row.id, targetRef: target });
-                }
-              }}
-            >
-              ⋮
-            </button>
+				return (
+					<div className="action-dropdown">
+						<button
+							ref={btnRef}
+							className="action-button"
+							onClick={(e) => {
+								e.stopPropagation();
+								const target = btnRef.current;
+								if (isDropdownOpen) {
+									setOpenDropdownRow(null);
+									setDropdownInfo({ rowId: null, targetRef: null });
+								} else {
+									setOpenDropdownRow(row.id);
+									setDropdownInfo({ rowId: row.id, targetRef: target });
+								}
+							}}
+						>
+							⋮
+						</button>
 
-            {isDropdownOpen && dropdownInfo.targetRef && (
-              <DropdownPortal
-                targetRef={dropdownInfo.targetRef}
-                onClose={() => {
-                  setOpenDropdownRow(null);
-                  setDropdownInfo({ rowId: null, targetRef: null });
-                }}
-              >
-                <button onClick={() => handleInspectionComplete(row.original.id)}>Start Inspection Online</button>
-                <button>Start Inspection Offline</button>
-                {userRole !== 'Engg' && (
-                  <button
-                    onClick={() => {
-                      navigate('/InspectionForm', {
-                        state: { rfi: row.original.id, skipSelfie: true },
-                      });
-                      setOpenDropdownRow(null);
-                      setDropdownInfo({ rowId: null, targetRef: null });
-                    }}
-                  >
-                    Upload Test Results
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    navigate('/InspectionForm', {
-                      state: { rfi: row.original.id, skipSelfie: true },
-                    });
-                    setOpenDropdownRow(null);
-                    setDropdownInfo({ rowId: null, targetRef: null });
-                  }}
-                >
-                  View
-                </button>
-                {userRole !== 'con' && (
-                  <button
-                    onClick={() => {
-                      setConfirmPopupData({
-                        message: "Do you want to Submit the Inspection report for Validation?",
-                        onConfirm: async () => {
-                          try {
-                            const response = await axios.put(`${API_BASE_URL}rfi/${row.original.id}/send-for-validation`);
-                            alert(response.data);
-                          } catch {
-                            alert("Failed to submit RFI for validation.");
-                          } finally {
-                            setOpenDropdownRow(null);
-                            setDropdownInfo({ rowId: null, targetRef: null });
-                            setConfirmPopupData(null);
-                          }
-                        },
-                      });
-                    }}
-                  >
-                    Send for Validation
-                  </button>
-                )}
-                {userRole !== 'engg' && <button>Submit</button>}
-              </DropdownPortal>
-            )}
-          </div>
-        );
-      }
-    }
+						{isDropdownOpen && dropdownInfo.targetRef && (
+							<DropdownPortal
+								targetRef={dropdownInfo.targetRef}
+								onClose={() => {
+									setOpenDropdownRow(null);
+									setDropdownInfo({ rowId: null, targetRef: null });
+								}}
+							>
+								<button onClick={() => handleInspectionComplete(row.original.id, row.original.status)}>Start Inspection Online</button>
+								<button>Start Inspection Offline</button>
+								{userRole !== 'Engg' && (
+									<button
+										onClick={() => {
+											navigate('/InspectionForm', {
+												state: { rfi: row.original.id, skipSelfie: true },
+											});
+											setOpenDropdownRow(null);
+											setDropdownInfo({ rowId: null, targetRef: null });
+										}}
+									>
+										Upload Test Results
+									</button>
+								)}
+								<button
+									onClick={() => {
+										navigate('/InspectionForm', {
+											state: { rfi: row.original.id, skipSelfie: true },
+										});
+										setOpenDropdownRow(null);
+										setDropdownInfo({ rowId: null, targetRef: null });
+									}}
+								>
+									View
+								</button>
+								{userRole !== 'engg' && <button>Submit</button>}
+							</DropdownPortal>
+						)}
+					</div>
+				);
+			}
+		}
 	], [openDropdownRow, data]);
 
 	const {
@@ -282,7 +275,7 @@ const Inspection = () => {
 		{
 			columns,
 			data,
-			initialState: { pageIndex: 0, pageSize }, 
+			initialState: { pageIndex: 0, pageSize },
 			getRowId: row => row.rfi_Id,
 		},
 		useGlobalFilter,
@@ -290,8 +283,8 @@ const Inspection = () => {
 	);
 
 	useEffect(() => {
-	   tableSetPageSize(pageSize);
-	 }, [pageSize, tableSetPageSize]);
+		tableSetPageSize(pageSize);
+	}, [pageSize, tableSetPageSize]);
 
 
 	return (

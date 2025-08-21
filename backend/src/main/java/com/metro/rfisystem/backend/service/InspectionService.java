@@ -1,4 +1,4 @@
-package com.metro.rfisystem.backend.service;
+ package com.metro.rfisystem.backend.service;
 
 import java.io.IOException;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +11,7 @@ public interface InspectionService {
 
 	public RfiInspectionDTO getById(Long id);
 
-	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages,String deptFk);
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages, String deptFk);
 
 	public boolean SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk);
 	

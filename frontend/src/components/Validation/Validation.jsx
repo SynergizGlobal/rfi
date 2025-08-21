@@ -749,7 +749,7 @@ export default function Validation() {
 
 								{selectedInspection.selfieClient && (
 									<div className="image-gallery">
-										<h4>Inspector Selfie</h4>
+										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 										{selectedInspection.selfieClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;

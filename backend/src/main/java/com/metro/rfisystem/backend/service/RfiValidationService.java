@@ -8,7 +8,7 @@ import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 public interface RfiValidationService {
 
 
-	List<GetRfiDTO> showValidations(String UserRole,String UserType, String UserId,String Department,String UserName);
+	List<GetRfiDTO> showValidations(String UserRole, String UserType, String UserId,String Department,String UserName);
 
 	void validateRfiWithFile(RfiValidateDTO dto);
 	

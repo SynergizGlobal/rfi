@@ -24,7 +24,9 @@ public class RfiReportDTO {
 	private String contractorRepresentative;
 	private String clientRepresentative;
 	private String descriptionByContractor;
+	
 	// checklist for the Enclosure Level Sheet
+	
 	private String drawingStatusLS;
 	private String alignmentStatusLS;
 	private String drawingRemarksContracotrLS;
