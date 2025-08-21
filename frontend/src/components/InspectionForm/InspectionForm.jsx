@@ -725,7 +725,9 @@ function ConfirmationPopup({rfiData, inspectionStatus, setInspectionStatus, test
 				}</p>
 			      ) : (
 			        <select
-			          value={inspectionStatus}
+						value={rfiData?.inspectionDetails
+							?.find(d => d.uploadedBy === "CON")
+							?.inspectionStatus}
 			          onChange={(e) => setInspectionStatus(e.target.value)}
 			        >
 			          <option value="">Select</option>
