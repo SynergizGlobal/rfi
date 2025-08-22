@@ -21,6 +21,7 @@ import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
+import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
@@ -93,8 +94,11 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setAction(dto.getAction());
 		rfi.setTypeOfRFI(dto.getTypeOfRFI());
 		rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
-		rfi.setEnclosures(dto.getEnclosures());
-		rfi.setLocation(dto.getLocation());
+		 if (dto.getEnclosures() != null && !dto.getEnclosures().isEmpty()) {
+		        rfi.setEnclosures(String.join(",", dto.getEnclosures()));
+		    } else {
+		        rfi.setEnclosures("");
+		    }		rfi.setLocation(dto.getLocation());
 		rfi.setDescription(dto.getDescription());
 		rfi.setTimeOfInspection(dto.getTimeOfInspection());
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
@@ -179,6 +183,15 @@ public class RFIServiceImpl implements RFIService {
 	            .collect(Collectors.toList());
 	}
 
+	
+	public List<UserDTO> getContractorsList() {
+	    List<User> users = loginRepo.findContractors();
+	    return users.stream()
+	                .map(u -> new UserDTO(u.getUserId(), u.getUserName()))
+	                .collect(Collectors.toList());
+	}
+
+
 
 	@Override
 	public List<RfiListDTO> getAllRFIs() {
@@ -206,7 +219,7 @@ public class RFIServiceImpl implements RFIService {
 			existingRfi.setTimeOfInspection(rfiDto.getTimeOfInspection());
 			existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
 			existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
-			existingRfi.setEnclosures(rfiDto.getEnclosures());
+			existingRfi.setEnclosuresList(rfiDto.getEnclosures());
 			existingRfi.setLocation(rfiDto.getLocation());
 			existingRfi.setDescription(rfiDto.getDescription());
 

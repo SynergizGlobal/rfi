@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -140,5 +141,17 @@ public class RFI {
     @OneToMany(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<RFIEnclosure> enclosure = new ArrayList<>();
+    
+    public List<String> getEnclosuresList() {
+        return (enclosures != null && !enclosures.isEmpty())
+                ? Arrays.asList(enclosures.split(","))
+                : new ArrayList<>();
+    }
+
+    public void setEnclosuresList(List<String> enclosuresList) {
+        this.enclosures = (enclosuresList != null && !enclosuresList.isEmpty())
+                ? String.join(",", enclosuresList)
+                : null;
+    }
 
 }

@@ -3,6 +3,7 @@ package com.metro.rfisystem.backend.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,7 +22,7 @@ public class RFI_DTO {
 	private String action;
 	private String typeOfRFI;
 	private String nameOfRepresentative;
-	private String enclosures;
+	private List<String> enclosures;
 	private String location;
 	private String component;
 	private String element;
@@ -34,7 +35,7 @@ public class RFI_DTO {
 	private String structure;
 	private String activity;
 	private String status;
-    private String contractor;
-    private String dyHodUserId;
+	private String contractor;
+	private String dyHodUserId;
 
 }

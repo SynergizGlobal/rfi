@@ -24,11 +24,11 @@ const CreateRfi = () => {
 	const [actions, setActions] = useState([]);
 
 	useEffect(() => {
-	  if (status === "INSPECTION_DONE") {
-	    setActions(["Reschedule", "Reassign"]);
-	  } else {
-	    setActions(["Reschedule", "Update", "Reassign"]);
-	  }
+		if (status === "INSPECTION_DONE") {
+			setActions(["Reschedule", "Reassign"]);
+		} else {
+			setActions(["Reschedule", "Update", "Reassign"]);
+		}
 	}, [status]);
 
 	useEffect(() => {
@@ -540,6 +540,23 @@ const CreateRfi = () => {
 	}, [formState.activity]);
 
 
+	const [nameOfRepresentativeOptions, setNameOfRepresentativeOptions] = useState([]);
+	useEffect(() => {
+		const fetchContractors = async () => {
+			try {
+				const response = await axios.get(`${API_BASE_URL}rfi/contractors`);
+				const options = response.data.map((contractor) => ({
+					value: contractor.userName,
+					label: contractor.userName,
+				}));
+				setNameOfRepresentativeOptions(options);
+			} catch (error) {
+				console.error("Error fetching contractors:", error);
+			}
+		};
+
+		fetchContractors();
+	}, []);
 
 
 
@@ -547,10 +564,6 @@ const CreateRfi = () => {
 	const typeOfRfiOptions = [
 		{ value: 'Regular RFI', label: 'Regular RFI' },
 		{ value: 'SPOT RFI', label: 'SPOT RFI' },
-	];
-	const nameOfRepresentativeOptions = [
-		{ value: 'nameOfRepresentative 1', label: 'nameOfRepresentative 1' },
-		{ value: 'nameOfRepresentative 2', label: 'nameOfRepresentative 2' },
 	];
 
 	return (
@@ -903,12 +916,12 @@ const CreateRfi = () => {
 											onChange={handleChange}
 											className="form-control"
 										>
-										<option value="">-- Select Action --</option>
-										   {actions.map((action) => (
-								           <option key={action} value={action}>
-								             {action}
-								           </option>
-								         ))}
+											<option value="">-- Select Action --</option>
+											{actions.map((action) => (
+												<option key={action} value={action}>
+													{action}
+												</option>
+											))}
 										</select>
 									) : (
 										<input
@@ -935,14 +948,28 @@ const CreateRfi = () => {
 									/>
 								</div>
 
-								<div className="form-fields flex-1">
-									<label htmlFor="nameOfRepresentative" className="block mb-1">Name of Contractor's Representative:</label>
+									<div className="form-fields flex-1">
+									<label htmlFor="nameOfRepresentative" className="block mb-1">
+										Name of Contractor's Representative:
+									</label>
 									<Select
 										id="nameOfRepresentative"
 										name="nameOfRepresentative"
 										options={nameOfRepresentativeOptions}
-										value={formState.nameOfRepresentative ? { value: formState.nameOfRepresentative, label: formState.nameOfRepresentative } : null}
-										onChange={(selected) => setFormState({ ...formState, nameOfRepresentative: selected?.value || '' })}
+										value={
+											formState.nameOfRepresentative
+												? {
+													value: formState.nameOfRepresentative,
+													label: formState.nameOfRepresentative,
+												}
+												: null
+										}
+										onChange={(selected) =>
+											setFormState({
+												...formState,
+												nameOfRepresentative: selected?.value || "",
+											})
+										}
 									/>
 								</div>
 								<div className="form-fields flex-1">
@@ -1000,21 +1027,25 @@ const CreateRfi = () => {
 								<div className="form-fields flex-1">
 									<label htmlFor="enclosures" className="block mb-1">Enclosures:</label>
 									<Select
-    id="enclosures"
-    name="enclosures"
-    options={addRfiEnclosuresOptions}
-    value={
-        formState.enclosures
-            ? { value: formState.enclosures, label: formState.enclosures }
-            : null
-    }
-    onChange={(selected) =>
-        setFormState({
-            ...formState,
-            enclosures: selected ? selected.value : ''
-        })
-    }
-/>
+										id="enclosures"
+										name="enclosures"
+										options={addRfiEnclosuresOptions}
+										isMulti // ✅ allow multiple selections
+										value={
+											formState.enclosures && formState.enclosures.length > 0
+												? formState.enclosures.map(enc => ({ value: enc, label: enc }))
+												: []
+										}
+										onChange={(selectedOptions) =>
+											setFormState({
+												...formState,
+												enclosures: selectedOptions
+													? selectedOptions.map(opt => opt.value)
+													: []
+											})
+										}
+									/>
+
 
 
 								</div>
