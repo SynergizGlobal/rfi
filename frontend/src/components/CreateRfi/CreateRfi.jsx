@@ -19,6 +19,17 @@ const CreateRfi = () => {
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const getTodayISO = () => new Date().toISOString().split('T')[0];
 
+	const { id, status } = location.state || {};
+
+	const [actions, setActions] = useState([]);
+
+	useEffect(() => {
+	  if (status === "INSPECTION_DONE") {
+	    setActions(["Reschedule", "Reassign"]);
+	  } else {
+	    setActions(["Reschedule", "Update", "Reassign"]);
+	  }
+	}, [status]);
 
 	useEffect(() => {
 		setIsEditable(mode?.toLowerCase() !== 'edit');
@@ -892,10 +903,12 @@ const CreateRfi = () => {
 											onChange={handleChange}
 											className="form-control"
 										>
-											<option value="">-- Select Action --</option>
-											<option value="Reschedule">Reschedule</option>
-											<option value="Update">Update</option>
-											<option value="Reassign">Reassign</option>
+										<option value="">-- Select Action --</option>
+										   {actions.map((action) => (
+								           <option key={action} value={action}>
+								             {action}
+								           </option>
+								         ))}
 										</select>
 									) : (
 										<input

@@ -62,13 +62,18 @@ const CreatedRfi = () => {
 		);
 
 		
-	const handleEdit = (rfi) => {
-		console.log("🟢 rfi object:", rfi);
-		navigate('/CreateRfi', { state: { id: rfi.id, mode: 'edit' } });
-		console.log("Navigating to edit with:", { rfiId: rfi.rfiId, mode: 'edit' });
-
-	};
-
+		const handleEdit = (rfi) => {
+		  console.log("🟢 rfi object:", rfi);
+		  navigate('/CreateRfi', { 
+		    state: { 
+		      id: rfi.id, 
+		      status: rfi.status, 
+		      mode: 'edit' 
+		    } 
+		  });
+		  console.log("Navigating to edit with:", { rfiId: rfi.rfiId, status: rfi.status, mode: 'edit' });
+		};
+				
 	const handleDelete = (rfi) => {
 		if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
 			console.log("🟡 RFI Object to delete:", rfi);
