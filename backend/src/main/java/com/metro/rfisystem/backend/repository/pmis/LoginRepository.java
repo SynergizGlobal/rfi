@@ -38,5 +38,9 @@ public interface LoginRepository extends JpaRepository<User, String>  {
 		List<String> findEngineersByContractId(@Param("contractId") String contractId);
 
 	
+	@Query("SELECT u FROM User u WHERE u.designation = 'Contractor' AND u.departmentFk = 'CON'")
+	List<User> findContractors();
+
+
 	
 }
