@@ -4,7 +4,7 @@ import HeaderRight from '../HeaderRight/HeaderRight';
 import CameraCapture from '../CameraCapture/CameraCapture';
 import './InspectionForm.css';
 
-const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
+//const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 
 
@@ -29,11 +29,7 @@ const initialChecklist = [
 
 ];
 
-const enclosuresData = [
-	{ id: 1, rfiDescription: 'PCC', enclosure: 'Level Sheet' },
-	{ id: 2, rfiDescription: 'PCC', enclosure: 'Pour Card' },
 
-];
 
 export default function InspectionForm() {
 	const location = useLocation();
@@ -60,7 +56,7 @@ export default function InspectionForm() {
 	const [testReportFile, setTestReportFile] = useState(null);
 	const [dateOfInspection, setDateOfInspection] = useState('');
 	const [timeOfInspection, setTimeOfInspection] = useState('');
-
+	const [enclosuresData, setEnclosuresData] = useState([]);
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const selfieRef = useRef(null);
@@ -75,6 +71,21 @@ export default function InspectionForm() {
 				.then(data => {
 					setRfiData(data);
 					setContractorRep(data.nameOfRepresentative || '');
+					if (data.enclosures) {
+					        // if enclosures is a string
+					        const enclosuresArr = Array.isArray(data.enclosures)
+					          ? data.enclosures
+					        : data.enclosures.split(",").map(enc => enc.trim());
+
+					        const formatted = enclosuresArr.map((enc, index) => ({
+					          id: `${data.id}-${index}`,   // make unique key
+					          rfiDescription: data.rfiDescription,
+					          enclosure: enc
+					        }));
+
+					        setEnclosuresData(formatted);
+					      }
+
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
 						const latestInspection = data.inspectionDetails.reduce((latest, current) =>
 							current.id > latest.id ? current : latest
