@@ -1,34 +1,245 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import Select from "react-select"; // ✅ npm install react-select
+import axios from "axios";
 import HeaderRight from "../HeaderRight/HeaderRight";
 import "./AssignExecutive.css";
+import { useLocation } from "react-router-dom";
 
 const AssignExecutive = () => {
-  // state
-  const [executives, setExecutives] = useState([]); // selected names
-  const [execOpen, setExecOpen] = useState(false);
-  const execRef = useRef(null);
+  const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
-  const allExecutives = ["Sunil", "Ajay", "Mukul", "Akash", "Subhash"];
+  // 🔹 State
+  const [formState, setFormState] = useState({
+    project: "",
+    projectId: "",
+    work: "",
+    contract: "",
+    contractId: "",
+    structureType: "",
+    structure: "",
+    component: "",
+    element: "",
+    activity: "",
+    dyHodUserId: "",
+    executive: "",
+    rfiId: "" 
+  });
 
-  // click outside handler
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [projectIdMap, setProjectIdMap] = useState({});
+  const [workOptions, setWorkOptions] = useState([]);
+  const [workIdMap, setWorkIdMap] = useState({});
+  const [contractOptions, setContractOptions] = useState([]);
+  const [contractIdMap, setContractIdMap] = useState({});
+  const [structureTypeOptions, setStructureTypeOptions] = useState([]);
+  const [structureOptions, setStructureOptions] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [rfiIdOptions, setRfiIdOptions] = useState([]);
+
+  const location = useLocation();
+  const [mode, setMode] = useState("create");
+  const [message, setMessage] = useState("");
+
+  const isEditable = true;
+
+  // 🔹 Fetch projects on mount
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (execRef.current && !execRef.current.contains(event.target)) {
-        setExecOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    axios
+      .get(`${API_BASE_URL}rfi/projectNames`)
+      .then((response) => {
+        const options = response.data.map((project) => ({
+          value: project.projectName,
+          label: project.projectName
+        }));
 
-  // toggle selection
-  const toggleExecutive = (name) => {
-    setExecutives((prev) =>
-      prev.includes(name)
-        ? prev.filter((n) => n !== name)
-        : [...prev, name]
-    );
+        const map = {};
+        response.data.forEach((project) => {
+          map[project.projectName] = project.projectId;
+        });
+
+        setProjectOptions(options);
+        setProjectIdMap(map);
+      })
+      .catch((error) => {
+        console.error("Error fetching project names:", error);
+      });
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    const { project, work, contract, structureType, structure } = formState;
+    if (project && work && contract && structureType && structure) {
+      axios
+        .get(`${API_BASE_URL}rfi/rfiIds`, {
+          params: { project, work, contract, structureType, structure }
+        })
+        .then((res) => {
+          const opts = res.data.map((r) => ({
+            value: r.rfi_id,
+            label: r.rfi_id
+          }));
+          setRfiIdOptions(opts);
+        })
+        .catch((err) => {
+          console.error("❌ Error fetching RFI IDs:", err);
+          setRfiIdOptions([]);
+        });
+    } else {
+      setRfiIdOptions([]);
+    }
+  }, [
+    formState.project,
+    formState.work,
+    formState.contract,
+    formState.structureType,
+    formState.structure
+  ]);
+
+
+  // 🔹 Handle edit mode
+  useEffect(() => {
+    const state = location.state || {};
+    const { mode: navMode, id } = state;
+
+    if (navMode === "edit" && id) {
+      setMode("edit");
+
+      axios
+        .get(`${API_BASE_URL}rfi/rfi-details/${id}`)
+        .then(async (res) => {
+          const data = res.data;
+          console.log("✅ Received RFI:", data);
+
+          setFormState((prev) => ({
+            ...prev,
+            project: data.project || "",
+            work: data.work || "",
+            contract: data.contract || "",
+            structureType: data.structureType || "",
+            structure: data.structure || "",
+            executive: data.executive || "",
+            rfiId: data.rfiId || ""
+          }));
+
+          // fetch dependent data just like in onChange flow
+          const projectId = projectIdMap[data.project];
+          if (projectId) {
+            const workRes = await axios.get(`${API_BASE_URL}rfi/workNames`, {
+              params: { projectId }
+            });
+
+            const workOpts = workRes.data.map((w) => ({
+              value: w.workName,
+              label: w.workName
+            }));
+            const workMap = {};
+            workRes.data.forEach((w) => {
+              workMap[w.workName] = w.workId;
+            });
+            setWorkOptions(workOpts);
+            setWorkIdMap(workMap);
+
+            const workId = workMap[data.work];
+            if (workId) {
+              const contractRes = await axios.get(
+                `${API_BASE_URL}rfi/contractNames`,
+                { params: { workId } }
+              );
+
+              const contractOpts = contractRes.data.map((c) => ({
+                value: c.contractShortName,
+                label: c.contractShortName,
+                dyHodUserId: c.dyHodUserId?.trim()
+              }));
+              const contractMap = {};
+              contractRes.data.forEach((c) => {
+                contractMap[c.contractShortName] = c.contractIdFk.trim();
+              });
+              setContractOptions(contractOpts);
+              setContractIdMap(contractMap);
+
+              const contractId = contractMap[data.contract];
+              if (contractId) {
+                const typeRes = await axios.get(
+                  `${API_BASE_URL}rfi/structureType`,
+                  { params: { contractId } }
+                );
+                setStructureTypeOptions(
+                  typeRes.data.map((t) => ({ value: t, label: t }))
+                );
+
+                const structRes = await axios.get(
+                  `${API_BASE_URL}rfi/structure`,
+                  {
+                    params: {
+                      contractId,
+                      structureType: data.structureType
+                    }
+                  }
+                );
+                setStructureOptions(
+                  structRes.data.map((s) => ({ value: s, label: s }))
+                );
+
+                await fetchExecutives(contractId);
+              }
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Error fetching RFI:", err);
+          setMessage("Failed to load RFI data.");
+        });
+    }
+  }, [location.state, projectIdMap, API_BASE_URL]);
+
+  
+  
+  
+  const fetchExecutives = async (contractId) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}rfi/getExecutivesList`,
+        { params: { contractId } }
+      );
+
+      setExecutives(
+        response.data.map((exec) => ({
+          value: exec.userName,
+          label: exec.userName, 
+          department: exec.department
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching executives:", error);
+    }
   };
+
+
+  // 🔹 Submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        rfi_Id: formState.rfiId,                     
+        assignedPersonClient: formState.executive, 
+        clientDepartment: formState.department     
+      };
+
+      console.log("Submitting payload:", payload);
+
+      const response = await axios.post(
+        `${API_BASE_URL}rfi/assign-client-person`,
+        payload
+      );
+
+      alert(response.data); // "Assigned successfully"
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to assign person");
+    }
+  };
+
 
   return (
     <div className="dashboard credted-rfi inspection assign-executive">
@@ -38,83 +249,251 @@ const AssignExecutive = () => {
           <div className="rfi-table-container">
             <h2 className="section-heading">Assign Executives</h2>
 
-            {/* Form */}
-            <form className="assign-form">
+            <form className="assign-form" onSubmit={handleSubmit}>
+              {/* Project */}
               <div className="form-group">
                 <label>Project</label>
-                <select>
-                  <option>-- Select Project --</option>
-                  <option>Project 1</option>
-                  <option>Project 2</option>
-                </select>
+                <Select
+                  options={projectOptions}
+                  value={
+                    formState.project
+                      ? { value: formState.project, label: formState.project }
+                      : null
+                  }
+                  onChange={(selected) => {
+                    const proj = selected?.value || "";
+                    const projId = projectIdMap[proj] || "";
+                    setFormState({
+                      ...formState,
+                      project: proj,
+                      projectId: projId,
+                      work: "",
+                      contract: "",
+                      contractId: "",
+                      structureType: "",
+                      structure: "",
+                      rfiId: "",
+                      executive: ""
+                    });
+                    if (projId) {
+                      axios
+                        .get(`${API_BASE_URL}rfi/workNames`, {
+                          params: { projectId: projId }
+                        })
+                        .then((res) => {
+                          const map = {};
+                          const opts = res.data.map((w) => {
+                            map[w.workName] = w.workId;
+                            return { value: w.workName, label: w.workName };
+                          });
+                          setWorkOptions(opts);
+                          setWorkIdMap(map);
+                        });
+                    }
+                  }}
+                  isDisabled={!isEditable}
+                />
               </div>
 
+              {/* Work */}
               <div className="form-group">
                 <label>Work</label>
-                <select>
-                  <option>-- Select Work --</option>
-                  <option>Work 1</option>
-                  <option>Work 2</option>
-                </select>
+                <Select
+                  options={workOptions}
+                  value={
+                    formState.work
+                      ? workOptions.find((w) => w.value === formState.work)
+                      : null
+                  }
+                  onChange={(selected) => {
+                    const work = selected?.value || "";
+                    const workId = workIdMap[work] || "";
+                    setFormState({
+                      ...formState,
+                      work,
+                      contract: "",
+                      contractId: "",
+                      structureType: "",
+                      structure: "",
+                      rfiId: "",
+                      executive: ""
+                    });
+                    if (workId) {
+                      axios
+                        .get(`${API_BASE_URL}rfi/contractNames`, {
+                          params: { workId }
+                        })
+                        .then((res) => {
+                          const map = {};
+                          const opts = res.data.map((c) => {
+                            map[c.contractShortName] = c.contractIdFk.trim();
+                            return {
+                              value: c.contractShortName,
+                              label: c.contractShortName,
+                              dyHodUserId: c.dyHodUserId?.trim()
+                            };
+                          });
+                          setContractOptions(opts);
+                          setContractIdMap(map);
+                        });
+                    }
+                  }}
+                  isDisabled={!isEditable}
+                />
               </div>
 
+              {/* Contract */}
               <div className="form-group">
-                <label>Contract <span className="required">*</span></label>
-                <select>
-                  <option>-- Select Contract --</option>
-                  <option>Contract A</option>
-                  <option>Contract B</option>
-                </select>
+                <label>Contract</label>
+                <Select
+                  options={contractOptions}
+                  value={
+                    formState.contract
+                      ? contractOptions.find(
+                          (c) => c.value === formState.contract
+                        )
+                      : null
+                  }
+                  onChange={(selected) => {
+                    const name = selected?.value || "";
+                    const id = contractIdMap[name] || "";
+                    setFormState({
+                      ...formState,
+                      contract: name,
+                      contractId: id,
+                      dyHodUserId: selected?.dyHodUserId || "",
+                      structureType: "",
+                      structure: "",
+                      rfiId: "",
+                      executive: ""
+                    });
+                    if (id) {
+                      axios
+                        .get(`${API_BASE_URL}rfi/structureType`, {
+                          params: { contractId: id }
+                        })
+                        .then((res) =>
+                          setStructureTypeOptions(
+                            res.data.map((t) => ({ value: t, label: t }))
+                          )
+                        );
+                      fetchExecutives(id);
+                    }
+                  }}
+                  isDisabled={!isEditable}
+                />
               </div>
+			  {/* Structure Type */}
+			  <div className="form-group">
+			    <label>Structure Type</label>
+			    <Select
+			      options={structureTypeOptions}
+			      value={
+			        formState.structureType
+			          ? structureTypeOptions.find(
+			              (s) => s.value === formState.structureType
+			            )
+			          : null
+			      }
+			      onChange={async (selected) => {
+			        const type = selected?.value || "";
+			        setFormState({
+			          ...formState,
+			          structureType: type,
+			          structure: "",
+			          rfiId: "",
+			          executive: ""
+			        });
 
+			        // 🔹 Fetch structures dynamically when structureType changes
+			        if (formState.contractId && type) {
+			          try {
+			            const res = await axios.get(`${API_BASE_URL}rfi/structure`, {
+			              params: { contractId: formState.contractId, structureType: type }
+			            });
+			            setStructureOptions(res.data.map((s) => ({ value: s, label: s })));
+			          } catch (err) {
+			            console.error("❌ Error fetching structures:", err);
+			            setStructureOptions([]);
+			          }
+			        } else {
+			          setStructureOptions([]);
+			        }
+			      }}
+			      isDisabled={!isEditable}
+			    />
+			  </div>
+
+
+              {/* Structure */}
               <div className="form-group">
-                <label>Structure Type <span className="required">*</span></label>
-                <select>
-                  <option>Bridge Work</option>
-                  <option>Tunnel Work</option>
-                </select>
+                <label>Structure</label>
+                <Select
+                  options={structureOptions}
+                  value={
+                    formState.structure
+                      ? structureOptions.find(
+                          (s) => s.value === formState.structure
+                        )
+                      : null
+                  }
+                  onChange={(selected) =>
+                    setFormState({
+                      ...formState,
+                      structure: selected?.value || "",
+                      rfiId: "",
+                      executive: ""
+                    })
+                  }
+                  isDisabled={!isEditable}
+                />
               </div>
 
+              {/* RFI ID */}
               <div className="form-group">
-                <label>Structure <span className="required">*</span></label>
-                <select>
-                  <option>ROB</option>
-                  <option>FOB</option>
-                </select>
+                <label>RFI ID</label>
+                <Select
+                  options={rfiIdOptions}
+                  value={
+                    formState.rfiId
+                      ? { value: formState.rfiId, label: formState.rfiId }
+                      : null
+                  }
+                  onChange={(selected) =>
+                    setFormState({
+                      ...formState,
+                      rfiId: selected?.value || ""
+                    })
+                  }
+                  isDisabled={!isEditable}
+                />
               </div>
 
-              {/* Executives Multi-Select */}
-              <div className="form-group" ref={execRef}>
-                <label>Assign Executives</label>
-                <div
-                  className="multi-select-input"
-                  onClick={() => setExecOpen(!execOpen)}
-                >
-                  {executives.length > 0
-                    ? executives.join(", ")
-                    : "Select Executives"}
-                  <span className="arrow">&#9662;</span>
-                </div>
-                {execOpen && (
-                  <div className="multi-select-dropdown">
-                    {allExecutives.map((name) => (
-                      <label key={name} className="dropdown-option">
-                        <input
-                          type="checkbox"
-                          checked={executives.includes(name)}
-                          onChange={() => toggleExecutive(name)}
-                        />
-                        {name}
-                      </label>
-                    ))}
-                  </div>
-                )}
+			  <button type="submit" className="save-btn">
+			    Submit
+			  </button>
+              {/* Executive */}
+              <div className="form-group">
+                <label>Assign Executive</label>
+				<Select
+				  options={executives}
+				  value={executives.find(e => String(e.value) === String(formState.executive)) || null}
+				  onChange={(selected) => {
+				    console.log("Selected executive:", selected);
+				    setFormState({
+				      ...formState,
+				      executive: selected?.value || ""
+				    });
+				  }}
+
+				/>
+
               </div>
 
-              <button type="submit" className="save-btn">
-                Save
-              </button>
+
             </form>
+
+            {message && <p className="error">{message}</p>}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.controller;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,15 +28,18 @@ import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.ExecutiveDTO;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
+import com.metro.rfisystem.backend.dto.RfiIdDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.ContractorRepository;
+import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIService;
 
@@ -53,6 +57,8 @@ public class RFIController {
 	private final RFIRepository rfiRepository;
 	
 	private final ContractRepository contractRepository;
+	
+	private final P6ActivityRepository activityRepository;
 	
 	@Autowired
 	private ContractorRepository contractorRepo;
@@ -158,6 +164,35 @@ public class RFIController {
 	        List<RfiDescriptionDTO> descriptions = rfiService.getRfiDescriptionsByActivity(activity);
 	        return ResponseEntity.ok(descriptions);
 	    }
+	 
+		@GetMapping("/rfiIds")
+		public ResponseEntity<List<RfiIdDTO>> getRfiIdsByFilter(
+				@RequestParam(name = "project", required = true) String project,
+				@RequestParam(name = "work", required = true) String work,
+				@RequestParam(name = "contract", required = true) String contract,
+				@RequestParam(name = "structureType", required = true) String structureType,
+				@RequestParam(name = "structure", required = true) String structure) {
+
+			List<RfiIdDTO> list = rfiRepository.getRfiIdsByFilter(project, work, contract, structureType, structure);
+			if (list.isEmpty()) {
+				return ResponseEntity.ok(Collections.emptyList());
+			}
+			return ResponseEntity.ok(list);
+		}
+
+		@GetMapping("/getExecutivesList")
+		public ResponseEntity<List<ExecutiveDTO>> getExcecutives(
+				@RequestParam(name = "contractId", required = true) String contractId) {
+
+			List<ExecutiveDTO> list = activityRepository.getExcecutives(contractId);
+			if (list.isEmpty()) {
+				return ResponseEntity.ok(Collections.emptyList());
+			}
+
+			return ResponseEntity.ok(list);
+
+		}
+
 	 
 	 @GetMapping("/contractors")
 	 public ResponseEntity<List<UserDTO>> getContractors() {

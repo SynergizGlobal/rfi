@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.dto.ExecutiveDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiIdDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
@@ -379,6 +381,17 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.assignedPersonClient = :assignedTo")
 	long countByStatusesAndAssignedPersonClient(@Param("statuses") List<EnumRfiStatus> statuses, @Param("assignedTo") String assignedTo);
-
+	@Query(value = "select id, rfi_id from rfi_data " +
+            "where project_name = :project " +
+            "and work_short_name = :work " +
+            "and contract_short_name = :contract " +
+            "and structure_type = :structureType " +
+            "and structure = :structure",
+    nativeQuery = true)
+List<RfiIdDTO> getRfiIdsByFilter(String project,
+                              String work,
+                              String contract,
+                              String structureType,
+                              String structure);
 
 }
