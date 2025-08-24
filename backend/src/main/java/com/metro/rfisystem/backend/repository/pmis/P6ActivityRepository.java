@@ -80,6 +80,7 @@ WHERE component_id IS NOT NULL
 			+ "  )\r\n"
 			+ "  AND user_name NOT LIKE '%user%'\r\n"
 			+ "  AND pmis_key_fk NOT LIKE '%SGS%'\r\n"
+			+ "AND u.department_fk = 'Engg' \r\n"
 			+ "ORDER BY \r\n"
 			+ "    CASE \r\n"
 			+ "        WHEN user_type_fk='HOD' THEN 1\r\n"

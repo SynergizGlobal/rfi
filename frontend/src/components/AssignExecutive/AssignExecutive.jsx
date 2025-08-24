@@ -203,11 +203,11 @@ const AssignExecutive = () => {
       );
 
       setExecutives(
-        response.data.map((exec) => ({
-          value: exec.userName,
-          label: exec.userName, 
-          department: exec.department
-        }))
+		response.data.map((exec) => ({
+		   value: exec.userName,
+		   label: `${exec.department} - ${exec.userName}`, 
+		   department: exec.department
+		 }))
       );
     } catch (error) {
       console.error("Error fetching executives:", error);
