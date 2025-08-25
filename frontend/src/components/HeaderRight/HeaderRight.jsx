@@ -50,6 +50,7 @@ const HeaderRight = () => {
 					{isEnggDept && !isContractor && !isITAdmin && (
 						<>
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/AssignExecutive"><div className="menu-text"><i class="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 						</>
@@ -75,7 +76,6 @@ const HeaderRight = () => {
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 							<li><Link to="/ReferenceForm"><div className="menu-text"><i class="fa-solid fa-copy"></i> <span>Reference Form</span></div></Link></li>
-							<li><Link to="/AssignExecutive"><div className="menu-text"><i class="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
 							<li><Link to="#"><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div></Link></li>
 						</>
 					)}
