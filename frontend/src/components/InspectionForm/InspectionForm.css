@@ -376,3 +376,44 @@ label{
 	margin-top: 0;
 	margin-bottom: 0;
 }
+.confirm-inspection {
+  margin: 20px auto;          /* center horizontally */
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+  max-width: 600px;           /* keep it centered in middle */
+  text-align: left;           /* align text inside properly */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.confirm-inspection h3 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;         /* center heading */
+}
+
+.confirm-inspection label {
+  display: block;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.confirm-inspection select,
+.confirm-inspection input[type="file"] {
+  margin-top: 6px;
+  padding: 8px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.confirm-inspection p {
+  padding: 8px;
+  border-radius: 6px;
+  background: #e8f5e9;
+  text-align: center;
+}
+	
