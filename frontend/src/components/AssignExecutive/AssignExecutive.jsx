@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Select from "react-select"; // ✅ npm install react-select
+import Select from "react-select"; 
 import axios from "axios";
 import HeaderRight from "../HeaderRight/HeaderRight";
 import "./AssignExecutive.css";
@@ -42,7 +42,6 @@ const AssignExecutive = () => {
 
   const isEditable = true;
 
-  // 🔹 Fetch projects on mount
   useEffect(() => {
     axios
       .get(`${API_BASE_URL}rfi/projectNames`)
@@ -95,104 +94,7 @@ const AssignExecutive = () => {
   ]);
 
 
-  // 🔹 Handle edit mode
-  useEffect(() => {
-    const state = location.state || {};
-    const { mode: navMode, id } = state;
-
-    if (navMode === "edit" && id) {
-      setMode("edit");
-
-      axios
-        .get(`${API_BASE_URL}rfi/rfi-details/${id}`)
-        .then(async (res) => {
-          const data = res.data;
-          console.log("✅ Received RFI:", data);
-
-          setFormState((prev) => ({
-            ...prev,
-            project: data.project || "",
-            work: data.work || "",
-            contract: data.contract || "",
-            structureType: data.structureType || "",
-            structure: data.structure || "",
-            executive: data.executive || "",
-            rfiId: data.rfiId || ""
-          }));
-
-          // fetch dependent data just like in onChange flow
-          const projectId = projectIdMap[data.project];
-          if (projectId) {
-            const workRes = await axios.get(`${API_BASE_URL}rfi/workNames`, {
-              params: { projectId }
-            });
-
-            const workOpts = workRes.data.map((w) => ({
-              value: w.workName,
-              label: w.workName
-            }));
-            const workMap = {};
-            workRes.data.forEach((w) => {
-              workMap[w.workName] = w.workId;
-            });
-            setWorkOptions(workOpts);
-            setWorkIdMap(workMap);
-
-            const workId = workMap[data.work];
-            if (workId) {
-              const contractRes = await axios.get(
-                `${API_BASE_URL}rfi/contractNames`,
-                { params: { workId } }
-              );
-
-              const contractOpts = contractRes.data.map((c) => ({
-                value: c.contractShortName,
-                label: c.contractShortName,
-                dyHodUserId: c.dyHodUserId?.trim()
-              }));
-              const contractMap = {};
-              contractRes.data.forEach((c) => {
-                contractMap[c.contractShortName] = c.contractIdFk.trim();
-              });
-              setContractOptions(contractOpts);
-              setContractIdMap(contractMap);
-
-              const contractId = contractMap[data.contract];
-              if (contractId) {
-                const typeRes = await axios.get(
-                  `${API_BASE_URL}rfi/structureType`,
-                  { params: { contractId } }
-                );
-                setStructureTypeOptions(
-                  typeRes.data.map((t) => ({ value: t, label: t }))
-                );
-
-                const structRes = await axios.get(
-                  `${API_BASE_URL}rfi/structure`,
-                  {
-                    params: {
-                      contractId,
-                      structureType: data.structureType
-                    }
-                  }
-                );
-                setStructureOptions(
-                  structRes.data.map((s) => ({ value: s, label: s }))
-                );
-
-                await fetchExecutives(contractId);
-              }
-            }
-          }
-        })
-        .catch((err) => {
-          console.error("❌ Error fetching RFI:", err);
-          setMessage("Failed to load RFI data.");
-        });
-    }
-  }, [location.state, projectIdMap, API_BASE_URL]);
-
-  
+ 
   
   
   const fetchExecutives = async (contractId) => {
@@ -220,11 +122,11 @@ const AssignExecutive = () => {
     e.preventDefault();
 
     try {
-      const payload = {
-        rfi_Id: formState.rfiId,                     
-        assignedPersonClient: formState.executive, 
-        clientDepartment: formState.department     
-      };
+		const payload = {
+		  rfi_Id: formState.rfiId,
+		  assignedPersonClient: formState.executive?.value,
+		  clientDepartment: formState.executive?.department
+		};
 
       console.log("Submitting payload:", payload);
 
@@ -477,16 +379,17 @@ const AssignExecutive = () => {
                 <label>Assign Executive</label>
 				<Select
 				  options={executives}
-				  value={executives.find(e => String(e.value) === String(formState.executive)) || null}
+				  value={formState.executive}   // directly use stored object
 				  onChange={(selected) => {
 				    console.log("Selected executive:", selected);
 				    setFormState({
 				      ...formState,
-				      executive: selected?.value || ""
+				      executive: selected, // store full object
+				      department: selected?.department || ""
 				    });
 				  }}
-
 				/>
+
 
               </div>
 
