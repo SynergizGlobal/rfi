@@ -64,7 +64,7 @@ WHERE component_id IS NOT NULL
 	
 	@Query(value = "SELECT \r\n"
 			+ "    u.user_name as userName,\r\n"
-			+ "    u.department_fk as department\r\n"
+			+ "    d.department_name as department\r\n"
 			+ "FROM [user] u\r\n"
 			+ "LEFT JOIN department d \r\n"
 			+ "       ON u.department_fk = d.department\r\n"
