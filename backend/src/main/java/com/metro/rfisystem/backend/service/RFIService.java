@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
@@ -10,7 +11,10 @@ import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
+import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
+
+import jakarta.servlet.http.HttpSession;
 
 public interface RFIService {
 	RFI createRFI(RFI_DTO dto, String userName);
@@ -58,7 +62,11 @@ public interface RFIService {
 
 	List<RfiDescriptionDTO> getRfiDescriptionsByActivity(String activity);
 
-	List<UserDTO> getContractorsList();
+
+	List<Map<String, Object>> getContractors(String userId);
+
+
+	List<String> getContractorUserNamesWithReportingId(String loggedInUserName);
 
 	
 }
