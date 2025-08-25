@@ -58,6 +58,8 @@ const CreateRfi = () => {
 		location: '',
 		description: '',
 		dyHodUserId: '',
+		measurementType: '',
+		measurementValue: ''
 	});
 	const [message, setMessage] = useState('');
 
@@ -540,15 +542,24 @@ const CreateRfi = () => {
 	}, [formState.activity]);
 
 
+
+
+
+
 	const [nameOfRepresentativeOptions, setNameOfRepresentativeOptions] = useState([]);
 	useEffect(() => {
 		const fetchContractors = async () => {
 			try {
-				const response = await axios.get(`${API_BASE_URL}rfi/contractors`);
-				const options = response.data.map((contractor) => ({
-					value: contractor.userName,
-					label: contractor.userName,
+				const response = await axios.get(`${API_BASE_URL}rfi/contractors`, {
+					withCredentials: true,
+				});
+				const options = response.data.map((name) => ({
+					value: name,
+					label: name,
 				}));
+
+				options.sort((a, b) => a.label.localeCompare(b.label));
+
 				setNameOfRepresentativeOptions(options);
 			} catch (error) {
 				console.error("Error fetching contractors:", error);
@@ -557,8 +568,6 @@ const CreateRfi = () => {
 
 		fetchContractors();
 	}, []);
-
-
 
 
 	const typeOfRfiOptions = [
@@ -948,7 +957,7 @@ const CreateRfi = () => {
 									/>
 								</div>
 
-									<div className="form-fields flex-1">
+								<div className="form-fields flex-1">
 									<label htmlFor="nameOfRepresentative" className="block mb-1">
 										Name of Contractor's Representative:
 									</label>
@@ -970,7 +979,10 @@ const CreateRfi = () => {
 												nameOfRepresentative: selected?.value || "",
 											})
 										}
+										placeholder="Select Representative..."
+										isClearable
 									/>
+
 								</div>
 								<div className="form-fields flex-1">
 									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
@@ -1049,6 +1061,37 @@ const CreateRfi = () => {
 
 
 								</div>
+
+								<div className="form-group mb-3">
+									<label className="block mb-1 font-semibold">Measurements</label>
+									<div className="flex gap-3">
+										{/* Dropdown for measurement type */}
+										<select
+											name="measurementType"
+											value={formState.measurementType}
+											onChange={handleChange}
+											className="form-control w-40"
+										>
+											<option value="">Select Type</option>
+											<option value="Length">Length</option>
+											<option value="Volume">Volume</option>
+											<option value="Area">Area</option>
+											<option value="Number">Number</option>
+										</select>
+
+										{/* Input for measurement value */}
+										<input
+											type="text"
+											name="measurementValue"
+											value={formState.measurementValue}
+											onChange={handleChange}
+											className="form-control w-40"
+											placeholder="Enter value"
+										/>
+									</div>
+								</div>
+
+
 								{	/*	<div className="form-fields flex-1">
 									<label htmlFor="location" className="block mb-1">Location:</label>
 									<input

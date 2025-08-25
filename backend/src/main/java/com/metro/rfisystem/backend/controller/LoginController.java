@@ -77,7 +77,10 @@ public class LoginController {
 			session.setAttribute("engineerList", designationWithEngineers);
 			session.setAttribute("departmentFk", user.getDepartmentFk());
 			session.setAttribute("loginDepartment", loginDepartment);
-			
+			session.setAttribute("reportingToIdSrfk", user.getReportingToIdSrfk());
+
+			System.out.println("User ID: " + user.getUserId());
+			System.out.println("Reporting To: " + user.getReportingToIdSrfk());
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
 			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),

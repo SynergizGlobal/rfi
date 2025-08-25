@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,17 +54,16 @@ public class RFIServiceImpl implements RFIService {
 	private final StructureRepository structureRepository;
 
 	private final P6ActivityRepository p6ActivityRepository;
-	  
-	private final  LoginRepository loginRepo;
-	
+
+	private final LoginRepository loginRepo;
+
 	private final RfiDescriptionRepository rfiDescriptionRepository;
-	
 
 	@Override
 	@Transactional
 	public RFI createRFI(RFI_DTO dto, String userName) {
 
-		String contractShortName = dto.getContract(); 
+		String contractShortName = dto.getContract();
 
 		String contractId = dto.getContractId();
 
@@ -76,8 +76,8 @@ public class RFIServiceImpl implements RFIService {
 		String date = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"));
 		String revision = "R0";
 
-		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractId, userName, date, dto.getActivity(),
-				rfiNumber, revision);
+		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractId, userName, date, dto.getActivity(), rfiNumber,
+				revision);
 
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
@@ -94,11 +94,14 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setAction(dto.getAction());
 		rfi.setTypeOfRFI(dto.getTypeOfRFI());
 		rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
-		 if (dto.getEnclosures() != null && !dto.getEnclosures().isEmpty()) {
-		        rfi.setEnclosures(String.join(",", dto.getEnclosures()));
-		    } else {
-		        rfi.setEnclosures("");
-		    }		rfi.setLocation(dto.getLocation());
+		if (dto.getEnclosures() != null && !dto.getEnclosures().isEmpty()) {
+			rfi.setEnclosures(String.join(",", dto.getEnclosures()));
+		} else {
+			rfi.setEnclosures("");
+		}
+		rfi.setLocation(dto.getLocation());
+		rfi.setMeasurementType(dto.getMeasurementType());
+		rfi.setMeasurementValue(dto.getMeasurementValue());
 		rfi.setDescription(dto.getDescription());
 		rfi.setTimeOfInspection(dto.getTimeOfInspection());
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
@@ -109,20 +112,21 @@ public class RFIServiceImpl implements RFIService {
 
 		return rfiRepository.save(rfi);
 	}
+
 	@Override
 	public List<ContractDropdownDTO> getAllowedContractsForUser(String userId, String ContractorId) {
 		User user = loginRepo.findById(userId).orElse(null);
-		
-	    if (user == null) return Collections.emptyList();
 
-	    if ("IT Admin".equalsIgnoreCase(user.getUserRoleNameFk())) {
-	        return contractRepository.findAllContractShortNames();
-	    }
+		if (user == null)
+			return Collections.emptyList();
 
-	    return contractRepository.findAllowedContractShortNames(userId, ContractorId);
+		if ("IT Admin".equalsIgnoreCase(user.getUserRoleNameFk())) {
+			return contractRepository.findAllContractShortNames();
+		}
+
+		return contractRepository.findAllowedContractShortNames(userId, ContractorId);
 	}
 
-	
 	@Override
 	public List<ProjectDTO> getAllProjectNames() {
 		return projectRepository.findDistinctProjectNames();
@@ -157,10 +161,10 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<String> getElementByStructureStructureTypeComponent(String contractId,String structureType, String structure,
-			String component) {
-		return p6ActivityRepository.findElementByStructureTypeAndStructureAndComponent(contractId,structureType, structure,
-				component);
+	public List<String> getElementByStructureStructureTypeComponent(String contractId, String structureType,
+			String structure, String component) {
+		return p6ActivityRepository.findElementByStructureTypeAndStructureAndComponent(contractId, structureType,
+				structure, component);
 	}
 
 	@Override
@@ -169,34 +173,56 @@ public class RFIServiceImpl implements RFIService {
 		return p6ActivityRepository.findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(structureType,
 				structure, component, component_id);
 	}
-	
+
 	public List<RfiDescriptionDTO> getRfiDescriptionsByActivity(String activity) {
-	    List<RfiDescription> descriptions = rfiDescriptionRepository.findByActivity(activity);
+		List<RfiDescription> descriptions = rfiDescriptionRepository.findByActivity(activity);
 
-	    return descriptions.stream()
-	            .map(desc -> new RfiDescriptionDTO(
-	                    desc.getRfiDescription(),
-	                    Arrays.stream(desc.getEnclosures().split(","))
-	                            .map(String::trim)
-	                            .collect(Collectors.toList())
-	            ))
-	            .collect(Collectors.toList());
+		return descriptions.stream()
+				.map(desc -> new RfiDescriptionDTO(desc.getRfiDescription(),
+						Arrays.stream(desc.getEnclosures().split(",")).map(String::trim).collect(Collectors.toList())))
+				.collect(Collectors.toList());
 	}
 
+	@Override
+	public List<Map<String, Object>> getContractors(String userId) {
+		System.out.println("Fetching contractors for manager userId: " + userId);
+		List<Map<String, Object>> result = loginRepo.findContractorsByReporting(userId);
+		System.out.println("Result size: " + result.size());
+		return result;
+	}
+
+	@Override
+	public List<String> getContractorUserNamesWithReportingId(String loggedInUserName) {
+
+		// Fetch logged-in user details (list of usernames)
+		List<String> loggedInUsers = loginRepo.findUserNamesByUserName(loggedInUserName);
+
+		// If user not found
+		if (loggedInUsers == null || loggedInUsers.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		// Check if logged-in user is contractor
+		boolean isContractor = loginRepo.findByUserName(loggedInUserName).stream()
+				.anyMatch(u -> "Contractor".equalsIgnoreCase(u.getUserRoleNameFk()));
+
+		if (!isContractor) {
+			return Collections.emptyList();
+		}
+
+		// Fetch only contractor usernames with reporting IDs
+		return loginRepo.findAllContractorUserNamesWithReportingId();
+	}
 	
-	public List<UserDTO> getContractorsList() {
-	    List<User> users = loginRepo.findContractors();
-	    return users.stream()
-	                .map(u -> new UserDTO(u.getUserId(), u.getUserName()))
-	                .collect(Collectors.toList());
-	}
-
-
+	
+	
+	
 
 	@Override
 	public List<RfiListDTO> getAllRFIs() {
-	    return rfiRepository.findAllRfiList();
+		return rfiRepository.findAllRfiList();
 	}
+
 	@Override
 	public String updateRfi(Long id, RFI_DTO rfiDto) {
 		Optional<RFI> optionalRfi = rfiRepository.findById(id);
@@ -220,17 +246,19 @@ public class RFIServiceImpl implements RFIService {
 			existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
 			existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
 			existingRfi.setEnclosuresList(rfiDto.getEnclosures());
+			existingRfi.setMeasurementType(rfiDto.getMeasurementType());
+			existingRfi.setMeasurementValue(rfiDto.getMeasurementValue());
 			existingRfi.setLocation(rfiDto.getLocation());
 			existingRfi.setDescription(rfiDto.getDescription());
 
 			// ✅ Set status based on action
 			String action = rfiDto.getAction();
 			if ("Reschedule".equalsIgnoreCase(action)) {
-			    existingRfi.setStatus(EnumRfiStatus.RESCHEDULED);
+				existingRfi.setStatus(EnumRfiStatus.RESCHEDULED);
 			} else if ("Reassign".equalsIgnoreCase(action)) {
-			    existingRfi.setStatus(EnumRfiStatus.REASSIGNED);
+				existingRfi.setStatus(EnumRfiStatus.REASSIGNED);
 			} else {
-			    existingRfi.setStatus(EnumRfiStatus.UPDATED);
+				existingRfi.setStatus(EnumRfiStatus.UPDATED);
 			}
 
 			String updatedRfiId = incrementRevision(existingRfi.getRfi_Id());
@@ -279,27 +307,24 @@ public class RFIServiceImpl implements RFIService {
 		}
 		return false;
 	}
-	
 
 	@Override
 	public List<RfiListDTO> getRFIsByCreatedBy(String createdBy) {
 		return rfiRepository.findByCreatedBy(createdBy);
 	}
-	
+
 	@Override
-	public List<RfiListDTO> getRFIsCreatedBy(String createdBy)
-	{
+	public List<RfiListDTO> getRFIsCreatedBy(String createdBy) {
 		return rfiRepository.getRFIsCreatedBy(createdBy);
 	}
- 
+
 	@Override
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {
 		return rfiRepository.findByAssignedPersonClient(assignedPersonClient);
 	}
-	
+
 	@Override
-	public int countByTotalRfiCreated()
-	{
+	public int countByTotalRfiCreated() {
 		return rfiRepository.countOfAllRfiCreatedSoFar();
 	}
 
@@ -309,7 +334,6 @@ public class RFIServiceImpl implements RFIService {
 
 	}
 
-	
 	@Override
 	public int countByCreatedBy(String createdBy) {
 		return rfiRepository.countByCreatedBy(createdBy);

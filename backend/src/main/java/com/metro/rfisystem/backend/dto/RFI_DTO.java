@@ -37,5 +37,9 @@ public class RFI_DTO {
 	private String status;
 	private String contractor;
 	private String dyHodUserId;
+	private String measurementType;
+	private String measurementValue;
+
+
 
 }

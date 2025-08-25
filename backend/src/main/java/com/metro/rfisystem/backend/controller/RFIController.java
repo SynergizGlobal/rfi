@@ -192,13 +192,57 @@ public class RFIController {
 			return ResponseEntity.ok(list);
 
 		}
+		
+		 @GetMapping("/representatives")
+		 public ResponseEntity<List<String>> getContractorUserNamesWithReportingId(HttpSession session) {
+		     String loggedInUserName = (String) session.getAttribute("userName");
+
+		     if (loggedInUserName == null) {
+		         return ResponseEntity.status(401).build();
+		     }
+
+		     List<String> usernames = rfiService.getContractorUserNamesWithReportingId(loggedInUserName);
+		     return ResponseEntity.ok(usernames);
+		 }
+		 
+		 @GetMapping("/contractors")
+		 public ResponseEntity<?> getContractors(HttpSession session) {
+		     // ✅ Fetch logged-in user's userId
+		     String userId = (String) session.getAttribute("userId");
+
+		     // ✅ Debug logs
+		     System.out.println("Logged-in User ID: " + userId);
+
+		     if (userId == null || userId.isEmpty()) {
+		         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+		                 .body("Session expired. Please log in again.");
+		     }
+
+		     // ✅ Fetch contractors from DB using manager's userId
+		     List<Map<String, Object>> contractors = rfiService.getContractors(userId);
+
+		     System.out.println("Contractors size: " + contractors.size());
+
+		     if (contractors.isEmpty()) {
+		         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		                 .body("No contractors found.");
+		     }
+
+		     // ✅ Return only user names
+		     List<String> contractorNames = contractors.stream()
+		             .map(c -> (String) c.get("user_name"))
+		             .toList();
+
+		     return ResponseEntity.ok(contractorNames);
+		 }
+
 
 	 
-	 @GetMapping("/contractors")
-	 public ResponseEntity<List<UserDTO>> getContractors() {
-	     List<UserDTO> contractors = rfiService.getContractorsList();
-	     return ResponseEntity.ok(contractors);
-	 }
+//	 @GetMapping("/contractors")
+//	 public ResponseEntity<List<UserDTO>> getContractors() {
+//	     List<UserDTO> contractors = rfiService.getContractorsList();
+//	     return ResponseEntity.ok(contractors);
+//	 }
 
 	@GetMapping("/rfi-details")
 	public ResponseEntity<List<RfiListDTO>> getRfisBasedOnRole(HttpSession session) {
