@@ -25,7 +25,7 @@ const initialChecklist = [
   { id: 15, description: 'Curing arrangements are made', status: '', contractorRemark: '', aeRemark: '' },
   { id: 16, description: 'Proper approach for transit mixer is available', status: '', contractorRemark: '', aeRemark: '' },
   { id: 17, description: "Adequate PPE's provided", status: '', contractorRemark: '', aeRemark: '' }
-];
+];  
 
 export default function InspectionForm() {
   const location = useLocation();

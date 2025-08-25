@@ -385,7 +385,7 @@ label{
   max-width: 600px;           /* keep it centered in middle */
   text-align: left;           /* align text inside properly */
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+}  
 
 .confirm-inspection h3 {
   margin-bottom: 16px;
