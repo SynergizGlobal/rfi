@@ -133,140 +133,157 @@ const AssignExecutive = () => {
           <div className="rfi-table-container">
             <h2 className="section-heading">Assign Executives</h2>
 
-            <form className="assign-form" onSubmit={handleSubmit}>
-              {/* Project */}
-              <div className="form-group">
-                <label>Project</label>
-                <Select
-                  options={projectOptions}
-                  value={
-                    formState.project
-                      ? { value: formState.project, label: formState.project }
-                      : null
-                  }
-                  onChange={(selected) => {
-                    const proj = selected?.value || "";
-                    const projId = projectIdMap[proj] || "";
-                    setFormState({
-                      ...formState,
-                      project: proj,
-                      projectId: projId,
-                      work: "",
-                      contract: "",
-                      contractId: "",
-                      structureType: "",
-                      structure: "",
-                      rfiId: "",
-                      executive: ""
-                    });
-                    if (projId) {
-                      axios
-                        .get(`${API_BASE_URL}rfi/workNames`, {
-                          params: { projectId: projId }
-                        })
-                        .then((res) => {
-                          const map = {};
-                          const opts = res.data.map((w) => {
-                            map[w.workName] = w.workId;
-                            return { value: w.workName, label: w.workName };
-                          });
-                          setWorkOptions(opts);
-                          setWorkIdMap(map);
-                        });
-                    }
-                  }}
-                  isDisabled={!isEditable}
-                />
-              </div>
+			<form className="assign-form" onSubmit={handleSubmit}>
+			  {/* Project */}
+			  <div className="form-group">
+			    <label>Project</label>
+			    <Select
+			      options={projectOptions}
+			      value={
+			        formState.project
+			          ? { value: formState.project, label: formState.project }
+			          : null
+			      }
+			      onChange={(selected) => {
+			        const proj = selected?.value || "";
+			        const projId = projectIdMap[proj] || "";
 
-              {/* Work */}
-              <div className="form-group">
-                <label>Work</label>
-                <Select
-                  options={workOptions}
-                  value={
-                    formState.work
-                      ? workOptions.find((w) => w.value === formState.work)
-                      : null
-                  }
-                  onChange={(selected) => {
-                    const work = selected?.value || "";
-                    const workId = workIdMap[work] || "";
-                    setFormState({
-                      ...formState,
-                      work,
-                      contract: "",
-                      contractId: "",
-                      structureType: "",
-                      structure: "",
-                      rfiId: "",
-                      executive: ""
-                    });
-                    if (workId) {
-                      axios
-                        .get(`${API_BASE_URL}rfi/contractNames`, {
-                          params: { workId }
-                        })
-                        .then((res) => {
-                          const map = {};
-                          const opts = res.data.map((c) => {
-                            map[c.contractShortName] = c.contractIdFk.trim();
-                            return {
-                              value: c.contractShortName,
-                              label: c.contractShortName,
-                              dyHodUserId: c.dyHodUserId?.trim()
-                            };
-                          });
-                          setContractOptions(opts);
-                          setContractIdMap(map);
-                        });
-                    }
-                  }}
-                  isDisabled={!isEditable}
-                />
-              </div>
+			        setFormState({
+			          ...formState,
+			          project: proj,
+			          projectId: projId,
+			          work: "",
+			          contract: "",
+			          contractId: "",
+			          structureType: "",
+			          structure: "",
+			          rfiId: "",
+			          executive: "",
+			        });
 
-              {/* Contract */}
-              <div className="form-group">
-                <label>Contract</label>
-                <Select
-                  options={contractOptions}
-                  value={
-                    formState.contract
-                      ? contractOptions.find(
-                          (c) => c.value === formState.contract
-                        )
-                      : null
-                  }
-                  onChange={(selected) => {
-                    const name = selected?.value || "";
-                    const id = contractIdMap[name] || "";
-                    setFormState({
-                      ...formState,
-                      contract: name,
-                      contractId: id,
-                      dyHodUserId: selected?.dyHodUserId || "",
-                      structureType: "",
-                      structure: "",
-                      rfiId: "",
-                      executive: ""
-                    });
-                    if (id) {
-                      axios
-                        .get(`${API_BASE_URL}rfi/structureType`, {
-                          params: { contractId: id }
-                        })
-                        .then((res) =>
-                          setStructureTypeOptions(
-                            res.data.map((t) => ({ value: t, label: t }))
-                          )
-                        );
-                     
-                    }
-                  }}
-                  isDisabled={!isEditable}
-                />
-              </div>
+			        // clear dependent dropdowns
+			        setWorkOptions([]);
+			        setContractOptions([]);
+			        setStructureTypeOptions([]);
+			        setStructureOptions([]);
+			        setExecutives([]);
+			        setRfiIds?.([]);
+
+			        if (projId) {
+			          axios
+			            .get(`${API_BASE_URL}rfi/workNames`, { params: { projectId: projId } })
+			            .then((res) => {
+			              const map = {};
+			              const opts = res.data.map((w) => {
+			                map[w.workName] = w.workId;
+			                return { value: w.workName, label: w.workName };
+			              });
+			              setWorkOptions(opts);
+			              setWorkIdMap(map);
+			            });
+			        }
+			      }}
+			      isDisabled={!isEditable}
+			    />
+			  </div>
+
+			  {/* Work */}
+			  <div className="form-group">
+			    <label>Work</label>
+			    <Select
+			      options={workOptions}
+			      value={
+			        formState.work
+			          ? workOptions.find((w) => w.value === formState.work)
+			          : null
+			      }
+			      onChange={(selected) => {
+			        const work = selected?.value || "";
+			        const workId = workIdMap[work] || "";
+
+			        setFormState({
+			          ...formState,
+			          work,
+			          contract: "",
+			          contractId: "",
+			          structureType: "",
+			          structure: "",
+			          rfiId: "",
+			          executive: "",
+			        });
+
+			        // clear dependent dropdowns
+			        setContractOptions([]);
+			        setStructureTypeOptions([]);
+			        setStructureOptions([]);
+			        setExecutives([]);
+			        setRfiIds?.([]);
+
+			        if (workId) {
+			          axios
+			            .get(`${API_BASE_URL}rfi/contractNames`, { params: { workId } })
+			            .then((res) => {
+			              const map = {};
+			              const opts = res.data.map((c) => {
+			                map[c.contractShortName] = c.contractIdFk.trim();
+			                return {
+			                  value: c.contractShortName,
+			                  label: c.contractShortName,
+			                  dyHodUserId: c.dyHodUserId?.trim(),
+			                };
+			              });
+			              setContractOptions(opts);
+			              setContractIdMap(map);
+			            });
+			        }
+			      }}
+			      isDisabled={!isEditable}
+			    />
+			  </div>
+
+			  {/* Contract */}
+			  <div className="form-group">
+			    <label>Contract</label>
+			    <Select
+			      options={contractOptions}
+			      value={
+			        formState.contract
+			          ? contractOptions.find((c) => c.value === formState.contract)
+			          : null
+			      }
+			      onChange={(selected) => {
+			        const name = selected?.value || "";
+			        const id = contractIdMap[name] || "";
+
+			        setFormState({
+			          ...formState,
+			          contract: name,
+			          contractId: id,
+			          dyHodUserId: selected?.dyHodUserId || "",
+			          structureType: "",
+			          structure: "",
+			          rfiId: "",
+			          executive: "",
+			        });
+
+			        // clear dependent dropdowns
+			        setStructureTypeOptions([]);
+			        setStructureOptions([]);
+			        setExecutives([]);
+			        setRfiIds?.([]);
+
+			        if (id) {
+			          axios
+			            .get(`${API_BASE_URL}rfi/structureType`, { params: { contractId: id } })
+			            .then((res) =>
+			              setStructureTypeOptions(res.data.map((t) => ({ value: t, label: t })))
+			            );
+			        }
+			      }}
+			      isDisabled={!isEditable}
+			    />
+			  </div>
+
 			  {/* Structure Type */}
 			  <div className="form-group">
 			    <label>Structure Type</label>
@@ -274,39 +291,40 @@ const AssignExecutive = () => {
 			      options={structureTypeOptions}
 			      value={
 			        formState.structureType
-			          ? structureTypeOptions.find(
-			              (s) => s.value === formState.structureType
-			            )
+			          ? structureTypeOptions.find((s) => s.value === formState.structureType)
 			          : null
 			      }
 			      onChange={async (selected) => {
 			        const type = selected?.value || "";
+
 			        setFormState({
 			          ...formState,
 			          structureType: type,
 			          structure: "",
 			          rfiId: "",
-			          executive: ""
+			          executive: "",
 			        });
+
+			        // clear dependent dropdowns
+			        setStructureOptions([]);
+			        setExecutives([]);
+			        setRfiIds?.([]);
 
 			        if (formState.contractId && type) {
 			          try {
 			            const res = await axios.get(`${API_BASE_URL}rfi/structure`, {
-			              params: { contractId: formState.contractId, structureType: type }
+			              params: { contractId: formState.contractId, structureType: type },
 			            });
 			            setStructureOptions(res.data.map((s) => ({ value: s, label: s })));
 			          } catch (err) {
 			            console.error("❌ Error fetching structures:", err);
 			            setStructureOptions([]);
 			          }
-			        } else {
-			          setStructureOptions([]);
 			        }
 			      }}
 			      isDisabled={!isEditable}
 			    />
 			  </div>
-
 
 			  {/* Structure */}
 			  <div className="form-group">
@@ -318,53 +336,54 @@ const AssignExecutive = () => {
 			          ? structureOptions.find((s) => s.value === formState.structure)
 			          : null
 			      }
-				  onChange={(selected) => {
-				    const newStructure = selected?.value || "";
+			      onChange={(selected) => {
+			        const newStructure = selected?.value || "";
+			        const { contractId, structureType } = formState;
 
-				    const { contractId, structureType } = formState; // take latest from closure
+			        setFormState({
+			          ...formState,
+			          structure: newStructure,
+			          rfiId: "",
+			          executive: "",
+			        });
 
-				    setFormState({
-				      ...formState,
-				      structure: newStructure,
-				      executive: ""
-				    });
+			        // clear dependent dropdowns
+			        setExecutives([]);
+			        setRfiIds?.([]);
 
-				    if (contractId && structureType && newStructure) {
-				      fetchExecutives(contractId, structureType, newStructure);
-					  fetchRfiIds(contractId, structureType, newStructure);
-				    }
-				  }}
+			        if (contractId && structureType && newStructure) {
+			          fetchExecutives(contractId, structureType, newStructure);
+			          fetchRfiIds(contractId, structureType, newStructure);
+			        }
+			      }}
 			      isDisabled={!isEditable}
 			    />
 			  </div>
 
+			  {/* Executive */}
+			  <div className="form-group">
+			    <label>Assign Executive</label>
+			    <Select
+			      options={executives}
+			      value={
+			        formState.executive
+			          ? executives.find((e) => e.value === formState.executive.value)
+			          : null
+			      }
+			      onChange={(selected) =>
+			        setFormState({
+			          ...formState,
+			          executive: selected,
+			          department: selected?.department || "",
+			        })
+			      }
+			    />
+			  </div>
 
-
-              {/* Executive */}
-              <div className="form-group">
-                <label>Assign Executive</label>
-				<Select
-				  options={executives}
-				  value={
-				    formState.executive
-				      ? executives.find((e) => e.value === formState.executive.value)
-				      : null
-				  }
-				  onChange={(selected) =>
-				    setFormState({
-				      ...formState,
-				      executive: selected,
-				      department: selected?.department || ""
-				    })
-				  }
-				/>
-              </div>
 			  <button type="submit" className="save-btn">
 			    Submit
 			  </button>
-
-
-            </form>
+			</form>
 
             {message && <p className="error">{message}</p>}
           </div>
