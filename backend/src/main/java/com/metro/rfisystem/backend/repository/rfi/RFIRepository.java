@@ -3,6 +3,7 @@ package com.metro.rfisystem.backend.repository.rfi;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -390,6 +391,16 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query(value = "SELECT * FROM rfi_data WHERE id IN (:ids)", nativeQuery = true)
 	List<RFI> findByIds(@Param("ids") List<Integer> ids);
+
+
+	@Modifying
+	@Query("UPDATE RFI r " +
+	       "SET r.assignedPersonClient = :executive, " +
+	       "    r.clientDepartment = :department " +
+	       "WHERE r.id IN :ids")
+	int updateExecutivesForRfis(@Param("ids") List<Integer> ids,
+	                            @Param("executive") String executive,
+	                            @Param("department") String department);
 
 
 

@@ -104,7 +104,7 @@ const AssignExecutive = () => {
     e.preventDefault();
 
     if (!rfiIds || rfiIds.length === 0) {
-      alert("No RFIs found for the selected contract/structure.");
+      alert("No RFIs found for the selected..");
       return;
     }
 

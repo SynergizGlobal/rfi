@@ -339,17 +339,17 @@ public class RFIServiceImpl implements RFIService {
 		return rfiRepository.countByCreatedBy(createdBy);
 	}
 	
-
+	
 	@Override
-    @Transactional
-    public void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department) {
-        List<RFI> rfis = rfiRepository.findByIds(rfiIds);
-        for (RFI rfi : rfis) {
-        	System.out.println("The rfiIds is "+rfis);
-            rfi.setAssignedPersonClient(executive);
-            rfi.setClientDepartment(department);
-        }
-        rfiRepository.saveAll(rfis);
-    }
+	@Transactional
+	public void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department) {
+	    int updatedCount = rfiRepository.updateExecutivesForRfis(rfiIds, executive, department);
+
+	    if (updatedCount == 0) {
+	        throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
+	    }
+	}
+
+
 
 }
