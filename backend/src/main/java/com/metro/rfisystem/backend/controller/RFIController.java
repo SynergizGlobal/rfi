@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.dto.AssignExecutiveDTO;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
@@ -166,14 +167,12 @@ public class RFIController {
 	    }
 	 
 		@GetMapping("/rfiIds")
-		public ResponseEntity<List<RfiIdDTO>> getRfiIdsByFilter(
-				@RequestParam(name = "project", required = true) String project,
-				@RequestParam(name = "work", required = true) String work,
-				@RequestParam(name = "contract", required = true) String contract,
+		public ResponseEntity<List<Integer>> getRfiIdsByFilter(
+				@RequestParam(name = "contractId", required = true) String contractId,
 				@RequestParam(name = "structureType", required = true) String structureType,
 				@RequestParam(name = "structure", required = true) String structure) {
 
-			List<RfiIdDTO> list = rfiRepository.getRfiIdsByFilter(project, work, contract, structureType, structure);
+			List<Integer> list = rfiRepository.getRfiIdsByFilter( contractId, structureType, structure);
 			if (list.isEmpty()) {
 				return ResponseEntity.ok(Collections.emptyList());
 			}
@@ -182,9 +181,11 @@ public class RFIController {
 
 		@GetMapping("/getExecutivesList")
 		public ResponseEntity<List<ExecutiveDTO>> getExcecutives(
-				@RequestParam(name = "contractId", required = true) String contractId) {
+				@RequestParam(name = "contractId", required = true) String contractId,
+				@RequestParam(name = "structureType", required = true) String structureType,
+				@RequestParam(name = "structure", required = true) String structure) {
 
-			List<ExecutiveDTO> list = activityRepository.getExcecutives(contractId);
+			List<ExecutiveDTO> list = activityRepository.getExcecutives(contractId, structureType, structure);
 			if (list.isEmpty()) {
 				return ResponseEntity.ok(Collections.emptyList());
 			}
@@ -192,6 +193,17 @@ public class RFIController {
 			return ResponseEntity.ok(list);
 
 		}
+		
+// Bulk update for returned RfiIds setting Executive.
+		@PostMapping("/assign-bulk-executive")
+		public ResponseEntity<String> assignPersonToClient(@RequestBody AssignExecutiveDTO dto) {
+			if (dto.getRfiIds() == null || dto.getRfiIds().isEmpty()) {
+				return ResponseEntity.badRequest().body("No RFI IDs provided.");
+			}
+			rfiService.assignExecutiveToRfis(dto.getRfiIds(), dto.getExecutive(), dto.getDepartment());
+			return ResponseEntity.ok("Executives assigned successfully to all RFIs!");
+		}
+		
 		
 		 @GetMapping("/representatives")
 		 public ResponseEntity<List<String>> getContractorUserNamesWithReportingId(HttpSession session) {
@@ -204,6 +216,9 @@ public class RFIController {
 		     List<String> usernames = rfiService.getContractorUserNamesWithReportingId(loggedInUserName);
 		     return ResponseEntity.ok(usernames);
 		 }
+		
+		 
+		 
 		 
 		 @GetMapping("/contractors")
 		 public ResponseEntity<?> getContractors(HttpSession session) {

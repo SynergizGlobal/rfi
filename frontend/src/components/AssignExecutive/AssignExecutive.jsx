@@ -34,8 +34,7 @@ const AssignExecutive = () => {
   const [structureTypeOptions, setStructureTypeOptions] = useState([]);
   const [structureOptions, setStructureOptions] = useState([]);
   const [executives, setExecutives] = useState([]);
-  const [rfiIdOptions, setRfiIdOptions] = useState([]);
-
+  const [rfiIds, setRfiIds] = useState([]);
   const location = useLocation();
   const [mode, setMode] = useState("create");
   const [message, setMessage] = useState("");
@@ -64,44 +63,13 @@ const AssignExecutive = () => {
       });
   }, [API_BASE_URL]);
 
-  useEffect(() => {
-    const { project, work, contract, structureType, structure } = formState;
-    if (project && work && contract && structureType && structure) {
-      axios
-        .get(`${API_BASE_URL}rfi/rfiIds`, {
-          params: { project, work, contract, structureType, structure }
-        })
-        .then((res) => {
-          const opts = res.data.map((r) => ({
-            value: r.rfi_id,
-            label: r.rfi_id
-          }));
-          setRfiIdOptions(opts);
-        })
-        .catch((err) => {
-          console.error("❌ Error fetching RFI IDs:", err);
-          setRfiIdOptions([]);
-        });
-    } else {
-      setRfiIdOptions([]);
-    }
-  }, [
-    formState.project,
-    formState.work,
-    formState.contract,
-    formState.structureType,
-    formState.structure
-  ]);
-
 
  
-  
-  
-  const fetchExecutives = async (contractId) => {
+  const fetchExecutives = async (contractId,structureType,structure) => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}rfi/getExecutivesList`,
-        { params: { contractId } }
+        { params: { contractId,structureType,structure } }
       );
 
       setExecutives(
@@ -116,31 +84,45 @@ const AssignExecutive = () => {
     }
   };
 
+  
 
-  // 🔹 Submit
+  const fetchRfiIds = async (contractId,structureType,structure) => {
+    try {
+		const response = await axios.get(
+			`${API_BASE_URL}rfi/rfiIds`,
+			{ params: { contractId, structureType, structure } }
+		);
+      setRfiIds(response.data); 
+    } catch (error) {
+      console.error("Error fetching RFI IDs:", error);
+    }
+  };
+
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!rfiIds || rfiIds.length === 0) {
+      alert("No RFIs found for the selected contract/structure.");
+      return;
+    }
+
+    const payload = {
+      rfiIds: rfiIds,  
+      executive: formState.executive.value,
+      department: formState.department,
+    };
+
     try {
-		const payload = {
-		  rfi_Id: formState.rfiId,
-		  assignedPersonClient: formState.executive?.value,
-		  clientDepartment: formState.executive?.department
-		};
-
-      console.log("Submitting payload:", payload);
-
-      const response = await axios.post(
-        `${API_BASE_URL}rfi/assign-client-person`,
-        payload
-      );
-
-      alert(response.data); // "Assigned successfully"
+      await axios.post(`${API_BASE_URL}rfi/assign-bulk-executive`, payload);
+      alert("Executives assigned to RFIs successfully!");
     } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Failed to assign person");
+      console.error("Error assigning RFIs:", error);
+      alert("Failed to assign RFIs.");
     }
   };
+
 
 
   return (
@@ -279,7 +261,7 @@ const AssignExecutive = () => {
                             res.data.map((t) => ({ value: t, label: t }))
                           )
                         );
-                      fetchExecutives(id);
+                     
                     }
                   }}
                   isDisabled={!isEditable}
@@ -307,7 +289,6 @@ const AssignExecutive = () => {
 			          executive: ""
 			        });
 
-			        // 🔹 Fetch structures dynamically when structureType changes
 			        if (formState.contractId && type) {
 			          try {
 			            const res = await axios.get(`${API_BASE_URL}rfi/structure`, {
@@ -327,71 +308,60 @@ const AssignExecutive = () => {
 			  </div>
 
 
-              {/* Structure */}
-              <div className="form-group">
-                <label>Structure</label>
-                <Select
-                  options={structureOptions}
-                  value={
-                    formState.structure
-                      ? structureOptions.find(
-                          (s) => s.value === formState.structure
-                        )
-                      : null
-                  }
-                  onChange={(selected) =>
-                    setFormState({
-                      ...formState,
-                      structure: selected?.value || "",
-                      rfiId: "",
-                      executive: ""
-                    })
-                  }
-                  isDisabled={!isEditable}
-                />
-              </div>
+			  {/* Structure */}
+			  <div className="form-group">
+			    <label>Structure</label>
+			    <Select
+			      options={structureOptions}
+			      value={
+			        formState.structure
+			          ? structureOptions.find((s) => s.value === formState.structure)
+			          : null
+			      }
+				  onChange={(selected) => {
+				    const newStructure = selected?.value || "";
 
-              {/* RFI ID */}
-              <div className="form-group">
-                <label>RFI ID</label>
-                <Select
-                  options={rfiIdOptions}
-                  value={
-                    formState.rfiId
-                      ? { value: formState.rfiId, label: formState.rfiId }
-                      : null
-                  }
-                  onChange={(selected) =>
-                    setFormState({
-                      ...formState,
-                      rfiId: selected?.value || ""
-                    })
-                  }
-                  isDisabled={!isEditable}
-                />
-              </div>
+				    const { contractId, structureType } = formState; // take latest from closure
 
-			  <button type="submit" className="save-btn">
-			    Submit
-			  </button>
+				    setFormState({
+				      ...formState,
+				      structure: newStructure,
+				      executive: ""
+				    });
+
+				    if (contractId && structureType && newStructure) {
+				      fetchExecutives(contractId, structureType, newStructure);
+					  fetchRfiIds(contractId, structureType, newStructure);
+				    }
+				  }}
+			      isDisabled={!isEditable}
+			    />
+			  </div>
+
+
+
               {/* Executive */}
               <div className="form-group">
                 <label>Assign Executive</label>
 				<Select
 				  options={executives}
-				  value={formState.executive}   // directly use stored object
-				  onChange={(selected) => {
-				    console.log("Selected executive:", selected);
+				  value={
+				    formState.executive
+				      ? executives.find((e) => e.value === formState.executive.value)
+				      : null
+				  }
+				  onChange={(selected) =>
 				    setFormState({
 				      ...formState,
-				      executive: selected, // store full object
+				      executive: selected,
 				      department: selected?.department || ""
-				    });
-				  }}
+				    })
+				  }
 				/>
-
-
               </div>
+			  <button type="submit" className="save-btn">
+			    Submit
+			  </button>
 
 
             </form>
