@@ -1,38 +1,142 @@
-import React, { useMemo, useState } from 'react';
-import { useTable, usePagination, useGlobalFilter } from 'react-table';
-import HeaderRight from '../HeaderRight/HeaderRight';
-import './ReferenceForm.css';
+import React, { useMemo, useState } from "react";
+import { useTable, usePagination, useGlobalFilter } from "react-table";
+import HeaderRight from "../HeaderRight/HeaderRight";
+import "./ReferenceForm.css";
 
 const ReferenceForm = () => {
   const [pageSize, setPageSize] = useState(10);
+  const [tableData, setTableData] = useState([
+    {
+      sr_no: 1,
+      activity: "Bore Log",
+      rfi_description: "Bore Hole Drilling",
+      enclosure_attachments: "Checklist",
+      isNew: false,
+    },
+    {
+      sr_no: 2,
+      activity: "Site Survey",
+      rfi_description: "Survey & Centre Point Fixing",
+      enclosure_attachments: "Coordinate Sheet",
+      isNew: false,
+    },
+    {
+      sr_no: 3,
+      activity: "Site Survey",
+      rfi_description: "Layout and marking of excavation area",
+      enclosure_attachments: "Checklist",
+      isNew: false,
+    },
+    {
+      sr_no: 4,
+      activity: "Site Survey",
+      rfi_description: "Under Ground Utility Checking",
+      enclosure_attachments: "Underground Utility clearance Joint Report",
+      isNew: false,
+    },
+  ]);
 
-  // ✅ Static data from the provided table image
-  const data = useMemo(() => [
-    { sr_no: 1, activity: "Bore Log", rfi_description: "Bore Hole Drilling", enclosure_attachments: "Checklist" },
-    { sr_no: 2, activity: "Site Survey", rfi_description: "Survey & Centre Point Fixing", enclosure_attachments: "Coordinate Sheet" },
-    { sr_no: 3, activity: "Site Survey", rfi_description: "Layout and marking of excavation area", enclosure_attachments: "Checklist" },
-    { sr_no: 4, activity: "Site Survey", rfi_description: "Under Ground Utility Checking", enclosure_attachments: "Underground Utility clearance Joint Report" },
-    { sr_no: 5, activity: "Piling", rfi_description: "Start of Pile Boring Work", enclosure_attachments: "Pile data, Coordinate, Work permit" },
-    { sr_no: 6, activity: "Piling", rfi_description: "Pile Depth Checking", enclosure_attachments: "Checklist" },
-    { sr_no: 7, activity: "Piling", rfi_description: "Reinforcement Cage Checking", enclosure_attachments: "BBS Sheet" },
-    { sr_no: 8, activity: "Piling", rfi_description: "Steel Cage lowering and approval of concreting for Concreting", enclosure_attachments: "BBS Sheet, Checklist (Concrete), Pile data, Pour card" },
-    { sr_no: 9, activity: "Excavation", rfi_description: "Layout Marking for Excavation", enclosure_attachments: "Excavation checklist, Level & Coordinate sheet" },
-    { sr_no: 10, activity: "Excavation", rfi_description: "Excavation for Footing/Pile cap", enclosure_attachments: "Method of Statement for Excavation, Checklist" },
-    { sr_no: 11, activity: "PCC", rfi_description: "PCC", enclosure_attachments: "Level Sheet, Checklist" },
-    { sr_no: 12, activity: "Footing/Pile Cap", rfi_description: "Pile Cap Reinforcement & Shutter Checking", enclosure_attachments: "BBS Sheet, Checklist (Shuttering)" },
-    { sr_no: 13, activity: "Footing/Pile Cap", rfi_description: "Allow for concreting for Footing/Pile Cap", enclosure_attachments: "Checklist (Concrete), Measurement Sheet, Pour Card" },
-    { sr_no: 14, activity: "Sub Structure", rfi_description: "Reinforcement & Shutter Checking", enclosure_attachments: "BBS Sheet and Checklist (Shuttering)" },
-    { sr_no: 15, activity: "Sub Structure", rfi_description: "Allow for Concreting for Substructure", enclosure_attachments: "Checklist (Concrete), Measurement Sheet, Pour Card" },
-    { sr_no: 16, activity: "Pedestal", rfi_description: "Pedestal Reinforcement, Shutter Checking", enclosure_attachments: "BBS and checklist (Shutter)" },
-    { sr_no: 17, activity: "Pedestal", rfi_description: "Pedestal Layout Marking & level Checking", enclosure_attachments: "Coordinate Sheet" },
-  ], []);
+  const handleAction = (sr_no) => {
+    setTableData((prev) =>
+      prev.map((row) =>
+        row.sr_no === sr_no ? { ...row, isNew: !row.isNew } : row
+      )
+    );
+  };
 
-  const columns = useMemo(() => [
-    { Header: 'Sr No', accessor: 'sr_no' },
-    { Header: 'Activity', accessor: 'activity' },
-    { Header: 'RFI Description', accessor: 'rfi_description' },
-    { Header: 'Enclosure/Attachments', accessor: 'enclosure_attachments' },
-  ], []);
+  const handleInputChange = (sr_no, field, value) => {
+    setTableData((prev) =>
+      prev.map((row) =>
+        row.sr_no === sr_no ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  const handleAddRow = () => {
+    const newRow = {
+      sr_no: tableData.length + 1,
+      activity: "",
+      rfi_description: "",
+      enclosure_attachments: "",
+      isNew: true,
+    };
+    setTableData((prev) => [...prev, newRow]);
+  };
+
+  const columns = useMemo(
+    () => [
+      { Header: "Sr No", accessor: "sr_no" },
+      {
+        Header: "Activity",
+        accessor: "activity",
+        Cell: ({ row }) =>
+          row.original.isNew ? (
+            <input
+              value={row.original.activity}
+              onChange={(e) =>
+                handleInputChange(row.original.sr_no, "activity", e.target.value)
+              }
+            />
+          ) : (
+            row.original.activity
+          ),
+      },
+      {
+        Header: "RFI Description",
+        accessor: "rfi_description",
+        Cell: ({ row }) =>
+          row.original.isNew ? (
+            <input
+              value={row.original.rfi_description}
+              onChange={(e) =>
+                handleInputChange(
+                  row.original.sr_no,
+                  "rfi_description",
+                  e.target.value
+                )
+              }
+            />
+          ) : (
+            row.original.rfi_description
+          ),
+      },
+      {
+        Header: "Enclosure/Attachments",
+        accessor: "enclosure_attachments",
+        Cell: ({ row }) =>
+          row.original.isNew ? (
+            <input
+              value={row.original.enclosure_attachments}
+              onChange={(e) =>
+                handleInputChange(
+                  row.original.sr_no,
+                  "enclosure_attachments",
+                  e.target.value
+                )
+              }
+            />
+          ) : (
+            row.original.enclosure_attachments
+          ),
+      },
+      {
+        Header: "Action",
+        accessor: "action",
+        Cell: ({ row }) => {
+          const rowData = row.original;
+          return (
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => handleAction(rowData.sr_no)}
+            >
+              {rowData.isNew ? "Submit" : "Edit"}
+            </button>
+          );
+        },
+      },
+    ],
+    [] // ⬅️ keep columns stable
+  );
 
   const {
     getTableProps,
@@ -52,7 +156,7 @@ const ReferenceForm = () => {
   } = useTable(
     {
       columns,
-      data,
+      data: tableData,
       initialState: { pageIndex: 0, pageSize },
     },
     useGlobalFilter,
@@ -70,7 +174,7 @@ const ReferenceForm = () => {
             <div className="table-top-bar d-flex justify-content-between align-items-center">
               <div className="left-controls">
                 <label>
-                  Show{' '}
+                  Show{" "}
                   <select
                     value={pageSize}
                     onChange={(e) => {
@@ -83,17 +187,23 @@ const ReferenceForm = () => {
                         {size}
                       </option>
                     ))}
-                  </select>{' '}
+                  </select>{" "}
                   entries
                 </label>
               </div>
-              <div className="right-controls">
+              <div className="right-controls d-flex gap-2">
                 <input
                   className="search-input"
-                  value={globalFilter || ''}
+                  value={globalFilter || ""}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   placeholder="Search RFI..."
                 />
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={handleAddRow}
+                >
+                  Add Row
+                </button>
               </div>
             </div>
 
@@ -104,7 +214,9 @@ const ReferenceForm = () => {
                     {headerGroups.map((group) => (
                       <tr {...group.getHeaderGroupProps()}>
                         {group.headers.map((col) => (
-                          <th {...col.getHeaderProps()}>{col.render('Header')}</th>
+                          <th {...col.getHeaderProps()}>
+                            {col.render("Header")}
+                          </th>
                         ))}
                       </tr>
                     ))}
@@ -115,7 +227,7 @@ const ReferenceForm = () => {
                       return (
                         <tr {...row.getRowProps()}>
                           {row.cells.map((cell) => (
-                            <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                            <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
                           ))}
                         </tr>
                       );
@@ -127,8 +239,9 @@ const ReferenceForm = () => {
 
             <div className="d-flex align-items-center justify-content-between">
               <span>
-                Showing {pageIndex * pageSize + 1} to{' '}
-                {Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
+                Showing {pageIndex * pageSize + 1} to{" "}
+                {Math.min((pageIndex + 1) * pageSize, tableData.length)} of{" "}
+                {tableData.length} entries
               </span>
               <div className="pagination">
                 <button onClick={previousPage} disabled={!canPreviousPage}>
@@ -138,7 +251,7 @@ const ReferenceForm = () => {
                   <button
                     key={i}
                     onClick={() => gotoPage(i)}
-                    className={pageIndex === i ? 'activePage' : ''}
+                    className={pageIndex === i ? "activePage" : ""}
                   >
                     {i + 1}
                   </button>
