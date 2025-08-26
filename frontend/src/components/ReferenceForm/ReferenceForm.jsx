@@ -1,48 +1,70 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTable, usePagination, useGlobalFilter } from "react-table";
 import HeaderRight from "../HeaderRight/HeaderRight";
 import "./ReferenceForm.css";
 
 const ReferenceForm = () => {
   const [pageSize, setPageSize] = useState(10);
-  const [tableData, setTableData] = useState([
-    {
-      sr_no: 1,
-      activity: "Bore Log",
-      rfi_description: "Bore Hole Drilling",
-      enclosure_attachments: "Checklist",
-      isNew: false,
-    },
-    {
-      sr_no: 2,
-      activity: "Site Survey",
-      rfi_description: "Survey & Centre Point Fixing",
-      enclosure_attachments: "Coordinate Sheet",
-      isNew: false,
-    },
-    {
-      sr_no: 3,
-      activity: "Site Survey",
-      rfi_description: "Layout and marking of excavation area",
-      enclosure_attachments: "Checklist",
-      isNew: false,
-    },
-    {
-      sr_no: 4,
-      activity: "Site Survey",
-      rfi_description: "Under Ground Utility Checking",
-      enclosure_attachments: "Underground Utility clearance Joint Report",
-      isNew: false,
-    },
-  ]);
+  const [tableData, setTableData] = useState([]);
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	
+	const [newRowAdded, setNewRowAdded] = useState(false);
+	const currentPageRef = useRef(0);
 
-  const handleAction = (sr_no) => {
-    setTableData((prev) =>
-      prev.map((row) =>
-        row.sr_no === sr_no ? { ...row, isNew: !row.isNew } : row
-      )
-    );
-  };
+	const handleAddRow = () => {
+		const newRow = {
+			
+		  activity: "",
+		  rfiDescription: "",
+		  enclosures: "",
+		  isNew: true,
+		  isEditing: false,
+		};
+
+	  setTableData((prev) => [...prev, newRow]);
+	  setNewRowAdded(true); // ✅ Flag that a new row was added
+	};
+	 
+	  useEffect(() => {
+	    fetch(`${API_BASE_URL}rfi/Referenece-Form`)
+	      .then((res) => res.json())
+	      .then((data) => {
+	       
+			const withSrNo = data.map((row, i) => ({
+			  sr_no: i + 1,
+			  activity: row.activity || "",
+			  rfiDescription: row.rfiDescription || "",
+			  enclosures: row.enclosures || "",
+			  id: row.id,
+			  isNew: false,
+			  isEditing: false,
+			}));
+	        setTableData(withSrNo);
+	      })
+	      .catch((err) => console.error("Error fetching data:", err));
+	  }, []);
+	  
+	  const [currentPage, setCurrentPage] = useState(1);
+	  const rowsPerPage = 10;
+
+	  // Example pagination change handler
+	  const handlePageChange = (page) => {
+	    setCurrentPage(page);
+	  };
+	  
+	  const paginatedData = tableData.slice(
+	    (currentPage - 1) * rowsPerPage,
+	    currentPage * rowsPerPage
+	  );
+
+	  // When adding/updating row, don't reset currentPage
+	  const handleAction = (sr_no) => {
+	    setTableData((prev) =>
+	      prev.map((row) =>
+	        row.sr_no === sr_no ? { ...row, isEditing: true } : row
+	      )
+	    );
+	  };    
 
   const handleInputChange = (sr_no, field, value) => {
     setTableData((prev) =>
@@ -52,71 +74,129 @@ const ReferenceForm = () => {
     );
   };
 
-  const handleAddRow = () => {
-    const newRow = {
-      sr_no: tableData.length + 1,
-      activity: "",
-      rfi_description: "",
-      enclosure_attachments: "",
-      isNew: true,
-    };
-    setTableData((prev) => [...prev, newRow]);
-  };
+  const handleSubmit = async (rowData) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}rfi/send-data`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            activity: rowData.activity,
+            rfiDescription: rowData.rfiDescription,
+            enclosures: rowData.enclosures,
+          }),
+        });
 
+        if (response.ok) {
+          const saved = await response.json();
+          setTableData((prev) =>
+            prev.map((r) =>
+              r.sr_no === rowData.sr_no
+                ? { ...r, id: saved.id, isNew: false }
+                : r
+            )
+          );
+          alert("Row submitted successfully!");
+        } else {
+          alert("Error submitting row");
+        }
+      } catch (error) {
+        console.error("Submit error:", error);
+      }
+    };
+
+    // 🔹 Update existing row
+	const handleEdit = async (rowData) => {
+	  if (!rowData.id) {
+	    alert("Row does not exist in DB yet.");
+	    return;
+	  }
+
+	  try {
+	    const response = await fetch(`${API_BASE_URL}rfi/Update/${rowData.id}`, {
+	      method: "PUT",
+	      headers: { "Content-Type": "application/json" },
+	      body: JSON.stringify({
+	        activity: rowData.activity,
+	        rfiDescription: rowData.rfiDescription,
+	        enclosures: rowData.enclosures,
+	      }),
+	    });
+
+	    if (response.ok) {
+	      setTableData((prev) =>
+	        prev.map((r) =>
+	          r.sr_no === rowData.sr_no
+	            ? { ...r, isEditing: false }
+	            : r
+	        )
+	      );
+	      alert("Row updated successfully!");
+	    } else {
+	      alert("Error updating row");
+	    }
+	  } catch (error) {
+	    console.error("Update error:", error);
+	  }
+	};
+	
   const columns = useMemo(
     () => [
-      { Header: "Sr No", accessor: "sr_no" },
+		{
+		   Header: "Sr No",
+		   accessor: "sr_no",
+		   Cell: ({ row }) => pageIndex * pageSize + row.index + 1,
+		 },
       {
         Header: "Activity",
         accessor: "activity",
-        Cell: ({ row }) =>
-          row.original.isNew ? (
-            <input
-              value={row.original.activity}
-              onChange={(e) =>
-                handleInputChange(row.original.sr_no, "activity", e.target.value)
-              }
-            />
-          ) : (
-            row.original.activity
-          ),
+		Cell: ({ row }) =>
+		  row.original.isNew || row.original.isEditing ? (
+		    <input
+		      value={row.original.activity}
+		      onChange={(e) =>
+		        handleInputChange(row.original.sr_no, "activity", e.target.value)
+		      }
+		    />
+		  ) : (
+		    row.original.activity
+		  ),
       },
       {
         Header: "RFI Description",
-        accessor: "rfi_description",
+        accessor: "rfiDescription",
         Cell: ({ row }) =>
-          row.original.isNew ? (
+         row.original.isNew || row.original.isEditing ? (
             <input
-              value={row.original.rfi_description}
+              value={row.original.rfiDescription}
               onChange={(e) =>
                 handleInputChange(
                   row.original.sr_no,
-                  "rfi_description",
+                  "rfiDescription",
                   e.target.value
                 )
               }
             />
           ) : (
-            row.original.rfi_description
+            row.original.rfiDescription
           ),
       },
       {
         Header: "Enclosure/Attachments",
-        accessor: "enclosure_attachments",
+        accessor: "enclosures",
         Cell: ({ row }) =>
-          row.original.isNew ? (
+          row.original.isNew || row.original.isEditing ? (
             <input
-              value={row.original.enclosure_attachments}
+              value={row.original.enclosures}
               onChange={(e) =>
                 handleInputChange(
                   row.original.sr_no,
-                  "enclosure_attachments",
+                  "enclosures",
                   e.target.value
                 )
               }
             />
           ) : (
-            row.original.enclosure_attachments
+            row.original.enclosures
           ),
       },
       {
@@ -125,12 +205,24 @@ const ReferenceForm = () => {
         Cell: ({ row }) => {
           const rowData = row.original;
           return (
-            <button
-              className="btn btn-sm btn-primary"
-              onClick={() => handleAction(rowData.sr_no)}
-            >
-              {rowData.isNew ? "Submit" : "Edit"}
-            </button>
+			<button
+			  className="btn btn-sm btn-primary"
+			  onClick={() => {
+			    if (rowData.isNew) {
+			      handleSubmit(rowData);
+			    } else if (rowData.isEditing) {
+			      handleEdit(rowData);
+			    } else {
+			      handleAction(rowData.sr_no); // toggles isEditing
+			    }
+			  }}
+			>
+			  {rowData.isNew
+			    ? "Submit"
+			    : rowData.isEditing
+			    ? "Save"
+			    : "Edit"}
+			</button>
           );
         },
       },
@@ -157,12 +249,25 @@ const ReferenceForm = () => {
     {
       columns,
       data: tableData,
-      initialState: { pageIndex: 0, pageSize },
+      initialState: {
+        pageIndex: currentPageRef.current, 
+        pageSize,
+      },
     },
     useGlobalFilter,
     usePagination
   );
-
+  
+  useEffect(() => {
+    if (newRowAdded) {
+      const newPage = Math.ceil(tableData.length / pageSize);
+      currentPageRef.current = newPage - 1; // ✅ Track page
+      gotoPage(currentPageRef.current);
+      setNewRowAdded(false);
+    }
+  }, [tableData, pageSize, gotoPage, newRowAdded]);
+  
+  
   return (
     <div className="dashboard credted-rfi inspection">
       <HeaderRight />
