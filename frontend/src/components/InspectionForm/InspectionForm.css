@@ -382,7 +382,7 @@ label{
   border: 1px solid #ddd;
   border-radius: 10px;
   background: #fafafa;
-  max-width: 600px;           /* keep it centered in middle */
+  /* max-width: 600px;           keep it centered in middle */
   text-align: left;           /* align text inside properly */
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }  

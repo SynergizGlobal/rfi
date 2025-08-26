@@ -543,62 +543,100 @@ export default function InspectionForm() {
 
                 {/* ✅ Inline Confirm Inspection section (no popup) */}
 				<hr style={{ margin: "30px 0" }} />
-                <div className="confirm-inspection" style={{ marginTop: '1rem', padding: '12px', border: '1px solid #ddd', borderRadius: 8 }}>
+                <div className="confirm-inspection w-100" style={{ marginTop: '1rem', padding: '12px', border: '1px solid #ddd', borderRadius: 8 }}>
                   <h3>Confirm Inspection</h3>
-
-                  <label>Tests in Site/Lab</label>
-                  {deptFK?.toLowerCase() === "engg" ? (
-                    <p style={{ color: "green", border: "2px solid grey", padding: 6 }}>
-                      {rfiData?.inspectionDetails
-                        ?.find(d => d.uploadedBy === "CON")
-                        ?.inspectionStatus || "Not Uploaded"}
-                    </p>
-                  ) : (
-                    <select
-                      value={inspectionStatus}
-                      onChange={(e) => setInspectionStatus(e.target.value)}
-                    >
-                      <option value=""disabled hidden>Select</option>
-                      <option value="VISUAL">Visual</option>
-                      <option value="LAB_TEST">Lab Test</option>
-                      <option value="SITE_TEST">Site Test</option>
-                    </select>
-                  )}
-
-                  {deptFK?.toLowerCase() === 'engg' && (
-                    <div style={{ marginTop: 8 }}>
-                      <label>Inspection Status</label>
-                      <select
-                        value={
-                          testInLab !== null && testInLab !== undefined
-                            ? testInLab.toString()
-                            : rfiData?.inspectionDetails?.find(d => d.uploadedBy === "Engg")?.testInsiteLab || ''
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === 'Accepted') setTestInLab('Accepted');
-                          else if (value === 'Rejected') setTestInLab('Rejected');
-                          else setTestInLab(null);
-                        }}
-                      >
-                        <option value="">Select</option>
-                        <option value="Accepted">Accepted</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
+                  <div className="d-flex align-center gap-20">
+                    <div className="form-fields">
+                      <label>Tests in Site/Lab</label>
+                      {deptFK?.toLowerCase() === "engg" ? (
+                        <p style={{ color: "green", border: "2px solid grey", padding: 6 }}>
+                          {rfiData?.inspectionDetails
+                            ?.find(d => d.uploadedBy === "CON")
+                            ?.inspectionStatus || "Not Uploaded"}
+                        </p>
+                      ) : (
+                        <select
+                          value={inspectionStatus}
+                          onChange={(e) => setInspectionStatus(e.target.value)}
+                        >
+                          <option value=""disabled hidden>Select</option>
+                          <option value="VISUAL">Visual</option>
+                          <option value="LAB_TEST">Lab Test</option>
+                          <option value="SITE_TEST">Site Test</option>
+                        </select>
+                      )}
                     </div>
-                  )}
-
-                  {deptFK?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
-                    <div style={{ marginTop: 8 }}>
-                      <label>Upload Test Report Here</label>
-                      <input
-                        type="file"
-                        onChange={(e) => setTestReportFile(e.target.files[0])}
-					
-                      />
-                     
+                    <div className="form-fields">
+                      {deptFK?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
+                        <>
+                          <label>Upload Test Report Here</label>
+                          <input
+                            type="file"
+                            onChange={(e) => setTestReportFile(e.target.files[0])}
+              
+                          />
+                        
+                        </>
+                      )}
                     </div>
-                  )}
+                    <div className="form-fields">
+                      {deptFK?.toLowerCase() === 'engg' && (
+                        <>
+                          <label>Inspection Status</label>
+                          <select
+                            value={
+                              testInLab !== null && testInLab !== undefined
+                                ? testInLab.toString()
+                                : rfiData?.inspectionDetails?.find(d => d.uploadedBy === "Engg")?.testInsiteLab || ''
+                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === 'Accepted') setTestInLab('Accepted');
+                              else if (value === 'Rejected') setTestInLab('Rejected');
+                              else setTestInLab(null);
+                            }}
+                          >
+                            <option value="">Select</option>
+                            <option value="Accepted">Accepted</option>
+                            <option value="Rejected">Rejected</option>
+                          </select>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <h4><b>Area :</b></h4>
+                  <div className="form-row">
+                    <div className="form-fields">
+                      <label>Length</label>
+                      <input type="text" name='area_length' id='area_length' />
+                    </div>
+                    <div className="form-fields">
+                      <label>Breadth</label>
+                      <input type="text" name='area_breadth' id='area_breadth' />
+                    </div>
+                    <div className="form-fields">
+                      <label>Height</label>
+                      <input type="text" name='area_height' id='area_height' />
+                    </div>
+                  </div>
+
+                  <h4><b>Volume: </b></h4>
+                  <div className="form-row">
+                    <div className="form-fields">
+                      <label>Length</label>
+                      <input type="text" name='volume_length' id='volume_length' />
+                    </div>
+                    <div className="form-fields">
+                      <label>Breadth</label>
+                      <input type="text" name='volume_breadth' id='volume_breadth' />
+                    </div>
+                    <div className="form-fields">
+                      <label>Height</label>
+                      <input type="text" name='volume_height' id='volume_height' />
+                    </div>
+                  </div>
+                  
                 </div>
 
                 <div className="btn-row" style={{ marginTop: 12 }}>
