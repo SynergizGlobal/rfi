@@ -7,7 +7,7 @@ public interface RfiListDTO {
     String getStructure();
     String getElement();
     String getActivity();
-    String getAssignedPersonClient(); // used in filtering
+    String getAssignedPersonClient();
     String getCreatedBy();            // add this if filtering by creator
     String getdateOfSubmission();
     String getInspectionStatus();
@@ -15,6 +15,7 @@ public interface RfiListDTO {
     String getAction();
     String getImgClient();
     String getImgContractor();
+    String getNameOfRepresentative();
 
 }
 

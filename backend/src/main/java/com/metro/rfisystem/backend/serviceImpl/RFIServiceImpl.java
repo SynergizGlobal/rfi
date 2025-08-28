@@ -317,6 +317,12 @@ public class RFIServiceImpl implements RFIService {
 	public List<RfiListDTO> getRFIsCreatedBy(String createdBy) {
 		return rfiRepository.getRFIsCreatedBy(createdBy);
 	}
+	
+	@Override
+	 public List<RfiListDTO> getRFIsByRepresentative(String representative) {
+       return rfiRepository.findByRepresentative(representative);
+   }
+
 
 	@Override
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {

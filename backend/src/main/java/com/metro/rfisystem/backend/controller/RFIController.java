@@ -1,11 +1,14 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,10 +283,16 @@ public class RFIController {
 		if (isAdmin || isDyHOD ) {
 			return ResponseEntity.ok(rfiService.getAllRFIs());
 		}
-		if(userRole.equalsIgnoreCase("Contractor"))
-		{
-			return ResponseEntity.ok(rfiService.getRFIsCreatedBy(userName));
-		}
+		 if (userRole.equalsIgnoreCase("Contractor")) {
+		        List<RfiListDTO> created = rfiService.getRFIsCreatedBy(userName);
+		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
+
+		        // Merge both lists and remove duplicates
+		        Set<RfiListDTO> merged = new LinkedHashSet<>(created);
+		        merged.addAll(representative);
+
+		        return ResponseEntity.ok(new ArrayList<>(merged));
+		    }
 		if (userDepartment.equalsIgnoreCase("Engg")) {
 			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
 		}

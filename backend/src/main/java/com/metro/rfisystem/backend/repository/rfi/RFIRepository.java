@@ -403,5 +403,48 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	                            @Param("department") String department);
 
 
+	
+	@Query(value = """
+		    SELECT
+		        r.id AS id,
+		        r.rfi_id AS rfi_Id,
+		        r.project_name AS project,
+		        r.structure AS structure,
+		        r.element AS element,
+		        r.activity AS activity,
+		        r.assigned_person_client AS assignedPersonClient,
+		        r.name_of_representative AS nameOfRepresentative, -- ✅ Added for DTO mapping
+		        DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
+		        ico.inspection_status AS inspectionStatus,
+		        r.status AS status,
+		        r.action AS action,
+		        ico.site_image AS imgContractor,
+		        ic.site_image AS imgClient
+		    FROM rfi_data r
+		    LEFT JOIN (
+		        SELECT r1.rfi_id_fk, r1.site_image, r1.inspection_status
+		        FROM rfi_inspection_details r1
+		        WHERE r1.uploaded_by != 'Engg'
+		        AND r1.id = (
+		            SELECT MAX(r2.id)
+		            FROM rfi_inspection_details r2
+		            WHERE r2.rfi_id_fk = r1.rfi_id_fk AND r2.uploaded_by != 'Engg'
+		        )
+		    ) AS ico ON r.id = ico.rfi_id_fk
+		    LEFT JOIN (
+		        SELECT r3.rfi_id_fk, r3.site_image
+		        FROM rfi_inspection_details r3
+		        WHERE r3.uploaded_by = 'Engg'
+		        AND r3.id = (
+		            SELECT MAX(r4.id)
+		            FROM rfi_inspection_details r4
+		            WHERE r4.rfi_id_fk = r3.rfi_id_fk AND r4.uploaded_by = 'Engg'
+		        )
+		    ) AS ic ON r.id = ic.rfi_id_fk
+		    WHERE r.name_of_representative = :representative
+		    ORDER BY r.created_at DESC
+		    """, nativeQuery = true)
+		List<RfiListDTO> findByRepresentative(@Param("representative") String representative);
+
 
 }
