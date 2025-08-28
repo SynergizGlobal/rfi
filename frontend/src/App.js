@@ -15,6 +15,7 @@ import RfiLogList from './components/RfiLogList/RfiLogList';
 import ReferenceForm from './components/ReferenceForm/ReferenceForm';
 import AssignExecutive from './components/AssignExecutive/AssignExecutive';
 import OfflineInspectionForm from './components/OfflineInspectionForm/OfflineInspectionForm';
+import InspectionReferenceForm from './components/InspectionReferenceForm/InspectionReferenceForm';
 
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
@@ -52,6 +53,7 @@ function App() {
           <Route path="/ReferenceForm" element={<ReferenceForm />} />
           <Route path='/AssignExecutive' element={<AssignExecutive />} />
           <Route path='/OfflineInspectionForm' element={<OfflineInspectionForm />} />
+          <Route path='/InspectionReferenceForm' element={<InspectionReferenceForm />} />
           {/* Add more protected routes here */}
         </Route>
 
