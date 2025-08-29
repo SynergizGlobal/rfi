@@ -8,7 +8,7 @@ public interface RfiListDTO {
     String getElement();
     String getActivity();
     String getAssignedPersonClient();
-    String getCreatedBy();            // add this if filtering by creator
+    String getCreatedBy();           
     String getdateOfSubmission();
     String getInspectionStatus();
     String getStatus();
@@ -16,6 +16,9 @@ public interface RfiListDTO {
     String getImgClient();
     String getImgContractor();
     String getNameOfRepresentative();
+    String getMeasurementType();
+    Double getTotalQty();
+
 
 }
 

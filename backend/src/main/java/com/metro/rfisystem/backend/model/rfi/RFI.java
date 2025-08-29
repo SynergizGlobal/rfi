@@ -124,12 +124,7 @@ public class RFI {
     
     @Column(name = "dy_hod_user_id")
     private String dyHodUserId;
-    
-    @Column(name = "measurement_type")
-    private String measurementType;
 
-    @Column(name = "measurement_value")
-    private String measurementValue;
 
 	@OneToOne(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

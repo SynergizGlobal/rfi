@@ -23,5 +23,7 @@ public class RfiInspectionDTO {
     private LocalDate  dataOfInspection;
     private LocalTime timeOfInspection;
     private String nameOfContractorReprsentative;
+    private String measurementType;
+    private Double totalQty;
     
 }

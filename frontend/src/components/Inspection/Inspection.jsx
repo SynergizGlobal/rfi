@@ -140,6 +140,8 @@ const Inspection = () => {
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
+		{ Header: 'Measurement Type', accessor: 'measurementType' },
+		{ Header: 'Total Qty', accessor: 'totalQty' },
 		{
 			Header: 'Inspection Status',
 			accessor: 'inspectionStatus'

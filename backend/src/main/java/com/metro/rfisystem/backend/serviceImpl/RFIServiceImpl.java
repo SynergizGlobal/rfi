@@ -100,8 +100,7 @@ public class RFIServiceImpl implements RFIService {
 			rfi.setEnclosures("");
 		}
 		rfi.setLocation(dto.getLocation());
-		rfi.setMeasurementType(dto.getMeasurementType());
-		rfi.setMeasurementValue(dto.getMeasurementValue());
+
 		rfi.setDescription(dto.getDescription());
 		rfi.setTimeOfInspection(dto.getTimeOfInspection());
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
@@ -246,8 +245,6 @@ public class RFIServiceImpl implements RFIService {
 			existingRfi.setDateOfSubmission(rfiDto.getDateOfSubmission());
 			existingRfi.setDateOfInspection(rfiDto.getDateOfInspection());
 			existingRfi.setEnclosuresList(rfiDto.getEnclosures());
-			existingRfi.setMeasurementType(rfiDto.getMeasurementType());
-			existingRfi.setMeasurementValue(rfiDto.getMeasurementValue());
 			existingRfi.setLocation(rfiDto.getLocation());
 			existingRfi.setDescription(rfiDto.getDescription());
 

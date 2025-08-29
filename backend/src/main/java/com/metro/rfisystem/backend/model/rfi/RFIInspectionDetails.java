@@ -67,4 +67,12 @@ public class RFIInspectionDetails {
     
     @Column(name="uploaded_by")
     private String uploadedBy;
+    
+    @Column(name = "measurement_type")
+    private String measurementType;
+
+  
+
+    @Column(name = "total_qty")
+    private Double totalQty;
 }
