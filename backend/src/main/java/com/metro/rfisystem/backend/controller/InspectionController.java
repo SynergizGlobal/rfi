@@ -22,12 +22,15 @@ import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.service.InspectionService;
+import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -43,6 +46,7 @@ public class InspectionController {
 	private final InspectionService inspectionService;
 	private final RFIEnclosureService rfiEnclosureService;
 	private final RFIInspectionChecklistService checklistService;
+	private final RFIChecklistDescriptionService checklistDescriptionService;
 
 	@GetMapping("/inspection/{id}")
 	public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
@@ -196,6 +200,16 @@ public class InspectionController {
 	         .body(resource);
 
 	 }
-
+	 
+	 @GetMapping("/open")
+	    public List<String> getOpenEnclosers() {
+	        return  checklistDescriptionService.getUniqueOpenEnclosers();
+	    }
+	 
+	 @GetMapping("/checklistDescription")
+	 public List<String> getChecklistDescription(@RequestParam(name = "enclosureName") String enclosureName){
+		 return checklistDescriptionService.getChecklistDescription(enclosureName);
+	 }
+	 
 	  
 }

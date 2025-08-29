@@ -1,67 +1,94 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useTable, usePagination, useGlobalFilter } from "react-table";
+import axios from "axios"; 
 import HeaderRight from "../HeaderRight/HeaderRight";
 import './InspectionReferenceForm.css';
 
 const InspectionReferenceForm = () => {
   const [pageSize, setPageSize] = useState(10);
   const [selectedOption, setSelectedOption] = useState(""); // first dropdown
-  const [subOption, setSubOption] = useState("sub1"); // sub dropdown
+  const [subOption, setSubOption] = useState(""); // sub dropdown (dynamic)
+  const [openEnclosers, setOpenEnclosers] = useState([]); // for RFI Enclosure List table
+  const [enclosureList, setEnclosureList] = useState([]); // sub dropdown options
+  const [checklistItems, setChecklistItems] = useState([]); // checklist table rows
 
-  // Table 1
-  const table1Data = useMemo(() => [
-    { sr_no: 1, activity: "Bore Log", rfi_description: "Bore Hole Drilling", enclosure_attachments: "Checklist" },
-    { sr_no: 2, activity: "Site Survey", rfi_description: "Survey & Centre Point Fixing", enclosure_attachments: "Coordinate Sheet" },
-    { sr_no: 3, activity: "Site Survey", rfi_description: "Layout and marking of excavation area", enclosure_attachments: "Checklist" },
-  ], []);
-  const table1Columns = useMemo(() => [
-    { Header: "Sr No", accessor: "sr_no" },
-    { Header: "Activity", accessor: "activity" },
-    { Header: "RFI Description", accessor: "rfi_description" },
-    { Header: "Enclosure/Attachments", accessor: "enclosure_attachments" },
-  ], []);
+  // 🔹 Load encloser list for dropdown when "Checklist Description" selected
+  useEffect(() => {
+    if (selectedOption === "second") {
+      axios.get("http://localhost:8000/rfi/open")
+        .then((res) => setEnclosureList(res.data))
+        .catch((err) => console.error("Error fetching enclosure list:", err));
+    }
+  }, [selectedOption]);
 
-  // Table 2 columns
-  const table2Columns = useMemo(() => [
-    { Header: "S. No", accessor: "sno" },
-    { Header: "Reference Description", accessor: "description" },
-  ], []);
+  // 🔹 Load all open enclosers (for table 1)
+  useEffect(() => {
+    axios.get("http://localhost:8000/rfi/open")
+      .then(res => setOpenEnclosers(res.data))
+      .catch(err => console.error("Error fetching enclosers:", err));
+  }, []);
 
-  // Table 2 data sets for sub-options
-  const subOptionDataMap = useMemo(() => ({
-    sub1: [
-      { sno: 1, description: "Bore Log Requirements" },
-      { sno: 2, description: "Checklist Items - Borehole" },
-    ],
-    sub2: [
-      { sno: 1, description: "Safety Guidelines"},
-      { sno: 2, description: "PPE Requirements" },
-    ],
-    sub3: [
-      { sno: 1, description: "Pile Depth Specs" },
-      { sno: 2, description: "Testing Procedure" },
-    ],
-    sub4: [
-      { sno: 1, description: "Concreting Process" },
-      { sno: 2, description: "Shuttering Safety" },
-      { sno: 3, description: "Reinforcement Details" },
-    ],
-  }), []);
+  // 🔹 Fetch checklist descriptions dynamically when subOption changes
+  useEffect(() => {
+    if (selectedOption === "second" && subOption) {
+      axios
+        .get("http://localhost:8000/rfi/checklistDescription", {
+          params: { enclosureName: subOption },
+        })
+        .then((res) => {
+          // Example backend response: ["Item1,Item2,Item3"]
+          const splitItems = res.data
+            .flatMap((item) => item.split(",")) // split by comma
+            .map((s, i) => ({
+              sno: i + 1,
+              description: s.trim(),
+            }));
 
-  // memoize columns and data based only on dropdown states
+          setChecklistItems(splitItems);
+        })
+        .catch((err) => console.error("Error fetching checklist:", err));
+    }
+  }, [selectedOption, subOption]);
+
+  // Table 1 (RFI Enclosure List) data
+  const table1Data = useMemo(
+    () =>
+      openEnclosers.map((name, idx) => ({
+        sr_no: idx + 1,
+        enclosure_attachments: name,
+      })),
+    [openEnclosers]
+  );
+
+  const table1Columns = useMemo(
+    () => [
+      { Header: "Sr No", accessor: "sr_no" },
+      { Header: "Enclosure/Attachments", accessor: "enclosure_attachments" },
+    ],
+    []
+  );
+
+  // Table 2 (Checklist Description) columns
+  const table2Columns = useMemo(
+    () => [
+      { Header: "S. No", accessor: "sno" },
+      { Header: "Reference Description", accessor: "description" },
+    ],
+    []
+  );
+
+  // Switch table depending on dropdown
   const activeColumns = useMemo(
-    () => selectedOption === "second" ? table2Columns : table1Columns,
+    () => (selectedOption === "second" ? table2Columns : table1Columns),
     [selectedOption, table1Columns, table2Columns]
   );
+
   const activeData = useMemo(
-    () =>
-      selectedOption === "second"
-        ? subOptionDataMap[subOption] || []
-        : table1Data,
-    [selectedOption, subOption, table1Data, subOptionDataMap]
+    () => (selectedOption === "second" ? checklistItems : table1Data),
+    [selectedOption, checklistItems, table1Data]
   );
 
-  // useTable
+  // React Table hooks
   const {
     getTableProps,
     getTableBodyProps,
@@ -81,7 +108,7 @@ const InspectionReferenceForm = () => {
     {
       columns: activeColumns,
       data: activeData,
-      initialState: { pageIndex: 0, pageSize }
+      initialState: { pageIndex: 0, pageSize },
     },
     useGlobalFilter,
     usePagination
@@ -94,6 +121,8 @@ const InspectionReferenceForm = () => {
         <div className="dashboard-main">
           <div className="rfi-table-container">
             <h2 className="section-heading">Reference Form</h2>
+
+            {/* Dropdowns */}
             <div className="form-row">
               <div className="form-fields">
                 <label>Select Form: </label>
@@ -101,6 +130,8 @@ const InspectionReferenceForm = () => {
                   value={selectedOption}
                   onChange={(e) => {
                     setSelectedOption(e.target.value);
+                    setSubOption("");
+                    setChecklistItems([]);
                   }}
                 >
                   <option value="">-- Select --</option>
@@ -108,24 +139,28 @@ const InspectionReferenceForm = () => {
                   <option value="second">Checklist Description</option>
                 </select>
               </div>
+
               <div className="form-fields">
-                {/* Second dropdown only shows if 'second' chosen */}
                 {selectedOption === "second" && (
                   <>
                     <label>Sub Option: </label>
                     <select
                       value={subOption}
-                      onChange={e => setSubOption(e.target.value)}
+                      onChange={(e) => setSubOption(e.target.value)}
                     >
-                      <option value="sub1">Bore Log Checklist</option>
-                      <option value="sub2">Safety Checklist</option>
-                      <option value="sub3">Pile Depth Checklist</option>
-                      <option value="sub4">Concreting/Shuttering/Reinforcement</option>
+                      <option value="">-- Select Enclosure --</option>
+                      {enclosureList.map((enc, idx) => (
+                        <option key={idx} value={enc}>
+                          {enc}
+                        </option>
+                      ))}
                     </select>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Table Controls */}
             <div className="table-top-bar d-flex justify-content-between align-items-center">
               <div className="left-controls">
                 <label>
@@ -138,7 +173,9 @@ const InspectionReferenceForm = () => {
                     }}
                   >
                     {[5, 10, 20].map((size) => (
-                      <option key={size} value={size}>{size}</option>
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
                     ))}
                   </select>{" "}
                   entries
@@ -153,6 +190,8 @@ const InspectionReferenceForm = () => {
                 />
               </div>
             </div>
+
+            {/* Table */}
             <div className="table-section">
               <div className="table-wrapper">
                 <table {...getTableProps()} className="responsive-table">
@@ -180,6 +219,8 @@ const InspectionReferenceForm = () => {
                 </table>
               </div>
             </div>
+
+            {/* Pagination */}
             <div className="d-flex align-items-center justify-content-between mt-2">
               <span>
                 Showing {pageIndex * pageSize + 1} to{" "}
@@ -187,7 +228,9 @@ const InspectionReferenceForm = () => {
                 {activeData.length} entries
               </span>
               <div className="pagination">
-                <button onClick={previousPage} disabled={!canPreviousPage}>‹</button>
+                <button onClick={previousPage} disabled={!canPreviousPage}>
+                  ‹
+                </button>
                 {pageOptions.map((_, i) => (
                   <button
                     key={i}
@@ -197,7 +240,9 @@ const InspectionReferenceForm = () => {
                     {i + 1}
                   </button>
                 ))}
-                <button onClick={nextPage} disabled={!canNextPage}>›</button>
+                <button onClick={nextPage} disabled={!canNextPage}>
+                  ›
+                </button>
               </div>
             </div>
           </div>
