@@ -699,7 +699,7 @@ const InspectionReferenceForm = () => {
   );
 
   return (
-    <div className="irf-dashboard credted-rfi inspection">
+    <div className="dashboard create-rfi inspection">
       <HeaderRight />
       <div className="right">
         <div className="dashboard-main">
@@ -707,11 +707,12 @@ const InspectionReferenceForm = () => {
             <h2 className="irf-section-heading">Reference Form</h2>
 
             {/* Dropdowns */}
-            <div className="irf-form-row">
-              <div className="irf-form-fields">
+            <div className="form-row">
+              <div className="form-fields">
                 <label>Select Form: </label>
                 <select
                   value={selectedOption}
+				  className="irf-description-input"
                   onChange={(e) => {
                     setSelectedOption(e.target.value);
                     setSubOption("");
@@ -727,13 +728,14 @@ const InspectionReferenceForm = () => {
                 </select>
               </div>
 
-              <div className="irf-form-fields">
+              <div className="form-fields">
                 {selectedOption === "second" && (
                   <>
                     <label>Sub Option: </label>
                     <select
                       value={subOptionId}
                       onChange={handleSubOptionChange}
+					  className="irf-description-input"
                     >
                       <option value="">-- Select Enclosure --</option>
                       {enclosureList.map((enc) => (
@@ -751,7 +753,7 @@ const InspectionReferenceForm = () => {
             {selectedOption === "second" && subOptionId && (
               <div className="irf-add-description-form">
                 <h3>Add New Description</h3>
-                <div className="irf-form-row">
+                <div className="form-row">
                   <input
                     type="text"
                     value={newDescription}
@@ -773,7 +775,7 @@ const InspectionReferenceForm = () => {
             {editingId && (
               <div className="irf-edit-description-form">
                 <h3>Edit Description</h3>
-                <div className="irf-form-row">
+                <div className="form-row">
                   <input
                     type="text"
                     value={editDescription}

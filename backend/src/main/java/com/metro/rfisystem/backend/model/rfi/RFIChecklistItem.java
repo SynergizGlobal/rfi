@@ -2,11 +2,8 @@ package com.metro.rfisystem.backend.model.rfi;
 
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.metro.rfisystem.backend.dto.ChecklistOption;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -46,10 +43,7 @@ public class RFIChecklistItem {
      private String enclosureName;
      @Column(name="uploaded_by")
      private String uploadedby;
-     
-//     @OneToOne
-//     @JoinColumn(name="chk_des_id", referencedColumnName = "id")
-//     private ChecklistDescription checklistDescription;
+
      
      @OneToOne
      @JoinColumn(name="chk_des_id", referencedColumnName = "id")

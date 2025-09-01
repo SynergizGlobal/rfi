@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.metro.rfisystem.backend.dto.ChecklistRowDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
+import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIChecklistItem;
+import com.metro.rfisystem.backend.repository.rfi.ChecklistDescriptionRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionChecklistRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
@@ -24,6 +26,7 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 	
 	 private final RFIInspectionChecklistRepository checklistRepository;
 	 private final RFIRepository rfiRepository;
+	 private final ChecklistDescriptionRepository checklistDescriptionRepo;
 	 @Value("${file.upload-dir}")
 	 private String uploadDir;
 
@@ -55,7 +58,12 @@ public class RFIInspectionChecklistServicImpl  implements RFIInspectionChecklist
 		         checklist.setStatus(row.getStatus());
 		        checklist.setContractorRemark(row.getContractorRemark());
 		        checklist.setAeRemark(row.getAeRemark());
-	      
+		        
+		        if (row.getChecklistDescriptionId() != null) {
+	                ChecklistDescription description = checklistDescriptionRepo.findById(row.getChecklistDescriptionId())
+	                        .orElseThrow(() -> new RuntimeException("Invalid checklist description id: " + row.getChecklistDescriptionId()));
+	                checklist.setChecklistDescription(description);
+		        }
 		    
 	        checklistRepository.save(checklist);
 	    } }
