@@ -683,7 +683,6 @@ export default function InspectionForm() {
 												<th>H</th>
 												<th>No.</th>
 												<th>Total Qty</th>
-												<th>Action</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -757,7 +756,7 @@ export default function InspectionForm() {
 														/>
 													</td>
 
-													{/* Delete Button */}
+											{	/*	{ Delete Button }
 													<td>
 														<button
 															className="delete-btn"
@@ -765,16 +764,16 @@ export default function InspectionForm() {
 														>
 															Delete
 														</button>
-													</td>
+													</td>*/}
 												</tr>
 											))}
 										</tbody>
 									</table>
 
-									<button className="add-btn" onClick={handleAddMeasurement}>
+									{/*<button className="add-btn" onClick={handleAddMeasurement}>
 										+ Add Measurement
 									</button>       
-                      
+                      */}
                   </div>
 
                 <div className="btn-row" style={{ marginTop: 12 }}>

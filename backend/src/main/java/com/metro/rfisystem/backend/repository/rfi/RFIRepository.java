@@ -330,6 +330,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.structure AS structure,
 			    r.element AS element,
 			    r.activity AS activity,
+			    r.created_by as createdBy,
 			    r.assigned_person_client AS assignedPersonClient,
 			    r.name_of_representative AS nameOfRepresentative,
 			    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
