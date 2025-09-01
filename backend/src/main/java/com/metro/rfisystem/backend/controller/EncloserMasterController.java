@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.metro.rfisystem.backend.dto.CheckListDescriptionDto;
@@ -7,6 +8,10 @@ import com.metro.rfisystem.backend.dto.ChecklistProjection;
 import com.metro.rfisystem.backend.dto.EnclosureNameDto;
 import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.serviceImpl.ChecklistDescriptionServiceIMPL;
+
+import jakarta.persistence.EntityNotFoundException;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,5 +71,41 @@ public class EncloserMasterController {
         List<EnclosureNameDto> names = service.getEnclosureNamesByAction(action);
         return ResponseEntity.ok(names);
     }
+    
+    @PostMapping("/submit")
+    public ResponseEntity<RfiEnclosureMaster> addEnclosure(@RequestBody EnclosureNameDto dto) {
+        RfiEnclosureMaster entity;
+
+        if (dto.getId() != null) {
+            entity = service.findById(dto.getId())
+                .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + dto.getId()));
+            entity.setEncloserName(dto.getEncloserName());
+        } else {
+            entity = new RfiEnclosureMaster();
+            entity.setEncloserName(dto.getEncloserName());
+            entity.setAction("OPEN"); // Optional default
+        }
+
+        RfiEnclosureMaster saved = service.saveEnclosure(entity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+    
+    @PutMapping("/updateEnclosureName/{id}")
+    public ResponseEntity<RfiEnclosureMaster> updateEnclosure(@PathVariable Long id, @RequestBody EnclosureNameDto dto) {
+        RfiEnclosureMaster existing = service.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + id));
+
+        existing.setEncloserName(dto.getEncloserName());
+        RfiEnclosureMaster updated = service.saveEnclosure(existing);
+
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/deleteEncloserName/{id}")
+    public ResponseEntity<Void> deleteEnclosure(@PathVariable Long id) {
+        service.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

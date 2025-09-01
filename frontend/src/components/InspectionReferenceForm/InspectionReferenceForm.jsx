@@ -625,10 +625,18 @@ const InspectionReferenceForm = () => {
 	        value={value}
 	        onChange={onChange}
 	        placeholder="Enter enclosure name"
+			classname="irf-description-input"
 	      />
 	    );
 	  });
 
+	  const handleEditClick = (row) => {
+	    setEditingEnclosureId(row.id);
+	    setEditInputs(prev => ({
+	      ...prev,
+	      [row.id]: row.encloserName // prefill input
+	    }));
+	  };
 	  
 	  const handleInputChange = React.useCallback((id, e) => {
 	    const { value } = e.target;
@@ -643,16 +651,15 @@ const InspectionReferenceForm = () => {
 	      Cell: ({ row }) => {
 	        const id = row.original.id;
 	        const isEditing = id === editingEnclosureId;
-	        if (isEditing) {
-	          return (
-				<EditableCell
-		            value={editInputs[id] ?? ""}
-		            onChange={(e) => handleInputChange(id, e)}  // Memoized
-		            inputRef={newRowRef}
-		          />
-	          );
-	        }
-	        return row.original.encloserName || "";
+	        return isEditing ? (
+	          <EditableCell
+	            value={editInputs[id] ?? ""}
+	            onChange={(e) => handleInputChange(id, e)}
+	            inputRef={newRowRef}
+	          />
+	        ) : (
+	          row.original.encloserName || ""
+	        );
 	      },
 	    },
 	    {
@@ -661,21 +668,34 @@ const InspectionReferenceForm = () => {
 	      Cell: ({ row }) => {
 	        const id = row.original.id;
 	        const isEditing = id === editingEnclosureId;
+
 	        return isEditing ? (
 	          <div className="irf-edit-inline">
-	            <button onClick={() => handleSubmitRow(id)} className="irf-btn-save btn btn-primary">
+	            <button
+	              onClick={() => handleSubmitRow(id)}
+	              className="irf-btn-save btn btn-primary"
+	            >
 	              Save
 	            </button>
-	            <button onClick={() => cancelEditingNewRow(id)} className="irf-btn-cancel btn btn-white">
+	            <button
+	              onClick={() => cancelEditingNewRow(id)}
+	              className="irf-btn-cancel btn btn-white"
+	            >
 	              Cancel
 	            </button>
 	          </div>
 	        ) : (
 	          <div className="irf-action-buttons">
-	            <button onClick={() => HandleEdit(row.original)} className="irf-btn-edit">
+	            <button
+	              onClick={() => handleEditClick(row.original)}
+	              className="irf-btn-edit"
+	            >
 	              Edit
 	            </button>
-	            <button onClick={() => handleDelete(row.original)} className="irf-btn-delete">
+	            <button
+	              onClick={() => handleDeleteRow(row.original.id)}
+	              className="irf-btn-delete"
+	            >
 	              Delete
 	            </button>
 	          </div>
@@ -683,7 +703,6 @@ const InspectionReferenceForm = () => {
 	      },
 	    },
 	  ], [editingEnclosureId, editInputs, handleInputChange]);
-
 
 	  // Table 2: Checklist Description Columns
 
@@ -761,6 +780,7 @@ const InspectionReferenceForm = () => {
 	    const newRow = {
 	      id: newId,
 	      encloserName: "",
+		  action: "edit", // or "submit", "delete"
 	      isNew: true,
 	    };
 	    setOpenEnclosers(prev => [...prev, newRow]);
@@ -777,34 +797,81 @@ const InspectionReferenceForm = () => {
 
 	  // Handler: Edit row
 
-	  const HandleEdit = (row) => {
-	    setEditingEnclosureId(row.id);
-	    setEditInputs(inputs => ({ ...inputs, [row.id]: row.encloserName || "" }));
-	  };
-
-	  // Handler: Save row
-
-	  const handleSubmitRow = (id) => {
+	 /* const handleEditRow = async (id) => {
 	    const inputVal = editInputs[id] ?? "";
 	    if (!inputVal.trim()) {
 	      alert("Please enter a valid enclosure name");
 	      return;
 	    }
-	    setOpenEnclosers(prev =>
-	      prev.map(item =>
-	        item.id === id
-	          ? { ...item, encloserName: inputVal, isNew: false }
-	          : item
-	      )
-	    );
-	    setEditingEnclosureId(null);
-	    setEditInputs(inputs => {
-	      const copy = { ...inputs };
-	      delete copy[id];
-	      return copy;
-	    });
-	  };
 
+	    try {
+	      await axios.put(`${API_BASE_URL}api/v1/enclouser/updateEnclosureName/${id}`, {
+	        encloserName: inputVal
+	      });
+
+	      setOpenEnclosers(prev =>
+	        prev.map(item =>
+	          item.id === id ? { ...item, encloserName: inputVal, isNew: false } : item
+	        )
+	      );
+
+	      setEditingEnclosureId(null);
+	      setEditInputs(inputs => {
+	        const copy = { ...inputs };
+	        delete copy[id];
+	        return copy;
+	      });
+
+	      console.log("Row updated successfully");
+	    } catch (error) {
+	      console.error("Error updating row:", error);
+	      alert("Failed to update row");
+	    }
+	  };*/
+
+	  // Handler: Save row
+
+	  const handleSubmitRow = async (id) => {
+	    const inputVal = editInputs[id]?.trim();
+	    if (!inputVal) {
+	      alert("Please enter a valid enclosure name");
+	      return;
+	    }
+
+	    const rowData = openEnclosers.find(item => item.id === id);
+	    const payload = { encloserName: inputVal };
+
+	    try {
+	      if (rowData?.isNew) {
+	        // New row → POST
+	        await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, payload);
+	      } else {
+	        // Existing row → PUT
+	        await axios.put(`${API_BASE_URL}api/v1/enclouser/updateEnclosureName/${id}`, payload);
+	      }
+
+	      // Update local state
+	      setOpenEnclosers(prev =>
+	        prev.map(item =>
+	          item.id === id
+	            ? { ...item, encloserName: inputVal, isNew: false }
+	            : item
+	        )
+	      );
+
+	      setEditingEnclosureId(null);
+	      setEditInputs(inputs => {
+	        const copy = { ...inputs };
+	        delete copy[id];
+	        return copy;
+	      });
+
+	      console.log(rowData?.isNew ? "Row submitted successfully" : "Row updated successfully");
+	    } catch (error) {
+	      console.error("Error saving row:", error);
+	      alert("Failed to save row. Please try again.");
+	    }
+	  };
 	  // Handler: Cancel row editing
 
 	  const cancelEditingNewRow = (id) => {
@@ -822,9 +889,18 @@ const InspectionReferenceForm = () => {
 
 	  // Handler: Delete row
 
-	  const handleDelete = (row) => {
-	    if (window.confirm("Are you sure you want to delete?")) {
-	      setOpenEnclosers(prev => prev.filter(item => item.id !== row.id));
+	  const handleDeleteRow = async (id) => {
+	    const confirmDelete = window.confirm("Are you sure you want to delete this row?");
+	    if (!confirmDelete) return;
+
+	    try {
+	      await axios.delete(`${API_BASE_URL}api/v1/enclouser/deleteEncloserName/${id}`);
+		  console.log("Deleting row with ID:", id);
+	      setOpenEnclosers(prev => prev.filter(item => item.id !== id));
+	      console.log("Row deleted successfully");
+	    } catch (error) {
+	      console.error("Error deleting row:", error);
+	      alert("Failed to delete row");
 	    }
 	  };
 
@@ -988,7 +1064,7 @@ const InspectionReferenceForm = () => {
                       <tr {...group.getHeaderGroupProps()}>
                         {group.headers.map((col) => (
                           <th {...col.getHeaderProps()}>{col.render("Header")}</th>
-                        ))}
+                        ))}	
                       </tr>
                     ))}
                   </thead>
@@ -1002,10 +1078,27 @@ const InspectionReferenceForm = () => {
 				            key={row.original.id}  // Only here
 				            // DO NOT put ref here!
 				          >
-				            {row.cells.map((cell) => (
-				              <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
-				            ))}
-				          </tr>
+						  {row.cells.map((cell) => {
+						    const columnId = cell.column.id;
+						    const rowId = row.original.id;
+
+						    return (
+						      <td {...cell.getCellProps()}>
+						        {columnId === "encloserName" && editingEnclosureId === rowId ? (
+						          <input
+						            value={editInputs[rowId] ?? ""}
+						            onChange={(e) =>
+						              setEditInputs(prev => ({ ...prev, [rowId]: e.target.value }))
+						            }
+						            placeholder="Enter enclosure name"
+						          />
+						        ) : (
+						          cell.render("Cell")
+						        )}
+						      </td>
+						    );
+						  })}
+ 				          </tr>
 				        );
 				      })
 				    ) : (

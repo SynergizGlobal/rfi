@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ public class EncloserMasterServiceImpl implements EncloserMasterService {
 	 private final EncloserMasterRepository repository;
 	 
 	@Override
-	public List<RfiEnclosureMaster> getDistinctEncloserNamesByAction(String action) {
+     public List<RfiEnclosureMaster> getDistinctEncloserNamesByAction(String action) {
 		
 		return repository.findAllEncloserNameByAction(action);
 	}
@@ -29,4 +30,20 @@ public class EncloserMasterServiceImpl implements EncloserMasterService {
 	    public List<EnclosureNameDto> getEnclosureNamesByAction(String action) {
 	        return repository.findEnclosureNamesByAction(action);
 	    }
+	    
+	    @Override
+	    public Optional<RfiEnclosureMaster> findById(Long id) {
+	        return repository.findById(id);
+	    }
+	    
+	    @Override
+	    public RfiEnclosureMaster saveEnclosure(RfiEnclosureMaster enclosure) {
+	        return repository.save(enclosure);
+	    }
+	    
+	    @Override
+	    public void deleteById(Long id) {
+	        repository.deleteById(id);
+	    }
+
 }
