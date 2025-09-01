@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.metro.rfisystem.backend.dto.CheckListDescriptionDto;
 import com.metro.rfisystem.backend.dto.ChecklistProjection;
+import com.metro.rfisystem.backend.dto.EnclosureNameDto;
 import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.serviceImpl.ChecklistDescriptionServiceIMPL;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,13 @@ public class EncloserMasterController {
     @GetMapping("/description")
     public List<ChecklistProjection> getAllChecklistsDescriptionByEnclosure(@RequestParam String enclosername) {
         return descriptionRepository.findAllWithConditionalChecklistDescription(enclosername);
+    }
+    
+    @GetMapping("/names")
+    public ResponseEntity<List<EnclosureNameDto>> getEnclosureNames(
+            @RequestParam(defaultValue = "OPEN") String action) {
+        List<EnclosureNameDto> names = service.getEnclosureNamesByAction(action);
+        return ResponseEntity.ok(names);
     }
 
 }

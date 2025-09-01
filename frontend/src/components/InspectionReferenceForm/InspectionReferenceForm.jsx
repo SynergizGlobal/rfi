@@ -453,250 +453,390 @@ const InspectionReferenceForm = () => {
 
 export default InspectionReferenceForm;*/
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTable, usePagination, useGlobalFilter } from "react-table";
 import axios from "axios"; 
 import HeaderRight from "../HeaderRight/HeaderRight";
 import './InspectionReferenceForm.css';
 
 const InspectionReferenceForm = () => {
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedOption, setSelectedOption] = useState(""); // first dropdown
-  const [subOption, setSubOption] = useState(""); // sub dropdown (dynamic)
-  const [subOptionId, setSubOptionId] = useState(""); // store the ID of selected enclosure
-  const [openEnclosers, setOpenEnclosers] = useState([]); // for RFI Enclosure List table
-  const [enclosureList, setEnclosureList] = useState([]); // sub dropdown options
-  const [checklistItems, setChecklistItems] = useState([]); // checklist table rows
-  const [newDescription, setNewDescription] = useState(""); // for adding new description
-  const [editingId, setEditingId] = useState(null); // track which row is being edited
-  const [editDescription, setEditDescription] = useState(""); // for editing description
-  const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	const [pageSize, setPageSize] = useState(10);
+	  const [selectedOption, setSelectedOption] = useState(""); // first dropdown
+	  const [subOption, setSubOption] = useState(""); // sub dropdown (dynamic)
+	  const [subOptionId, setSubOptionId] = useState(""); // store the ID of selected enclosure
+	  const [openEnclosers, setOpenEnclosers] = useState([]); // for RFI Enclosure List table
+	  const [enclosureList, setEnclosureList] = useState([]); // sub dropdown options
+	  const [checklistItems, setChecklistItems] = useState([]); // checklist table rows
+	  const [newDescription, setNewDescription] = useState(""); // for adding new description
+	  const [editingId, setEditingId] = useState(null); // track which row is being edited
+	  const [editDescription, setEditDescription] = useState(""); // for editing description
+	  const [editingEnclosureId, setEditingEnclosureId] = useState(null);
+	  const [editInputs, setEditInputs] = useState({});
+	  const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
-  // 🔹 Load encloser list for dropdown when "Checklist Description" selected
-  useEffect(() => {
-    if (selectedOption === "second") {
-      axios.get(`${API_BASE_URL}api/v1/enclouser/by-action`)
-        .then((res) => {
-          // Store both id and encloserName for each item
-          setEnclosureList(res.data);
-        })
-        .catch((err) => console.error("Error fetching enclosure list:", err));
-    }
-  }, [selectedOption, API_BASE_URL]);
+	  const newRowRef = useRef(null);
 
-  // 🔹 Load all open enclosers (for table 1)
-  useEffect(() => {
-    axios.get("http://localhost:8000/rfi/open")
-      .then(res => setOpenEnclosers(res.data))
-      .catch(err => console.error("Error fetching enclosers:", err));
-  }, []);
+	  useEffect(() => {
+	    if (selectedOption === "first") {
+	      axios
+	        .get(`${API_BASE_URL}api/v1/enclouser/names`, {
+	          params: { action: "OPEN" }
+	        })
+	        .then((res) => {
+	          setOpenEnclosers(res.data);
+	        })
+	        .catch((err) => console.error("Error fetching enclosure names:", err));
+	    }
+	  }, [selectedOption, API_BASE_URL]);
 
-  // 🔹 Fetch checklist descriptions when subOption changes
-  useEffect(() => {
-    if (selectedOption === "second" && subOptionId) {
-      fetchChecklistItems();
-    }
-  }, [selectedOption, subOptionId, API_BASE_URL]);
+	  useEffect(() => {
+	    if (selectedOption === "second") {
+	      axios.get(`${API_BASE_URL}api/v1/enclouser/by-action`)
+	        .then((res) => {
+	          setEnclosureList(res.data);
+	        })
+	        .catch((err) => console.error("Error fetching enclosure list:", err));
+	    }
+	  }, [selectedOption, API_BASE_URL]);
 
-  const fetchChecklistItems = () => {
-    axios
-      .get(`${API_BASE_URL}api/v1/enclouser/get/${subOptionId}`)
-      .then((res) => {
-        console.log("Checklist API response:", res.data); // Debug log
-        
-        // Map the response to create checklist items - use checklistDescription field
-        const checklistItems = res.data.map((item, index) => ({
-          id: item.id,
-          sno: index + 1,
-          description: item.checklistDescription || "No description available",
-        }));
-        
-        setChecklistItems(checklistItems);
-      })
-      .catch((err) => {
-        console.error("Error fetching checklist:", err);
-        console.error("Error details:", err.response?.data); // More detailed error info
-      });
-  };
+	  useEffect(() => {
+	    axios.get("http://localhost:8000/rfi/open")
+	      .then(res => setOpenEnclosers(res.data))
+	      .catch(err => console.error("Error fetching enclosers:", err));
+	  }, []);
 
-  // Handle add new description
-  const handleAddDescription = () => {
-    if (!newDescription.trim()) {
-      alert("Please enter a description");
-      return;
-    }
+	  useEffect(() => {
+	    if (selectedOption === "second" && subOptionId) {
+	      fetchChecklistItems();
+	    }
+	  }, [selectedOption, subOptionId, API_BASE_URL]);
 
-    const dto = {
-      checkListDescription: newDescription // Fixed field name to match backend
-    };
+	  const fetchChecklistItems = () => {
+	    axios
+	      .get(`${API_BASE_URL}api/v1/enclouser/get/${subOptionId}`)
+	      .then((res) => {
+	        const checklistItems = res.data.map((item, index) => ({
+	          id: item.id,
+	          sno: index + 1,
+	          description: item.checklistDescription || "No description available",
+	        }));
+	        setChecklistItems(checklistItems);
+	      })
+	      .catch((err) => {
+	        console.error("Error fetching checklist:", err);
+	      });
+	  };
 
-    axios
-      .post(`${API_BASE_URL}api/v1/enclouser/addDesctiption/${subOptionId}`, dto)
-      .then((res) => {
-        setNewDescription("");
-        fetchChecklistItems(); // Refresh the list
-        
-      })
-      .catch((err) => {
-        console.error("Error adding description:", err);
+	  const handleAddDescription = () => {
+	    if (!newDescription.trim()) {
+	      alert("Please enter a description");
+	      return;
+	    }
+	    const dto = { checkListDescription: newDescription };
+	    axios
+	      .post(`${API_BASE_URL}api/v1/enclouser/addDesctiption/${subOptionId}`, dto)
+	      .then((res) => {
+	        setNewDescription("");
+	        fetchChecklistItems();
+	      })
+	      .catch((err) => {
+           console.error("Error adding description:", err);
+        console.error("Error response:", err.response?.data);	        
+		alert("Error adding description");
+	      });
+	  };
+
+	  const handleUpdateDescription = (id) => {
+	    if (!editDescription.trim()) {
+	      alert("Please enter a description");
+	      return;
+	    }
+	    const dto = { checkListDescription: editDescription };
+	    axios
+	      .put(`${API_BASE_URL}api/v1/enclouser/update/${id}`, dto)
+	      .then((res) => {
+	        setEditingId(null);
+	        setEditDescription("");
+	        fetchChecklistItems();
+	      })
+	      .catch((err) => {
+            console.error("Error updating description:", err);
         console.error("Error response:", err.response?.data);
-        alert("Error adding description");
-      });
-  };
+	        alert("Error updating description");
+	      });
+	  };
 
-  // Handle update description
-  const handleUpdateDescription = (id) => {
-    if (!editDescription.trim()) {
-      alert("Please enter a description");
-      return;
-    }
-
-    const dto = {
-      checkListDescription: editDescription // Fixed field name to match backend
-    };
-
-    axios
-      .put(`${API_BASE_URL}api/v1/enclouser/update/${id}`, dto)
-      .then((res) => {
-        setEditingId(null);
-        setEditDescription("");
-        fetchChecklistItems(); // Refresh the list
-    
-      })
-      .catch((err) => {
-        console.error("Error updating description:", err);
-        console.error("Error response:", err.response?.data);
-        alert("Error updating description");
-      });
-  };
-
-  // Handle delete description - UPDATED TO UPDATE UI IMMEDIATELY
-  const handleDeleteDescription = (id) => {
-    if (window.confirm("Are you sure you want to delete this description?")) {
-      // Update UI immediately for better user experience
-      setChecklistItems(prevItems => prevItems.filter(item => item.id !== id));
-      
-      axios
-        .delete(`${API_BASE_URL}api/v1/enclouser/delete/${id}`)
-        .then((res) => {
-          // Refresh the list to ensure consistency with backend
-          fetchChecklistItems();
-          alert("Description deleted successfully!");
-        })
-        .catch((err) => {
-          console.error("Error deleting description:", err);
+	  const handleDeleteDescription = (id) => {
+	    if (window.confirm("Are you sure you want to delete this description?")) {
+	      setChecklistItems(prevItems => prevItems.filter(item => item.id !== id));
+	      axios
+	        .delete(`${API_BASE_URL}api/v1/enclouser/delete/${id}`)
+	        .then((res) => {
+	          fetchChecklistItems();
+	          alert("Description deleted successfully!");
+	        })
+	        .catch((err) => {
+             console.error("Error deleting description:", err);
           // If delete fails, revert the UI change
-          fetchChecklistItems();
-          alert("Error deleting description");
-        });
-    }
-  };
+	          fetchChecklistItems();
+	          alert("Error deleting description");
+	        });
+	    }
+	  };
 
-  // Start editing a description
-  const startEditing = (item) => {
-    setEditingId(item.id);
-    setEditDescription(item.description);
-  };
+	  const startEditing = (item) => {
+	    setEditingId(item.id);
+	    setEditDescription(item.description);
+	  };
 
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditDescription("");
-  };
+	  const cancelEditing = () => {
+	    setEditingId(null);
+	    setEditDescription("");
+	  };
 
-  // Handle sub option selection
-  const handleSubOptionChange = (e) => {
-    const selectedId = e.target.value;
-    setSubOptionId(selectedId);
-    
-    // Find the selected enclosure to get its name
-    const selectedEnclosure = enclosureList.find(enc => enc.id === parseInt(selectedId));
-    setSubOption(selectedEnclosure ? selectedEnclosure.encloserName : "");
-  };
+	  const handleSubOptionChange = (e) => {
+	    const selectedId = e.target.value;
+	    setSubOptionId(selectedId);
+	    const selectedEnclosure = enclosureList.find(enc => enc.id === parseInt(selectedId));
+	    setSubOption(selectedEnclosure ? selectedEnclosure.encloserName : "");
+	  };
 
-  // Table 1 (RFI Enclosure List) data
-  const table1Data = useMemo(
-    () =>
-      openEnclosers.map((name, idx) => ({
-        sr_no: idx + 1,
-        enclosure_attachments: name,
-      })),
-    [openEnclosers]
-  );
+	  // Table 1: RFI Enclosure List Data & Columns
 
-  const table1Columns = useMemo(
-    () => [
-      { Header: "Sr No", accessor: "sr_no" },
-      { Header: "Enclosure/Attachments", accessor: "enclosure_attachments" },
-    ],
-    []
-  );
+	  const table1Data = useMemo(
+	    () => openEnclosers.map((item, idx) => ({
+	      ...item,
+	      sr_no: idx + 1,
+	      enclosure_name: item.encloserName,
+	    })),
+	    [openEnclosers]
+	  );
+	  const EditableCell = React.memo(({ value, onChange, inputRef }) => {
+	    useEffect(() => {
+	      if (inputRef && inputRef.current) {
+	        inputRef.current.focus();
+	      }
+	    }, [inputRef]);
 
-  // Table 2 (Checklist Description) columns
-  const table2Columns = useMemo(
-    () => [
-      { Header: "S. No", accessor: "sno" },
-      { Header: "Reference Description", accessor: "description" },
-      {
-        Header: "Actions",
-        accessor: "actions",
-        Cell: ({ row }) => (
-          <div className="irf-action-buttons">
-            <button 
-              className="irf-btn-edit"
-              onClick={() => startEditing(row.original)}
-            >
-              Edit
-            </button>
-            <button 
-              className="irf-btn-delete"
-              onClick={() => handleDeleteDescription(row.original.id)}
-            >
-              Delete
-            </button>
-          </div>
-        ),
-      },
-    ],
-    []
-  );
+	    return (
+	      <input
+	        ref={inputRef}
+	        type="text"
+	        value={value}
+	        onChange={onChange}
+	        placeholder="Enter enclosure name"
+	      />
+	    );
+	  });
 
-  // Switch table depending on dropdown
-  const activeColumns = useMemo(
-    () => (selectedOption === "second" ? table2Columns : table1Columns),
-    [selectedOption, table1Columns, table2Columns]
-  );
+	  
+	  const handleInputChange = React.useCallback((id, e) => {
+	    const { value } = e.target;
+	    setEditInputs(inputs => ({ ...inputs, [id]: value }));
+	  }, []);
+	  
+	  const table1Columns = useMemo(() => [
+	    { Header: "Sr No", accessor: "sr_no" },
+	    {
+	      Header: "Enclosure Name",
+	      accessor: "enclosure_name",
+	      Cell: ({ row }) => {
+	        const id = row.original.id;
+	        const isEditing = id === editingEnclosureId;
+	        if (isEditing) {
+	          return (
+				<EditableCell
+		            value={editInputs[id] ?? ""}
+		            onChange={(e) => handleInputChange(id, e)}  // Memoized
+		            inputRef={newRowRef}
+		          />
+	          );
+	        }
+	        return row.original.encloserName || "";
+	      },
+	    },
+	    {
+	      Header: "Action",
+	      accessor: "action",
+	      Cell: ({ row }) => {
+	        const id = row.original.id;
+	        const isEditing = id === editingEnclosureId;
+	        return isEditing ? (
+	          <div className="irf-edit-inline">
+	            <button onClick={() => handleSubmitRow(id)} className="irf-btn-save btn btn-primary">
+	              Save
+	            </button>
+	            <button onClick={() => cancelEditingNewRow(id)} className="irf-btn-cancel btn btn-white">
+	              Cancel
+	            </button>
+	          </div>
+	        ) : (
+	          <div className="irf-action-buttons">
+	            <button onClick={() => HandleEdit(row.original)} className="irf-btn-edit">
+	              Edit
+	            </button>
+	            <button onClick={() => handleDelete(row.original)} className="irf-btn-delete">
+	              Delete
+	            </button>
+	          </div>
+	        );
+	      },
+	    },
+	  ], [editingEnclosureId, editInputs, handleInputChange]);
 
-  const activeData = useMemo(
-    () => (selectedOption === "second" ? checklistItems : table1Data),
-    [selectedOption, checklistItems, table1Data]
-  );
 
-  // React Table hooks
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    page,
-    prepareRow,
-    state: { pageIndex, globalFilter },
-    setGlobalFilter,
-    nextPage,
-    previousPage,
-    canNextPage,
-    canPreviousPage,
-    pageOptions,
-    gotoPage,
-    setPageSize: tableSetPageSize,
-  } = useTable(
-    {
-      columns: activeColumns,
-      data: activeData,
-      initialState: { pageIndex: 0, pageSize },
-    },
-    useGlobalFilter,
-    usePagination
-  );
+	  // Table 2: Checklist Description Columns
+
+	  const table2Columns = useMemo(
+	    () => [
+	      { Header: "S. No", accessor: "sno" },
+	      { Header: "Reference Description", accessor: "description" },
+	      {
+	        Header: "Actions",
+	        accessor: "actions",
+	        Cell: ({ row }) => (
+	          <div className="irf-action-buttons">
+	            <button
+	              className="irf-btn-edit"
+	              onClick={() => startEditing(row.original)}
+	            >
+	              Edit
+	            </button>
+	            <button
+	              className="irf-btn-delete"
+	              onClick={() => handleDeleteDescription(row.original.id)}
+	            >
+	              Delete
+	            </button>
+	          </div>
+	        ),
+	      },
+	    ],
+	    []
+	  );
+
+	  // Select columns and data depending on dropdown choice
+
+	  const activeColumns = useMemo(
+	    () => (selectedOption === "second" ? table2Columns : table1Columns),
+	    [selectedOption, table1Columns, table2Columns]
+	  );
+	  const activeData = useMemo(
+	    () => (selectedOption === "second" ? checklistItems : table1Data),
+	    [selectedOption, checklistItems, table1Data]
+	  );
+
+	  // React Table hook - IMPORTANT: Declare useTable before handlers that use its return
+
+	  const {
+	    getTableProps,
+	    getTableBodyProps,
+	    headerGroups,
+	    page,
+	    prepareRow,
+	    state: { pageIndex, globalFilter },
+	    setGlobalFilter,
+	    nextPage,
+	    previousPage,
+	    canNextPage,
+	    canPreviousPage,
+	    pageOptions,
+	    gotoPage,
+	    setPageSize: tableSetPageSize,
+	  } = useTable(
+	    {
+	      columns: activeColumns,
+	      data: activeData,
+	      initialState: { pageIndex: 0, pageSize },
+	      autoResetPage: false // keeps pagination stable on data changes
+	    },
+	    useGlobalFilter,
+	    usePagination
+	  );
+
+	  // Handler: Add Row (added after useTable hook so it has access to gotoPage, pageOptions)
+
+	  const handleAddRow = () => {
+	    const newId = Date.now();
+	    const newRow = {
+	      id: newId,
+	      encloserName: "",
+	      isNew: true,
+	    };
+	    setOpenEnclosers(prev => [...prev, newRow]);
+	    setEditingEnclosureId(newId);
+	    setEditInputs(inputs => ({ ...inputs, [newId]: "" }));
+
+	    // Flip to last page after row added
+	    setTimeout(() => {
+	      if (pageOptions.length > 0) {
+	        gotoPage(pageOptions.length - 1);
+	      }
+	    }, 0);
+	  };
+
+	  // Handler: Edit row
+
+	  const HandleEdit = (row) => {
+	    setEditingEnclosureId(row.id);
+	    setEditInputs(inputs => ({ ...inputs, [row.id]: row.encloserName || "" }));
+	  };
+
+	  // Handler: Save row
+
+	  const handleSubmitRow = (id) => {
+	    const inputVal = editInputs[id] ?? "";
+	    if (!inputVal.trim()) {
+	      alert("Please enter a valid enclosure name");
+	      return;
+	    }
+	    setOpenEnclosers(prev =>
+	      prev.map(item =>
+	        item.id === id
+	          ? { ...item, encloserName: inputVal, isNew: false }
+	          : item
+	      )
+	    );
+	    setEditingEnclosureId(null);
+	    setEditInputs(inputs => {
+	      const copy = { ...inputs };
+	      delete copy[id];
+	      return copy;
+	    });
+	  };
+
+	  // Handler: Cancel row editing
+
+	  const cancelEditingNewRow = (id) => {
+	    setEditingEnclosureId(null);
+	    setEditInputs(inputs => {
+	      const copy = { ...inputs };
+	      delete copy[id];
+	      return copy;
+	    });
+	    const isNewRow = openEnclosers.find(item => item.id === id)?.isNew;
+	    if (isNewRow) {
+	      setOpenEnclosers(prev => prev.filter(item => item.id !== id));
+	    }
+	  };
+
+	  // Handler: Delete row
+
+	  const handleDelete = (row) => {
+	    if (window.confirm("Are you sure you want to delete?")) {
+	      setOpenEnclosers(prev => prev.filter(item => item.id !== row.id));
+	    }
+	  };
+
+	  // Focus on input when editingEnclosureId changes
+
+	  useEffect(() => {
+	    if (editingEnclosureId && newRowRef.current) {
+	      newRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+	      const input = newRowRef.current.querySelector("input");
+	      if (input) input.focus();
+	    }
+	  }, [editingEnclosureId, page]);
 
   return (
     <div className="dashboard create-rfi inspection">
@@ -707,12 +847,11 @@ const InspectionReferenceForm = () => {
             <h2 className="irf-section-heading">Reference Form</h2>
 
             {/* Dropdowns */}
-            <div className="form-row">
-              <div className="form-fields">
+            <div className="irf-form-row">
+              <div className="irf-form-fields">
                 <label>Select Form: </label>
                 <select
                   value={selectedOption}
-				  className="irf-description-input"
                   onChange={(e) => {
                     setSelectedOption(e.target.value);
                     setSubOption("");
@@ -728,14 +867,13 @@ const InspectionReferenceForm = () => {
                 </select>
               </div>
 
-              <div className="form-fields">
+              <div className="irf-form-fields">
                 {selectedOption === "second" && (
                   <>
                     <label>Sub Option: </label>
                     <select
                       value={subOptionId}
                       onChange={handleSubOptionChange}
-					  className="irf-description-input"
                     >
                       <option value="">-- Select Enclosure --</option>
                       {enclosureList.map((enc) => (
@@ -753,7 +891,7 @@ const InspectionReferenceForm = () => {
             {selectedOption === "second" && subOptionId && (
               <div className="irf-add-description-form">
                 <h3>Add New Description</h3>
-                <div className="form-row">
+                <div className="irf-form-row">
                   <input
                     type="text"
                     value={newDescription}
@@ -775,7 +913,7 @@ const InspectionReferenceForm = () => {
             {editingId && (
               <div className="irf-edit-description-form">
                 <h3>Edit Description</h3>
-                <div className="form-row">
+                <div className="irf-form-row">
                   <input
                     type="text"
                     value={editDescription}
@@ -836,6 +974,10 @@ const InspectionReferenceForm = () => {
                 />
               </div>
             </div>
+			
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+			  <button onClick={handleAddRow}> Add Row </button>
+			</div>
 
             {/* Table */}
             <div className="table-section">
@@ -850,28 +992,32 @@ const InspectionReferenceForm = () => {
                       </tr>
                     ))}
                   </thead>
-                  <tbody {...getTableBodyProps()}>
-                    {page.length > 0 ? (
-                      page.map((row) => {
-                        prepareRow(row);
-                        return (
-                          <tr {...row.getRowProps()}>
-                            {row.cells.map((cell) => (
-                              <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
-                            ))}
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={activeColumns.length} className="irf-no-data">
-                          {selectedOption === "second" && subOptionId 
+				  <tbody {...getTableBodyProps()}>
+				    {page.length > 0 ? (
+				      page.map((row) => {
+				        prepareRow(row);
+				        return (
+				          <tr
+				            {...row.getRowProps()}
+				            key={row.original.id}  // Only here
+				            // DO NOT put ref here!
+				          >
+				            {row.cells.map((cell) => (
+				              <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
+				            ))}
+				          </tr>
+				        );
+				      })
+				    ) : (
+				      <tr>
+				        <td colSpan={activeColumns.length} className="irf-no-data">
+                   {selectedOption === "second" && subOptionId 
                             ? "No checklist items available" 
                             : "No data available"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
+				        </td>
+				      </tr>
+				    )}
+				  </tbody>
                 </table>
               </div>
             </div>

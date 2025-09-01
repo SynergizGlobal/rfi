@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.metro.rfisystem.backend.dto.EnclosureNameDto;
 import com.metro.rfisystem.backend.model.rfi.RfiEnclosureMaster;
 import com.metro.rfisystem.backend.repository.rfi.EncloserMasterRepository;
 import com.metro.rfisystem.backend.service.EncloserMasterService;
@@ -23,4 +24,9 @@ public class EncloserMasterServiceImpl implements EncloserMasterService {
 		return repository.findAllEncloserNameByAction(action);
 	}
 
+
+	    @Override
+	    public List<EnclosureNameDto> getEnclosureNamesByAction(String action) {
+	        return repository.findEnclosureNamesByAction(action);
+	    }
 }
