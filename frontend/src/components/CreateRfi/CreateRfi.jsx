@@ -1062,10 +1062,10 @@ const CreateRfi = () => {
 
 								</div>
 
-								<div className="form-group mb-3">
+						{/*		<div className="form-group mb-3">
 									<label className="block mb-1 font-semibold">Measurements</label>
 									<div className="flex gap-3">
-										{/* Dropdown for measurement type */}
+										{ Dropdown for measurement type }
 										<select
 											name="measurementType"
 											value={formState.measurementType}
@@ -1079,7 +1079,7 @@ const CreateRfi = () => {
 											<option value="Number">Number</option>
 										</select>
 
-										{/* Input for measurement value */}
+										{ Input for measurement value }
 										<input
 											type="text"
 											name="measurementValue"
@@ -1089,7 +1089,7 @@ const CreateRfi = () => {
 											placeholder="Enter value"
 										/>
 									</div>
-								</div>
+								</div>*/}
 
 
 								{	/*	<div className="form-fields flex-1">
