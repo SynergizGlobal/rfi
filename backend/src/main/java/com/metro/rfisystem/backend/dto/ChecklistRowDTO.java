@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChecklistRowDTO {
 
-	private Long id;
+	private Long checklistDescriptionId;
 	 private String description;
 	    //private ChecklistOption status;
 	 private String status;
