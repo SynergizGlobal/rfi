@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
+import com.metro.rfisystem.backend.dto.ChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
@@ -30,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -159,10 +159,10 @@ public class InspectionController {
 	        	
 	            return ResponseEntity.ok(dto);
 	        } catch (EntityNotFoundException ex) {
-	        	 System.err.println("Entity not found: " + ex.getMessage());
+	        	 
 	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 	        } catch (Exception ex) {
-	        	ex.printStackTrace(); //
+	        	ex.printStackTrace(); 
 	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
 	        }
 	    }
@@ -197,9 +197,36 @@ public class InspectionController {
 
 	         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName().toString() + "\"") // <-- FORCE DOWNLOAD
 
-	         .body(resource);
+	         .body(resource);}
+	 
+	 
+		/*
+		 * @GetMapping("/description") public List<ChecklistDTO>
+		 * getAllChecklists(@RequestParam String enclosername) { return
+		 * checklistDescriptionService.getChecklists(enclosername); }
+		 */
+	    
+	    
+//	    @GetMapping("/getChecklistDes")
+//	     public ResponseEntity<List<String>> getChecklistDes(
+//	            @RequestParam String rfiDesc,
+//	            @RequestParam String enclosureName) {
+//
+//	        String descriptions = inspectionChecklistRepository.getChecklistDescriptin(rfiDesc, enclosureName);
+//
+//	        if (descriptions == null || descriptions.isEmpty()) {
+//	            return ResponseEntity.noContent().build();
+//	        }
+//
+//	        // Split by comma and keep inner spaces
+//	        List<String> descriptionList = Arrays.stream(descriptions.split(","))
+//	                                             .map(String::trim) 
+//	                                             .collect(Collectors.toList());
+//
+//	        return ResponseEntity.ok(descriptionList);
+//	    }
+//	    
 
-	 }
 	 
 	 @GetMapping("/open")
 	    public List<String> getOpenEnclosers() {

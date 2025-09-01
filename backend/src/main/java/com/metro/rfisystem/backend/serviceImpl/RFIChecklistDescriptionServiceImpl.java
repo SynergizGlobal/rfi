@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.metro.rfisystem.backend.dto.ChecklistDTO;
 import com.metro.rfisystem.backend.repository.rfi.RFIChecklistDescriptionRepository;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 
@@ -16,6 +17,14 @@ public class RFIChecklistDescriptionServiceImpl implements RFIChecklistDescripti
 	
 	    private final RFIChecklistDescriptionRepository repository;
 	
+	
+	@Override
+	public List<ChecklistDTO> getChecklists(String enclosername) {
+		
+		// return repository.findAllWithConditionalChecklistDescription(enclosername);
+		return null;
+	}
+
 	@Override
 	public List<String> getUniqueOpenEnclosers() {
 		

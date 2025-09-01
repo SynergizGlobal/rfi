@@ -64,21 +64,11 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
                     .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
 
             
-            Optional<RFIEnclosure> existing = enclosureRepository
-                    .findByRfiIdAndEnclosureName(rfiId, enclosureName);
-
-            RFIEnclosure enclosure;
-            if (existing.isPresent()) {
-               
-                enclosure = existing.get();
-                enclosure.setEnclosureUploadFile(filePath.toString());
-            } else {
-               
-                enclosure = new RFIEnclosure();
-                enclosure.setRfi(rfi);
-                enclosure.setEnclosureName(enclosureName);
-                enclosure.setEnclosureUploadFile(filePath.toString());
-            }
+    
+            RFIEnclosure enclosure = new RFIEnclosure();
+            enclosure.setRfi(rfi);
+            enclosure.setEnclosureName(enclosureName);
+            enclosure.setEnclosureUploadFile(filePath.toString());
             
             enclosureRepository.save(enclosure);
 

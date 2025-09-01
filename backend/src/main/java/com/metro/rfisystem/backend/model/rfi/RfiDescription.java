@@ -12,14 +12,14 @@ import lombok.Data;
 @Data
 public class RfiDescription {
 
-	
-	  @Id
-	    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	    private Integer id;
 
-	    private String activity;
-	    private String rfiDescription;
-	    private String enclosures;
-	
-	
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    private String activity;
+    private String rfiDescription;
+    private String enclosures;
+
+
 }
