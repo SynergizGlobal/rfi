@@ -20,5 +20,6 @@ public class ChecklistDescription {
     
     
     @OneToOne(mappedBy = "checklistDescription", fetch = FetchType.LAZY)
+    @JsonIgnore
     private RFIChecklistItem rfiChecklistItem;
 }

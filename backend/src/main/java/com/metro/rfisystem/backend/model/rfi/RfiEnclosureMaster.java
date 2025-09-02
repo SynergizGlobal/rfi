@@ -2,6 +2,8 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -17,6 +19,7 @@ public class RfiEnclosureMaster {
 
     private String action;
     @OneToMany(mappedBy = "enclosureMasters")
+    @JsonIgnore
     private List<ChecklistDescription> checklistDescriptions;
 
 }

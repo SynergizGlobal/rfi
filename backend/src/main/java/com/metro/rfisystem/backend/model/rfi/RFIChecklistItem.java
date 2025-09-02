@@ -2,6 +2,8 @@ package com.metro.rfisystem.backend.model.rfi;
 
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -47,6 +49,7 @@ public class RFIChecklistItem {
      
      @OneToOne
      @JoinColumn(name="chk_des_id", referencedColumnName = "id")
+     @JsonIgnore 
      private ChecklistDescription checklistDescription;
 
     

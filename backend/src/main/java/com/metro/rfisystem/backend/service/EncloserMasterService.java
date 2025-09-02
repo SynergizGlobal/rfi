@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import com.metro.rfisystem.backend.dto.EnclosureNameDto;
+import com.metro.rfisystem.backend.dto.RfiEnclosureDTO;
 import com.metro.rfisystem.backend.model.rfi.RfiEnclosureMaster;
 
 public interface EncloserMasterService {
 	
-	List<RfiEnclosureMaster>  getDistinctEncloserNamesByAction(String action);
+	List<RfiEnclosureDTO>  getDistinctEncloserNamesByAction(String action);
 
 	    List<EnclosureNameDto> getEnclosureNamesByAction(String action);
 	    

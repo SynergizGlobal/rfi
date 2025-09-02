@@ -6,6 +6,7 @@ import java.util.List;
 import com.metro.rfisystem.backend.dto.CheckListDescriptionDto;
 import com.metro.rfisystem.backend.dto.ChecklistProjection;
 import com.metro.rfisystem.backend.dto.EnclosureNameDto;
+import com.metro.rfisystem.backend.dto.RfiEnclosureDTO;
 import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.serviceImpl.ChecklistDescriptionServiceIMPL;
 
@@ -31,11 +32,13 @@ public class EncloserMasterController {
     private final ChecklistDescriptionRepository descriptionRepository;
 
     @GetMapping("/by-action")
-    public ResponseEntity<List<RfiEnclosureMaster>> getEnclosuresByAction(
+    public ResponseEntity<List<RfiEnclosureDTO>> getEnclosuresByAction(
             @RequestParam(defaultValue = "OPEN") String action) {
 
-        List<RfiEnclosureMaster> distinctEncloserNamesByAction = service.getDistinctEncloserNamesByAction(action);
-        return ResponseEntity.ok(distinctEncloserNamesByAction);
+    	  List<RfiEnclosureDTO> enclosureList = service.getDistinctEncloserNamesByAction(action);
+    	    System.out.println("Enclosures: " + enclosureList);
+
+          return ResponseEntity.ok(enclosureList);
     }
 
     @PostMapping("/addDesctiption/{id}")
