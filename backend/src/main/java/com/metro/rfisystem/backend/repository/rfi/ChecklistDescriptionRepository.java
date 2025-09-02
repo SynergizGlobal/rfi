@@ -38,8 +38,6 @@ public interface ChecklistDescriptionRepository extends JpaRepository<ChecklistD
 //			            """, nativeQuery = true)
 //	List<ChecklistProjection> findAllWithConditionalChecklistDescription(@Param("encloserName") String encloserName);
 //}
-
-	
 	@Query(value = """
 		    SELECT
 		        m.id AS id,

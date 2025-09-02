@@ -20,8 +20,6 @@ public class ChecklistDescription {
     @JsonIgnore
     private RfiEnclosureMaster enclosureMasters;
     
-    
-    
     @OneToMany(mappedBy = "checklistDescription", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RFIChecklistItem> rfiChecklistItems ;
 
