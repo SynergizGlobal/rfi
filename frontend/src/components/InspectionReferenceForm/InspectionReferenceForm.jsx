@@ -475,6 +475,7 @@ const InspectionReferenceForm = () => {
 									<option value="first">RFI Enclosure List</option>
 									<option value="second">Checklist Description</option>
 								</select>
+								
 							</div>
 {/*						{selectedOption === "first" && <ReferenceForm />}
 */}
