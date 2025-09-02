@@ -54,12 +54,11 @@ const CreateRfi = () => {
 		rfi_Id: '',
 		dateOfSubmission: getTodayISO(),
 		dateOfInspection: '',
-		enclosures: '',
+		enclosures: [],
 		location: '',
 		description: '',
-		dyHodUserId: '',
-		measurementType: '',
-		measurementValue: ''
+		dyHodUserId: ''
+
 	});
 	const [message, setMessage] = useState('');
 
@@ -82,7 +81,7 @@ const CreateRfi = () => {
 				rfi_Id: formData.rfi_Id || '',
 				dateOfSubmission: formData.dateOfSubmission || '',
 				dateOfInspection: formData.dateOfInspection || '',
-				enclosures: formData.enclosures || '',
+				enclosures: Array.isArray(formData.enclosures) ? formData.enclosures : [], // ✅ Always array
 				location: formData.location || '',
 				description: formData.description || '',
 			});
@@ -1042,27 +1041,25 @@ const CreateRfi = () => {
 										id="enclosures"
 										name="enclosures"
 										options={addRfiEnclosuresOptions}
-										isMulti // ✅ allow multiple selections
-										value={
-											formState.enclosures && formState.enclosures.length > 0
-												? formState.enclosures.map(enc => ({ value: enc, label: enc }))
-												: []
-										}
+										isMulti
+										value={addRfiEnclosuresOptions.filter(option =>
+											formState.enclosures.includes(option.value)
+										)}
 										onChange={(selectedOptions) =>
 											setFormState({
 												...formState,
-												enclosures: selectedOptions
-													? selectedOptions.map(opt => opt.value)
-													: []
+												enclosures: selectedOptions.map(opt => opt.value) || [] // ✅ Store only string values
 											})
 										}
 									/>
 
 
 
+
+
 								</div>
 
-						{/*		<div className="form-group mb-3">
+								{/*		<div className="form-group mb-3">
 									<label className="block mb-1 font-semibold">Measurements</label>
 									<div className="flex gap-3">
 										{ Dropdown for measurement type }
