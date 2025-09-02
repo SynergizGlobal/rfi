@@ -44,42 +44,43 @@ public class LoginServiceImpl implements LoginService {
 	private ContractorRepository contractorRepo;
 
 	@Override
-	public User authenticate(String userName, String password) throws AuthenticationException {
-		List<User> userList = loginRepo.findByUserName(userName);
+	public User authenticate(String userId, String password) throws AuthenticationException {
+	    List<User> userList = loginRepo.findByUserId(userId);
 
-		if (userList.isEmpty()) {
-			throw new AuthenticationException("Invalid username or password");
-		}
+	    if (userList.isEmpty()) {
+	        throw new AuthenticationException("Invalid userId or password");
+	    }
 
-		User matchedUser = null;
+	    User matchedUser = null;
 
-		for (User user : userList) {
-			boolean isEncrypted = "true".equalsIgnoreCase(user.getIsPasswordEncrypted());
-			try {
-				if (isEncrypted) {
-					String encryptedInputPassword = EncryptDecrypt.encrypt(password);
-					if (user.getPassword().equals(encryptedInputPassword)) {
-						matchedUser = user;
-						break;
-					}
-				} else {
-					if (user.getPassword().equals(password)) {
-						matchedUser = user;
-						break;
-					}
-				}
-			} catch (Exception e) {
-				throw new AuthenticationException("Encryption error");
-			}
-		}
+	    for (User user : userList) {
+	        boolean isEncrypted = "true".equalsIgnoreCase(user.getIsPasswordEncrypted());
+	        try {
+	            if (isEncrypted) {
+	                String encryptedInputPassword = EncryptDecrypt.encrypt(password);
+	                if (user.getPassword().equals(encryptedInputPassword)) {
+	                    matchedUser = user;
+	                    break;
+	                }
+	            } else {
+	                if (user.getPassword().equals(password)) {
+	                    matchedUser = user;
+	                    break;
+	                }
+	            }
+	        } catch (Exception e) {
+	            throw new AuthenticationException("Encryption error");
+	        }
+	    }
 
-		if (matchedUser == null) {
-			throw new AuthenticationException("Invalid username or password");
-		}
+	    if (matchedUser == null) {
+	        throw new AuthenticationException("Invalid userId or password");
+	    }
 
-		return matchedUser;
+	    return matchedUser;
 	}
-	
+
+
 	
 	@Override
 	public String resolveLoginDepartment(User user) {

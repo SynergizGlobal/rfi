@@ -22,6 +22,8 @@ import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
+import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
@@ -31,6 +33,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +51,7 @@ public class InspectionController {
 	private final RFIEnclosureService rfiEnclosureService;
 	private final RFIInspectionChecklistService checklistService;
 	private final RFIChecklistDescriptionService checklistDescriptionService;
+	private final RFIInspectionDetailsRepository inspectionRepository;
 
 	@GetMapping("/inspection/{id}")
 	public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
@@ -73,6 +78,29 @@ public class InspectionController {
 		}
 	}
 
+	
+	@GetMapping("/inspection/measurement-data/{rfiId}")
+	public ResponseEntity<RFIInspectionDetails> getInspectionMeasurementData(@PathVariable Long rfiId) {
+	    Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findTopByRfiIdOrderByIdDesc(rfiId);
+
+	    if (inspectionOpt.isPresent()) {
+	        return ResponseEntity.ok(inspectionOpt.get());
+	    } else {
+	        // Return empty object instead of 204 No Content
+	        RFIInspectionDetails emptyInspection = new RFIInspectionDetails();
+	        emptyInspection.setMeasurementType("");
+	        emptyInspection.setLength(0.0);
+	        emptyInspection.setBreadth(0.0);
+	        emptyInspection.setHeight(0.0);
+	        emptyInspection.setNoOfItems(0);
+	        emptyInspection.setTotalQty(0.0);
+
+	        return ResponseEntity.ok(emptyInspection);
+	    }
+	}
+
+	
+	
 	@PostMapping("/upload")
 	public ResponseEntity<String> uploadEnclosure(@RequestParam("rfiId") Long rfiId,
 

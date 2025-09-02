@@ -71,6 +71,17 @@ public class RFIInspectionDetails {
     @Column(name = "measurement_type")
     private String measurementType;
 
+    @Column(name = "length")
+    private Double length;
+
+    @Column(name = "breadth")
+    private Double breadth;
+
+    @Column(name = "height")
+    private Double height;
+
+    @Column(name = "no_of_items")
+    private Integer noOfItems;
   
 
     @Column(name = "total_qty")

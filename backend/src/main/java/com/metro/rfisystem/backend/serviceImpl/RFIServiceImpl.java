@@ -202,7 +202,7 @@ public class RFIServiceImpl implements RFIService {
 		}
 
 		// Check if logged-in user is contractor
-		boolean isContractor = loginRepo.findByUserName(loggedInUserName).stream()
+		boolean isContractor = loginRepo.findByUserId(loggedInUserName).stream()
 				.anyMatch(u -> "Contractor".equalsIgnoreCase(u.getUserRoleNameFk()));
 
 		if (!isContractor) {

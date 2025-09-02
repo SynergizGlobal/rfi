@@ -58,9 +58,9 @@ public class LoginController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpSession session) {
 		try {
-			logger.info("Login attempt for user: {}", loginRequest.getUserName());
+			logger.info("Login attempt for user: {}", loginRequest.getUserId());
 
-			User user = loginService.authenticate(loginRequest.getUserName(), loginRequest.getPassword());
+			User user = loginService.authenticate(loginRequest.getUserId(), loginRequest.getPassword());
 	        String loginDepartment = loginService.resolveLoginDepartment(user);
 
 			List<AllowedContractDTO> allowedContracts = loginService.getAllowedContractsWithDesignation(user);
@@ -137,9 +137,9 @@ public class LoginController {
 	}
 
 	@GetMapping("/regular-roles")
-	public ResponseEntity<List<ContractDesignationEngineersDTO>> getRegularEngineers(@RequestParam String userName) {
+	public ResponseEntity<List<ContractDesignationEngineersDTO>> getRegularEngineers(@RequestParam String userId) {
 
-		List<User> users = loginRepo.findByUserName(userName);
+		Optional<User> users = loginRepo.findById(userId);
 		System.out.println("get the username: " + users);
 
 
@@ -155,15 +155,15 @@ public class LoginController {
 	
 
 	@GetMapping("/engineer-names")
-	public ResponseEntity<List<String>> getEngineerNamesForContract(@RequestParam String userName,
+	public ResponseEntity<List<String>> getEngineerNamesForContract(@RequestParam String userId,
 			@RequestParam String contractId) {
 
-		List<User> users = loginRepo.findByUserName(userName);
+		List<User> users = loginRepo.findByUserId(userId);
 		if (users.isEmpty()) {
 			return ResponseEntity.badRequest().body(Collections.emptyList());
 		}
 
-		System.out.println("➡ userName: " + userName);
+		System.out.println("➡ userName: " + userId);
 		System.out.println("➡ contractId: " + contractId);
 
 		Optional<String> dyHodUserIdOptional = contractRepo.findDyHodUserIdByContractId(contractId);

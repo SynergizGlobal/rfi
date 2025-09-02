@@ -7,7 +7,7 @@ const Login = () => {
 	const [showNewPassword, setShowNewPassword] = useState(false);
 	const [showOtpPopup, setShowOtpPopup] = useState(false);
 
-	const [username, setUsername] = useState('');
+	const [userid, setUserId] = useState('');
 	const [password, setPassword] = useState('');
 	const [email, setEmail] = useState('');
 	const [otp, setOtp] = useState('');
@@ -135,7 +135,7 @@ const Login = () => {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',
-				body: JSON.stringify({ userName: username, password: password }),
+				body: JSON.stringify({ userId: userid, password: password }),
 			});
 
 			const data = await response.json();
@@ -185,8 +185,8 @@ const Login = () => {
 								<input
 									type="text"
 									placeholder="Enter Username"
-									value={username}
-									onChange={(e) => setUsername(e.target.value)}
+									value={userid}
+									onChange={(e) => setUserId(e.target.value)}
 									required
 								/>
 							</div>

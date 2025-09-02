@@ -14,9 +14,9 @@ import com.metro.rfisystem.backend.model.pmis.User;
 
 @Repository
 public interface LoginRepository extends JpaRepository<User, String> {
-
-	@Query("SELECT u FROM User u WHERE u.userName = :userName")
-	List<User> findByUserName(@Param("userName") String userName);
+//
+//	@Query("SELECT u FROM User u WHERE u.userName = :userName")
+//	List<User> findByUserName(@Param("userName") String userName);
 
 	Optional<User> findByEmailId(String email);
 
@@ -53,6 +53,9 @@ public interface LoginRepository extends JpaRepository<User, String> {
 	       "AND u.reportingToIdSrfk <> '' " +
 	       "AND u.userRoleNameFk = 'Contractor'")
 	List<String> findAllContractorUserNamesWithReportingId();
+
+	@Query("SELECT u FROM User u WHERE u.userId = :userId")
+	List<User> findByUserId(@Param("userId") String userId);
 	
 	
 

@@ -19,6 +19,10 @@ public class RFIInspectionRequestDTO {
 	private TestType testInsiteLab;
 	private String nameOfRepresentative; 
 	private String measurementType;
+    private Double length;
+    private Double breadth;
+    private Double height;
+    private Integer noOfItems;
     private Double totalQty;
 	
 	

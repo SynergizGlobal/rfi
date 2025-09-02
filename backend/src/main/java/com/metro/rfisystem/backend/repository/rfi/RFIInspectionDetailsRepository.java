@@ -26,4 +26,8 @@ public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspect
    @Query(value="SELECT site_image FROM rfi_inspection_details WHERE rfi_id_fk = :id AND uploaded_by!='Engg'",nativeQuery=true)
 	public List<String> findSiteImagesByIdAndUploadedByContractor(@Param("id") Long id);
 
+  
+   @Query("SELECT i FROM RFIInspectionDetails i WHERE i.rfi.id = :rfiId ORDER BY i.id DESC")
+   Optional<RFIInspectionDetails> findTopByRfiIdOrderByIdDesc(Long rfiId);
+
 }

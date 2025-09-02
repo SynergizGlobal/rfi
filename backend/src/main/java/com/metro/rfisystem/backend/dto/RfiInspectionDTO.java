@@ -25,5 +25,10 @@ public class RfiInspectionDTO {
     private String nameOfContractorReprsentative;
     private String measurementType;
     private Double totalQty;
+    private Double length;
+    private Double breadth;
+    private Double height;
+    private Integer noOfItems;
+
     
 }
