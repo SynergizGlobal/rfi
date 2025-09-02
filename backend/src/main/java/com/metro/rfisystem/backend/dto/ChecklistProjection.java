@@ -6,4 +6,8 @@ public interface ChecklistProjection {
     String getAction();
     String getChecklisttitle();
     String getChecklistDescription();
+    String getStatus();
+    String getContractorRemark();
+    String getAeRemark();
+
 }
