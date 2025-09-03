@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
+import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.ChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
@@ -141,32 +142,32 @@ public class InspectionController {
 
 
 	@PostMapping(value = "/inspection/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> submitInspection(HttpSession session, @RequestPart("data") String dataJson,
-			@RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
+	public ResponseEntity<String> submitInspection(HttpSession session, 
+	                                               @RequestPart("data") String dataJson,
+	                                               @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
+	    String deptFk = (String) session.getAttribute("departmentFk");
 
-		String deptFk = (String) session.getAttribute("departmentFk");
+	    try {
+	        ObjectMapper mapper = new ObjectMapper();
+	        RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-		try {
-			ObjectMapper mapper = new ObjectMapper();
-			RFIInspectionRequestDTO dto = mapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-		
-			boolean isEngineer = inspectionService.SubmitInspection(dto, testDocument, deptFk);
-			
-			if (deptFk.equalsIgnoreCase("Engg")) {
+	        InspectionSubmitResult result = inspectionService.SubmitInspection(dto, testDocument, deptFk);
 
-				if (isEngineer) {
-					return ResponseEntity.ok("Inspection Submitted By Engineer.");
-				} else
-					return ResponseEntity.ok("RFI Submisson Failed..!");
-			} else {
-				return ResponseEntity.ok("Inspection Submitted By Contractor.");
-			}
+	        switch (result) {
+	            case ENGINEER_SUCCESS:
+	                return ResponseEntity.ok("Inspection Submitted By Engineer.");
+	            case CONTRACTOR_SUCCESS:
+	                return ResponseEntity.ok("Inspection Submitted By Contractor.");
+	            default:
+	                return ResponseEntity.ok("RFI Submission Failed..!");
+	        }
 
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("Failed to submit inspection : " + e.getMessage());
-		}
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body("Failed to submit inspection : " + e.getMessage());
+	    }
 	}
+
 	
 	
 

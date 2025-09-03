@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
@@ -179,34 +180,39 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Override
 	@Transactional
-	public boolean SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
+	public InspectionSubmitResult SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
+	    RFI rfi = rfiRepository.findById(dto.getRfiId())
+	            .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
 
-		boolean isSubmited = false;
+	    RFIInspectionDetails inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk).orElseGet(() -> {
+	        RFIInspectionDetails newInsp = new RFIInspectionDetails();
+	        newInsp.setRfi(rfi);
+	        newInsp.setUploadedBy(deptFk);
+	        return newInsp;
+	    });
 
-		RFI rfi = rfiRepository.findById(dto.getRfiId())
-				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
+	    inspection.setInspectionStatus(dto.getInspectionStatus());
 
-		RFIInspectionDetails inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk).orElseGet(() -> {
-			RFIInspectionDetails newInsp = new RFIInspectionDetails();
-			newInsp.setRfi(rfi);
-			newInsp.setUploadedBy(deptFk);
-			return newInsp;
-		});
+	    if (testDocument != null && !testDocument.isEmpty()) {
+	        String filename = saveFile(testDocument);
+	        inspection.setTestSiteDocuments(filename);
+	    }
 
-		inspection.setInspectionStatus(dto.getInspectionStatus());
-		if (testDocument != null && !testDocument.isEmpty()) {
-			String filename = saveFile(testDocument);
-			inspection.setTestSiteDocuments(filename);
-		}
-		isSubmited = true;
-		if ("Engg".equalsIgnoreCase(deptFk) && rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE) {
-			inspection.setTestInsiteLab(dto.getTestInsiteLab());
-			isSubmited = true;
-		};
-		rfiRepository.save(rfi);
-		inspectionRepository.save(inspection);
-		return isSubmited;
+	    if ("Engg".equalsIgnoreCase(deptFk) && rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE) {
+	        inspection.setTestInsiteLab(dto.getTestInsiteLab());
+	        inspection.setEngineerRemarks(dto.getEngineerRemarks());
+	        inspectionRepository.save(inspection);
+	        rfiRepository.save(rfi);
+	        return InspectionSubmitResult.ENGINEER_SUCCESS;
+	    } else if ("Contractor".equalsIgnoreCase(deptFk)) {
+	        inspectionRepository.save(inspection);
+	        rfiRepository.save(rfi);
+	        return InspectionSubmitResult.CONTRACTOR_SUCCESS;
+	    }
+
+	    return InspectionSubmitResult.FAILURE;
 	}
+
 
 	@Override
 	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)

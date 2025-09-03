@@ -86,4 +86,7 @@ public class RFIInspectionDetails {
 
     @Column(name = "total_qty")
     private Double totalQty;
+    
+    @Column(name = "ae_remarks")
+    private String engineerRemarks;
 }

@@ -36,6 +36,7 @@ export default function InspectionForm() {
 	const [enclosuresData, setEnclosuresData] = useState([]);
 	const [checklistData, setChecklistData] = useState([]);
 	const [enclosureActions, setEnclosureActions] = useState({});
+	const [engineerRemarks, setEngineerRemarks] = useState(""); // ✅ definition of remarks state
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const selfieRef = useRef(null);
@@ -274,40 +275,44 @@ export default function InspectionForm() {
 	};
 
 	const handleSubmitConfirmed = async () => {
-		const formData = new FormData();
-		const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
-		const payload = {
-			inspectionId: id,
-			rfiId: rfiData.id,
-			inspectionStatus: inspectionStatus || null,
-			testInsiteLab: testInLab || null,
-		};
-		formData.append("data", JSON.stringify(payload));
-		if (testReportFile) {
-			formData.append("testReport", testReportFile);
-		}
+	  const formData = new FormData();
+	  const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
+	  const payload = {
+	    inspectionId: id,
+	    rfiId: rfiData.id,
+	    inspectionStatus: inspectionStatus || null,
+	    testInsiteLab: testInLab || null,
+	    engineerRemarks: engineerRemarks || null,   // ✅ Pass remarks
+	  };
 
-		try {
-			const res = await fetch(`${API_BASE_URL}rfi/inspection/submit`, {
-				method: "POST",
-				body: formData,
-				credentials: "include",
-			});
-			if (!res.ok) {
-				const errorText = await res.text();
-				alert(`Failed to submit inspection: ${errorText}`);
-				return;
-			}
+	  formData.append("data", JSON.stringify(payload));
+	  if (testReportFile) {
+	    formData.append("testReport", testReportFile);
+	  }
 
-			const message = await res.text();
-			alert(message);
-			localStorage.removeItem("latestInspectionId");
-			window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
-		} catch (err) {
-			console.error("Submit failed:", err);
-			alert("Error: " + err.message);
-		}
+	  try {
+	    const res = await fetch(`${API_BASE_URL}rfi/inspection/submit`, {
+	      method: "POST",
+	      body: formData,
+	      credentials: "include",
+	    });
+
+	    if (!res.ok) {
+	      const errorText = await res.text();
+	      alert(`Failed to submit inspection: ${errorText}`);
+	      return;
+	    }
+
+	    const message = await res.text();
+	    alert(message);
+	    localStorage.removeItem("latestInspectionId");
+	    window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
+	  } catch (err) {
+	    console.error("Submit failed:", err);
+	    alert("Error: " + err.message);
+	  }
 	};
+
 
 	const handleUploadSubmit = async (id, file) => {
 		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || '';
@@ -681,29 +686,50 @@ export default function InspectionForm() {
 											)}
 										</div>
 										<div className="form-fields">
-											{deptFK?.toLowerCase() === 'engg' && (
-												<>
-													<label>Inspection Status</label>
-													<select
-														value={
-															testInLab !== null && testInLab !== undefined
-																? testInLab.toString()
-																: rfiData?.inspectionDetails?.find(d => d.uploadedBy === "Engg")?.testInsiteLab || ''
-														}
-														onChange={(e) => {
-															const value = e.target.value;
-															if (value === 'Accepted') setTestInLab('Accepted');
-															else if (value === 'Rejected') setTestInLab('Rejected');
-															else setTestInLab(null);
-														}}
-													>
-														<option value="">Select</option>
-														<option value="Accepted">Accepted</option>
-														<option value="Rejected">Rejected</option>
-													</select>
-												</>
-											)}
+										  {deptFK?.toLowerCase() === "engg" && (
+										    <>
+										      <label>Inspection Status</label>
+										      <select
+										        value={
+										          testInLab !== null && testInLab !== undefined
+										            ? testInLab.toString()
+										            : rfiData?.inspectionDetails?.find((d) => d.uploadedBy === "Engg")
+										                ?.testInsiteLab || ""
+										        }
+										        onChange={(e) => {
+										          const value = e.target.value;
+										          if (value === "Accepted") {
+										            setTestInLab("Accepted");
+										            setEngineerRemarks(""); // clear remarks
+										          } else if (value === "Rejected") {
+										            setTestInLab("Rejected");
+										          } else {
+										            setTestInLab(null);
+										            setEngineerRemarks("");
+										          }
+										        }}
+										      >
+										        <option value="">Select</option>
+										        <option value="Accepted">Accepted</option>
+										        <option value="Rejected">Rejected</option>
+										      </select>
+
+										      {/* ✅ Show Remarks field only if Rejected */}
+										      {testInLab === "Rejected" && (
+										        <div className="remarks-field">
+										          <label>Remarks</label>
+										          <input
+										            type="text"
+										            value={engineerRemarks}
+										            onChange={(e) => setEngineerRemarks(e.target.value)}
+										            placeholder="Enter remarks"
+										          />
+										        </div>
+										      )}
+										    </>
+										  )}
 										</div>
+
 
 									</div>
 								</div>

@@ -24,6 +24,7 @@ public class RFIInspectionRequestDTO {
     private Double height;
     private Integer noOfItems;
     private Double totalQty;
+    private String engineerRemarks;
 	
 	
    
