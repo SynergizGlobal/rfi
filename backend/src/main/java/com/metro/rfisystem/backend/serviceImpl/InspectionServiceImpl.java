@@ -181,7 +181,7 @@ public class InspectionServiceImpl implements InspectionService {
 	@Transactional
 	public boolean SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
 
-		boolean sentForValidation = false;
+		boolean isSubmited = false;
 
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
@@ -198,13 +198,14 @@ public class InspectionServiceImpl implements InspectionService {
 			String filename = saveFile(testDocument);
 			inspection.setTestSiteDocuments(filename);
 		}
+		isSubmited = true;
 		if ("Engg".equalsIgnoreCase(deptFk) && rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE) {
 			inspection.setTestInsiteLab(dto.getTestInsiteLab());
-			sentForValidation = sendRfiForValidation(dto.getRfiId());
-		}
+			isSubmited = true;
+		};
 		rfiRepository.save(rfi);
 		inspectionRepository.save(inspection);
-		return sentForValidation;
+		return isSubmited;
 	}
 
 	@Override

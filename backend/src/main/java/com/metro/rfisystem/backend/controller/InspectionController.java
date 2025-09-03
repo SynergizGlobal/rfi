@@ -155,11 +155,11 @@ public class InspectionController {
 			if (deptFk.equalsIgnoreCase("Engg")) {
 
 				if (isEngineer) {
-					return ResponseEntity.ok("Inspection Submitted And Sent For Validation.");
+					return ResponseEntity.ok("Inspection Submitted By Engineer.");
 				} else
 					return ResponseEntity.ok("RFI Submisson Failed..!");
 			} else {
-				return ResponseEntity.ok("Inspection Submitted successfully");
+				return ResponseEntity.ok("Inspection Submitted By Contractor.");
 			}
 
 		} catch (Exception e) {
