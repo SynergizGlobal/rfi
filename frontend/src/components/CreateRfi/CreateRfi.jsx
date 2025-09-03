@@ -14,6 +14,8 @@ const CreateRfi = () => {
 	const [mode, setMode] = useState('create');
 	const [loading, setLoading] = useState(true);
 	const [allowedContractNames, setAllowedContractNames] = useState(new Set());
+	const [errors, setErrors] = useState({});
+
 
 	const [isEditable, setIsEditable] = useState(mode?.toLowerCase() !== 'edit');
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
@@ -574,6 +576,80 @@ const CreateRfi = () => {
 		{ value: 'SPOT RFI', label: 'SPOT RFI' },
 	];
 
+	const validateStep1 = () => {
+		const newErrors = {};
+
+		if (!formState.project) newErrors.project = "Project is required";
+		if (!formState.work) newErrors.work = "Work is required";
+		if (!formState.contract) newErrors.contract = "Contract is required";
+		if (!formState.structureType) newErrors.structureType = "Structure type is required";
+		if (!formState.structure) newErrors.structure = "Structure is required";
+		if (!formState.component) newErrors.component = "Component is required";
+		if (!formState.element) newErrors.element = "Element is required";
+		if (!formState.activity) newErrors.activity = "Activity is required";
+		if (!formState.rfiDescription) newErrors.rfiDescription = "RFI description is required";
+
+		setErrors(newErrors);
+
+		return Object.keys(newErrors).length === 0; // ✅ true if no errors
+	};
+
+	const handleNext = () => {
+		if (validateStep1()) {
+			setStep(2);
+		} else {
+			alert("Please fill all required fields before proceeding.");
+		}
+	};
+
+	const validateStep2 = () => {
+		const newErrors = {};
+
+		if (mode === 'edit' && (!formState.action || formState.action.trim() === '')) {
+			newErrors.action = "Action is required";
+		}
+
+		if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+		if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
+		if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
+		if (!formState.dateOfSubmission) newErrors.dateOfSubmission = "Date of submission is required";
+
+		setErrors(newErrors);
+
+		return Object.keys(newErrors).length === 0; // ✅ returns true if no errors
+	};
+
+	const handleStep2Next = () => {
+		if (validateStep2()) {
+			setStep(3);
+		} else {
+			alert("Please fill all required fields in Step 2.");
+		}
+	};
+
+	const validateStep3 = () => {
+		const newErrors = {};
+
+		// Enclosures required only when creating a new RFI
+		if (mode !== 'edit' && (!formState.enclosures || formState.enclosures.length === 0)) {
+			newErrors.enclosures = "Please select at least one enclosure";
+		}
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0; // ✅ returns true if no errors
+	};
+
+
+	const handleStep3Submit = () => {
+		if (validateStep3()) {
+			handleSubmit(); // Call your existing submit function
+		} else {
+			alert("Please select at least one enclosure.");
+		}
+	};
+
+
+
 	return (
 		<div className="dashboard create-rfi">
 			<HeaderRight />
@@ -904,10 +980,11 @@ const CreateRfi = () => {
 								</div>
 							</fieldset>
 							<div className="d-flex justify-end">
-								<button onClick={() => setStep(2)} className="btn btn-primary">
+								<button onClick={handleNext} className="btn btn-primary">
 									Next
 								</button>
 							</div>
+
 						</motion.div>
 					)}
 
@@ -1022,13 +1099,21 @@ const CreateRfi = () => {
 							</div>
 
 							<div className="d-flex justify-end gap-20">
-								<button onClick={() => setStep(1)} className="btn btn-white">
-									Back
-								</button>
-								<button onClick={() => setStep(3)} className="btn btn-primary">
+								<button onClick={() => setStep(1)} className="btn btn-white">Back</button>
+								<button
+									onClick={() => {
+										if (validateStep2()) {
+											setStep(3); // Move to Step 3 only if validation passes
+										} else {
+											alert("Please fill all required fields in Step 2.");
+										}
+									}}
+									className="btn btn-primary"
+								>
 									Next
 								</button>
 							</div>
+
 						</motion.div>
 					)}
 
@@ -1118,9 +1203,21 @@ const CreateRfi = () => {
 								<button onClick={() => setStep(2)} className="btn btn-white">
 									Back
 								</button>
-								<button onClick={handleSubmit} className="btn btn-primary">
+								<button
+									onClick={() => {
+										if (validateStep3()) {
+											handleSubmit(); // Submit or update
+										} else {
+											alert("Please select at least one enclosure."); // Only triggers in create mode
+										}
+									}}
+									className="btn btn-primary"
+								>
 									{mode === 'edit' ? 'Update' : 'Submit'}
 								</button>
+
+
+
 							</div>
 						</motion.div>
 					)}

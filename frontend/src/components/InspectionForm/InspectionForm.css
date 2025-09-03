@@ -508,4 +508,11 @@ label{
   background-color: #d9363e;
 }
 
+.error-text {
+    color: red;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
 	

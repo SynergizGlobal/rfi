@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,12 +63,17 @@ public class InspectionController {
 
 	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Long> startInspection(HttpSession session, @RequestPart("data") String dataJson,
-			@RequestPart("selfie") MultipartFile selfie, @RequestPart("siteImages") MultipartFile[] siteImages) {
+			@RequestPart("selfie") MultipartFile selfie,
+			@RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages) {
 		String deptFk = (String) session.getAttribute("departmentFk");
-		          
+
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
+			 if (siteImages == null) {
+			        siteImages = new ArrayList<>();
+			    }
+
 
 			Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, deptFk);
 
@@ -78,7 +84,6 @@ public class InspectionController {
 
 		}
 	}
-
 	
 	@GetMapping("/inspection/measurement-data/{rfiId}")
 	public ResponseEntity<RFIInspectionDetails> getInspectionMeasurementData(@PathVariable Long rfiId) {

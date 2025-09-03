@@ -1,6 +1,8 @@
  package com.metro.rfisystem.backend.service;
 
 import java.io.IOException;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
@@ -12,7 +14,7 @@ public interface InspectionService {
 
 	public RfiInspectionDTO getById(Long id);
 
-	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile[] siteImages, String deptFk);
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, List<MultipartFile> siteImages, String deptFk);
 
 	public InspectionSubmitResult SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk);
 	

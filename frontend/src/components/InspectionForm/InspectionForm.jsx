@@ -36,7 +36,7 @@ export default function InspectionForm() {
 	const [enclosuresData, setEnclosuresData] = useState([]);
 	const [checklistData, setChecklistData] = useState([]);
 	const [enclosureActions, setEnclosureActions] = useState({});
-	const [engineerRemarks, setEngineerRemarks] = useState(""); // ✅ definition of remarks state
+	const [engineerRemarks, setEngineerRemarks] = useState("");
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const selfieRef = useRef(null);
@@ -275,42 +275,42 @@ export default function InspectionForm() {
 	};
 
 	const handleSubmitConfirmed = async () => {
-	  const formData = new FormData();
-	  const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
-	  const payload = {
-	    inspectionId: id,
-	    rfiId: rfiData.id,
-	    inspectionStatus: inspectionStatus || null,
-	    testInsiteLab: testInLab || null,
-	    engineerRemarks: engineerRemarks || null,   // ✅ Pass remarks
-	  };
+		const formData = new FormData();
+		const id = inspectionId ?? parseInt(localStorage.getItem("latestInspectionId"));
+		const payload = {
+			inspectionId: id,
+			rfiId: rfiData.id,
+			inspectionStatus: inspectionStatus || null,
+			testInsiteLab: testInLab || null,
+			engineerRemarks: engineerRemarks || null,   // ✅ Pass remarks
+		};
 
-	  formData.append("data", JSON.stringify(payload));
-	  if (testReportFile) {
-	    formData.append("testReport", testReportFile);
-	  }
+		formData.append("data", JSON.stringify(payload));
+		if (testReportFile) {
+			formData.append("testReport", testReportFile);
+		}
 
-	  try {
-	    const res = await fetch(`${API_BASE_URL}rfi/inspection/submit`, {
-	      method: "POST",
-	      body: formData,
-	      credentials: "include",
-	    });
+		try {
+			const res = await fetch(`${API_BASE_URL}rfi/inspection/submit`, {
+				method: "POST",
+				body: formData,
+				credentials: "include",
+			});
 
-	    if (!res.ok) {
-	      const errorText = await res.text();
-	      alert(`Failed to submit inspection: ${errorText}`);
-	      return;
-	    }
+			if (!res.ok) {
+				const errorText = await res.text();
+				alert(`Failed to submit inspection: ${errorText}`);
+				return;
+			}
 
-	    const message = await res.text();
-	    alert(message);
-	    localStorage.removeItem("latestInspectionId");
-	    window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
-	  } catch (err) {
-	    console.error("Submit failed:", err);
-	    alert("Error: " + err.message);
-	  }
+			const message = await res.text();
+			alert(message);
+			localStorage.removeItem("latestInspectionId");
+			window.location.href = `${window.location.origin}/rfiSystem/Inspection`;
+		} catch (err) {
+			console.error("Submit failed:", err);
+			alert("Error: " + err.message);
+		}
 	};
 
 
@@ -348,12 +348,12 @@ export default function InspectionForm() {
 			selfieRef.current?.focus();
 			return;
 		}
-		const hasGallery = Object.values(galleryImages).some((img) => img);
-		if (!hasGallery) {
-			alert('At least one site image is required.');
-			firstGalleryRef.current?.focus();
-			return;
-		}
+		/*	const hasGallery = Object.values(galleryImages).some((img) => img);
+			if (!hasGallery) {
+				alert('At least one site image is required.');
+				firstGalleryRef.current?.focus();
+				return;
+			}*/
 		const formData = new FormData();
 
 		const inspectionPayload = {
@@ -380,26 +380,32 @@ export default function InspectionForm() {
 			}
 		}
 
-		galleryImages.forEach((img, index) => {
-			if (img instanceof File) {
-				formData.append('siteImages', img);
-			} else if (typeof img === 'string' && img.startsWith('data:image/')) {
-				const converted = dataURLtoFile(img, `siteImage${index + 1}.jpg`);
-				formData.append('siteImages', converted);
-			}
-		});
-
+		const hasGallery = galleryImages.some(img => img);
+		if (hasGallery) {
+			galleryImages.forEach((img, index) => {
+				if (!img) return;
+				if (img instanceof File) formData.append('siteImages', img);
+				else if (typeof img === 'string' && img.startsWith('data:image/')) {
+					const converted = dataURLtoFile(img, `siteImage${index + 1}.jpg`);
+					formData.append('siteImages', converted);
+				}
+			});
+		}
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/start`, {
 				method: 'POST',
 				body: formData,
 				credentials: "include",
 			});
-			const idText = await res.text();
-			const id = parseInt(idText);
+
+			if (!res.ok) {
+				const errText = await res.text();
+				throw new Error(errText || 'Request failed');
+			}
+
+			const id = await res.json(); // <-- parse JSON correctly
 			setInspectionId(id);
 			localStorage.setItem("latestInspectionId", id);
-            fetchMeasurementData(rfiData.id);
 
 			alert("Inspection saved successfully. ID: " + id);
 		} catch (err) {
@@ -483,6 +489,40 @@ export default function InspectionForm() {
 		});
 	};
 
+	const [errors, setErrors] = useState({});
+	const validateStep2 = () => {
+		const newErrors = {};
+
+		// Location is mandatory
+		if (!locationText || locationText.trim() === '') {
+			newErrors.location = "Location is required";
+		}
+
+		// Measurements are mandatory
+		const hasValidMeasurement = measurements.some(m => {
+			if (!m.type) return false;
+			switch (m.type) {
+				case "Number":
+					return m.No !== null && m.No !== "";
+				case "Length":
+					return m.L !== null && m.L !== "";
+				case "Area":
+					return m.L !== null && m.B !== null && m.total !== null;
+				case "Volume":
+					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
+				default:
+					return false;
+			}
+		});
+
+		if (!hasValidMeasurement) {
+			newErrors.measurements = "Please fill at least one measurement completely";
+		}
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
+
 	if (!rfiData) return <div>Loading RFI details...</div>;
 
 	return (
@@ -528,6 +568,7 @@ export default function InspectionForm() {
 									<div className="form-left">
 										<label>Location:</label>
 										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)} />
+										{errors.location && <p className="error-text">{errors.location}</p>}
 										<label>Date of Inspection:</label>
 										<input type="date" value={dateOfInspection} onChange={e => setDateOfInspection(e.target.value)} />
 										<label>Time of Inspection:</label>
@@ -686,48 +727,48 @@ export default function InspectionForm() {
 											)}
 										</div>
 										<div className="form-fields">
-										  {deptFK?.toLowerCase() === "engg" && (
-										    <>
-										      <label>Inspection Status</label>
-										      <select
-										        value={
-										          testInLab !== null && testInLab !== undefined
-										            ? testInLab.toString()
-										            : rfiData?.inspectionDetails?.find((d) => d.uploadedBy === "Engg")
-										                ?.testInsiteLab || ""
-										        }
-										        onChange={(e) => {
-										          const value = e.target.value;
-										          if (value === "Accepted") {
-										            setTestInLab("Accepted");
-										            setEngineerRemarks(""); // clear remarks
-										          } else if (value === "Rejected") {
-										            setTestInLab("Rejected");
-										          } else {
-										            setTestInLab(null);
-										            setEngineerRemarks("");
-										          }
-										        }}
-										      >
-										        <option value="">Select</option>
-										        <option value="Accepted">Accepted</option>
-										        <option value="Rejected">Rejected</option>
-										      </select>
+											{deptFK?.toLowerCase() === "engg" && (
+												<>
+													<label>Inspection Status</label>
+													<select
+														value={
+															testInLab !== null && testInLab !== undefined
+																? testInLab.toString()
+																: rfiData?.inspectionDetails?.find((d) => d.uploadedBy === "Engg")
+																	?.testInsiteLab || ""
+														}
+														onChange={(e) => {
+															const value = e.target.value;
+															if (value === "Accepted") {
+																setTestInLab("Accepted");
+																setEngineerRemarks(""); // clear remarks
+															} else if (value === "Rejected") {
+																setTestInLab("Rejected");
+															} else {
+																setTestInLab(null);
+																setEngineerRemarks("");
+															}
+														}}
+													>
+														<option value="">Select</option>
+														<option value="Accepted">Accepted</option>
+														<option value="Rejected">Rejected</option>
+													</select>
 
-										      {/* ✅ Show Remarks field only if Rejected */}
-										      {testInLab === "Rejected" && (
-										        <div className="remarks-field">
-										          <label>Remarks</label>
-										          <input
-										            type="text"
-										            value={engineerRemarks}
-										            onChange={(e) => setEngineerRemarks(e.target.value)}
-										            placeholder="Enter remarks"
-										          />
-										        </div>
-										      )}
-										    </>
-										  )}
+													{/* ✅ Show Remarks field only if Rejected */}
+													{testInLab === "Rejected" && (
+														<div className="remarks-field">
+															<label>Remarks</label>
+															<input
+																type="text"
+																value={engineerRemarks}
+																onChange={(e) => setEngineerRemarks(e.target.value)}
+																placeholder="Enter remarks"
+															/>
+														</div>
+													)}
+												</>
+											)}
 										</div>
 
 
@@ -739,7 +780,7 @@ export default function InspectionForm() {
 								<hr className="section-divider" />
 								<div className="measurements-section">
 									<h3 className="section-title">Measurements</h3>
-
+									{errors.measurements && <p className="error-text">{errors.measurements}</p>}
 									<table className="measurements-table">
 										<thead>
 											<tr>
@@ -844,8 +885,18 @@ export default function InspectionForm() {
 
 								<div className="btn-row" style={{ marginTop: 12 }}>
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
-									<button className="btn btn-blue" onClick={handleSaveInspection}>Save</button>
-									<button className="btn btn-green" onClick={handleSubmitConfirmed}>Submit</button>
+									<button
+										className="btn btn-blue"
+										onClick={() => {
+											if (validateStep2()) {
+												handleSaveInspection(); // call your save or submit API
+											} else {
+												alert("Please fill all required fields before saving.");
+											}
+										}}
+									>
+										Save
+									</button>									<button className="btn btn-green" onClick={handleSubmitConfirmed}>Submit</button>
 								</div>
 							</div>
 						)}

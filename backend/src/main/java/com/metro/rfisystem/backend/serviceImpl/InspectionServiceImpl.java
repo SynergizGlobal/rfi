@@ -77,7 +77,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Override
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-	                            MultipartFile[] siteImages, String deptFk) {
+			 List<MultipartFile> siteImages, String deptFk) {
 
 	    RFI rfi = rfiRepository.findById(dto.getRfiId())
 	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
@@ -89,9 +89,10 @@ public class InspectionServiceImpl implements InspectionService {
 		}
 
 	    String selfiePath = saveFile(selfie);
-	    String siteImagePaths = Arrays.stream(siteImages)
-	                                  .map(this::saveFile)
-	                                  .collect(Collectors.joining(","));
+	    String siteImagePaths = siteImages.stream()
+	    	    .filter(f -> f != null && !f.isEmpty())
+	    	    .map(this::saveFile)
+	    	    .collect(Collectors.joining(","));
 
 	    Optional<RFIInspectionDetails> existingInspectionOpt =
 	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk);
