@@ -238,6 +238,37 @@ const Inspection = () => {
 										Upload Test Results
 									</button>
 								)}
+
+								{userRole.toLocaleLowerCase !== 'con' && (<button
+									onClick={() =>
+										setConfirmPopupData({
+											message: "Are you sure you want to send this RFI for validation?",
+											rfiId: row.original.id, // ✅ correct numeric id
+											onConfirm: (id) => {
+												fetch(`${API_BASE_URL}send-for-validation/${id}`, {
+													method: "POST",
+													headers: { "Content-Type": "application/json" },
+												})
+													.then(async (res) => {
+														const text = await res.text(); // ✅ backend sends plain string
+														if (!res.ok) {
+															alert("❌ " + text); // show backend error message
+														} else {
+															alert("✅ " + text); // show success message
+														}
+														setConfirmPopupData(null);
+													})
+													.catch((err) => {
+														console.error("API error:", err);
+														alert("⚠️ Something went wrong while sending RFI.");
+														setConfirmPopupData(null);
+													});
+											},
+										})
+									}
+								>
+									Send for Validation
+								</button>)}
 								<button
 									onClick={() => {
 										navigate('/InspectionForm', {
@@ -383,7 +414,9 @@ const Inspection = () => {
 						<h3>Send for Validation</h3>
 						<p>{confirmPopupData.message}</p>
 						<div className="popup-actions">
-							<button onClick={confirmPopupData.onConfirm}>Yes</button>
+							<button onClick={() => confirmPopupData.onConfirm(confirmPopupData.rfiId)}>
+								Yes
+							</button>
 							<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
 						</div>
 					</div>

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
+import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RfiValidation;
@@ -88,6 +90,65 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	@Override
 	public List<RfiReportDTO> getRfiReportDetails(long id) {
 		return rfiRepository.getRfiReportDetails(id);
+	}
+	
+	@Override
+	@Transactional
+	public String sendRfiForValidation(Long rfiId) {
+	    Optional<RfiStatusProjection> rfiProjOpt = rfiRepository.findStatusById(rfiId);
+
+	    if (rfiProjOpt.isEmpty()) {
+	        return "RFI not found.";
+	    }
+	    RfiStatusProjection rfi = rfiProjOpt.get();
+	    System.out.println(
+	        "RFI ID: " + rfi.getId() +
+	        ", Status: " + rfi.getStatus() +
+	        ", Approval Status: " + rfi.getApprovalStatus()
+	    );
+
+	    // Already sent for validation
+	    if (EnumRfiStatus.VALIDATION_PENDING.name().equalsIgnoreCase(rfi.getStatus())) {
+	        return "RFI has already been sent for validation.";
+	    }
+	    
+	    // Already sent for validation
+	    if (EnumRfiStatus.INSPECTION_DONE.name().equalsIgnoreCase(rfi.getStatus())) {
+	        return "RFI has already been Closed.";
+	    }
+	    
+	    // Not yet inspected by engineer
+	    if (!EnumRfiStatus.INSPECTED_BY_AE.name().equalsIgnoreCase(rfi.getStatus())) {
+	        return "RFI has not been inspected yet by the engineer.";
+	    }
+	    
+	    // Rejected by engineer
+	    if (rfi.getApprovalStatus() == null) {
+	        return "Inspection Approval Status By Engineer is Pending...";
+	    }
+
+
+	    // Rejected by engineer
+	    if (!"Accepted".equalsIgnoreCase(rfi.getApprovalStatus())) {
+	        return "Inspection was rejected  by the engineer.";
+	    }
+
+	
+
+	    // ✅ Allowed case: INSPECTED_BY_AE + Accepted → move to VALIDATION_PENDING
+	    RFI fullRfi = rfiRepository.findById(rfi.getId())
+	            .orElseThrow(() -> new RuntimeException("RFI not found"));
+
+	    fullRfi.setStatus(EnumRfiStatus.VALIDATION_PENDING);
+
+	    RfiValidation validation = new RfiValidation();
+	    validation.setRfi(fullRfi);
+	    validation.setSentForValidationAt(LocalDateTime.now());
+
+	    fullRfi.setRfiValidation(validation);
+	    rfiRepository.save(fullRfi);
+
+	    return "RFI sent for validation successfully.";
 	}
 
 

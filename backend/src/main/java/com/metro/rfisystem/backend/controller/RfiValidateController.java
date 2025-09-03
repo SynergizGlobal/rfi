@@ -42,6 +42,19 @@ public class RfiValidateController {
 		return ResponseEntity.ok("RFI validated with file uploaded.");
 	}
 	
+	
+    @PostMapping("/send-for-validation/{rfiId}")
+    public ResponseEntity<String> sendForValidation(@PathVariable Long rfiId) {
+        String result = rfiValidationService.sendRfiForValidation(rfiId);
+
+        // return 200 if success, 400 otherwise
+        if ("RFI sent for validation successfully.".equals(result)) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+	
 
 	@GetMapping("/getRfiValidations")
 	public ResponseEntity<List<GetRfiDTO>> showRfiIdsForValidations(HttpSession session) {

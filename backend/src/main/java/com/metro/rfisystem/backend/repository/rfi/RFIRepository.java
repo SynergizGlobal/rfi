@@ -172,7 +172,11 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	int countByCreatedBy(String createdBy);
 
-	@Query(value = "SELECT id, status FROM rfi_data WHERE id = :id", nativeQuery = true)
+
+	@Query(value = "SELECT r.id, r.status , i.test_insite_lab as ApprovalStatus FROM rfi_data r \r\n"
+			+ "left join rfi_inspection_details i \r\n"
+			+ "on r.id = i.rfi_id_fk and uploaded_by = 'Engg'\r\n"
+			+ "WHERE r.id = :id", nativeQuery = true)
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);
 
 	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"

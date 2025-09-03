@@ -13,4 +13,6 @@ public interface RfiValidationService {
 	void validateRfiWithFile(RfiValidateDTO dto);
 	
 	public List<RfiReportDTO> getRfiReportDetails(long id);
+
+	String sendRfiForValidation(Long rfiId);
 }
