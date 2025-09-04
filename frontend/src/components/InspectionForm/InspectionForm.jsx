@@ -788,7 +788,6 @@ export default function InspectionForm() {
 												<th>H</th>
 												<th>No.</th>
 												<th>Total Qty</th>
-												<th>Action</th>
 											</tr>
 										</thead>
 										<tbody>
