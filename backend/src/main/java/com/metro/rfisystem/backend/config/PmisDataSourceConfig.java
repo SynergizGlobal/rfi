@@ -30,7 +30,7 @@ public class PmisDataSourceConfig {
     @Bean(name = "pmisDataSource")
     public DataSource dataSource() {
         HikariDataSource ds = new HikariDataSource();
-        ds.setJdbcUrl("jdbc:sqlserver://203.153.40.44:1433;databaseName=pmis;encrypt=false;");
+        ds.setJdbcUrl("jdbc:sqlserver://203.153.40.44:1433;databaseName=pmis_qa;encrypt=false;");
         ds.setUsername("Synergiz");
         ds.setPassword("$y^7r@(k1$pm1$");
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
