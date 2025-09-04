@@ -18,6 +18,9 @@ const DropdownMenu = ({ style, children }) => {
 	);
 };
 
+const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
+
+
 
 const Inspection = () => {
 	const [selectedRfi, setSelectedRfi] = useState(null);
@@ -239,36 +242,46 @@ const Inspection = () => {
 									</button>
 								)}
 
-								{userRole.toLocaleLowerCase !== 'con' && (<button
-									onClick={() =>
-										setConfirmPopupData({
-											message: "Are you sure you want to send this RFI for validation?",
-											rfiId: row.original.id, // ✅ correct numeric id
-											onConfirm: (id) => {
-												fetch(`${API_BASE_URL}send-for-validation/${id}`, {
-													method: "POST",
-													headers: { "Content-Type": "application/json" },
-												})
-													.then(async (res) => {
-														const text = await res.text(); // ✅ backend sends plain string
-														if (!res.ok) {
-															alert("❌ " + text); // show backend error message
-														} else {
-															alert("✅ " + text); // show success message
-														}
-														setConfirmPopupData(null);
-													})
-													.catch((err) => {
-														console.error("API error:", err);
-														alert("⚠️ Something went wrong while sending RFI.");
-														setConfirmPopupData(null);
-													});
-											},
-										})
-									}
-								>
-									Send for Validation
-								</button>)}
+								{deptFK.toLocaleLowerCase() === 'engg' && (
+								  <button
+								    onClick={() => {
+								      console.log("📌 Send for Validation clicked for RFI:", row.original.id);
+								      console.log("📌 deptFK:", deptFK);
+
+								      setConfirmPopupData({
+								        message: "Are you sure you want to send this RFI for validation?",
+								        rfiId: row.original.id, // ✅ correct numeric id
+								        onConfirm: (id) => {
+								          console.log("📌 Confirming send-for-validation for id:", id);
+
+								          fetch(`${API_BASE_URL}send-for-validation/${id}`, {
+								            method: "POST",
+								            headers: { "Content-Type": "application/json" },
+								          })
+								            .then(async (res) => {
+								              const text = await res.text(); 
+								              console.log("📌 API response status:", res.status, "body:", text);
+
+								              if (!res.ok) {
+								                alert("❌ " + text);
+								              } else {
+								                alert("✅ " + text);
+								              }
+								              setConfirmPopupData(null);
+								            })
+								            .catch((err) => {
+								              console.error("❌ API error:", err);
+								              alert("⚠️ Something went wrong while sending RFI.");
+								              setConfirmPopupData(null);
+								            });
+								        },
+								      });
+								    }}
+								  >
+								    Send for Validation
+								  </button>
+								)}
+
 								<button
 									onClick={() => {
 										navigate('/InspectionForm', {
