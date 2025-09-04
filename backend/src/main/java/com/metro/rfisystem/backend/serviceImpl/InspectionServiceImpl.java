@@ -205,7 +205,7 @@ public class InspectionServiceImpl implements InspectionService {
 	        inspectionRepository.save(inspection);
 	        rfiRepository.save(rfi);
 	        return InspectionSubmitResult.ENGINEER_SUCCESS;
-	    } else if ("Contractor".equalsIgnoreCase(deptFk)) {
+	    } else if (!"Engg".equalsIgnoreCase(deptFk)) {
 	        inspectionRepository.save(inspection);
 	        rfiRepository.save(rfi);
 	        return InspectionSubmitResult.CONTRACTOR_SUCCESS;
