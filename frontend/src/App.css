@@ -473,7 +473,7 @@ padding: 0 15px;
 	right: 30px;
     display: none;
     position: absolute;
-    margin-top: 140px;
+    margin-top: 85px;
     width: auto;
     min-width: 200px;
     z-index: 1;
@@ -496,6 +496,10 @@ padding: 0 15px;
 	display: block;
     width: 100%;
     padding: 5px 10px;
+}
+.profile-options ul li a{
+	display: block;
+	width: 100%;
 }
 .profile-options ul li:hover{
 	background-color: rgba(0,0,0,0.1);
@@ -971,7 +975,9 @@ padding: 0 15px;
     color: #fff;
     padding: 5px;
 }
-
+.red{
+	color: red;
+}
 .btn{
 	padding: 3px 15px;
 	font-size: 14px;
