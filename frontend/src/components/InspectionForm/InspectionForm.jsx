@@ -776,7 +776,7 @@ export default function InspectionForm() {
 								{/* ✅ Measurements Section */}
 								<hr className="section-divider" />
 								<div className="measurements-section">
-									<h3 className="section-title">Measurements</h3>
+									<h3 className="section-title">Measurements <span className='red'>*</span></h3>
 									{errors.measurements && <p className="error-text">{errors.measurements}</p>}
 
 									<table className="measurements-table">
