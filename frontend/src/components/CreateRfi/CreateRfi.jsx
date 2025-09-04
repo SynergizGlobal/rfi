@@ -670,7 +670,7 @@ const CreateRfi = () => {
 							<fieldset disabled={!isEditable}>
 								<div className="form-row flex-wrap">
 									<div className="form-fields flex-2">
-										<label htmlFor="project" className="block mb-1">Project:</label>
+										<label htmlFor="project" className="block mb-1">Project <span class="red">*</span>:</label>
 										<Select
 											id="project"
 											name="project"
@@ -724,7 +724,7 @@ const CreateRfi = () => {
 
 
 									<div className="form-fields flex-2">
-										<label htmlFor="work" className="block mb-1">Work:</label>
+										<label htmlFor="work" className="block mb-1">Work <span class="red">*</span>:</label>
 										<Select
 											id="work"
 											name="work"
@@ -789,7 +789,7 @@ const CreateRfi = () => {
 
 
 									<div className="form-fields flex-1">
-										<label htmlFor="contract" className="block mb-1">Contract:</label>
+										<label htmlFor="contract" className="block mb-1">Contract <span class="red">*</span>:</label>
 										<Select
 											id="contract"
 											name="contract"
@@ -836,7 +836,7 @@ const CreateRfi = () => {
 									</div>
 
 									<div className="form-fields flex-4">
-										<label htmlFor="structureType" className="block mb-1">Structure Type:</label>
+										<label htmlFor="structureType" className="block mb-1">Structure Type <span class="red">*</span>:</label>
 										<Select
 											id="structureType"
 											name="structureType"
@@ -861,7 +861,7 @@ const CreateRfi = () => {
 									</div>
 
 									<div className="form-fields flex-4">
-										<label htmlFor="structure" className="block mb-1">Structure:</label>
+										<label htmlFor="structure" className="block mb-1">Structure <span class="red">*</span>:</label>
 										<Select
 											id="structure"
 											name="structure"
@@ -888,7 +888,7 @@ const CreateRfi = () => {
 
 
 									<div className="form-fields flex-4">
-										<label htmlFor="component" className="block mb-1">Component:</label>
+										<label htmlFor="component" className="block mb-1">Component <span class="red">*</span>:</label>
 										<Select
 											id="component"
 											name="component"
@@ -915,7 +915,7 @@ const CreateRfi = () => {
 
 
 									<div className="form-fields flex-4">
-										<label htmlFor="element" className="block mb-1">Element:</label>
+										<label htmlFor="element" className="block mb-1">Element <span class="red">*</span>:</label>
 										<Select
 											id="element"
 											name="element"
@@ -940,7 +940,7 @@ const CreateRfi = () => {
 
 									<div className="form-row justify-start">
 										<div className="form-fields flex-4">
-											<label htmlFor="activity" className="block mb-1">Activity:</label>
+											<label htmlFor="activity" className="block mb-1">Activity <span class="red">*</span>:</label>
 											<Select
 												id="activity"
 												name="activity"
@@ -959,7 +959,7 @@ const CreateRfi = () => {
 										</div>
 
 										<div className="form-fields flex-4">
-											<label htmlFor="rfiDescription" className="block mb-1">RFI Description:</label>
+											<label htmlFor="rfiDescription" className="block mb-1">RFI Description <span class="red">*</span>:</label>
 											<Select
 												id="rfiDescription"
 												name="rfiDescription"
@@ -992,7 +992,7 @@ const CreateRfi = () => {
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
-									<label htmlFor="action" className="block mb-1">Action:</label>
+									<label htmlFor="action" className="block mb-1">Action <span class="red">*</span>:</label>
 									{mode === 'edit' ? (
 										<select
 											id="action"
@@ -1035,7 +1035,7 @@ const CreateRfi = () => {
 
 								<div className="form-fields flex-1">
 									<label htmlFor="nameOfRepresentative" className="block mb-1">
-										Name of Contractor's Representative:
+										Name of Contractor's Representative  <span class="red">*</span>:
 									</label>
 									<Select
 										id="nameOfRepresentative"
@@ -1061,7 +1061,7 @@ const CreateRfi = () => {
 
 								</div>
 								<div className="form-fields flex-1">
-									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI:</label>
+									<label htmlFor="dateOfSubmission" className="block mb-1">Date of Submission of RFI <span class="red">*</span>:</label>
 									<input
 										type="date"
 										id="dateOfSubmission"
@@ -1073,7 +1073,7 @@ const CreateRfi = () => {
 								</div>
 
 								<div className="form-fields flex-1">
-									<label htmlFor="timeOfInspection" className="block mb-1">Time Of Inspection:</label>
+									<label htmlFor="timeOfInspection" className="block mb-1">Time Of Inspection  <span class="red">*</span>:</label>
 									<input
 										type="time"
 										id="timeOfInspection"
@@ -1084,7 +1084,7 @@ const CreateRfi = () => {
 									/>
 								</div>
 								<div className="form-fields flex-1">
-									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection:</label>
+									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection <span class="red">*</span>:</label>
 									<input
 										type="date"
 										id="dateOfInspection"
@@ -1121,7 +1121,7 @@ const CreateRfi = () => {
 						<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
-									<label htmlFor="enclosures" className="block mb-1">Enclosures:</label>
+									<label htmlFor="enclosures" className="block mb-1">Enclosures <span class="red">*</span>:</label>
 									<Select
 										id="enclosures"
 										name="enclosures"

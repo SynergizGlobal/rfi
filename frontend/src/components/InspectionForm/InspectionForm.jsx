@@ -546,7 +546,7 @@ export default function InspectionForm() {
 										<input type="text" value={rfiData?.inspectionDetails?.[rfiData.inspectionDetails.length - 1]?.chainage} onChange={e => setChainage(e.target.value)} />
 									</div>
 									<div className="upload-section">
-										<label>Selfie:</label>
+										<label>Selfie <span class="red">*</span>:</label>
 										{selfieImage ? (
 											<img src={selfieImage} alt="Selfie" className="selfie-preview" />
 										) : (
@@ -564,7 +564,7 @@ export default function InspectionForm() {
 								<h2>RFI Inspection - Step 2</h2>
 								<div className="form-grid">
 									<div className="form-left">
-										<label>Location:</label>
+										<label>Location <span class="red">*</span>:</label>
 										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)} />
 										{errors.location && <p className="error-text">{errors.location}</p>}
 										<label>Date of Inspection:</label>
