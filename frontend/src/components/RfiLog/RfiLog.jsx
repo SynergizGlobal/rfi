@@ -92,22 +92,29 @@ const RfiLog = () => {
 
 
 	const userName = localStorage.getItem('userName');
-	console.log("👤 userName from sessionStorage:", userName);
-	if (!userName) {
+	const userId = localStorage.getItem('userId');
+	console.log("👤 userId from localStorage:", userId);
+	if (!userId) {
 		console.warn("⚠️ userName not found in sessionStorage — engineer fetch will fail.");
 	}
 
 	const fetchEngineersForContract = async (contractId) => {
+		const userId = localStorage.getItem('userId');
+		if (!userId) {
+			console.error("❌ Missing userId in localStorage, cannot fetch engineers");
+			return;
+		}
+
 		if (!contractId) {
 			console.error("❌ No contractId provided to fetch engineers");
 			return;
 		}
 		try {
 			const response = await fetch(
-				`${API_BASE_URL}/api/auth/engineer-names?userName=${encodeURIComponent(userName)}&contractId=${encodeURIComponent(contractId)}`
+				`${API_BASE_URL}/api/auth/engineer-names?userId=${encodeURIComponent(userId)}&contractId=${encodeURIComponent(contractId)}`
 			);
 
-			console.log(`Request URL: ${API_BASE_URL}/api/auth/engineer-names?userName=${userName}&contractId=${contractId}`);
+			console.log(`Request URL: ${API_BASE_URL}/api/auth/engineer-names?userId=${userId}&contractId=${contractId}`);
 			console.log("Response OK?", response.ok, "Status:", response.status);
 
 			const contentType = response.headers.get("Content-Type");
@@ -214,7 +221,7 @@ const RfiLog = () => {
 									onMouseDown={(e) => {
 										e.preventDefault();
 										const contractId = row.original.contractId;
-										 setSelectedRfi(row.values.rfiId);
+										setSelectedRfi(row.values.rfiId);
 										setSelectedContractId(contractId);
 										setShowPopup(true);
 										setOpenDropdownRow(null);

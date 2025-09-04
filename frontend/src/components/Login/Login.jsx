@@ -141,6 +141,7 @@ const Login = () => {
 			const data = await response.json();
 			if (response.ok) {
 				localStorage.setItem('isLoggedIn', true);
+				localStorage.setItem('userId', data.userId);
 				localStorage.setItem('userName', data.userName);
 				localStorage.setItem('userRoleNameFk', data.userRoleNameFk);
 				localStorage.setItem('userTypeFk', data.userTypeFk);
@@ -148,6 +149,7 @@ const Login = () => {
 				localStorage.setItem('loginDepartment', data.loginDepartment);
 
 				console.log(localStorage.getItem('loginDepartment'));
+				console.log("✅ Stored userId:", data.userId);
 
 
 				if (data.allowedContractIds) {
