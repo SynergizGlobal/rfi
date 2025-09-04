@@ -1,12 +1,8 @@
 package com.metro.rfisystem.backend.controller;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import com.metro.rfisystem.backend.dto.CheckListDescriptionDto;
-import com.metro.rfisystem.backend.dto.ChecklistProjection;
-import com.metro.rfisystem.backend.dto.EnclosureNameDto;
-import com.metro.rfisystem.backend.dto.RfiEnclosureDTO;
+import com.metro.rfisystem.backend.dto.*;
 import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.serviceImpl.ChecklistDescriptionServiceIMPL;
 
@@ -35,10 +31,9 @@ public class EncloserMasterController {
     public ResponseEntity<List<RfiEnclosureDTO>> getEnclosuresByAction(
             @RequestParam(defaultValue = "OPEN") String action) {
 
-    	  List<RfiEnclosureDTO> enclosureList = service.getDistinctEncloserNamesByAction(action);
-    	    System.out.println("Enclosures: " + enclosureList);
+        List<RfiEnclosureDTO> enclosureList = service.getDistinctEncloserNamesByAction(action);
 
-          return ResponseEntity.ok(enclosureList);
+        return ResponseEntity.ok(enclosureList);
     }
 
     @PostMapping("/addDesctiption/{id}")
@@ -64,9 +59,16 @@ public class EncloserMasterController {
     }
 
     @GetMapping("/description")
-    public List<ChecklistProjection> getAllChecklistsDescriptionByEnclosure(@RequestParam String enclosername) {
-        return descriptionRepository.findAllWithConditionalChecklistDescription(enclosername);
+    public List<CheckListResponse> getAllChecklistsDescriptionByEnclosure(@RequestParam String enclosername) {
+        return checklistDescriptionService.getChecklistDesciptionDetails(enclosername);
     }
+
+    @GetMapping("/checklist-items")
+    public List<CheckListResponse> getAllChecklistsDescriptionByEnclosureAndRfi( @RequestParam("enclosureName") String enclosername,  @RequestParam Long rfiId) {
+
+        return checklistDescriptionService.getChecklistDesciptionDetails(enclosername,rfiId);
+    }
+
     
     @GetMapping("/names")
     public ResponseEntity<List<EnclosureNameDto>> getEnclosureNames(
@@ -74,14 +76,14 @@ public class EncloserMasterController {
         List<EnclosureNameDto> names = service.getEnclosureNamesByAction(action);
         return ResponseEntity.ok(names);
     }
-    
+
     @PostMapping("/submit")
     public ResponseEntity<RfiEnclosureMaster> addEnclosure(@RequestBody EnclosureNameDto dto) {
         RfiEnclosureMaster entity;
 
         if (dto.getId() != null) {
             entity = service.findById(dto.getId())
-                .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + dto.getId()));
+                    .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + dto.getId()));
             entity.setEncloserName(dto.getEncloserName());
         } else {
             entity = new RfiEnclosureMaster();
@@ -92,11 +94,11 @@ public class EncloserMasterController {
         RfiEnclosureMaster saved = service.saveEnclosure(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
-    
+
     @PutMapping("/updateEnclosureName/{id}")
     public ResponseEntity<RfiEnclosureMaster> updateEnclosure(@PathVariable Long id, @RequestBody EnclosureNameDto dto) {
         RfiEnclosureMaster existing = service.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + id));
 
         existing.setEncloserName(dto.getEncloserName());
         RfiEnclosureMaster updated = service.saveEnclosure(existing);

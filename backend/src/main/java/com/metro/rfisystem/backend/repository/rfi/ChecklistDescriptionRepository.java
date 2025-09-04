@@ -13,19 +13,24 @@ public interface ChecklistDescriptionRepository extends JpaRepository<ChecklistD
 
     @Query("select c FROM ChecklistDescription c JOIN FETCH c.enclosureMasters e where e.id=:id")
     List<ChecklistDescription> findAllChecklistDescriptionByEnclosureMastersId(@Param("id") Long id);
-    
+
     @Query(value = """
-            SELECT 
+            SELECT
                 m.id as id,
-                m.encloser_name as enclosername, 
-                m.action as action, 
-                m.check_list_title as checklisttitle, 
+                m.encloser_name as enclosername,
+                m.action as action,
+                m.check_list_title as checklisttitle,
                 COALESCE(d.checklist_description, 'N/A') as checklistDescription
             FROM rfi_enclosure_master m
             LEFT JOIN checklist_description d ON m.id = d.master_id
             WHERE m.encloser_name = :encloserName
             ORDER BY m.id
             """, nativeQuery = true)
-        List<ChecklistProjection> findAllWithConditionalChecklistDescription(@Param("encloserName") String encloserName);
-    }
+    List<ChecklistProjection> findAllWithConditionalChecklistDescription(@Param("encloserName") String encloserName);
+
+    @Query("SELECT m.id as id,c.id as checklistId,m.encloserName as enclosername,m.checkListTitle as checklisttitle," +
+            "COALESCE(c.checklistDescription, 'N/A') as checklistDescription FROM ChecklistDescription c LEFT JOIN c.enclosureMasters m WHERE m.encloserName=:encloserName ORDER BY c.id")
+    List<ChecklistProjection> findAllChecklistDescriptionByName(@Param("encloserName") String encloserName);
+
+}
 

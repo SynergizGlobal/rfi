@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.ToString;
 
 @Entity
 @Table(name = "rfi_checklist_item")
@@ -28,6 +29,8 @@ public class RFIChecklistItem {
     @ManyToOne
     @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
     @JsonBackReference
+    @ToString.Exclude
+    @JsonIgnore
     private RFI rfi;
     
     
@@ -39,6 +42,11 @@ public class RFIChecklistItem {
    //  @Enumerated(EnumType.STRING)
    //  private ChecklistOption status; // YES, NO, NA
      private String status;
+
+     @Column(name = "con_status")
+     private String contractorStatus;
+     @Column(name="ae_status")
+     private String engineerStatus;
      private String contractorRemark;
      private String aeRemark;
 
@@ -50,10 +58,9 @@ public class RFIChecklistItem {
      
      @ManyToOne(fetch = FetchType.LAZY)
      @JoinColumn(name="chk_des_id", referencedColumnName = "id")
+     @ToString.Exclude
+     @JsonIgnore
      private ChecklistDescription checklistDescription;
-
-
-
 
 
 }

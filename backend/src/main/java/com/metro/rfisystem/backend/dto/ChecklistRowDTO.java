@@ -1,5 +1,7 @@
 package com.metro.rfisystem.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,11 +11,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChecklistRowDTO {
 
-	private Long checklistDescriptionId;
-	 private String description;
-	    //private ChecklistOption status;
+    @JsonProperty("checklistDescriptionId")
+	 private Long checklistDescriptionId;
+	private String description;   
 	 private String status;
-	    private String contractorRemark;
-	    private String aeRemark;
+	  private String contractorRemark;
+	   private String aeRemark;
 }
 

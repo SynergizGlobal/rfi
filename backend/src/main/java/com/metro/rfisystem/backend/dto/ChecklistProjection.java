@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.dto;
 
 public interface ChecklistProjection {
     Long getId();
+    Long getChecklistId();
     String getEnclosername();
     String getAction();
     String getChecklisttitle();
