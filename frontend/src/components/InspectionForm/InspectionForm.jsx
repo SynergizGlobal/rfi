@@ -1020,7 +1020,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
       minWidth: '250px',
     },
     {
-      name: 'Status',
+      name: 'Contracor Status',
       cell: row => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1054,6 +1054,41 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
       ),
       minWidth: '180px',
     },
+	{
+	      name: 'Engineer Status',
+	      cell: row => (
+	        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+	          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+	            <input 
+	              type="radio" 
+	              name={`status-${row.id}`} 
+	              checked={row.status === 'YES'} 
+	              onChange={() => handleChange(row.id, 'status', 'YES')} 
+	              disabled={deptFK !== 'contractor'} 
+	            /> Yes
+	          </label>
+	          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+	            <input 
+	              type="radio" 
+	              name={`status-${row.id}`} 
+	              checked={row.status === 'NO'} 
+	              onChange={() => handleChange(row.id, 'status', 'NO')} 
+	              disabled={deptFK !== 'contractor'} 
+	            /> No
+	          </label>
+	          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+	            <input 
+	              type="radio" 
+	              name={`status-${row.id}`} 
+	              checked={row.status === 'NA'} 
+	              onChange={() => handleChange(row.id, 'status', 'NA')} 
+	              disabled={deptFK !== 'contractor'} 
+	            /> N/A
+	          </label>
+	        </div>
+	      ),
+	      minWidth: '180px',
+	    },
     {
       name: 'Contractor Remark',
       cell: row => (
