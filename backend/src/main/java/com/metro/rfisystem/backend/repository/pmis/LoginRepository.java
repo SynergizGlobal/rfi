@@ -65,8 +65,14 @@ public interface LoginRepository extends JpaRepository<User, String> {
             "AND u.reporting_to_id_srfk = :reportingToId",     // ✅ Must report to logged-in user
     nativeQuery = true)
 List<Map<String, Object>> findRegularUsersByReporting(@Param("reportingToId") String reportingToId);
-	
-	
 
-	
+    @Query(value = """
+            SELECT u.user_name
+            FROM [user] u
+            INNER JOIN [user] manager
+                ON u.reporting_to_id_srfk = manager.user_id
+            WHERE manager.user_role_name_fk = 'Contractor'
+            ORDER BY u.user_name ASC
+        """, nativeQuery = true)
+        List<Map<String, Object>> getAllRepresentativesReportingToContractor();
 }

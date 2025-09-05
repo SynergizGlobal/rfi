@@ -90,6 +90,12 @@ const CreateRfi = () => {
 		}
 	}, [mode, formData]);
 
+	const getMinInspectionDate = () => {
+		const today = new Date();
+		today.setDate(today.getDate() + 2); // ✅ Add 2 days
+		return today.toISOString().split("T")[0];
+	};
+
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		if (name === "dateOfSubmission") {
@@ -1103,6 +1109,7 @@ const CreateRfi = () => {
 										value={formState.dateOfSubmission}
 										onChange={handleChange}
 										min={getTodayISO()}
+										readOnly
 									/>
 								</div>
 
@@ -1129,7 +1136,7 @@ const CreateRfi = () => {
 										name="dateOfInspection"
 										value={formState.dateOfInspection}
 										onChange={handleChange}
-										min={new Date().toISOString().split('T')[0]}
+										min={getMinInspectionDate()}
 										style={{
 											borderColor: errors.reschedule ? "red" : "#ccc"
 										}}

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,25 +227,36 @@ public class RFIController {
 		 @GetMapping("/regularUsers")
 		 public ResponseEntity<?> getRegularUsers(HttpSession session) {
 		     String userId = (String) session.getAttribute("userId");
+		     String userRole = (String) session.getAttribute("userRoleNameFk");
 
+		     // ✅ Check session validity
 		     if (userId == null || userId.isEmpty()) {
 		         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 		                 .body("Session expired. Please log in again.");
 		     }
 
-		     List<Map<String, Object>> regularUsers = rfiService.getRegularUsers(userId);
+		     List<Map<String, Object>> representatives;
 
-		     if (regularUsers.isEmpty()) {
-		         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-		                 .body("No regular users found.");
+		     // ✅ IT Admin → Fetch ALL representatives reporting to contractors
+		     if (userRole != null && userRole.trim().equalsIgnoreCase("IT Admin")) {
+		         representatives = rfiService.getAllRepresentativesReportingToContractor();
+		     } else {
+		         // ✅ Contractors / Regular Users / DyHOD → Fetch only their representatives
+		         representatives = rfiService.getRegularUsers(userId);
 		     }
 
-		     // ✅ Return only names
-		     List<String> regularUserNames = regularUsers.stream()
+		     // ✅ Handle no data
+		     if (representatives.isEmpty()) {
+		         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		                 .body("No representatives found.");
+		     }
+
+		     // ✅ Return usernames only
+		     List<String> representativeNames = representatives.stream()
 		             .map(u -> (String) u.get("user_name"))
 		             .toList();
 
-		     return ResponseEntity.ok(regularUserNames);
+		     return ResponseEntity.ok(representativeNames);
 		 }
 
 

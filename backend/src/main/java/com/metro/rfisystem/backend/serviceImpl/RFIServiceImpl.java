@@ -327,6 +327,12 @@ public class RFIServiceImpl implements RFIService {
        return rfiRepository.findByRepresentative(representative);
    }
 
+	@Override
+	public List<Map<String, Object>> getAllRepresentativesReportingToContractor() {
+	    return loginRepo.getAllRepresentativesReportingToContractor();
+	}
+	
+	  
 
 	@Override
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {

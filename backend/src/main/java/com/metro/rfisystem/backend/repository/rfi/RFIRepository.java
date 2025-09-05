@@ -16,6 +16,7 @@ import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public interface RFIRepository extends JpaRepository<RFI, Long> {
@@ -375,5 +376,14 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiListDTO> findByRepresentative(@Param("representative") String representative);
+	
+	@Query(value = """
+		    SELECT DISTINCT u.user_name
+		    FROM [user] u
+		    INNER JOIN [user] mgr ON u.reporting_to_id_srfk = mgr.user_id
+		    WHERE mgr.user_role_name_fk = 'Contractor'
+		""", nativeQuery = true)
+		List<String> findRepresentativesReportingToContractor();
+
 
 }

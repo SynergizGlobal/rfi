@@ -9,7 +9,7 @@ const HeaderRight = () => {
 
 	const isContractor = userRole === "contractor" && loginDepartment !== "engg";
 	const isRegularUser = userRole === "regular user";
-	const isITAdmin = userRole === "it admin" ;
+	const isITAdmin = userRole === "it admin";
 	const isDyHOD = userType === "dyhod";
 	const isEnggDept = loginDepartment === "engg";
 
@@ -50,7 +50,7 @@ const HeaderRight = () => {
 					{isEnggDept && !isContractor && !isITAdmin && (
 						<>
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
-							<li><Link to="/AssignExecutive"><div className="menu-text"><i class="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
+							<li><Link to="/AssignExecutive"><div className="menu-text"><i className="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 						</>
@@ -75,20 +75,29 @@ const HeaderRight = () => {
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
-							<li><Link to="/AssignExecutive"><div className="menu-text"><i class="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
-							<li><Link to="/ReferenceForm"><div className="menu-text"><i class="fa-solid fa-copy"></i> <span>Reference Form</span></div></Link></li>
-							<li><Link to="/InspectionReferenceForm"><div className="menu-text"><i class="fa-solid fa-copy"></i> <span>Inspection Reference Form</span></div></Link></li>
+							<li><Link to="/AssignExecutive"><div className="menu-text"><i className="fa-solid fa-code-pull-request"></i> <span>Assign Executive</span></div></Link></li>
+							<li><Link to="/ReferenceForm"><div className="menu-text"><i className="fa-solid fa-copy"></i> <span>Reference Form</span></div></Link></li>
+							<li><Link to="/InspectionReferenceForm"><div className="menu-text"><i className="fa-solid fa-copy"></i> <span>Inspection Reference Form</span></div></Link></li>
 							<li><Link to="#"><div className="menu-text"><i className="fa-solid fa-download"></i> <span>Download Enclosures</span></div></Link></li>
 						</>
 					)}
 
-					{/* Shared menus for regular user, dyhod if not engg */}
-					{(!isEnggDept && (isRegularUser || isDyHOD) && !isITAdmin) && (
+					{/* Regular User Menu - Restricted */}
+					{!isEnggDept && isRegularUser && !isITAdmin && (
 						<>
 							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
 							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
-							<li><Link to="/ReferenceForm"><div className="menu-text"><i class="fa-solid fa-copy"></i> <span>Reference Form</span></div></Link></li>
-							<li><Link to="/InspectionReferenceForm"><div className="menu-text"><i class="fa-solid fa-copy"></i> <span>Inspection Reference Form</span></div></Link></li>
+							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
+						</>
+					)}
+
+					{/* DyHOD Menu - Keep Full Access */}
+					{!isEnggDept && isDyHOD && !isITAdmin && (
+						<>
+							<li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+							<li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+							<li><Link to="/ReferenceForm"><div className="menu-text"><i className="fa-solid fa-copy"></i> <span>Reference Form</span></div></Link></li>
+							<li><Link to="/InspectionReferenceForm"><div className="menu-text"><i className="fa-solid fa-copy"></i> <span>Inspection Reference Form</span></div></Link></li>
 							<li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
 						</>
 					)}
