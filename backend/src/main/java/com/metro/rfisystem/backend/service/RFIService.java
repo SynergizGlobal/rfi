@@ -71,5 +71,9 @@ public interface RFIService {
 
 	List<RfiListDTO> getRFIsByRepresentative(String userName);
 
+	List<Map<String, Object>> getRegularUsers(String userId);
+
+	void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department);
+
 	
 }

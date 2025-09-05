@@ -197,7 +197,15 @@ public class RFIController {
 
 		}
 		
-
+// Bulk update for returned RfiIds setting Executive.
+		@PostMapping("/assign-bulk-executive")
+		public ResponseEntity<String> assignPersonToClient(@RequestBody AssignExecutiveDTO dto) {
+			if (dto.getRfiIds() == null || dto.getRfiIds().isEmpty()) {
+				return ResponseEntity.badRequest().body("No RFI IDs provided.");
+			}
+			rfiService.assignExecutiveToRfis(dto.getRfiIds(), dto.getExecutive(), dto.getDepartment());
+			return ResponseEntity.ok("Executives assigned successfully to all RFIs!");
+		}
 		
 		
 		 @GetMapping("/representatives")
@@ -215,36 +223,31 @@ public class RFIController {
 		 
 		 
 		 
-		 @GetMapping("/contractors")
-		 public ResponseEntity<?> getContractors(HttpSession session) {
-		     // ✅ Fetch logged-in user's userId
+		 @GetMapping("/regularUsers")
+		 public ResponseEntity<?> getRegularUsers(HttpSession session) {
 		     String userId = (String) session.getAttribute("userId");
-
-		     // ✅ Debug logs
-		     System.out.println("Logged-in User ID: " + userId);
 
 		     if (userId == null || userId.isEmpty()) {
 		         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 		                 .body("Session expired. Please log in again.");
 		     }
 
-		     // ✅ Fetch contractors from DB using manager's userId
-		     List<Map<String, Object>> contractors = rfiService.getContractors(userId);
+		     List<Map<String, Object>> regularUsers = rfiService.getRegularUsers(userId);
 
-		     System.out.println("Contractors size: " + contractors.size());
-
-		     if (contractors.isEmpty()) {
+		     if (regularUsers.isEmpty()) {
 		         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-		                 .body("No contractors found.");
+		                 .body("No regular users found.");
 		     }
 
-		     // ✅ Return only user names
-		     List<String> contractorNames = contractors.stream()
-		             .map(c -> (String) c.get("user_name"))
+		     // ✅ Return only names
+		     List<String> regularUserNames = regularUsers.stream()
+		             .map(u -> (String) u.get("user_name"))
 		             .toList();
 
-		     return ResponseEntity.ok(contractorNames);
+		     return ResponseEntity.ok(regularUserNames);
 		 }
+
+
 
 
 	 
@@ -277,19 +280,27 @@ public class RFIController {
 		}
 		 if (userRole.equalsIgnoreCase("Contractor")) {
 		        List<RfiListDTO> created = rfiService.getRFIsCreatedBy(userName);
-		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
+//		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
 
 		        // Merge both lists and remove duplicates
 		        Set<RfiListDTO> merged = new LinkedHashSet<>(created);
-		        merged.addAll(representative);
+//		        merged.addAll(representative);
 
 		        return ResponseEntity.ok(new ArrayList<>(merged));
 		    }
+		 
+		 if (userRole.equalsIgnoreCase("Regular User")) {
+		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
+		        return ResponseEntity.ok(representative);
+		    }
+		 
+		
 		if (userDepartment.equalsIgnoreCase("Engg")) {
 			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
 		}
 		return ResponseEntity.ok(rfiService.getRFIsByCreatedBy(userName));
 	}
+	
 	
 	@GetMapping("/rfi-count")
 	public ResponseEntity<Integer> getRfiCount(HttpSession session) {

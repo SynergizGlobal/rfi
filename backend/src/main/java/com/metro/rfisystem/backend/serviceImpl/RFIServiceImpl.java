@@ -189,6 +189,13 @@ public class RFIServiceImpl implements RFIService {
 		System.out.println("Result size: " + result.size());
 		return result;
 	}
+	
+	@Override
+	public List<Map<String, Object>> getRegularUsers(String userId) {
+	    System.out.println("Fetching regular users (representatives) for manager userId: " + userId);
+	    return loginRepo.findRegularUsersByReporting(userId);
+	}
+
 
 	@Override
 	public List<String> getContractorUserNamesWithReportingId(String loggedInUserName) {
@@ -342,5 +349,17 @@ public class RFIServiceImpl implements RFIService {
 		return rfiRepository.countByCreatedBy(createdBy);
 	}
 	
+	
+	@Override
+	@Transactional
+	public void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department) {
+	    int updatedCount = rfiRepository.updateExecutivesForRfis(rfiIds, executive, department);
+
+	    if (updatedCount == 0) {
+	        throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
+	    }
+	}
+
+
 
 }

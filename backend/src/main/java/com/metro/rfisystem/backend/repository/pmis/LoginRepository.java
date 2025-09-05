@@ -43,7 +43,7 @@ public interface LoginRepository extends JpaRepository<User, String> {
 	@Query(value = "SELECT u.user_id, u.user_name " + "FROM [user] u "
 			+ "LEFT JOIN department d ON u.department_fk = d.department "
 			+ "LEFT JOIN [user] usr ON u.reporting_to_id_srfk = usr.user_id "
-			+ "WHERE u.user_role_name_fk = 'Contractor' " + "AND u.reporting_to_id_srfk = :reportingToId", nativeQuery = true)
+			+ "WHERE u.user_role_name_fk = 'Regular User' " + "AND u.reporting_to_id_srfk = :reportingToId", nativeQuery = true)
 	List<Map<String, Object>> findContractorsByReporting(@Param("reportingToId") String reportingToId);
 	@Query("SELECT u.userName FROM User u WHERE u.userName = :userName")
 	List<String> findUserNamesByUserName(@Param("userName") String userName);
@@ -56,6 +56,15 @@ public interface LoginRepository extends JpaRepository<User, String> {
 
 	@Query("SELECT u FROM User u WHERE u.userId = :userId")
 	List<User> findByUserId(@Param("userId") String userId);
+
+	@Query(value = "SELECT u.user_id, u.user_name " +
+            "FROM [user] u " +
+            "LEFT JOIN department d ON u.department_fk = d.department " +
+            "LEFT JOIN [user] usr ON u.reporting_to_id_srfk = usr.user_id " +
+            "WHERE u.user_role_name_fk = 'Regular User' " +   // ✅ Only Regular Users
+            "AND u.reporting_to_id_srfk = :reportingToId",     // ✅ Must report to logged-in user
+    nativeQuery = true)
+List<Map<String, Object>> findRegularUsersByReporting(@Param("reportingToId") String reportingToId);
 	
 	
 

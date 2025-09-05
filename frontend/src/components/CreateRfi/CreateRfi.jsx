@@ -111,6 +111,11 @@ const CreateRfi = () => {
 
 	const handleSubmit = async () => {
 
+		if (!validateStep2()) {
+			alert("Please fix validation errors before submitting.");
+			return;
+		}
+
 		setMessage('');
 		const url =
 			mode === 'edit'
@@ -551,7 +556,7 @@ const CreateRfi = () => {
 	useEffect(() => {
 		const fetchContractors = async () => {
 			try {
-				const response = await axios.get(`${API_BASE_URL}rfi/contractors`, {
+				const response = await axios.get(`${API_BASE_URL}rfi/regularUsers`, {
 					withCredentials: true,
 				});
 				const options = response.data.map((name) => ({
@@ -575,6 +580,8 @@ const CreateRfi = () => {
 		{ value: 'Regular RFI', label: 'Regular RFI' },
 		{ value: 'SPOT RFI', label: 'SPOT RFI' },
 	];
+
+
 
 	const validateStep1 = () => {
 		const newErrors = {};
@@ -608,7 +615,31 @@ const CreateRfi = () => {
 		if (mode === 'edit' && (!formState.action || formState.action.trim() === '')) {
 			newErrors.action = "Action is required";
 		}
+		if (mode === 'edit' && formState.action === 'reschedule') {
+			const originalDate = location?.state?.dateOfInspection || '';
+			const originalTime = location?.state?.timeOfInspection || '';
 
+			// Normalize date formats (convert both to YYYY-MM-DD)
+			const formattedOriginalDate = originalDate
+				? new Date(originalDate).toISOString().split('T')[0]
+				: '';
+			const formattedFormDate = formState.dateOfInspection
+				? new Date(formState.dateOfInspection).toISOString().split('T')[0]
+				: '';
+
+			// Normalize time formats (HH:MM)
+			const formattedOriginalTime = originalTime ? originalTime.slice(0, 5) : '';
+			const formattedFormTime = formState.timeOfInspection
+				? formState.timeOfInspection.slice(0, 5)
+				: '';
+
+			const isDateChanged = formattedFormDate !== formattedOriginalDate;
+			const isTimeChanged = formattedFormTime !== formattedOriginalTime;
+
+			if (!isDateChanged && !isTimeChanged) {
+				newErrors.reschedule = "For reschedule, you must change either date or time of inspection.";
+			}
+		}
 		if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
 		if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
 		if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
@@ -993,6 +1024,9 @@ const CreateRfi = () => {
 							<div className="form-row flex-wrap align-center">
 								<div className="form-fields flex-1">
 									<label htmlFor="action" className="block mb-1">Action <span class="red">*</span>:</label>
+									{errors.reschedule && (
+										<p style={{ color: "red", fontSize: "12px" }}>{errors.reschedule}</p>
+									)}
 									{mode === 'edit' ? (
 										<select
 											id="action"
@@ -1081,6 +1115,10 @@ const CreateRfi = () => {
 										value={formState.timeOfInspection}
 										onChange={handleChange}
 										placeholder="Enter value"
+										style={{
+											borderColor: errors.reschedule ? "red" : "#ccc"
+										}}
+
 									/>
 								</div>
 								<div className="form-fields flex-1">
@@ -1092,6 +1130,9 @@ const CreateRfi = () => {
 										value={formState.dateOfInspection}
 										onChange={handleChange}
 										min={new Date().toISOString().split('T')[0]}
+										style={{
+											borderColor: errors.reschedule ? "red" : "#ccc"
+										}}
 									/>
 								</div>
 
