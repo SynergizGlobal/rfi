@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ExecutiveDTO {
 	private String userName;
+	private String userId;
 	private String department;
 
 }

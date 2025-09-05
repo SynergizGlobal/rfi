@@ -19,7 +19,7 @@ const AssignExecutive = () => {
     executive: "",
     dyHodUserId: "",
     department: "",
-    rfiId: ""
+    userId: ""
   });
 
   const [errors, setErrors] = useState({}); // ✅ error state
@@ -101,13 +101,15 @@ const AssignExecutive = () => {
         response.data.map((exec) => ({
           value: exec.userName,
           label: `${exec.department} - ${exec.userName}`,
-          department: exec.department
+          department: exec.department,
+          userId: exec.userId   
         }))
       );
     } catch (error) {
       console.error("Error fetching executives:", error);
     }
   };
+
 
   // ✅ Validation function
   // ✅ Validation function
@@ -145,6 +147,7 @@ const AssignExecutive = () => {
       structure: formState.structure,
       assignedPersonClient: formState.executive.value,
       department: formState.department,
+	  userId:formState.userId
     };
 
     try {
@@ -415,25 +418,26 @@ const AssignExecutive = () => {
 			  <div className="form-group">
 			    <label>Assign Executive</label>
 			    {errors.executive && <div className="error-text">{errors.executive}</div>}
-			    <Select
-			      name="executive"
-			      options={executives}
-			      value={
-			        formState.executive
-			          ? executives.find((e) => e.value === formState.executive.value)
-			          : null
-			      }
-			      onChange={(selected) => {
-			        setFormState({
-			          ...formState,
-			          executive: selected,
-			          department: selected?.department || "",
-			        });
-			        if (selected) {
-			          setErrors((prev) => ({ ...prev, executive: "" }));
-			        }
-			      }}
-			    />
+				<Select
+				  name="executive"
+				  options={executives}
+				  value={
+				    formState.executive
+				      ? executives.find((e) => e.value === formState.executive.value)
+				      : null
+				  }
+				  onChange={(selected) => {
+				    setFormState({
+				      ...formState,
+				      executive: selected,
+				      department: selected?.department || "",
+				      userId: selected?.userId || ""   // ✅ now matches
+				    });
+				    if (selected) {
+				      setErrors((prev) => ({ ...prev, executive: "" }));
+				    }
+				  }}
+				/>
 			  </div>
 
 

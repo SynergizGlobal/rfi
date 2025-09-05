@@ -65,6 +65,7 @@ WHERE component_id IS NOT NULL
 	@Query(value = """
 					     SELECT DISTINCT
 			    u.user_name as userName,
+			    u.user_id as userId,
 			    d.department_name as department
 			FROM contract c
 			INNER JOIN structure s

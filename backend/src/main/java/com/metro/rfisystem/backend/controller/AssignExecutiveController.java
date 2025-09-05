@@ -40,6 +40,7 @@ public class AssignExecutiveController {
 	        log.setStructure(request.getStructure());
 	        log.setAssignedPersonClient(request.getAssignedPersonClient());
 	        log.setAssignedPersonDepartment(request.getDepartment());
+	        log.setAssignedPersonUserId(request.getUserId());
 
 	        boolean isSubmitted = assignExecutiveService.saveAssignment(log);
 

@@ -11,4 +11,5 @@ public class AssignExecutiveRequest {
     private String structure;
     private String assignedPersonClient; 
     private String department;
+    private String userId;
 }
