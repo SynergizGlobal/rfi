@@ -40,6 +40,9 @@ public class AssignExecutiveLog {
 	@Column(name = "assigned_person_client")
 	private String assignedPersonClient;
 	
+	@Column(name = "assigned_person_department")
+	private String assignedPersonDepartment;
+	
 	@Column(name = "assigned_at")
 	@Temporal(TemporalType.TIMESTAMP)
 	@UpdateTimestamp

@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.metro.rfisystem.backend.dto.AssignExecutiveResponse;
 import com.metro.rfisystem.backend.model.rfi.AssignExecutiveLog;
 import com.metro.rfisystem.backend.repository.rfi.AssignExecutiveLogRepository;
 import com.metro.rfisystem.backend.service.AssignExecutiveService;
 
+@Service
 public class AssignExecutiveServiceImpl implements  AssignExecutiveService {
 	
     @Autowired
