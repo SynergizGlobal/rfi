@@ -197,15 +197,7 @@ public class RFIController {
 
 		}
 		
-// Bulk update for returned RfiIds setting Executive.
-		@PostMapping("/assign-bulk-executive")
-		public ResponseEntity<String> assignPersonToClient(@RequestBody AssignExecutiveDTO dto) {
-			if (dto.getRfiIds() == null || dto.getRfiIds().isEmpty()) {
-				return ResponseEntity.badRequest().body("No RFI IDs provided.");
-			}
-			rfiService.assignExecutiveToRfis(dto.getRfiIds(), dto.getExecutive(), dto.getDepartment());
-			return ResponseEntity.ok("Executives assigned successfully to all RFIs!");
-		}
+
 		
 		
 		 @GetMapping("/representatives")

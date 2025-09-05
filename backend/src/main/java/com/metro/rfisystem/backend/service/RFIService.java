@@ -69,8 +69,6 @@ public interface RFIService {
 	List<String> getContractorUserNamesWithReportingId(String loggedInUserName);
 
 
-	void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department);
-
 	List<RfiListDTO> getRFIsByRepresentative(String userName);
 
 	
