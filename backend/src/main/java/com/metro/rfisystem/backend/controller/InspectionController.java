@@ -61,29 +61,67 @@ public class InspectionController {
 	}
 	
 
-	@PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Long> startInspection(HttpSession session, @RequestPart("data") String dataJson,
-			@RequestPart("selfie") MultipartFile selfie,
-			@RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages) {
-		String deptFk = (String) session.getAttribute("departmentFk");
+	@PostMapping(value = "/saveDraft", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<Long> saveDraftInspection(
+	        HttpSession session,
+	        @RequestPart("data") String dataJson,
+	        @RequestPart(value = "selfie", required = false) MultipartFile selfie,
+	        @RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages,
+	        @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 
-		try {
-			ObjectMapper objectMapper = new ObjectMapper();
-			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
-			 if (siteImages == null) {
-			        siteImages = new ArrayList<>();
-			    }
+	    String deptFk = (String) session.getAttribute("departmentFk");
 
+	    try {
+	        ObjectMapper objectMapper = new ObjectMapper();
+	        RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-			Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, deptFk);
+	        if (siteImages == null) {
+	            siteImages = new ArrayList<>();
+	        }
 
-			return ResponseEntity.ok(inspectionId);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+	        Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, testDocument, deptFk);
 
-		}
+	        return ResponseEntity.ok(inspectionId);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+	    }
 	}
+	
+	
+//	@PostMapping("/finalSubmit/{inspectionId}")
+//	public ResponseEntity<String> submitInspection(@PathVariable Long inspectionId) {
+//	    try {
+//	        inspectionService.markAsSubmitted(inspectionId);
+//	        return ResponseEntity.ok("Inspection submitted successfully.");
+//	    } catch (RuntimeException e) {
+//	        return ResponseEntity.badRequest().body(e.getMessage());
+//	    }
+//	}
+	
+	
+	
+	@PostMapping("/finalSubmit/{inspectionId}")
+	public ResponseEntity<String> submitInspection(HttpSession session, @PathVariable Long inspectionId) {
+	    String deptFk = (String) session.getAttribute("departmentFk");
+
+	    try {
+	        InspectionSubmitResult result = inspectionService.markAsSubmitted(inspectionId, deptFk);
+	        switch (result) {
+	            case ENGINEER_SUCCESS:
+	                return ResponseEntity.ok("Inspection Submitted By Engineer.");
+	            case CONTRACTOR_SUCCESS:
+	                return ResponseEntity.ok("Inspection Submitted By Contractor.");
+	            default:
+	                return ResponseEntity.ok("RFI Submission Failed..!");
+	        }
+	    } catch (RuntimeException e) {
+	        return ResponseEntity.badRequest().body(e.getMessage());
+	    }
+	}
+
+
+
 	
 	@GetMapping("/inspection/measurement-data/{rfiId}")
 	public ResponseEntity<RFIInspectionDetails> getInspectionMeasurementData(@PathVariable Long rfiId) {
@@ -128,7 +166,7 @@ public class InspectionController {
 		return ResponseEntity.ok(dto);
 	}
 
-	@PostMapping(value = "/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/saveChecklist", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<String> saveChecklist(HttpSession session, @RequestPart("data") String checklistJson) {
 		String deptFk = (String) session.getAttribute("departmentFk");
 		try {
@@ -143,6 +181,14 @@ public class InspectionController {
 					.body("Failed to save checklist: " + e.getMessage());
 		}
 	}
+
+	
+	
+	
+	
+	
+	
+	
 
 
 

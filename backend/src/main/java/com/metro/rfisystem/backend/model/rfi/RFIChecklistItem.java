@@ -38,11 +38,6 @@ public class RFIChecklistItem {
      @Column(name = "grade_of_concrete")
      private String gradeOfConcrete;
 
-   
-   //  @Enumerated(EnumType.STRING)
-   //  private ChecklistOption status; // YES, NO, NA
-     private String status;
-
      @Column(name = "con_status")
      private String contractorStatus;
      @Column(name="ae_status")

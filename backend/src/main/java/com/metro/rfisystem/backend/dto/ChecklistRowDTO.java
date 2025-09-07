@@ -14,7 +14,8 @@ public class ChecklistRowDTO {
     @JsonProperty("checklistDescriptionId")
 	 private Long checklistDescriptionId;
 	private String description;   
-	 private String status;
+	 private String contractorStatus;
+	 private String engineerStatus;
 	  private String contractorRemark;
 	   private String aeRemark;
 }

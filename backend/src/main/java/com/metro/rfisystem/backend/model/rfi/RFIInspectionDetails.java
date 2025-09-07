@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.TestType;
 import jakarta.persistence.Column;
@@ -89,4 +90,9 @@ public class RFIInspectionDetails {
     
     @Column(name = "ae_remarks")
     private String engineerRemarks;
+    
+    
+    @Column(name = "work_status")
+    private InspectionWorkFlowStatus workStatus;
+    
 }

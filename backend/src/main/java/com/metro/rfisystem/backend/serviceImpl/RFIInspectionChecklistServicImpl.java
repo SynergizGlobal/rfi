@@ -71,7 +71,8 @@ public class RFIInspectionChecklistServicImpl implements RFIInspectionChecklistS
 
 	            // Update fields
 	            checklist.setGradeOfConcrete(dto.getGradeOfConcrete());
-	            checklist.setStatus(row.getStatus());
+	            checklist.setContractorStatus(row.getContractorStatus());
+	            checklist.setEngineerStatus(row.getEngineerStatus());
 	            checklist.setContractorRemark(row.getContractorRemark());
 	            checklist.setAeRemark(row.getAeRemark());
 
@@ -184,7 +185,8 @@ public class RFIInspectionChecklistServicImpl implements RFIInspectionChecklistS
         List<ChecklistRowDTO> rowDtos = items.stream().map(entity -> {
             ChecklistRowDTO row = new ChecklistRowDTO();
 
-            row.setStatus(entity.getStatus());
+            row.setContractorStatus(entity.getContractorStatus());
+            row.setEngineerStatus(entity.getEngineerStatus());
             row.setContractorRemark(entity.getContractorRemark());
             row.setAeRemark(entity.getAeRemark());
             return row;
