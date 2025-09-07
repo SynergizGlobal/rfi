@@ -122,7 +122,8 @@ export default function InspectionForm() {
 						id: index + 1,
 						checklistDescId: item.checklistDescId,
 						description: item.checklistDescription, // Changed from item.description
-						status: item.contractorStatus || '',    // Changed from item.status
+						contractorStatus: item.contractorStatus || '',
+						engineerStatus: item.engineerStatus,    // Changed from item.status
 						contractorRemark: item.contractorRemarks || '', // Changed from item.contractorRemark
 						aeRemark: item.engineerRemark || ''     // Changed from item.aeRemark
 					}));
@@ -192,23 +193,27 @@ export default function InspectionForm() {
 		setTimeOfInspection(now.toTimeString().split(" ")[0].slice(0, 5));
 	}, []);
 
+	// Function to fetch current geolocation
 	const fetchLocation = () => {
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				async position => {
-					const lat = position.coords.latitude;
-					const lng = position.coords.longitude;
-					try {
-						const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-						const data = await res.json();
-						setLocationText(data.display_name || `Lat: ${lat}, Lng: ${lng}`);
-					} catch {
-						setLocationText(`Lat: ${lat}, Lng: ${lng}`);
-					}
-				},
-				() => setLocationText('Location access denied')
-			);
-		}
+	    if (navigator.geolocation) {
+	        navigator.geolocation.getCurrentPosition(
+	            async position => {
+	                const lat = position.coords.latitude;
+	                const lng = position.coords.longitude;
+	                try {
+	                    const res = await fetch(
+	                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+	                    );
+	                    const geoData = await res.json();
+	                    // Only overwrite if data returned a proper address
+	                    setLocationText(geoData.display_name || `Lat: ${lat}, Lng: ${lng}`);
+	                } catch {
+	                    setLocationText(`Lat: ${lat}, Lng: ${lng}`);
+	                }
+	            },
+	            () => setLocationText("Location access denied")
+	        );
+	    }
 	};
 
 	function dataURLtoFile(dataUrl, filename) {
@@ -234,7 +239,8 @@ export default function InspectionForm() {
 			checklistRows: checklistData.map(row => ({
 				checklistDescriptionId: row.checklistDescId,
 				description: row.description,
-				status: row.status,
+				contractorStatus: row.contractorStatus,
+				engineerStatus:row.engineerStatus,
 				contractorRemark: row.contractorRemark,
 				aeRemark: row.aeRemark
 			}))
@@ -246,7 +252,7 @@ export default function InspectionForm() {
 		formData.append("data", JSON.stringify(dto));
 
 		try {
-			const res = await fetch(`${API_BASE_URL}rfi/save`, {
+			const res = await fetch(`${API_BASE_URL}rfi/saveChecklist`, {
 				method: "POST",
 				body: formData,
 				credentials: "include",
@@ -343,74 +349,58 @@ export default function InspectionForm() {
 	};
 
 	const handleSaveInspection = async () => {
-		if (!selfieImage) {
-			alert('Selfie image is required.');
-			selfieRef.current?.focus();
-			return;
-		}
-		/*   const hasGallery = Object.values(galleryImages).some((img) => img);
-		  if (!hasGallery) {
-			alert('At least one site image is required.');
-			firstGalleryRef.current?.focus();
-			return;
-		  } */
-		const formData = new FormData();
-		const inspectionPayload = {
-			rfiId: rfiData.id,
-			location: locationText,
-			chainage: chainage,
-			nameOfRepresentative: contractorRep,
-			measurementType: measurements[0]?.type || "",
-			length: parseFloat(measurements[0]?.L) || 0,
-			breadth: parseFloat(measurements[0]?.B) || 0,
-			height: parseFloat(measurements[0]?.H) || 0,
-			noOfItems: parseInt(measurements[0]?.No) || 0,
-			totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0)
-		};
+	  const formData = new FormData();
+	  const inspectionPayload = {
+	    inspectionId, // include if editing existing
+	    rfiId: rfiData.id,
+	    location: locationText || null,
+	    chainage: chainage || null,
+	    nameOfRepresentative: contractorRep || null,
+	    measurementType: measurements[0]?.type || null,
+	    length: parseFloat(measurements[0]?.L) || null,
+	    breadth: parseFloat(measurements[0]?.B) || null,
+	    height: parseFloat(measurements[0]?.H) || null,
+	    noOfItems: parseInt(measurements[0]?.No) || null,
+	    totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
+	  };
 
-		formData.append('data', JSON.stringify(inspectionPayload));
+	  formData.append("data", JSON.stringify(inspectionPayload));
 
-		if (selfieImage) {
-			if (selfieImage instanceof File) {
-				formData.append('selfie', selfieImage);
-			} else if (typeof selfieImage === 'string' && selfieImage.startsWith('data:image/')) {
-				const selfieFile = dataURLtoFile(selfieImage, 'selfie.jpg');
-				formData.append('selfie', selfieFile);
-			}
-		}
-		const hasGallery = galleryImages.some(img => img);
-		if (hasGallery) {
-			galleryImages.forEach((img, index) => {
-				if (!img) return;
-				if (img instanceof File) formData.append('siteImages', img);
-				else if (typeof img === 'string' && img.startsWith('data:image/')) {
-					const converted = dataURLtoFile(img, `siteImage${index + 1}.jpg`);
-					formData.append('siteImages', converted);
-				}
-			});
-		}
+	  if (selfieImage) {
+	    if (selfieImage instanceof File) {
+	      formData.append("selfie", selfieImage);
+	    } else if (typeof selfieImage === "string" && selfieImage.startsWith("data:image/")) {
+	      const selfieFile = dataURLtoFile(selfieImage, "selfie.jpg");
+	      formData.append("selfie", selfieFile);
+	    }
+	  }
 
-		try {
-			const res = await fetch(`${API_BASE_URL}rfi/start`, {
-				method: 'POST',
-				body: formData,
-				credentials: "include",
-			});
-			if (!res.ok) {
-				const errText = await res.text();
-				throw new Error(errText || 'Request failed');
-			}
+	  galleryImages.forEach((img, index) => {
+	    if (!img) return;
+	    if (img instanceof File) formData.append("siteImages", img);
+	    else if (typeof img === "string" && img.startsWith("data:image/")) {
+	      const converted = dataURLtoFile(img, `siteImage${index + 1}.jpg`);
+	      formData.append("siteImages", converted);
+	    }
+	  });
 
-			const id = await res.json(); // <-- parse JSON correctly
-			setInspectionId(id);
-			localStorage.setItem("latestInspectionId", id);
-
-			alert("Inspection saved successfully. ID: " + id);
-		} catch (err) {
-			console.error("Inspection save failed:", err);
-			alert(`Inspection save failed: ${err.message}`);
-		}
+	  try {
+	    const res = await fetch(`${API_BASE_URL}rfi/start`, {
+	      method: "POST",
+	      body: formData,
+	      credentials: "include",
+	    });
+	    if (!res.ok) throw new Error(await res.text());
+	    const id = await res.json();
+	    setInspectionId(id);
+	    localStorage.setItem("latestInspectionId", id);
+	    alert("Draft saved successfully. Inspection ID: " + id);
+	  } catch (err) {
+	    console.error("Draft save failed:", err);
+	    alert(`Draft save failed: ${err.message}`);
+	  }
 	};
+
 	const [measurements, setMeasurements] = useState([
 		{ type: "", L: "", B: "", H: "", No: "", total: "" },
 	]);
@@ -488,6 +478,125 @@ export default function InspectionForm() {
 	};
 
 	const [errors, setErrors] = useState({});
+	
+	
+	
+	
+	const handleSaveDraft = async () => {
+	  const formData = new FormData();
+
+	  // Prepare DTO payload
+	  const inspectionPayload = {
+	    inspectionId: inspectionId || null,
+	    rfiId: rfiData.id,
+	    location: locationText || null,
+	    chainage: chainage || null,
+	    nameOfRepresentative: contractorRep || null,
+	    measurementType: measurements[0]?.type || null,
+	    length: parseFloat(measurements[0]?.L) || null,
+	    breadth: parseFloat(measurements[0]?.B) || null,
+	    height: parseFloat(measurements[0]?.H) || null,
+	    noOfItems: parseInt(measurements[0]?.No) || null,
+	    totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
+	    inspectionStatus: inspectionStatus || null,
+	    engineerRemarks: engineerRemarks || null
+	  };
+
+	  formData.append("data", JSON.stringify(inspectionPayload));
+
+	  // Append selfie
+	  if (selfieImage) {
+	    formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
+	  }
+
+	  // Append site images
+	  galleryImages.forEach((img, i) => {
+	    if (!img) return;
+	    formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
+	  });
+
+	  // Append test report
+	  if (testReportFile) formData.append("testReport", testReportFile);
+
+	  try {
+	    const res = await fetch(`${API_BASE_URL}rfi/saveDraft`, {
+	      method: "POST",
+	      body: formData,
+	      credentials: "include"
+	    });
+
+	    if (!res.ok) throw new Error(await res.text());
+
+	    const id = await res.json();
+	    setInspectionId(id);
+	    alert("Draft saved successfully!");
+	  } catch (err) {
+	    console.error("Draft save failed:", err);
+	    alert(`Draft save failed: ${err.message}`);
+	  }
+	};
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	const handleSubmitInspection = async () => {
+//	  // Mandatory validation
+//	  if (!selfieImage) {
+//	    alert("Selfie is mandatory for submission!");
+//	    return;
+//	  }
+//
+//	  if (galleryImages.length === 0 || galleryImages.every(img => !img)) {
+//	    alert("At least one site image is required!");
+//	    return;
+//	  }
+//
+//	  if (!engineerRemarks && testInLab === "Rejected") {
+//	    alert("Remarks are required when test is rejected!");
+//	    return;
+//	  }
+
+	  try {
+	    const res = await fetch(`${API_BASE_URL}rfi/finalSubmit/${inspectionId}`, {
+	      method: "POST",
+	      credentials: "include"
+	    });
+
+	    if (!res.ok) {
+	      const errorMsg = await res.text();
+	      throw new Error(errorMsg || "Submission failed");
+	    }
+
+	    alert("Inspection submitted successfully!");
+	  } catch (err) {
+	    console.error("Submission failed:", err);
+	    alert(`Submission failed: ${err.message}`);
+	  }
+	};
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	const validateStep2 = () => {
 		const newErrors = {};
 
@@ -630,20 +739,15 @@ export default function InspectionForm() {
 													<td>{e.enclosure}</td>
 
 													<td>
-														{enclosureActions[e.id] === 'OPEN' ? (
-															<>
-																{!state.checklistDone ? (
-																	<button onClick={() => setChecklistPopup(e.id)}>Open</button>
-																) : (
-																	<button onClick={() => setChecklistPopup(e.id)}>Edit</button>
-																)}
-															</>
-														) : enclosureActions[e.id] === 'UPLOAD' ? (
-															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
-														) : (
-															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
-														)}
+													  {enclosureActions[e.id] === 'OPEN' ? (
+													    <button onClick={() => setChecklistPopup(e.id)}>Open</button>
+													  ) : enclosureActions[e.id] === 'EDIT' ? (
+													    <button onClick={() => setChecklistPopup(e.id)}>Edit</button>
+													  ) : (
+													    <button onClick={() => setUploadPopup(e.id)}>Upload</button>
+													  )}
 													</td>
+
 
 													<td>
 														{enclosureFile ? (
@@ -884,18 +988,19 @@ export default function InspectionForm() {
 								<div className="btn-row" style={{ marginTop: 12 }}>
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
 									<button
-										className="btn btn-blue"
-										onClick={() => {
-											if (validateStep2()) {
-												handleSaveInspection(); // call your save or submit API
-											} else {
-												alert("Please fill all required fields before saving.");
-											}
-										}}
+									  className="btn btn-blue"
+									  onClick={handleSaveDraft}
 									>
-										Save
+									  Save Draft
 									</button>
-									<button className="btn btn-green" onClick={handleSubmitConfirmed}>Submit</button>
+
+
+									<button
+									  className="btn btn-green"
+									  onClick={handleSubmitInspection}
+									>
+									  Submit
+									</button>
 								</div>
 							</div>
 						)}
@@ -956,37 +1061,40 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 	const [isExistingData, setIsExistingData] = useState(false);
 
 	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				if (data && data.length > 0) {
-					// Use existing data if available from props
-					setChecklistData(data);
-					setGradeOfConcrete(data.gradeOfConcrete || '');
-					setIsExistingData(true);
-				} else {
-					// Fetch data from API
-					const result = await fetchChecklistData(rfiData.id, enclosureName);
-					if (result?.checklist) {
-						setChecklistData(result.checklist);
-						setGradeOfConcrete(result.gradeOfConcrete || '');
-						setIsExistingData(result.action === 'EDIT');
-					} else {
-						setChecklistData([]);
-					}
-				}
-			} catch (error) {
-				console.error("Error loading checklist data:", error);
-				setChecklistData([]);
-			} finally {
-				setLoading(false);
-			}
-		};
+	  const fetchData = async () => {
+	    setLoading(true);
+	    try {
+	      if (data && data.checklist && data.checklist.length > 0) {
+	        // Use existing data from props (must include action!)
+	        setChecklistData(data.checklist);
+	        setGradeOfConcrete(data.gradeOfConcrete || '');
+	        setIsExistingData(data.action === 'EDIT');
+	      } else {
+	        // Fetch data from API
+	        const result = await fetchChecklistData(rfiData.id, enclosureName);
+	        if (result?.checklist) {
+	          setChecklistData(result.checklist);
+	          setGradeOfConcrete(result.gradeOfConcrete || '');
+	          setIsExistingData(result.action === 'EDIT');
+	        } else {
+	          setChecklistData([]);
+	          setIsExistingData(false);
+	        }
+	      }
+	    } catch (error) {
+	      console.error("Error loading checklist data:", error);
+	      setChecklistData([]);
+	      setIsExistingData(false);
+	    } finally {
+	      setLoading(false);
+	    }
+	  };
 
-		if (rfiData?.id && enclosureName) {
-			fetchData();
-		}
+	  if (rfiData?.id && enclosureName) {
+	    fetchData();
+	  }
 	}, [rfiData?.id, enclosureName, fetchChecklistData, data]);
+
 
 	const handleChange = (id, field, value) => {
 		setChecklistData(prev => prev.map(row =>
@@ -995,16 +1103,9 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 	};
 
 	const handleDone = () => {
-		const invalid = checklistData.filter(row => !['YES', 'NO', 'NA'].includes(row.status));
-
-		if (invalid.length > 0) {
-			setErrorMsg('⚠️ Please select YES, NO, or N/A for **all** checklist items.');
-			return;
-		}
-
-		setErrorMsg('');
-		onDone(checklistData, gradeOfConcrete);
+	    onDone(checklistData, gradeOfConcrete);
 	};
+
 
 	// Define columns for DataTable
 	const columns = [
@@ -1026,28 +1127,28 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'YES'}
-							onChange={() => handleChange(row.id, 'status', 'YES')}
+							name={`contractorStatus-${row.id}`}
+							checked={row.contractorStatus === 'YES'}
+							onChange={() => handleChange(row.id, 'contractorStatus', 'YES')}
 							disabled={deptFK !== 'contractor'}
 						/> Yes
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'NO'}
-							onChange={() => handleChange(row.id, 'status', 'NO')}
+							name={`contractorStatus-${row.id}`}
+							checked={row.contractorStatus === 'NO'}
+							onChange={() => handleChange(row.id, 'contractorStatus', 'NO')}
 							disabled={deptFK !== 'contractor'}
 						/> No
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'NA'}
-							onChange={() => handleChange(row.id, 'status', 'NA')}
-							disabled={deptFK !== 'contractor'}
+							name={`contractorStatus-${row.id}`}
+							checked={row.contractorStatus === 'NA'}
+							onChange={() => handleChange(row.id, 'contractorStatus', 'NA')}
+							disabled={deptFK === 'engg'}
 						/> N/A
 					</label>
 				</div>
@@ -1061,28 +1162,28 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'YES'}
-							onChange={() => handleChange(row.id, 'status', 'YES')}
-							disabled={deptFK !== 'contractor'}
+							name={`engineerStatus-${row.id}`}
+							checked={row.engineerStatus === 'YES'}
+							onChange={() => handleChange(row.id, 'engineerStatus', 'YES')}
+							disabled={deptFK !== 'engg'}
 						/> Yes
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'NO'}
-							onChange={() => handleChange(row.id, 'status', 'NO')}
-							disabled={deptFK !== 'contractor'}
+							name={`engineerStatus-${row.id}`}
+							checked={row.engineerStatus === 'NO'}
+							onChange={() => handleChange(row.id, 'engineerStatus', 'NO')}
+							disabled={deptFK !== 'engg'}
 						/> No
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 						<input
 							type="radio"
-							name={`status-${row.id}`}
-							checked={row.status === 'NA'}
-							onChange={() => handleChange(row.id, 'status', 'NA')}
-							disabled={deptFK !== 'contractor'}
+							name={`engineerStatus-${row.id}`}
+							checked={row.engineerStatus === 'NA'}
+							onChange={() => handleChange(row.id, 'engineerStatus', 'NA')}
+							disabled={deptFK !== 'engg'}
 						/> N/A
 					</label>
 				</div>
@@ -1146,17 +1247,14 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 						<label>Name Of Work:</label>
 						<input type="text" readOnly value={rfiData.work || ''} />
 					</div>
-				</div>
-				<div className="form-row">
-					<div className="form-fields flex-2">
-						<label>Location:</label>
-						<input type="text" name="location_ch"
-							value={rfiData?.inspectionDetails?.[0]?.location || ""} readOnly />
-					</div>
 					<div className="form-fields flex-2">
 						<label>Date:</label>
 						<input type="text" name="date" value={rfiData.dateOfInspection || ''} readOnly />
 					</div>
+				</div>
+				<div className="form-row">
+
+
 				</div>
 				<div className="form-row">
 					<div className="form-fields flex-2">
