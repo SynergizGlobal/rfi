@@ -13,6 +13,7 @@ import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
+import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 
 import java.util.List;
@@ -384,6 +385,10 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 		    WHERE mgr.user_role_name_fk = 'Contractor'
 		""", nativeQuery = true)
 		List<String> findRepresentativesReportingToContractor();
+
+	Optional<RFI> findFirstByContractIdAndStructureAndStructureType(String contractId, String structure,
+			String structureType);
+
 
 
 }

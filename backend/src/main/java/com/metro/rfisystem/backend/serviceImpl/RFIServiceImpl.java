@@ -25,6 +25,7 @@ import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.pmis.User;
+import com.metro.rfisystem.backend.model.rfi.AssignExecutiveLog;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RfiDescription;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
@@ -33,6 +34,7 @@ import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
 import com.metro.rfisystem.backend.repository.pmis.ProjectRepository;
 import com.metro.rfisystem.backend.repository.pmis.StructureRepository;
 import com.metro.rfisystem.backend.repository.pmis.WorkRepository;
+import com.metro.rfisystem.backend.repository.rfi.AssignExecutiveLogRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.repository.rfi.RfiDescriptionRepository;
 import com.metro.rfisystem.backend.service.RFIService;
@@ -58,6 +60,9 @@ public class RFIServiceImpl implements RFIService {
 	private final LoginRepository loginRepo;
 
 	private final RfiDescriptionRepository rfiDescriptionRepository;
+	
+    @Autowired
+    private AssignExecutiveLogRepository assignExecutiveRepository;
 
 	@Override
 	@Transactional
@@ -107,7 +112,45 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setDateOfInspection(dto.getDateOfInspection());
 		rfi.setCreatedBy(userName);
 		rfi.setDyHodUserId(dto.getDyHodUserId());
+		rfi.setAssignedPersonClient(dto.getContractor());
 		rfi.setStatus(EnumRfiStatus.CREATED);
+
+//		Optional<RFI> existingRfi = rfiRepository.findFirstByContractIdAndStructureAndStructureType(dto.getContractId(),
+//				dto.getStructure(), dto.getStructureType());
+//
+//		if (existingRfi.isPresent()) {
+//			RFI oldRfi = existingRfi.get();
+//			rfi.setAssignedPersonClient(oldRfi.getAssignedPersonClient());
+//			rfi.setClientDepartment(oldRfi.getClientDepartment());
+//		} else {
+//			if (dto.getContractor() != null && !dto.getContractor().isEmpty()) {
+//				rfi.setAssignedPersonClient(dto.getContractor());
+//
+//				Optional<User> assignedUser = loginRepo.findByUserName(dto.getContractor());
+//				assignedUser.ifPresent(user -> rfi.setClientDepartment(user.getDepartmentFk()));
+//			} else {
+//				rfi.setAssignedPersonClient(null);
+//				rfi.setClientDepartment(null);
+//			}
+//		}
+		
+		  AssignExecutiveLog latestExecutive = assignExecutiveRepository
+		            .findTopByContractIdAndStructureTypeAndStructureOrderByAssignedAtDesc(
+		                    contractId,
+		                    dto.getStructureType(),
+		                    dto.getStructure()
+		            );
+
+		    if (latestExecutive != null) {
+		        rfi.setAssignedPersonClient(latestExecutive.getAssignedPersonClient());
+		        rfi.setClientDepartment(latestExecutive.getAssignedPersonDepartment());
+		        rfi.setAssignedPersonUserId(latestExecutive.getAssignedPersonUserId());
+		    } else {
+		        // ✅ If no match found → leave blank
+		        rfi.setAssignedPersonClient(null);
+		        rfi.setClientDepartment(null);
+		        rfi.setAssignedPersonUserId(null);
+		    }
 
 		return rfiRepository.save(rfi);
 	}
@@ -189,40 +232,28 @@ public class RFIServiceImpl implements RFIService {
 		System.out.println("Result size: " + result.size());
 		return result;
 	}
-	
+
 	@Override
 	public List<Map<String, Object>> getRegularUsers(String userId) {
-	    System.out.println("Fetching regular users (representatives) for manager userId: " + userId);
-	    return loginRepo.findRegularUsersByReporting(userId);
+		System.out.println("Fetching regular users (representatives) for manager userId: " + userId);
+		return loginRepo.findRegularUsersByReporting(userId);
 	}
-
 
 	@Override
 	public List<String> getContractorUserNamesWithReportingId(String loggedInUserName) {
 
-		// Fetch logged-in user details (list of usernames)
 		List<String> loggedInUsers = loginRepo.findUserNamesByUserName(loggedInUserName);
-
-		// If user not found
 		if (loggedInUsers == null || loggedInUsers.isEmpty()) {
 			return Collections.emptyList();
 		}
-
-		// Check if logged-in user is contractor
 		boolean isContractor = loginRepo.findByUserId(loggedInUserName).stream()
 				.anyMatch(u -> "Contractor".equalsIgnoreCase(u.getUserRoleNameFk()));
 
 		if (!isContractor) {
 			return Collections.emptyList();
 		}
-
-		// Fetch only contractor usernames with reporting IDs
 		return loginRepo.findAllContractorUserNamesWithReportingId();
 	}
-	
-	
-	
-	
 
 	@Override
 	public List<RfiListDTO> getAllRFIs() {
@@ -301,11 +332,22 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	public boolean assignPersonToClient(String rfi_Id, String assignedPersonClient, String clientDepartment) {
 		Optional<RFI> optional = rfiRepository.findByRfiId(rfi_Id);
+
 		if (optional.isPresent()) {
 			RFI rfi = optional.get();
-			System.out.println("Assigned: " + assignedPersonClient + ", Dept: " + clientDepartment);
+
+			if (clientDepartment == null || clientDepartment.isEmpty()) {
+				Optional<User> userOptional = loginRepo.findByUserName(assignedPersonClient);
+				if (userOptional.isPresent()) {
+					clientDepartment = userOptional.get().getDepartmentFk();
+				}
+			}
+
+			System.out.println("✅ Assigned: " + assignedPersonClient + ", Dept: " + clientDepartment);
+
 			rfi.setAssignedPersonClient(assignedPersonClient);
 			rfi.setClientDepartment(clientDepartment);
+
 			rfiRepository.save(rfi);
 			return true;
 		}
@@ -321,18 +363,16 @@ public class RFIServiceImpl implements RFIService {
 	public List<RfiListDTO> getRFIsCreatedBy(String createdBy) {
 		return rfiRepository.getRFIsCreatedBy(createdBy);
 	}
-	
+
 	@Override
-	 public List<RfiListDTO> getRFIsByRepresentative(String representative) {
-       return rfiRepository.findByRepresentative(representative);
-   }
+	public List<RfiListDTO> getRFIsByRepresentative(String representative) {
+		return rfiRepository.findByRepresentative(representative);
+	}
 
 	@Override
 	public List<Map<String, Object>> getAllRepresentativesReportingToContractor() {
-	    return loginRepo.getAllRepresentativesReportingToContractor();
+		return loginRepo.getAllRepresentativesReportingToContractor();
 	}
-	
-	  
 
 	@Override
 	public List<RfiListDTO> getRFIsAssignedTo(String assignedPersonClient) {
@@ -354,18 +394,15 @@ public class RFIServiceImpl implements RFIService {
 	public int countByCreatedBy(String createdBy) {
 		return rfiRepository.countByCreatedBy(createdBy);
 	}
-	
-	
+
 	@Override
 	@Transactional
 	public void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department) {
-	    int updatedCount = rfiRepository.updateExecutivesForRfis(rfiIds, executive, department);
+		int updatedCount = rfiRepository.updateExecutivesForRfis(rfiIds, executive, department);
 
-	    if (updatedCount == 0) {
-	        throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
-	    }
+		if (updatedCount == 0) {
+			throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
+		}
 	}
-
-
 
 }

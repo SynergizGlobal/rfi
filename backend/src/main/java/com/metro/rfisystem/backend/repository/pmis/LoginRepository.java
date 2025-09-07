@@ -75,4 +75,6 @@ List<Map<String, Object>> findRegularUsersByReporting(@Param("reportingToId") St
             ORDER BY u.user_name ASC
         """, nativeQuery = true)
         List<Map<String, Object>> getAllRepresentativesReportingToContractor();
+
+	Optional<User> findByUserName(String contractor);
 }

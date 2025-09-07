@@ -27,6 +27,7 @@ public class RFI_DTO {
 	private String component;
 	private String element;
 	private String description;
+	private String clientDepartment;
 	private LocalDate dateOfSubmission, dateOfInspection;
 	private LocalTime TimeOfInspection;
 	private String project;
@@ -39,6 +40,8 @@ public class RFI_DTO {
 	private String dyHodUserId;
 	private String measurementType;
 	private String measurementValue;
+	private String assignedPersonUserId;
+
 
 
 

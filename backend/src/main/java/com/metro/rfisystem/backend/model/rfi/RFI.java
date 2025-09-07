@@ -119,6 +119,9 @@ public class RFI {
     @Column(name = "assigned_person_contractor")
     private String assignedPersonContractor;
     
+    @Column(name = "assigned_person_userid")
+    private String assignedPersonUserId;
+    
     @Column(name="contract_id")
     private String contractId;
     

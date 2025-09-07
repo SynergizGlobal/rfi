@@ -18,7 +18,7 @@ public interface RfiListDTO {
     String getNameOfRepresentative();
     String getMeasurementType();
     Double getTotalQty();
-
+    Boolean getRepresentativeReportingToContractor();
 
 }
 

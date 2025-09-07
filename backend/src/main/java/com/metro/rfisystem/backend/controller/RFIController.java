@@ -229,7 +229,6 @@ public class RFIController {
 		     String userId = (String) session.getAttribute("userId");
 		     String userRole = (String) session.getAttribute("userRoleNameFk");
 
-		     // ✅ Check session validity
 		     if (userId == null || userId.isEmpty()) {
 		         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 		                 .body("Session expired. Please log in again.");
@@ -237,21 +236,16 @@ public class RFIController {
 
 		     List<Map<String, Object>> representatives;
 
-		     // ✅ IT Admin → Fetch ALL representatives reporting to contractors
 		     if (userRole != null && userRole.trim().equalsIgnoreCase("IT Admin")) {
 		         representatives = rfiService.getAllRepresentativesReportingToContractor();
 		     } else {
-		         // ✅ Contractors / Regular Users / DyHOD → Fetch only their representatives
 		         representatives = rfiService.getRegularUsers(userId);
 		     }
 
-		     // ✅ Handle no data
 		     if (representatives.isEmpty()) {
 		         return ResponseEntity.status(HttpStatus.NOT_FOUND)
 		                 .body("No representatives found.");
 		     }
-
-		     // ✅ Return usernames only
 		     List<String> representativeNames = representatives.stream()
 		             .map(u -> (String) u.get("user_name"))
 		             .toList();
@@ -294,7 +288,6 @@ public class RFIController {
 		        List<RfiListDTO> created = rfiService.getRFIsCreatedBy(userName);
 //		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
 
-		        // Merge both lists and remove duplicates
 		        Set<RfiListDTO> merged = new LinkedHashSet<>(created);
 //		        merged.addAll(representative);
 
@@ -364,17 +357,25 @@ public class RFIController {
 		String result = rfiService.updateRfi(id, rfiDto);
 		return ResponseEntity.ok(result);
 	}
-
 	@PostMapping("/assign-client-person")
 	public ResponseEntity<String> assignPersonToClient(@RequestBody AssignPersonDTO assignDTO) {
-		boolean success = rfiService.assignPersonToClient(assignDTO.getRfi_Id(), assignDTO.getAssignedPersonClient(),  assignDTO.getClientDepartment());
-		if (success) {
-			return ResponseEntity.ok("Assigned successfully");
-		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
-		}
+	    System.out.println("📌 Incoming Data → RFI: " + assignDTO.getRfi_Id()
+	        + " | Client: " + assignDTO.getAssignedPersonClient()
+	        + " | Department: " + assignDTO.getClientDepartment());
+
+	    boolean success = rfiService.assignPersonToClient(
+	        assignDTO.getRfi_Id(),
+	        assignDTO.getAssignedPersonClient(),
+	        assignDTO.getClientDepartment()
+	    );
+
+	    if (success) {
+	        return ResponseEntity.ok("Assigned successfully");
+	    } else {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
+	    }
 	}
-	
+
 	
 	@GetMapping("/status-counts")
 	public ResponseEntity<Map<String, Long>> getRfiStatusCounts(HttpSession session) {
