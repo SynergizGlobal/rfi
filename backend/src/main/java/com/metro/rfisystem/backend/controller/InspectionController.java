@@ -89,24 +89,28 @@ public class InspectionController {
 	}
 	
 	
-//	@PostMapping("/finalSubmit/{inspectionId}")
-//	public ResponseEntity<String> submitInspection(@PathVariable Long inspectionId) {
-//	    try {
-//	        inspectionService.markAsSubmitted(inspectionId);
-//	        return ResponseEntity.ok("Inspection submitted successfully.");
-//	    } catch (RuntimeException e) {
-//	        return ResponseEntity.badRequest().body(e.getMessage());
-//	    }
-//	}
+
 	
-	
-	
-	@PostMapping("/finalSubmit/{inspectionId}")
-	public ResponseEntity<String> submitInspection(HttpSession session, @PathVariable Long inspectionId) {
+	@PostMapping(value = "/finalSubmit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> finalSubmitInspection(
+	        HttpSession session,
+	        @RequestPart("data") String dataJson,
+	        @RequestPart(value = "selfie", required = false) MultipartFile selfie,
+	        @RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages,
+	        @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
+
 	    String deptFk = (String) session.getAttribute("departmentFk");
 
 	    try {
-	        InspectionSubmitResult result = inspectionService.markAsSubmitted(inspectionId, deptFk);
+	        ObjectMapper objectMapper = new ObjectMapper();
+	        RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
+
+	        if (siteImages == null) {
+	            siteImages = new ArrayList<>();
+	        }
+
+	        InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, siteImages, testDocument, deptFk);
+
 	        switch (result) {
 	            case ENGINEER_SUCCESS:
 	                return ResponseEntity.ok("Inspection Submitted By Engineer.");
@@ -115,10 +119,12 @@ public class InspectionController {
 	            default:
 	                return ResponseEntity.ok("RFI Submission Failed..!");
 	        }
-	    } catch (RuntimeException e) {
-	        return ResponseEntity.badRequest().body(e.getMessage());
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
 	    }
 	}
+
 
 
 

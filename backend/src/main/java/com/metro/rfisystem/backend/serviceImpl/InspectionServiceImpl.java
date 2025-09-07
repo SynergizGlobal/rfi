@@ -77,39 +77,182 @@ public class InspectionServiceImpl implements InspectionService {
 	}
 
 
+//	@Override
+//	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
+//	         List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk) {
+//
+//	    RFI rfi = rfiRepository.findById(dto.getRfiId())
+//	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+//
+//	    // Update only if changed
+//	    if (dto.getNameOfRepresentative() != null 
+//	            && !dto.getNameOfRepresentative().equals(rfi.getNameOfRepresentative())) {
+//	        rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
+//	        rfiRepository.save(rfi);
+//	    }
+//
+//	    // Check existing inspection
+//	    Optional<RFIInspectionDetails> existingInspectionOpt =
+//	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk);
+//
+//	    RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
+//	    inspection.setRfi(rfi);
+//
+//	    // Only update inspectionStatus if passed
+//	    if (dto.getInspectionStatus() != null) {
+//	        inspection.setInspectionStatus(dto.getInspectionStatus());
+//	    }
+//
+//	    // Save selfie if uploaded
+//	    if (selfie != null && !selfie.isEmpty()) {
+//	        String selfiePath = saveFile(selfie);
+//	        inspection.setSelfiePath(selfiePath);
+//	    }
+//
+//	    // Save site images if uploaded
+//	    if (siteImages != null && !siteImages.isEmpty()) {
+//	        String siteImagePaths = siteImages.stream()
+//	                .filter(f -> f != null && !f.isEmpty())
+//	                .map(this::saveFile)
+//	                .collect(Collectors.joining(","));
+//	        inspection.setSiteImage(siteImagePaths);
+//	    }
+//
+//	    // Save test document if uploaded
+//	    if (testDocument != null && !testDocument.isEmpty()) {
+//	        String filename = saveFile(testDocument);
+//	        inspection.setTestSiteDocuments(filename);
+//	    }
+//
+//	    // Update location fields only if not null
+//	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
+//	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
+//
+//	    // Save inspection date/time only for new draft
+//	    if (inspection.getId() == null) {
+//	        inspection.setDateOfInspection(LocalDate.now());
+//	        inspection.setTimeOfInspection(LocalTime.now());
+//	    }
+//
+//	    inspection.setUploadedBy(deptFk);
+//
+//	    // Update measurement fields only if provided
+//	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
+//	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
+//	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
+//	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
+//	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
+//	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+//
+//	    // RFI status should not be finalized on draft → save only for reference
+//	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
+//
+//
+//	    inspectionRepository.save(inspection);
+//	    return inspection.getId();
+//	}
+//	
+//	
+//	@Transactional
+//	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto,
+//	                                                 MultipartFile selfie,
+//	                                                 List<MultipartFile> siteImages,
+//	                                                 MultipartFile testDocument,
+//	                                                 String deptFk) {
+//
+//	    RFI rfi = rfiRepository.findById(dto.getRfiId())
+//	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+//
+//	    RFIInspectionDetails inspection;
+//
+//	    // 🔹 If inspectionId is null → create a new inspection
+//	    if (dto.getInspectionId() == null) {
+//	        inspection = new RFIInspectionDetails();
+//	        inspection.setRfi(rfi);  // link to parent RFI
+//	        inspection.setDateOfInspection(LocalDate.now());
+//	        inspection.setTimeOfInspection(LocalTime.now());
+//	    } else {
+//	        inspection = inspectionRepository.findById(dto.getInspectionId())
+//	                .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + dto.getInspectionId()));
+//	    }
+//
+//	    // 🔹 Update fields
+//	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
+//	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
+//	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
+//	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
+//	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
+//	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
+//	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
+//	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+//	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
+//	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
+//	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
+//
+//	    // 🔹 File uploads
+//	    if (selfie != null && !selfie.isEmpty()) {
+//	        inspection.setSelfiePath(saveFile(selfie));
+//	    }
+//	    if (siteImages != null && !siteImages.isEmpty()) {
+//	        String siteImagePaths = siteImages.stream()
+//	                .filter(f -> f != null && !f.isEmpty())
+//	                .map(this::saveFile)
+//	                .collect(Collectors.joining(","));
+//	        inspection.setSiteImage(siteImagePaths);
+//	    }
+//	    if (testDocument != null && !testDocument.isEmpty()) {
+//	        inspection.setTestSiteDocuments(saveFile(testDocument));
+//	    }
+//
+//	    // 🔹 Finalize workflow
+//	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
+//
+//	    if ("Engg".equalsIgnoreCase(deptFk)) {
+//	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+//	    } else {
+//	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
+//	    }
+//
+//	    inspectionRepository.save(inspection);
+//	    rfiRepository.save(rfi);
+//
+//	    return "Engg".equalsIgnoreCase(deptFk)
+//	            ? InspectionSubmitResult.ENGINEER_SUCCESS
+//	            : InspectionSubmitResult.CONTRACTOR_SUCCESS;
+//	}
+
+
 	@Override
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-	         List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk) {
+	                            List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk) {
 
 	    RFI rfi = rfiRepository.findById(dto.getRfiId())
 	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
-	    // Update only if changed
 	    if (dto.getNameOfRepresentative() != null 
 	            && !dto.getNameOfRepresentative().equals(rfi.getNameOfRepresentative())) {
 	        rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
 	        rfiRepository.save(rfi);
 	    }
 
-	    // Check existing inspection
 	    Optional<RFIInspectionDetails> existingInspectionOpt =
 	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk);
 
 	    RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
 	    inspection.setRfi(rfi);
-
-	    // Only update inspectionStatus if passed
+		if ("Engg".equalsIgnoreCase(deptFk)) {
+			inspection.setUploadedBy("Engg");
+		} else {
+			inspection.setUploadedBy("CON");
+		}
 	    if (dto.getInspectionStatus() != null) {
 	        inspection.setInspectionStatus(dto.getInspectionStatus());
 	    }
 
-	    // Save selfie if uploaded
 	    if (selfie != null && !selfie.isEmpty()) {
-	        String selfiePath = saveFile(selfie);
-	        inspection.setSelfiePath(selfiePath);
+	        inspection.setSelfiePath(saveFile(selfie));
 	    }
 
-	    // Save site images if uploaded
 	    if (siteImages != null && !siteImages.isEmpty()) {
 	        String siteImagePaths = siteImages.stream()
 	                .filter(f -> f != null && !f.isEmpty())
@@ -118,25 +261,18 @@ public class InspectionServiceImpl implements InspectionService {
 	        inspection.setSiteImage(siteImagePaths);
 	    }
 
-	    // Save test document if uploaded
 	    if (testDocument != null && !testDocument.isEmpty()) {
-	        String filename = saveFile(testDocument);
-	        inspection.setTestSiteDocuments(filename);
+	        inspection.setTestSiteDocuments(saveFile(testDocument));
 	    }
 
-	    // Update location fields only if not null
 	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
 	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
 
-	    // Save inspection date/time only for new draft
 	    if (inspection.getId() == null) {
 	        inspection.setDateOfInspection(LocalDate.now());
 	        inspection.setTimeOfInspection(LocalTime.now());
 	    }
 
-	    inspection.setUploadedBy(deptFk);
-
-	    // Update measurement fields only if provided
 	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
 	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
 	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
@@ -144,80 +280,85 @@ public class InspectionServiceImpl implements InspectionService {
 	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
 	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
 
-	    // RFI status should not be finalized on draft → save only for reference
 	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
-
 
 	    inspectionRepository.save(inspection);
 	    return inspection.getId();
 	}
 	
 	
-//	
-//	public void markAsSubmitted(Long inspectionId) {
-//	    RFIInspectionDetails inspection = inspectionRepository.findById(inspectionId)
-//	            .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + inspectionId));
-//
-//	    // Mandatory fields for submission
-//	//    List<String> missingFields = new ArrayList<>();
-//
-////	    if (inspection.getSelfiePath() == null || inspection.getSelfiePath().isEmpty()) {
-////	        missingFields.add("Selfie");
-////	    }
-////	    if (inspection.getSiteImage() == null || inspection.getSiteImage().isEmpty()) {
-////	        missingFields.add("Site Images");
-////	    }
-////	    if (inspection.getLocation() == null || inspection.getLocation().isEmpty()) {
-////	        missingFields.add("Location");
-////	    }
-////	    if (inspection.getChainage() == null || inspection.getChainage().isEmpty()) {
-////	        missingFields.add("Chainage");
-////	    }
-////	    if (inspection.getMeasurementType() == null || inspection.getMeasurementType().isEmpty()) {
-////	        missingFields.add("Measurement Type");
-////	    }
-////	    if (inspection.getLength() == null) missingFields.add("Length");
-////	    if (inspection.getBreadth() == null) missingFields.add("Breadth");
-////	    if (inspection.getHeight() == null) missingFields.add("Height");
-////	    if (inspection.getNoOfItems() == null) missingFields.add("No Of Items");
-////	    if (inspection.getTotalQty() == null) missingFields.add("Total Quantity");
-//
-////	    if (!missingFields.isEmpty()) {
-////	        throw new RuntimeException("Cannot submit. Missing mandatory fields: " + String.join(", ", missingFields));
-////	    }
-//	    
-// 
-//	    if 
-//	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
-//	    inspectionRepository.save(inspection);
-//	}
-
-
-	
-	
-	
 	@Transactional
-	public InspectionSubmitResult markAsSubmitted(Long inspectionId, String deptFk) {
-	    RFIInspectionDetails inspection = inspectionRepository.findById(inspectionId)
-	            .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + inspectionId));
+	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto,
+	                                                 MultipartFile selfie,
+	                                                 List<MultipartFile> siteImages,
+	                                                 MultipartFile testDocument,
+	                                                 String deptFk) {
 
-	    RFI rfi = inspection.getRfi(); // ✅ get parent RFI
+	    RFI rfi = rfiRepository.findById(dto.getRfiId())
+	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+
+	    RFIInspectionDetails inspection;
+
+	    if (dto.getInspectionId() == null) {
+	        inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk)
+	                .orElse(new RFIInspectionDetails());
+	        inspection.setRfi(rfi);
+	    } else {
+	        inspection = inspectionRepository.findById(dto.getInspectionId())
+	                .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + dto.getInspectionId()));
+	    }
+
+		if ("Engg".equalsIgnoreCase(deptFk)) {
+			inspection.setUploadedBy("Engg");
+		} else {
+			inspection.setUploadedBy("CON");
+		}	    inspection.setDateOfInspection(LocalDate.now());
+	    inspection.setTimeOfInspection(LocalTime.now());
+
+	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
+	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
+	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
+	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
+	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
+	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
+	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
+	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
+	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
+	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
+
+	    if (selfie != null && !selfie.isEmpty()) {
+	        inspection.setSelfiePath(saveFile(selfie));
+	    }
+	    if (siteImages != null && !siteImages.isEmpty()) {
+	        String siteImagePaths = siteImages.stream()
+	                .filter(f -> f != null && !f.isEmpty())
+	                .map(this::saveFile)
+	                .collect(Collectors.joining(","));
+	        inspection.setSiteImage(siteImagePaths);
+	    }
+	    if (testDocument != null && !testDocument.isEmpty()) {
+	        inspection.setTestSiteDocuments(saveFile(testDocument));
+	    }
+
+	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
 
 	    if ("Engg".equalsIgnoreCase(deptFk)) {
-	        inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
-	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);  // ✅ update parent RFI status
-	        inspectionRepository.save(inspection);
-	        rfiRepository.save(rfi);
-	        return InspectionSubmitResult.ENGINEER_SUCCESS;
+	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
 	    } else {
-	        inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
-	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON); // ✅ update parent RFI status
-	        inspectionRepository.save(inspection);
-	        rfiRepository.save(rfi);
-	        return InspectionSubmitResult.CONTRACTOR_SUCCESS;
+	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
 	    }
+
+	    inspectionRepository.save(inspection);
+	    rfiRepository.save(rfi);
+
+	    return "Engg".equalsIgnoreCase(deptFk)
+	            ? InspectionSubmitResult.ENGINEER_SUCCESS
+	            : InspectionSubmitResult.CONTRACTOR_SUCCESS;
 	}
 
+
+	
 	
 	
 	

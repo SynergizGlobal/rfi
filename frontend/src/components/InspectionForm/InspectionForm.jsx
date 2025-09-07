@@ -499,6 +499,7 @@ export default function InspectionForm() {
 	    noOfItems: parseInt(measurements[0]?.No) || null,
 	    totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
 	    inspectionStatus: inspectionStatus || null,
+		testInsiteLab: testInLab || null,
 	    engineerRemarks: engineerRemarks || null
 	  };
 
@@ -549,34 +550,52 @@ export default function InspectionForm() {
 	
 	
 	const handleSubmitInspection = async () => {
-//	  // Mandatory validation
-//	  if (!selfieImage) {
-//	    alert("Selfie is mandatory for submission!");
-//	    return;
-//	  }
-//
-//	  if (galleryImages.length === 0 || galleryImages.every(img => !img)) {
-//	    alert("At least one site image is required!");
-//	    return;
-//	  }
-//
-//	  if (!engineerRemarks && testInLab === "Rejected") {
-//	    alert("Remarks are required when test is rejected!");
-//	    return;
-//	  }
+	  const formData = new FormData();
+
+	  const inspectionPayload = {
+	    inspectionId: inspectionId || null,
+	    rfiId: rfiData.id,
+	    location: locationText || null,
+	    chainage: chainage || null,
+	    nameOfRepresentative: contractorRep || null,
+	    measurementType: measurements[0]?.type || null,
+	    length: parseFloat(measurements[0]?.L) || null,
+	    breadth: parseFloat(measurements[0]?.B) || null,
+	    height: parseFloat(measurements[0]?.H) || null,
+	    noOfItems: parseInt(measurements[0]?.No) || null,
+	    totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
+	    inspectionStatus: inspectionStatus || null,
+	    testInsiteLab: testInLab || null,
+	    engineerRemarks: engineerRemarks || null
+	  };
+
+	  formData.append("data", JSON.stringify(inspectionPayload));
+
+	  // Selfie
+	  if (selfieImage) {
+	    formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
+	  }
+
+	  // Site images
+	  galleryImages.forEach((img, i) => {
+	    if (!img) return;
+	    formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
+	  });
+
+	  // Test report
+	  if (testReportFile) formData.append("testReport", testReportFile);
 
 	  try {
-	    const res = await fetch(`${API_BASE_URL}rfi/finalSubmit/${inspectionId}`, {
+	    const res = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 	      method: "POST",
+	      body: formData,
 	      credentials: "include"
 	    });
 
-	    if (!res.ok) {
-	      const errorMsg = await res.text();
-	      throw new Error(errorMsg || "Submission failed");
-	    }
+	    if (!res.ok) throw new Error(await res.text());
 
-	    alert("Inspection submitted successfully!");
+	    const msg = await res.text();
+	    alert(msg || "Inspection submitted successfully!");
 	  } catch (err) {
 	    console.error("Submission failed:", err);
 	    alert(`Submission failed: ${err.message}`);

@@ -20,7 +20,8 @@ public interface InspectionService {
 	
     ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException;
 
-	public InspectionSubmitResult markAsSubmitted(Long inspectionId, String deptFk);
+	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
+			List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk);
 
 
 }
