@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useTable, usePagination, useGlobalFilter } from "react-table";
 import HeaderRight from "../HeaderRight/HeaderRight";
+import Select from 'react-select';
+import axios from 'axios';
 import "./ReferenceForm.css";
 
 const ReferenceForm = () => {
@@ -9,19 +11,22 @@ const ReferenceForm = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [globalFilter, setGlobalFilter] = useState("");
   const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+  const [openEnclosers, setOpenEnclosers] = useState([]);
 
   const handleAddRow = () => {
     const newRow = {
       sr_no: tableData.length + 1,
-      activity: "",
-      rfiDescription: "",
-      enclosures: "",
+      activity: '',
+      rfiDescription: '',
+      enclosures: [],
       isNew: true,
       isEditing: false,
     };
     setTableData((prev) => [...prev, newRow]);
     setCurrentPage(Math.ceil((tableData.length + 1) / pageSize));
   };
+
+
  
   const ReferenceForm = ({ columns, data }) => { 
   const {
@@ -49,16 +54,24 @@ const ReferenceForm = () => {
   );
 };
 
+useEffect(() => {
+  axios
+    .get(`${API_BASE_URL}api/v1/enclouser/names`, { params: { action: "OPEN" } })
+    .then((res) => setOpenEnclosers(res.data))
+    .catch((err) => console.error("Error fetching enclosure names:", err));
+}, [API_BASE_URL]);
+
+
   useEffect(() => {
     fetch(`${API_BASE_URL}rfi/Referenece-Form`)
       .then((res) => res.json())
-      .then((data) => {
+      .then(data => {
         const withSrNo = data.map((row, i) => ({
+          ...row,
           sr_no: i + 1,
-          activity: row.activity || "",
-          rfiDescription: row.rfiDescription || "",
-          enclosures: row.enclosures || "",
-          id: row.id,
+          enclosures: row.enclosures
+            ? row.enclosures.split(',').map(s => s.trim())
+            : [],
           isNew: false,
           isEditing: false,
         }));
@@ -66,6 +79,15 @@ const ReferenceForm = () => {
       })
       .catch((err) => console.error("Error fetching data:", err));
   }, []);
+
+const addRfiEnclosuresOptions = useMemo(
+  () => openEnclosers.map(encl => ({
+    value: encl.encloserName,
+    label: encl.encloserName
+  })),
+  [openEnclosers]
+);
+
 
   const filteredData = useMemo(() => {
     const lowerFilter = globalFilter.toLowerCase();
@@ -105,10 +127,13 @@ const ReferenceForm = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          activity: rowData.activity,
-          rfiDescription: rowData.rfiDescription,
-          enclosures: rowData.enclosures,
-        }),
+        activity: rowData.activity,
+        rfiDescription: rowData.rfiDescription,
+        enclosures: Array.isArray(rowData.enclosures)
+          ? rowData.enclosures.join(',')
+          : rowData.enclosures,
+      }),
+
       });
 
       if (response.ok) {
@@ -140,10 +165,12 @@ const ReferenceForm = () => {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          activity: rowData.activity,
-          rfiDescription: rowData.rfiDescription,
-          enclosures: rowData.enclosures,
-        }),
+        activity: rowData.activity,
+        rfiDescription: rowData.rfiDescription,
+        enclosures: Array.isArray(rowData.enclosures)
+          ? rowData.enclosures.join(',')
+          : rowData.enclosures,
+      }),
       });
 
       if (response.ok) {
@@ -253,22 +280,33 @@ const ReferenceForm = () => {
                             row.rfiDescription
                           )}
                         </td>
-                        <td>
-                          {row.isNew || row.isEditing ? (
-                            <input
-                              value={row.enclosures}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  row.sr_no,
-                                  "enclosures",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          ) : (
-                            row.enclosures
-                          )}
-                        </td>
+                       <td>
+                        {(row.isNew || row.isEditing) ? (
+                          <Select
+                            isMulti
+                            options={addRfiEnclosuresOptions}
+                            value={addRfiEnclosuresOptions.filter(opt =>
+                              Array.isArray(row.enclosures) && row.enclosures.includes(opt.value)
+                            )}
+                            onChange={(selectedOptions) =>
+                              handleInputChange(
+                                row.sr_no,
+                                'enclosures',
+                                selectedOptions ? selectedOptions.map(opt => opt.value) : []
+                              )
+                            }
+                            placeholder="Select enclosures"
+                          />
+                        ) : (
+                          row.enclosures && Array.isArray(row.enclosures)
+                            ? row.enclosures
+                                .map(val => addRfiEnclosuresOptions.find(opt => opt.value === val)?.label || val)
+                                .join(', ')
+                            : ''
+                        )}
+
+                      </td>
+
                         <td>
                           <button
                             className="btn btn-sm btn-primary"
