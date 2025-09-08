@@ -24,7 +24,9 @@ const InspectionReferenceForm = () => {
 	const [thirdCurrentPage, setThirdCurrentPage] = useState(1);
 	const [thirdGlobalFilter, setThirdGlobalFilter] = useState("");
 	const [thirdEditInputs, setThirdEditInputs] = useState({});
+	const [thirdPageIndex, setThirdPageIndex] = useState(0);
 	const [thirdEditingSrNo, setThirdEditingSrNo] = useState(null);
+	const [thirdSearchInput, setThirdSearchInput] = useState('');
 	  const [tableData, setTableData] = useState([]);
 	  const [currentPage, setCurrentPage] = useState(1);
 
@@ -67,21 +69,32 @@ const InspectionReferenceForm = () => {
 		}
 	}, [selectedOption, API_BASE_URL]);
 
-	  const handleThirdAddRow = () => {
+// Add row handler for third table
+const handleThirdAddRow = () => {
+  setThirdTableData(prev => {
     const newRow = {
-      sr_no: thirdTableData.length + 1,
-      fieldOne: "",
-      fieldTwo: "",
+      sr_no: prev.length + 1,
+      fieldOne: '',
+      fieldTwo: '',
       enclosures: [],
       isNew: true,
       isEditing: true,
     };
-    setThirdTableData((prev) => [...prev, newRow]);
-    setThirdEditInputs((prev) => ({ ...prev, [newRow.sr_no]: newRow }));
+    const newData = [...prev, newRow];
+    
+    // Calculate last page index based on new data length
+    const lastPageIndex = Math.floor(newData.length / pageSize);
+    
+    // Update pagination and editing state after setThirdTableData
+    setThirdPageIndex(lastPageIndex);      // 0-based index
+    setThirdCurrentPage(lastPageIndex + 1);// 1-based page number
     setThirdEditingSrNo(newRow.sr_no);
-    setCurrentPage(Math.ceil((tableData.length + 1) / pageSize));
-    setThirdGlobalFilter("");
-  };
+    setThirdSearchInput(''); // Reset search to show new row
+
+    return newData; // Update state with new row included
+  });
+};
+
 
 	useEffect(() => {
   axios
@@ -118,31 +131,30 @@ const InspectionReferenceForm = () => {
   }, [selectedOption, API_BASE_URL]);
 
    // Pagination and Filter utility
-  const paginateAndFilter = (data, filter, page, size) => {
-    const lowerFilter = filter.toLowerCase();
-    const filtered = data.filter(row =>
+const paginateAndFilter = (data, filter, page, size) => {
+  const lowerFilter = filter.toLowerCase();
+  const filtered = data.filter(row => {
+    if (row.isNew || row.isEditing) return true; // always show new/editing rows
+    return (
       (row.fieldOne && row.fieldOne.toLowerCase().includes(lowerFilter)) ||
       (row.fieldTwo && row.fieldTwo.toLowerCase().includes(lowerFilter)) ||
-      (row.enclosure_attachments && row.enclosure_attachments.toLowerCase().includes(lowerFilter))
+      (row.enclosures && row.enclosures.some(val => val.toLowerCase().includes(lowerFilter)))
     );
-    const start = (page - 1) * size;
-    return {
-      paginated: filtered.slice(start, start + size),
-      total: Math.ceil(filtered.length / size) || 1,
-    };
+  });
+  const start = (page - 1) * size;
+  return {
+    paginated: filtered.slice(start, start + size),
+    total: Math.ceil(filtered.length / size) || 1,
   };
-
+};
 
 
   // Third Form filtered + paginated data
-  const {
-    paginated: thirdPaginatedData,
-    total: thirdTotalPages,
-  } = useMemo(
-    () =>
-      paginateAndFilter(thirdTableData, thirdGlobalFilter, thirdCurrentPage, pageSize),
-    [thirdTableData, thirdGlobalFilter, thirdCurrentPage, pageSize]
-  );
+const { paginated: thirdPaginated, total } = useMemo(() => {
+  return paginateAndFilter(thirdTableData, thirdSearchInput, thirdPageIndex + 1, pageSize);
+}, [thirdSearchInput, thirdTableData, thirdPageIndex, pageSize]);
+
+const totalPages = total;
 
 
 
@@ -608,18 +620,30 @@ const InspectionReferenceForm = () => {
     }
   };
 
-  const handleThirdCancelEdit = (sr_no) => {
-    setThirdTableData((prev) =>
-      prev.map((row) =>
-        row.sr_no === sr_no ? { ...row, isEditing: false, isNew: false } : row
-      )
-    );
-    setThirdEditInputs((prev) => {
-      const copy = { ...prev };
-      delete copy[sr_no];
-      return copy;
-    });
-  };
+const handleThirdCancelEdit = (sr_no) => {
+  setThirdTableData(prev => {
+    // Remove the cancelled row
+    let newData = prev.filter(row => row.sr_no !== sr_no);
+    // Recalculate sr_no sequentially
+    newData = newData.map((row, index) => ({
+      ...row,
+      sr_no: index + 1,
+    }));
+    return newData;
+  });
+
+  setThirdEditInputs(prev => {
+    const copy = { ...prev };
+    delete copy[sr_no];
+    return copy;
+  });
+
+  // Optionally reset to first page or adjust pagination
+  setThirdCurrentPage(1);    
+  setThirdPageIndex(0);
+};
+
+
 
   // Third Form columns
   const thirdTableColumns = [
@@ -840,19 +864,15 @@ const InspectionReferenceForm = () => {
               </div>
               <div className="right-controls">
                 <input
-                  className="irf-search-input"
-                  value={
-                    selectedOption === "third"
-                      ? thirdGlobalFilter
-                      : globalFilter || ""
-                  }
-                  onChange={e =>
-                    selectedOption === "third"
-                      ? setThirdGlobalFilter(e.target.value)
-                      : setGlobalFilter(e.target.value)
-                  }
-                  placeholder="Search..."
-                />
+					className="irf-input search"
+					value={thirdSearchInput}
+					onChange={e => {
+						setThirdSearchInput(e.target.value);
+						setThirdPageIndex(0);        // reset to first page on search term change
+						setThirdCurrentPage(1);
+					}}
+					placeholder="Search"
+					/>
               </div>
             </div>
 
@@ -870,27 +890,9 @@ const InspectionReferenceForm = () => {
                 </button>
               )}
               {selectedOption === "third" && (
-                <button
-                  onClick={() => {
-                    const newRow = {
-                      sr_no: thirdTableData.length + 1,
-                      fieldOne: "",
-                      fieldTwo: "",
-                      enclosures: [],
-                      isNew: true,
-                      isEditing: true,
-                    };
-                    setThirdTableData((prev) => [...prev, newRow]);
-                    setThirdEditInputs((prev) => ({ ...prev, [newRow.sr_no]: newRow }));
-                    setThirdEditingSrNo(newRow.sr_no);
-                    setTimeout(() => {
-                      setThirdCurrentPage(Math.ceil((thirdTableData.length + 1) / pageSize));
-                    }, 0);
-                  }}
-                >
-                  Add Row
-                </button>
-              )}
+				<button className="btn btn-primary" onClick={handleThirdAddRow}>Add Row</button>
+				)}
+
             </div>
 
 
@@ -970,12 +972,12 @@ const InspectionReferenceForm = () => {
 									</tr>
 									</thead>
 									<tbody>
-									{thirdPaginatedData.length === 0 ? (
+									{thirdPaginated.length === 0 ? (
 										<tr>
 										<td colSpan={4}>No data available</td>
 										</tr>
 									) : (
-										thirdPaginatedData.map((row) => (
+										thirdPaginated.map((row) => (
 										<tr key={row.sr_no}>
 											{thirdTableColumns.map((col) => (
                       <td key={col.accessor}>
@@ -996,33 +998,31 @@ const InspectionReferenceForm = () => {
 						{/* Pagination */}
 						<div className="d-flex align-items-center justify-content-between mt-2">
 							<span className="irf-showing-entries">
-              {selectedOption === "third"
-                ? `Showing ${
-                    (thirdCurrentPage - 1) * pageSize + 1
-                  } to ${
-                    Math.min(thirdCurrentPage * pageSize, thirdTableData.length)
-                  } of ${thirdTableData.length} entries`
-                : `Showing ${pageIndex * pageSize + 1} to ${Math.min((pageIndex + 1) * pageSize, activeData.length)} of ${activeData.length} entries`
-              }
-            </span>
+								{selectedOption === 'third' ? (
+									<>
+										Showing {thirdPageIndex * pageSize + 1} to {Math.min((thirdPageIndex + 1) * pageSize, thirdTableData.length)} of {thirdTableData.length} entries
+									</>
+									) : (
+									<>
+										Showing {pageIndex * pageSize + 1} to {Math.min((pageIndex + 1) * pageSize, activeData.length)} of {activeData.length} entries
+									</>
+									)}
+           					 </span>
 
 							<div className="irf-pagination">
-								<button onClick={previousPage} disabled={!canPreviousPage}>
-									‹
-								</button>
-								{pageOptions.map((_, i) => (
+								<button disabled={thirdPageIndex === 0} onClick={() => setThirdPageIndex(i => Math.max(i -1, 0))}>Prev</button>
+								{[...Array(totalPages).keys()].map(i => (
 									<button
-										key={i}
-										onClick={() => gotoPage(i)}
-										className={pageIndex === i ? "irf-activePage" : ""}
+									key={i}
+									className={i === thirdPageIndex ? 'irf-activePage' : ''}
+									onClick={() => setThirdPageIndex(i)}
 									>
-										{i + 1}
+									{i + 1}
 									</button>
 								))}
-								<button onClick={nextPage} disabled={!canNextPage}>
-									›
-								</button>
-							</div>
+								<button disabled={thirdPageIndex === totalPages - 1} onClick={() => setThirdPageIndex(i => Math.min(i + 1, totalPages - 1))}>Next</button>
+								</div>
+
 						</div>
 					</div>
 				</div>
