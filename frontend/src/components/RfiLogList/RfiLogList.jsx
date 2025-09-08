@@ -141,7 +141,7 @@ export default function RfiLogList() {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="rfi-table-container">
-						<h2 className="section-heading">REQUEST FOR INSPECTION LOG (RFI LOG)</h2>
+						<h2 className="section-heading">Request For Inspection Log (Rfi Log)</h2>
 
 						<div className="filters">
 							<div className="form-row">
