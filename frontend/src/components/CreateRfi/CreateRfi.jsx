@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Select from 'react-select';
 import HeaderRight from '../HeaderRight/HeaderRight';
@@ -64,31 +64,89 @@ const CreateRfi = () => {
 	});
 	const [message, setMessage] = useState('');
 
+	// To prevent multiple captures of initialData
+	const initialCapturedRef = useRef(false);
+
 	useEffect(() => {
-		if (mode === 'edit' && formData) {
-			setFormState({
-				project: formData.project || '',
-				work: formData.work || '',
-				contract: formData.contract || '',
-				structureType: formData.structureType || '',
-				structure: formData.structure || '',
-				component: formData.component || '',
-				element: formData.element || '',
-				activity: formData.activity || '',
-				rfiDescription: formData.rfiDescription || '',
-				action: formData.action || '',
-				typeOfRFI: formData.typeOfRFI || '',
-				nameOfRepresentative: formData.nameOfRepresentative || '',
-				timeOfInspection: formData.timeOfInspection || '',
-				rfi_Id: formData.rfi_Id || '',
-				dateOfSubmission: formData.dateOfSubmission || '',
-				dateOfInspection: formData.dateOfInspection || '',
-				enclosures: Array.isArray(formData.enclosures) ? formData.enclosures : [], // ✅ Always array
-				location: formData.location || '',
-				description: formData.description || '',
-			});
-		}
+	  if (mode === "edit" && formData && !initialCapturedRef.current) {
+	    console.log("🔥 formData in useEffect:", formData);
+
+	    // ✅ Normalizer: always return array
+	    const normalizeToArray = (v) => {
+	      if (!v) return [];
+	      if (Array.isArray(v)) return v;
+	      if (typeof v === "string") {
+	        return v.split(",").map((s) => s.trim()).filter(Boolean);
+	      }
+	      return [];
+	    };
+
+	    const normalizedEnclosures = normalizeToArray(formData.enclosures);
+
+	    // Set form state
+	    setFormState({
+	      project: formData.project || "",
+	      work: formData.work || "",
+	      contract: formData.contract || "",
+	      structureType: formData.structureType || "",
+	      structure: formData.structure || "",
+	      component: formData.component || "",
+	      element: formData.element || "",
+	      activity: formData.activity || "",
+	      rfiDescription: formData.rfiDescription || "",
+	      action: formData.action || "",
+	      typeOfRFI: formData.typeOfRFI || "",
+	      nameOfRepresentative: formData.nameOfRepresentative || "",
+	      timeOfInspection: formData.timeOfInspection || "",
+	      rfi_Id: formData.rfi_Id || "",
+	      dateOfSubmission: formData.dateOfSubmission || "",
+	      dateOfInspection: formData.dateOfInspection || "",
+	      enclosures: normalizedEnclosures, 
+	      location: formData.location || "",
+	      description: formData.description || "",
+	    });
+
+	    // Capture snapshot of original values (for Update validation)
+	    setInitialData({
+	      dateOfInspection: formData.dateOfInspection || "",
+	      timeOfInspection: formData.timeOfInspection || "",
+	      nameOfRepresentative: formData.nameOfRepresentative || "",
+	      enclosuresList: normalizedEnclosures, // ✅ Always array
+	    });
+
+	    initialCapturedRef.current = true;
+
+	    console.log("📌 Captured initialData:", {
+	      dateOfInspection: formData.dateOfInspection,
+	      timeOfInspection: formData.timeOfInspection,
+	      nameOfRepresentative: formData.nameOfRepresentative,
+	      enclosuresList: normalizedEnclosures,
+	    });
+	  }
 	}, [mode, formData]);
+
+	
+	const [initialData, setInitialData] = useState({
+		  	  dateOfInspection: "",
+		  	  timeOfInspection: "",
+		  	  nameOfRepresentative: ""
+		  	});
+
+			useEffect(() => {
+			  console.log("📌 useEffect triggered, action:", formState.action);
+
+			  if (formState.action === "Reschedule" || formState.action === "Reassign") {
+			    const snapshot = {
+			      dateOfInspection: formState.dateOfInspection || "",
+			      timeOfInspection: formState.timeOfInspection || "",
+			      nameOfRepresentative: formState.nameOfRepresentative || ""
+			    };
+
+			    console.log("📌 Snapshot initialData set:", snapshot);
+			    setInitialData(snapshot);
+			  }
+			}, [formState.action]);
+
 
 	const getMinInspectionDate = () => {
 		const today = new Date();
@@ -116,44 +174,70 @@ const CreateRfi = () => {
 	};
 
 	const handleSubmit = async () => {
+	  if (!validateStep2()) {
+	    alert("Please fix validation errors before submitting.");
+	    return;
+	  }
 
-		if (!validateStep2()) {
-			alert("Please fix validation errors before submitting.");
-			return;
-		}
+	  setMessage('');
+	  const url =
+	    mode === 'edit'
+	      ? `${API_BASE_URL}rfi/update/${location.state.id}`
+	      : `${API_BASE_URL}rfi/create`;
+	  const method = mode === 'edit' ? 'PUT' : 'POST';
 
-		setMessage('');
-		const url =
-			mode === 'edit'
-				? `${API_BASE_URL}rfi/update/${location.state.id}`
-				: `${API_BASE_URL}rfi/create`;
-		const method = mode === 'edit' ? 'PUT' : 'POST';
+	  let payload = { ...formState };
 
+	  // 🔥 Normalize enclosures (string → array)
+	  if (typeof payload.enclosures === "string") {
+	    payload.enclosures = payload.enclosures
+	      .split(",")
+	      .map(e => e.trim())
+	      .filter(e => e.length > 0);
+	  }
 
-		try {
-			const response = await fetch(url, {
-				method: method,
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				credentials: 'include',
-				body: JSON.stringify(formState),
-			});
+	  // 🔥 Validation: for Update only, enclosures must be provided
+	  if (
+	    payload.action &&
+	    payload.action.toLowerCase() === "update" &&
+	    (!payload.enclosures || payload.enclosures.length === 0)
+	  ) {
+	    alert("Enclosures are required when action is Update.");
+	    return;
+	  }
 
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`Error: ${response.status} - ${errorText}`);
-			}
+	  console.log("🚀 Final payload before submit:", payload);
+	  console.log(
+	    "typeof enclosures after fix:",
+	    typeof payload.enclosures,
+	    Array.isArray(payload.enclosures)
+	  );
 
-			const message = await response.text();
-			setMessage(message);
-			alert(message);
-			navigate('/Dashboard');
-		} catch (error) {
-			console.error('Error submitting RFI:', error);
-			setMessage('❌ Failed to submit RFI. Please try again.');
-		}
+	  try {
+	    const response = await fetch(url, {
+	      method: method,
+	      headers: {
+	        "Content-Type": "application/json",
+	      },
+	      credentials: "include",
+	      body: JSON.stringify(payload),
+	    });
+
+	    if (!response.ok) {
+	      const errorText = await response.text();
+	      throw new Error(`Error: ${response.status} - ${errorText}`);
+	    }
+
+	    const message = await response.text();
+	    setMessage(message);
+	    alert(message);
+	    navigate("/Dashboard");
+	  } catch (error) {
+	    console.error("Error submitting RFI:", error);
+	    setMessage("❌ Failed to submit RFI. Please try again.");
+	  }
 	};
+
 
 	const [loadingContracts, setLoadingContracts] = useState(true);
 
@@ -616,75 +700,120 @@ const CreateRfi = () => {
 	};
 
 	const validateStep2 = () => {
-		const newErrors = {};
+		  const newErrors = {};
 
-		if (mode === 'edit' && (!formState.action || formState.action.trim() === '')) {
-			newErrors.action = "Action is required";
-		}
-		if (mode === 'edit' && formState.action === 'reschedule') {
-			const originalDate = location?.state?.dateOfInspection || '';
-			const originalTime = location?.state?.timeOfInspection || '';
+		  // action is required in edit mode
+		  if (mode === "edit" && (!formState.action || formState.action.trim() === "")) {
+		    newErrors.action = "Action is required";
+		  }
 
-			// Normalize date formats (convert both to YYYY-MM-DD)
-			const formattedOriginalDate = originalDate
-				? new Date(originalDate).toISOString().split('T')[0]
-				: '';
-			const formattedFormDate = formState.dateOfInspection
-				? new Date(formState.dateOfInspection).toISOString().split('T')[0]
-				: '';
+		  // Common required fields
+		  if (!formState.dateOfSubmission) newErrors.dateOfSubmission = "Date of submission is required";
 
-			// Normalize time formats (HH:MM)
-			const formattedOriginalTime = originalTime ? originalTime.slice(0, 5) : '';
-			const formattedFormTime = formState.timeOfInspection
-				? formState.timeOfInspection.slice(0, 5)
-				: '';
+		  // Only check representative/date/time if action demands it
+		  if (formState.action?.toLowerCase() === "reschedule") {
+		    if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
+		    if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
+		    if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+		  }
 
-			const isDateChanged = formattedFormDate !== formattedOriginalDate;
-			const isTimeChanged = formattedFormTime !== formattedOriginalTime;
+		  if (formState.action?.toLowerCase() === "reassign") {
+		    if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+		  }
 
-			if (!isDateChanged && !isTimeChanged) {
-				newErrors.reschedule = "For reschedule, you must change either date or time of inspection.";
-			}
-		}
-		if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
-		if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
-		if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
-		if (!formState.dateOfSubmission) newErrors.dateOfSubmission = "Date of submission is required";
+		  setErrors(newErrors);
+		  return Object.keys(newErrors).length === 0;
+		};
 
-		setErrors(newErrors);
+		const handleStep2Next = () => {
+		  console.log("👉 initialData:", initialData);
+		  console.log("👉 formState:", formState);
 
-		return Object.keys(newErrors).length === 0; // ✅ returns true if no errors
-	};
+		  if (!validateStep2()) {
+		    alert("Please fill all required fields.");
+		    return;
+		  }
 
-	const handleStep2Next = () => {
-		if (validateStep2()) {
-			setStep(3);
-		} else {
-			alert("Please fill all required fields in Step 2.");
-		}
-	};
+		  if (mode?.toLowerCase() === "edit") {
+		    const action = (formState.action || "").toLowerCase();
 
-	const validateStep3 = () => {
-		const newErrors = {};
+		    // Ensure initialData is ready
+		    if ((action === "reschedule" || action === "reassign") && !initialData) {
+		      alert("Original values not loaded yet. Please wait a moment and try again.");
+		      return;
+		    }
 
-		// Enclosures required only when creating a new RFI
-		if (mode !== 'edit' && (!formState.enclosures || formState.enclosures.length === 0)) {
-			newErrors.enclosures = "Please select at least one enclosure";
-		}
+		    if (action === "reschedule") {
+		      const originalDate = (initialData?.dateOfInspection || "").trim();
+		      const originalTime = (initialData?.timeOfInspection || "").trim();
 
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0; // ✅ returns true if no errors
-	};
+		      const currentDate = (formState.dateOfInspection || "").trim();
+		      const currentTime = (formState.timeOfInspection || "").trim();
 
+		      const dateChanged = currentDate && currentDate !== originalDate;
+		      const timeChanged = currentTime && currentTime !== originalTime;
 
-	const handleStep3Submit = () => {
-		if (validateStep3()) {
-			handleSubmit(); // Call your existing submit function
-		} else {
-			alert("Please select at least one enclosure.");
-		}
-	};
+		      if (!dateChanged && !timeChanged) {
+		        alert("Please change the Date of Inspection or the Time of Inspection before proceeding.");
+		        return;
+		      }
+		    }
 
+		    if (action === "reassign") {
+		      const originalRep = (initialData?.nameOfRepresentative || "").trim();
+		      const currentRep = (formState.nameOfRepresentative || "").trim();
+
+		      if (currentRep === "" || currentRep === originalRep) {
+		        alert("Please change the Assigned Representative before proceeding.");
+		        return;
+		      }
+		    }
+		  }
+
+		  // ✅ Passed all checks
+		  setStep(3);
+		};
+		
+		
+		const validateStep3 = () => {
+		  const action = (formState.action || "").toLowerCase();
+		  const newErrors = {};
+
+		  if (mode?.toLowerCase() === "edit" && action === "update") {
+		    // Compare old vs new enclosures
+		    const originalEnclosures = Array.isArray(initialData.enclosuresList)
+		      ? initialData.enclosuresList
+		      : [];
+		    const currentEnclosures = Array.isArray(formState.enclosures)
+		      ? formState.enclosures
+		      : [];
+
+		    const originalStr = originalEnclosures.slice().sort().join(",");
+		    const currentStr = currentEnclosures.slice().sort().join(",");
+
+		    if (originalStr === currentStr) {
+		      newErrors.enclosures = "Please update the Enclosures before submitting.";
+		    }
+		  } else if (mode?.toLowerCase() !== "edit") {
+		    // Create mode → must select at least one
+		    if (!formState.enclosures || formState.enclosures.length === 0) {
+		      newErrors.enclosures = "Please select at least one enclosure.";
+		    }
+		  }
+
+		  if (Object.keys(newErrors).length > 0) {
+		    alert(Object.values(newErrors).join("\n"));
+		    return false;
+		  }
+
+		  return true;
+		};
+
+		const handleStep3Submit = () => {
+		  if (validateStep3()) {
+		    handleSubmit();
+		  }
+		};
 
 
 	return (
@@ -1148,18 +1277,13 @@ const CreateRfi = () => {
 
 							<div className="d-flex justify-end gap-20">
 								<button onClick={() => setStep(1)} className="btn btn-white">Back</button>
-								<button
-									onClick={() => {
-										if (validateStep2()) {
-											setStep(3); // Move to Step 3 only if validation passes
-										} else {
-											alert("Please fill all required fields in Step 2.");
-										}
-									}}
-									className="btn btn-primary"
-								>
-									Next
-								</button>
+								<button 
+									type="button"
+									  onClick={handleStep2Next}
+									  className="btn btn-primary"
+									>
+									  Next
+									</button>
 							</div>
 
 						</motion.div>
@@ -1252,18 +1376,11 @@ const CreateRfi = () => {
 									Back
 								</button>
 								<button
-									onClick={() => {
-										if (validateStep3()) {
-											handleSubmit(); // Submit or update
-										} else {
-											alert("Please select at least one enclosure."); // Only triggers in create mode
-										}
-									}}
-									className="btn btn-primary"
+								  onClick={handleStep3Submit}
+								  className="btn btn-primary"
 								>
-									{mode === 'edit' ? 'Update' : 'Submit'}
+								  {mode === 'edit' ? 'Update' : 'Submit'}
 								</button>
-
 
 
 							</div>
