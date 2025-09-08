@@ -131,7 +131,7 @@ public class InspectionController {
 	
 	@GetMapping("/inspection/measurement-data/{rfiId}")
 	public ResponseEntity<RFIInspectionDetails> getInspectionMeasurementData(@PathVariable Long rfiId) {
-	    Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findTopByRfiIdOrderByIdDesc(rfiId);
+	    Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findLatestByRfiId(rfiId);
 
 	    if (inspectionOpt.isPresent()) {
 	        return ResponseEntity.ok(inspectionOpt.get());

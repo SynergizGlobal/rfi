@@ -63,26 +63,35 @@ export default function InspectionForm() {
 
 						// Fetch actions for each enclosure
 						const fetchEnclosureActions = async () => {
-							const actionsState = {};
-							for (const item of formatted) {
-								try {
-									const response = await axios.get(
-										`${API_BASE_URL}api/v1/enclouser/description?enclosername=${encodeURIComponent(item.enclosure)}`
-									);
-									if (!response.data || response.data.length === 0) {
-										actionsState[item.id] = 'UPLOAD';
-									} else if (response.data[0].action) {
-										actionsState[item.id] = response.data[0].action;
-									} else {
-										actionsState[item.id] = 'OPEN';
-									}
-								} catch (err) {
-									console.log("Error fetching enclosure action:", err);
-									actionsState[item.id] = 'UPLOAD';
-								}
-							}
-							setEnclosureActions(actionsState);
+						  const actionsState = {};
+						  for (const item of formatted) {
+						    try {
+						      const response = await axios.get(
+						        `${API_BASE_URL}api/v1/enclouser/description?enclosername=${encodeURIComponent(item.enclosure)}`
+						      );
+
+						      if (!response.data || response.data.length === 0) {
+						        actionsState[item.id] = 'UPLOAD';
+						      } else {
+						        if (data.checklistItems && data.checklistItems.some(ci => ci.enclosureName === item.enclosure)) {
+						          actionsState[item.id] = 'EDIT';
+						        }
+						        else if (data.enclosure && data.enclosure.some(enc => enc.enclosureName === item.enclosure)) {
+						          actionsState[item.id] = 'OPEN';
+						        }
+						        else {
+						          actionsState[item.id] = 'OPEN';
+						        }
+						      }
+						    } catch (err) {
+						      console.log("Error fetching enclosure action:", err);
+						      actionsState[item.id] = 'UPLOAD';
+						    }
+						  }
+						  setEnclosureActions(actionsState);
 						};
+
+
 
 						fetchEnclosureActions();
 					}
@@ -107,7 +116,6 @@ export default function InspectionForm() {
 		try {
 			const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
-			// First, try to fetch existing checklist data for this RFI and enclosure
 			try {
 				const existingResponse = await axios.get(
 					`${API_BASE_URL}api/v1/enclouser/checklist-items?enclosureName=${encodeURIComponent(enclosureName)}&rfiId=${rfiId}`,
@@ -115,30 +123,28 @@ export default function InspectionForm() {
 				);
 
 				if (existingResponse.data && existingResponse.data.length > 0) {
-					console.log("Existing checklist data:", existingResponse.data); // Debug log
+					console.log("Existing checklist data:", existingResponse.data); 
 
-					// Return existing data if available - MATCHING YOUR API RESPONSE STRUCTURE
 					const formattedChecklist = existingResponse.data.map((item, index) => ({
 						id: index + 1,
 						checklistDescId: item.checklistDescId,
-						description: item.checklistDescription, // Changed from item.description
+						description: item.checklistDescription, 
 						contractorStatus: item.contractorStatus || '',
-						engineerStatus: item.engineerStatus,    // Changed from item.status
-						contractorRemark: item.contractorRemarks || '', // Changed from item.contractorRemark
-						aeRemark: item.engineerRemark || ''     // Changed from item.aeRemark
+						engineerStatus: item.engineerStatus,    
+						contractorRemark: item.contractorRemarks || '', 
+						aeRemark: item.engineerRemark || ''     
 					}));
 
 					return {
 						checklist: formattedChecklist,
 						gradeOfConcrete: existingResponse.data[0]?.gradeOfConcrete || '',
-						action: 'EDIT' // Indicate this is existing data
+						action: 'EDIT' 
 					};
 				}
 			} catch (existingError) {
 				console.log("No existing checklist data found, fetching template:", existingError);
 			}
 
-			// If no existing data, fetch the template from enclosure description
 			const response = await axios.get(
 				`${API_BASE_URL}api/v1/enclouser/description?enclosername=${encodeURIComponent(enclosureName)}`
 			);
@@ -193,7 +199,6 @@ export default function InspectionForm() {
 		setTimeOfInspection(now.toTimeString().split(" ")[0].slice(0, 5));
 	}, []);
 
-	// Function to fetch current geolocation
 	const fetchLocation = () => {
 	    if (navigator.geolocation) {
 	        navigator.geolocation.getCurrentPosition(
@@ -205,7 +210,6 @@ export default function InspectionForm() {
 	                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
 	                    );
 	                    const geoData = await res.json();
-	                    // Only overwrite if data returned a proper address
 	                    setLocationText(geoData.display_name || `Lat: ${lat}, Lng: ${lng}`);
 	                } catch {
 	                    setLocationText(`Lat: ${lat}, Lng: ${lng}`);
@@ -246,7 +250,6 @@ export default function InspectionForm() {
 			}))
 		};
 
-		console.log("Submitting checklist DTO:", dto); // Debug log
 
 		const formData = new FormData();
 		formData.append("data", JSON.stringify(dto));
@@ -485,7 +488,6 @@ export default function InspectionForm() {
 	const handleSaveDraft = async () => {
 	  const formData = new FormData();
 
-	  // Prepare DTO payload
 	  const inspectionPayload = {
 	    inspectionId: inspectionId || null,
 	    rfiId: rfiData.id,
@@ -505,18 +507,15 @@ export default function InspectionForm() {
 
 	  formData.append("data", JSON.stringify(inspectionPayload));
 
-	  // Append selfie
 	  if (selfieImage) {
 	    formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
 	  }
 
-	  // Append site images
 	  galleryImages.forEach((img, i) => {
 	    if (!img) return;
 	    formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
 	  });
 
-	  // Append test report
 	  if (testReportFile) formData.append("testReport", testReportFile);
 
 	  try {
@@ -536,22 +535,52 @@ export default function InspectionForm() {
 	    alert(`Draft save failed: ${err.message}`);
 	  }
 	};
+	
+	
+	
+	const validateStep = () => {
+	  const newErrors = {};
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	  // ✅ Location is mandatory
+	  if (!locationText || locationText.trim() === '') {
+	    newErrors.location = "Location is required";
+	  }
+
+	  // ✅ At least one measurement with valid values
+	  const hasValidMeasurement = measurements.some(m => {
+	    if (!m.type) return false;
+	    switch (m.type) {
+	      case "Number":
+	        return m.No !== null && m.No !== "";
+	      case "Length":
+	        return m.L !== null && m.L !== "";
+	      case "Area":
+	        return m.L !== null && m.B !== null && m.total !== null;
+	      case "Volume":
+	        return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
+	      default:
+	        return false;
+	    }
+	  });
+
+	  if (!hasValidMeasurement) {
+	    newErrors.measurements = "Please fill at least one measurement completely";
+	  }
+
+
+	  setErrors(newErrors);
+	  return Object.keys(newErrors).length === 0;
+	};
+
+
 	
 	const handleSubmitInspection = async () => {
-	  const formData = new FormData();
+	  if (!validateStep()) {
+	    alert("⚠️ Please fill required data before submitting.");
+	    return;
+	  }
 
+	  const formData = new FormData();
 	  const inspectionPayload = {
 	    inspectionId: inspectionId || null,
 	    rfiId: rfiData.id,
@@ -571,18 +600,21 @@ export default function InspectionForm() {
 
 	  formData.append("data", JSON.stringify(inspectionPayload));
 
-	  // Selfie
 	  if (selfieImage) {
-	    formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
+	    formData.append(
+	      "selfie",
+	      selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg")
+	    );
 	  }
 
-	  // Site images
 	  galleryImages.forEach((img, i) => {
 	    if (!img) return;
-	    formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
+	    formData.append(
+	      "siteImages",
+	      img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`)
+	    );
 	  });
 
-	  // Test report
 	  if (testReportFile) formData.append("testReport", testReportFile);
 
 	  try {
@@ -603,51 +635,7 @@ export default function InspectionForm() {
 	};
 
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	const validateStep2 = () => {
-		const newErrors = {};
 
-		// Location is mandatory
-		if (!locationText || locationText.trim() === '') {
-			newErrors.location = "Location is required";
-		}
-
-		// Measurements are mandatory
-		const hasValidMeasurement = measurements.some(m => {
-			if (!m.type) return false;
-			switch (m.type) {
-				case "Number":
-					return m.No !== null && m.No !== "";
-				case "Length":
-					return m.L !== null && m.L !== "";
-				case "Area":
-					return m.L !== null && m.B !== null && m.total !== null;
-				case "Volume":
-					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
-				default:
-					return false;
-			}
-		});
-
-		if (!hasValidMeasurement) {
-			newErrors.measurements = "Please fill at least one measurement completely";
-		}
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
-	};
 
 	if (!rfiData) return <div>Loading RFI details...</div>;
 
@@ -758,14 +746,15 @@ export default function InspectionForm() {
 													<td>{e.enclosure}</td>
 
 													<td>
-													  {enclosureActions[e.id] === 'OPEN' ? (
-													    <button onClick={() => setChecklistPopup(e.id)}>Open</button>
-													  ) : enclosureActions[e.id] === 'EDIT' ? (
-													    <button onClick={() => setChecklistPopup(e.id)}>Edit</button>
-													  ) : (
+													  {enclosureActions[e.id] === 'UPLOAD' ? (
 													    <button onClick={() => setUploadPopup(e.id)}>Upload</button>
+													  ) : (
+													    <button onClick={() => setChecklistPopup(e.id)}>
+													      {enclosureActions[e.id] === 'EDIT' ? 'Edit' : 'Open'}
+													    </button>
 													  )}
 													</td>
+
 
 
 													<td>
@@ -1303,7 +1292,9 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 					</div>
 				</div>
 
-				<h3>CHECKLIST FOR CONCRETE/SHUTTERING & REINFORCEMENT</h3>
+				<h3>
+				   {enclosureName ? enclosureName.toUpperCase() : ''}
+				</h3>
 
 				{checklistData.length > 0 ? (
 					<DataTable

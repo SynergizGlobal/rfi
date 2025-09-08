@@ -141,6 +141,7 @@ public class ChecklistDescriptionServiceIMPL {
                     byChecklistDescription.stream().filter(item -> item.getChecklistDescription().getId().equals(res.getChecklistDescId()))
                             .findFirst().orElse(null);
             if(matchedItem != null) {
+            	res.setGradeOfConcrete(matchedItem.getGradeOfConcrete());
                 res.setEngineerStatus(matchedItem.getEngineerStatus());
                 res.setContractorStatus(matchedItem.getContractorStatus());
                 res.setContractorRemarks(matchedItem.getContractorRemark());

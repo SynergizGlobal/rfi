@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class CheckListResponse {
+	String gradeOfConcrete;
     Long checklistDescId;
     String checklistDescription;
     String contractorStatus;

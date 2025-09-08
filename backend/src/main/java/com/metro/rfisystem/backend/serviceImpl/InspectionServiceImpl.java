@@ -279,6 +279,9 @@ public class InspectionServiceImpl implements InspectionService {
 	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
 	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
 	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
+	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
+	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
 
 	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
 
