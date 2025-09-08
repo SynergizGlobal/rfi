@@ -29,9 +29,13 @@ public class RfiLogServiceImpl implements RfiLogService {
 		} else if ("Engg".equalsIgnoreCase(deparmentFK)) {
 			System.out.println("Engineer......");
 			return rfiRepository.listAllRfiLogByAssignedBy(userName);
-		} else
+		} else if ("Regular User".equalsIgnoreCase(userRole)) { 
+	        System.out.println("Representative / Regular User......");
+	        return rfiRepository.listAllRfiLogByRepresentative(userName);
+
+	    } 
+		else
 			System.out.println("Contrator...... :");
-		// Query for the Contractor if the above roles are !matched..
 		return rfiRepository.listAllRfiLogByCreatedBy(userName);
 	}
 
