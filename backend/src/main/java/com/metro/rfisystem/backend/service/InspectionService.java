@@ -9,6 +9,7 @@ import com.itextpdf.text.DocumentException;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 
 public interface InspectionService {
 
@@ -22,6 +23,10 @@ public interface InspectionService {
 
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
 			List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk);
+
+
+	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk);
+
 
 
 }

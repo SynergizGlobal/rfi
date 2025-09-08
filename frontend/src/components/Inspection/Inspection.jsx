@@ -228,7 +228,7 @@ const Inspection = () => {
 							>
 								<button onClick={() => handleInspectionComplete(row.original.id, row.original.status)}>Start Inspection Online</button>
 								<button>Start Inspection Offline</button>
-								{userRole !== 'Engg' && (
+						{	/*	{userRole !== 'Engg' && (
 									<button
 										onClick={() => {
 											navigate('/InspectionForm', {
@@ -240,7 +240,7 @@ const Inspection = () => {
 									>
 										Upload Test Results
 									</button>
-								)}
+								)}*/}
 
 								{deptFK.toLocaleLowerCase() === 'engg' && (
 								  <button
@@ -285,7 +285,7 @@ const Inspection = () => {
 								<button
 									onClick={() => {
 										navigate('/InspectionForm', {
-											state: { rfi: row.original.id, skipSelfie: true },
+											state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
 										});
 										setOpenDropdownRow(null);
 										setDropdownInfo({ rowId: null, targetRef: null });

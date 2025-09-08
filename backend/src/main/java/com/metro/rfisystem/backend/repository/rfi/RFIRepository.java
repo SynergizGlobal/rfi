@@ -133,39 +133,35 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	List<RfiListDTO> getRFIsCreatedBy(String createdBy);
 
 	@Query(value = """
-			    SELECT
-				    r.id as id,
-			        r.rfi_id AS rfi_Id,
-			        r.project_name AS project,
-			        r.structure AS structure,
-			        r.element AS element,
-			        r.activity AS activity,
-			        r.created_by as createdBy,
-			        r.assigned_person_client AS assignedPersonClient,
-			        DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
-			        ico.inspection_status AS  inspectionstatus,
-			        r.status as status,
-			        r.action as action,
-			          rid.measurement_type AS measurementType,
-			     rid.total_qty AS totalQty,
-			        ico.site_image as imgContractor,
-			        ic.site_image as imgClient
-			    FROM rfi_data r
-			    LEFT JOIN (select rfi_id_fk, site_image, inspection_status from rfi_inspection_details
-			    where uploaded_by != 'Engg') ico
-			    on r.id = ico.rfi_id_fk
-			    LEFT JOIN (select rfi_id_fk, site_image from rfi_inspection_details
-			    where uploaded_by = 'Engg') ic
-			    on r.id = ic.rfi_id_fk
+		    SELECT
+		        r.id as id,
+		        r.rfi_id AS rfi_Id,
+		        r.project_name AS project,
+		        r.structure AS structure,
+		        r.element AS element,
+		        r.activity AS activity,
+		        r.created_by as createdBy,
+		        r.assigned_person_client AS assignedPersonClient,
+		        DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
+		        ico.inspection_status AS inspectionstatus,
+		        r.status as status,
+		        r.action as action,
+		        rid.measurement_type AS measurementType,
+		        rid.total_qty AS totalQty,
+		        ico.site_image as imgContractor,
+		        ic.site_image as imgClient
+		    FROM rfi_data r
+		    LEFT JOIN (SELECT rfi_id_fk, site_image, inspection_status FROM rfi_inspection_details WHERE uploaded_by != 'Engg') ico
+		        ON r.id = ico.rfi_id_fk
+		    LEFT JOIN (SELECT rfi_id_fk, site_image FROM rfi_inspection_details WHERE uploaded_by = 'Engg') ic
+		        ON r.id = ic.rfi_id_fk
+		    LEFT JOIN (SELECT rfi_id_fk, measurement_type, total_qty FROM rfi_inspection_details) rid
+		        ON r.id = rid.rfi_id_fk
+		    WHERE r.assigned_person_client = :assignedPersonClient
+		    ORDER BY r.created_at DESC
+		""", nativeQuery = true)
+		List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
 
-			       LEFT JOIN (
-			     SELECT rfi_id_fk, measurement_type, total_qty
-			     FROM rfi_inspection_details
-			 ) rid ON r.id = rid.rfi_id_fk
-			    WHERE r.assigned_person_client = :assignedPersonClient
-			    ORDER BY r.created_at DESC
-			""", nativeQuery = true)
-	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
 
 	@Query(value = "SELECT COUNT(id) FROM rfi_data", nativeQuery = true)
 	int countOfAllRfiCreatedSoFar();

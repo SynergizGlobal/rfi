@@ -362,7 +362,48 @@ public class InspectionServiceImpl implements InspectionService {
 
 
 	
-	
+	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk) {
+        List<RFIInspectionDetails> inspections;
+
+        if ("CON".equalsIgnoreCase(deptFk)) {
+            inspections = new ArrayList<>(inspectionRepository.findDraftInspections("CON"));
+            inspections.addAll(inspectionRepository.findSubmittedByContractor("CON"));
+        } else if ("Engg".equalsIgnoreCase(deptFk)) {
+            inspections = inspectionRepository.findAllSubmitted();
+        } else {
+            inspections = inspectionRepository.findAllInspections();
+        }
+
+        return inspections.stream()
+                .filter(ins -> ins.getRfi().getId().equals(rfiId)) // filter by RFI ID
+                .map(this::convertToFullDTO)
+                .toList();
+    }
+
+    private RFIInspectionRequestDTO convertToFullDTO(RFIInspectionDetails inspection) {
+        RFI rfi = inspection.getRfi();
+
+        return RFIInspectionRequestDTO.builder()
+                .inspectionId(inspection.getId())
+                .rfiId(rfi.getId())
+                .location(inspection.getLocation())
+                .chainage(inspection.getChainage())
+                .selfiePath(inspection.getSelfiePath())
+                .siteImage(inspection.getSiteImage())
+                .testSiteDocuments(inspection.getTestSiteDocuments())
+                .testInsiteLab(inspection.getTestInsiteLab())
+                .measurementType(inspection.getMeasurementType())
+                .inspectionStatus(inspection.getInspectionStatus())
+                .length(inspection.getLength())
+                .breadth(inspection.getBreadth())
+                .height(inspection.getHeight())
+                .noOfItems(inspection.getNoOfItems())
+                .totalQty(inspection.getTotalQty())
+                .engineerRemarks(inspection.getEngineerRemarks())
+               
+                .build();
+    }
+
 	
 	
 	

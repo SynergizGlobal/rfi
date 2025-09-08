@@ -1,12 +1,21 @@
 package com.metro.rfisystem.backend.dto;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class RFIInspectionRequestDTO {
 	private Long inspectionId;
     private Long rfiId;
     private String location;
     private String chainage;
+    private String selfiePath;
+    private String siteImage;
+    private String  testSiteDocuments;
     private String StringRfiId;
     private String project;
     private String work;
@@ -25,6 +34,7 @@ public class RFIInspectionRequestDTO {
     private Integer noOfItems;
     private Double totalQty;
     private String engineerRemarks;
+    private Object workStatus;
 	
 	
    

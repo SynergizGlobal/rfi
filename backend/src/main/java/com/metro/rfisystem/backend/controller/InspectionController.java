@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -126,6 +127,41 @@ public class InspectionController {
 	}
 
 
+	@GetMapping("/inspections/{rfiId}")
+	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId, HttpSession session) {
+	    String deptFk = (String) session.getAttribute("departmentFk");
+	    if (deptFk == null || deptFk.isEmpty()) {
+	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	                .body("Department not found in session");
+	    }
+
+	    try {
+	        List<RFIInspectionRequestDTO> inspections = inspectionService.getInspectionsByRfiId(rfiId, deptFk);
+	        return ResponseEntity.ok(inspections);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body("Failed to fetch inspection: " + e.getMessage());
+	    }
+	}
+
+	
+	
+//	@GetMapping("/inspections/{rfiId}")
+//	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId) {
+//	    try {
+//	        List<RFIInspectionDetails> inspections = inspectionRepository.findInspectionsByRfiId(rfiId);
+//
+//	        if (inspections.isEmpty()) {
+//	            return ResponseEntity.ok(Collections.emptyList());
+//	        }
+//	        return ResponseEntity.ok(inspections);
+//	    } catch (Exception e) {
+//	        e.printStackTrace();
+//	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//	                .body("Failed to fetch inspection: " + e.getMessage());
+//	    }
+//	}
 
 
 	
