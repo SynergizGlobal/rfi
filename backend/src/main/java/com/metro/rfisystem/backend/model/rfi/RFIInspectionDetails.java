@@ -88,9 +88,9 @@ public class RFIInspectionDetails {
     @Column(name = "total_qty")
     private Double totalQty;
     
-    @Column(name = "ae_remarks")
+    @Column(name = "ae_remarks", length = 1000)
     private String engineerRemarks;
-    
+
     
     @Column(name = "work_status")
     private InspectionWorkFlowStatus workStatus;

@@ -865,18 +865,46 @@ export default function InspectionForm() {
 														<option value="Rejected">Rejected</option>
 													</select>
 
-													{/* ✅ Show Remarks field only if Rejected */}
 													{testInLab === "Rejected" && (
-														<div className="remarks-field">
-															<label>Remarks</label>
-															<input
-																type="text"
-																value={engineerRemarks}
-																onChange={(e) => setEngineerRemarks(e.target.value)}
-																placeholder="Enter remarks"
+													  <div style={{ position: "relative", width: "100%" }}>
+													    <label>Remarks</label>
+													    <textarea
+													      value={engineerRemarks}
+													      onChange={(e) => {
+													        if (e.target.value.length <= 1000) {
+													          setEngineerRemarks(e.target.value);
+													        }
+													      }}
+													      placeholder="Enter remarks"
+													      style={{
+													        width: "100%",
+													        minHeight: "100px",
+													        padding: "10px",
+																	boxSizing: "border-box",
+																	resize: "vertical"
+																}}
 															/>
+															<div
+																style={{
+																	position: "absolute",
+																	top: "8px",
+																	right: "12px",
+																	fontSize: "12px",
+																	color: engineerRemarks.length >= 1000 ? "red" : "#888",
+																	pointerEvents: "none",
+																	backgroundColor: "white",
+																	padding: "0 4px",
+																	borderRadius: "4px",
+																	marginTop: 0,
+																	marginBottom: 0
+																}}
+															>
+																{1000 - (engineerRemarks?.length || 0)} {'limit'}
+															</div>
 														</div>
 													)}
+
+
 												</>
 											)}
 										</div>
