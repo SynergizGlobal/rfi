@@ -20,6 +20,17 @@ export default function Validation() {
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
 	const [editModeList, setEditModeList] = useState([]);
+	const [comments, setComments] = useState({});
+	const handleCommentChange = (rowIndex, value) => {
+	  if (value.length <= 500) {
+	    setComments((prev) => ({
+	      ...prev,
+	      [rowIndex]: value,
+	    }));
+	  }
+	};
+
+
 
 	useEffect(() => {
 		axios.get(`${API_BASE_URL}/getRfiValidations`, { withCredentials: true })
@@ -68,18 +79,12 @@ export default function Validation() {
 		);
 	};
 
-	const handleFileChange = (idx, file) => {
-		const updated = [...fileList];
-		updated[idx] = file;
-		setFileList(updated);
-	};
 	const [submittedList, setSubmittedList] = useState([]);
 
 	const submitValidation = (rfi, idx) => {
 		const remarks = remarksList[idx]?.trim();
 		const action = statusList[idx]?.trim();
-		const file = fileList[idx];
-
+		const comment = comment[idx]?.trim();
 		if (!remarks) {
 			alert("Please select a remark before submitting.");
 			return;
@@ -90,7 +95,7 @@ export default function Validation() {
 			return;
 		}
 
-		if (!file) {
+		if (!comment) {
 			alert("Please upload a file before submitting.");
 			return;
 		}
@@ -100,7 +105,7 @@ export default function Validation() {
 		formData.append("long_rfi_validate_id", rfi.longRfiValidateId);
 		formData.append("remarks", remarks);
 		formData.append("action", action);
-		formData.append("file", file);
+		formData.append("comment", comment);
 
 		axios.post(`${API_BASE_URL}/validate`, formData)
 			.then(() => {
@@ -120,9 +125,7 @@ export default function Validation() {
 				setEditModeList(prev =>
 					prev.map((item, i) => i === idx ? false : item)
 				);
-				setFileList(prev =>
-					prev.map((f, i) => i === idx ? null : f)
-				);
+				
 			})
 			.catch(err => {
 				console.error('Validation error:', err);
@@ -150,7 +153,7 @@ export default function Validation() {
 	const [rfiList, setRfiList] = useState([]);
 	const [remarksList, setRemarksList] = useState([]);
 	const [statusList, setStatusList] = useState([]);
-	const [fileList, setFileList] = useState([]);
+	const [comment, setComment] = useState([]);
 	const [selectedInspection, setSelectedInspection] = useState(null);
 
 
@@ -438,10 +441,8 @@ export default function Validation() {
 								<th>Download</th>
 								<th>Remarks</th>
 								<th>Status</th>
-								{isDyHOD || isITAdmin && (
-									<th>File</th>
-								)}
-								{isDyHOD || isITAdmin && (
+								<th>Comments</th>
+								{(isDyHOD || isITAdmin) && (
 									<th>Action</th>
 								)}
 							</tr>
@@ -468,10 +469,9 @@ export default function Validation() {
 												<td>
 													<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, globalIndex)}>⬇️</button>
 												</td>
-
 												{/* Remarks column */}
 												<td>
-													{isDyHOD || isITAdmin ? (
+													{(isDyHOD || isITAdmin) ? (
 														<select
 															value={remarks || ""}
 															onChange={(e) => updateRemark(globalIndex, e.target.value)}
@@ -487,10 +487,11 @@ export default function Validation() {
 														remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
 													)}
 												</td>
+												
 
 												{/* Status column */}
 												<td>
-													{isDyHOD || isITAdmin ? (
+													{(isDyHOD || isITAdmin) ? (
 														<select
 															value={status || ""}
 															onChange={(e) => updateStatus(globalIndex, e.target.value)}
@@ -499,23 +500,46 @@ export default function Validation() {
 															<option value="">-- Select --</option>
 															<option value="APPROVED">Approved</option>
 															<option value="REJECTED">Rejected</option>
-															<option value="CLARIFICATION_REQUIRED">Clarification Required</option>
 														</select>
 													) : (
 														status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
 													)}
 												</td>
+												
+												
+												<td style={{ position: "relative" }}>
+												  <textarea
+												    value={comments[globalIndex] || ""}
+												    onChange={(e) => handleCommentChange(globalIndex, e.target.value)}
+												    placeholder="Enter your comment"
+												    style={{
+												      width: "100%",
+												      minHeight: "60px",
+												      resize: "vertical",
+												      padding: "8px",
+												      borderRadius: "6px",
+												      border: "1px solid #ccc",
+												      fontSize: "14px",
+												      boxSizing: "border-box"
+												    }}
+												  />
+												  {/* Character counter inside bottom-right */}
+												  <div
+												    style={{
+												      position: "absolute",
+												      bottom: "6px",
+												      right: "10px",
+												      fontSize: "12px",
+												      color: (comments[globalIndex]?.length || 0) >= 500 ? "red" : "#888",
+												      pointerEvents: "none",
+												      backgroundColor: "#fff"
+												    }}
+												  >
+												    {500 - (comments[globalIndex]?.length || 0)} / 500
+												  </div>
+												</td>
 
-												{/* File input */}
-												{(isDyHOD || isITAdmin) && (
-													<td>
-														<input
-															type="file"
-															onChange={(e) => handleFileChange(globalIndex, e.target.files[0])}
-															disabled={isValidated && !isEditable}
-														/>
-													</td>
-												)}
+
 
 												{/* Action */}
 												{(isDyHOD || isITAdmin) && (
