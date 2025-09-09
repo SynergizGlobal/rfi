@@ -10,9 +10,12 @@
 .validation .validation-table td {
   padding: 10px;
   text-align: left;
-  white-space: nowrap;
+  white-space: break-spaces;
 }
 
+.validation .validation-table thead tr th:nth-last-child(2){
+  min-width: 280px;
+}
 
 .left-align {
   display: flex;

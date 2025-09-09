@@ -530,7 +530,7 @@ export default function Validation() {
 												  <div
 												    style={{
 												      position: "absolute",
-												      bottom: "6px",
+												      bottom: "1px",
 												      right: "10px",
 												      fontSize: "12px",
 												      color: (comments[globalIndex]?.length || 0) >= 500 ? "red" : "#888",
@@ -549,12 +549,12 @@ export default function Validation() {
 													<td>
 														{isValidated ? (
 															isEditable ? (
-																<button onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
+																<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
 															) : (
-																<button onClick={() => toggleEditMode(globalIndex)}>Edit</button>
+																<button className='btn btn-secondary' onClick={() => toggleEditMode(globalIndex)}>Edit</button>
 															)
 														) : (
-															<button onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
+															<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
 														)}
 													</td>
 												)}
