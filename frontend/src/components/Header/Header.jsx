@@ -71,12 +71,12 @@ const Header = () => {
 						</div>
 						<div className="profile-options">
 							<ul>
-								{/* <li>
-									<a href="">
+								 <li>
+									<a href="EditProfile">
 										Edit Profile
 									</a>
 								</li>
-								<li>
+								{/*<li>
 									<Link to="">Change Password</Link>
 								</li>*/}
 								<li>
