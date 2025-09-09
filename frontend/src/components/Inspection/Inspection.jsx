@@ -242,7 +242,9 @@ const Inspection = () => {
 									</button>
 								)}*/}
 
-								{deptFK.toLocaleLowerCase() === 'engg' && (
+								{deptFK.toLowerCase() === 'engg' &&
+								 row.original.status === 'INSPECTED_BY_AE' &&
+								 row.original.approvalStatus?.toLowerCase() === 'accepted' && (
 								  <button
 								    onClick={() => {
 								      console.log("📌 Send for Validation clicked for RFI:", row.original.id);
@@ -259,7 +261,7 @@ const Inspection = () => {
 								            headers: { "Content-Type": "application/json" },
 								          })
 								            .then(async (res) => {
-								              const text = await res.text(); 
+								              const text = await res.text();
 								              console.log("📌 API response status:", res.status, "body:", text);
 
 								              if (!res.ok) {
@@ -281,6 +283,7 @@ const Inspection = () => {
 								    Send for Validation
 								  </button>
 								)}
+
 
 								<button
 									onClick={() => {

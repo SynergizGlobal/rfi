@@ -12,6 +12,7 @@ public interface RfiListDTO {
     String getdateOfSubmission();
     String getInspectionStatus();
     String getStatus();
+    String getApprovalStatus();
     String getAction();
     String getImgClient();
     String getImgContractor();
