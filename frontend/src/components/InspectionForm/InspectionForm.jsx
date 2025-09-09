@@ -252,7 +252,6 @@ export default function InspectionForm() {
 			}))
 		};
 
-
 		const formData = new FormData();
 		formData.append("data", JSON.stringify(dto));
 
@@ -272,6 +271,7 @@ export default function InspectionForm() {
 			const responseText = await res.text();
 			console.log("Checklist save response:", responseText);
 
+			// ✅ update states
 			setEnclosureStates(prev => ({
 				...prev,
 				[id]: {
@@ -280,6 +280,13 @@ export default function InspectionForm() {
 					checklistDone: true,
 				}
 			}));
+
+			// ✅ update actions so button shows "Edit"
+			setEnclosureActions(prev => ({
+				...prev,
+				[id]: "EDIT"
+			}));
+
 			setChecklistPopup(null);
 			alert("Checklist saved successfully!");
 		} catch (err) {
@@ -287,6 +294,7 @@ export default function InspectionForm() {
 			alert("Checklist save failed: " + err.message);
 		}
 	};
+
 
 	const handleSubmitConfirmed = async () => {
 		const formData = new FormData();
@@ -804,14 +812,15 @@ export default function InspectionForm() {
 													<td>{e.enclosure}</td>
 
 													<td>
-														{enclosureActions[e.id] === 'UPLOAD' ? (
-															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
-														) : (
-															<button onClick={() => setChecklistPopup(e.id)}>
-																{enclosureActions[e.id] === 'EDIT' ? 'Edit' : 'Open'}
-															</button>
-														)}
+													  {enclosureActions[e.id] === 'UPLOAD' ? (
+													    <button onClick={() => setUploadPopup(e.id)}>Upload</button>
+													  ) : (
+													    <button onClick={() => setChecklistPopup(e.id)}>
+													      {enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
+													    </button>
+													  )}
 													</td>
+
 
 
 

@@ -441,7 +441,9 @@ export default function Validation() {
 								<th>Download</th>
 								<th>Remarks</th>
 								<th>Status</th>
-								<th>Comments</th>
+								{(isDyHOD || isITAdmin) && (
+									<th>Comments</th>
+								)}
 								{(isDyHOD || isITAdmin) && (
 									<th>Action</th>
 								)}
@@ -507,10 +509,11 @@ export default function Validation() {
 												</td>
 												
 												
-												<td style={{ position: "relative" }}>
+												{(isDyHOD || isITAdmin) && (<td style={{ position: "relative" }}>
 												  <textarea
 												    value={comments[globalIndex] || ""}
 												    onChange={(e) => handleCommentChange(globalIndex, e.target.value)}
+													disabled={isValidated && !isEditable}
 												    placeholder="Enter your comment"
 												    style={{
 												      width: "100%",
@@ -537,7 +540,7 @@ export default function Validation() {
 												  >
 												    {500 - (comments[globalIndex]?.length || 0)} / 500
 												  </div>
-												</td>
+												</td>)}
 
 
 
