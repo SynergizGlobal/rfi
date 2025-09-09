@@ -294,15 +294,18 @@ public class RFIController {
 		        return ResponseEntity.ok(new ArrayList<>(merged));
 		    }
 		 
+		 if ("Engg".equalsIgnoreCase(userDepartment)) {
+		        List<RfiListDTO> assigned = rfiService.getRFIsAssignedTo(userName);
+		        return ResponseEntity.ok(assigned); 
+		    }
+		 
 		 if (userRole.equalsIgnoreCase("Regular User")) {
 		        List<RfiListDTO> representative = rfiService.getRFIsByRepresentative(userName);
 		        return ResponseEntity.ok(representative);
 		    }
 		 
 		
-		if (userDepartment.equalsIgnoreCase("Engg")) {
-			return ResponseEntity.ok(rfiService.getRFIsAssignedTo(userName));
-		}
+		
 		return ResponseEntity.ok(rfiService.getRFIsByCreatedBy(userName));
 	}
 	

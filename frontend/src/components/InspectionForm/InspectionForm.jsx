@@ -223,16 +223,30 @@ export default function InspectionForm() {
 	};
 
 	function dataURLtoFile(dataUrl, filename) {
-		const arr = dataUrl.split(',');
-		const mime = arr[0].match(/:(.*?);/)[1];
-		const bstr = atob(arr[1]);
-		let n = bstr.length;
-		const u8arr = new Uint8Array(n);
-		while (n--) {
-			u8arr[n] = bstr.charCodeAt(n);
+		if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
+			console.warn("⚠️ Invalid data URL, skipping:", dataUrl);
+			return null;
 		}
-		return new File([u8arr], filename, { type: mime });
+
+		try {
+			const arr = dataUrl.split(",");
+			const mimeMatch = arr[0].match(/:(.*?);/);
+			const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+			const bstr = atob(arr[1]);
+			let n = bstr.length;
+			const u8arr = new Uint8Array(n);
+
+			while (n--) {
+				u8arr[n] = bstr.charCodeAt(n);
+			}
+
+			return new File([u8arr], filename, { type: mime });
+		} catch (error) {
+			console.error("❌ Failed to convert dataURL to File:", error);
+			return null;
+		}
 	}
+
 
 	const handleChecklistSubmit = async (id, checklistData, grade) => {
 		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || '';
@@ -611,18 +625,20 @@ export default function InspectionForm() {
 		formData.append("data", JSON.stringify(inspectionPayload));
 
 		if (selfieImage) {
-			formData.append(
-				"selfie",
-				selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg")
-			);
-		}
+			const selfieFile =
+				selfieImage instanceof File
+					? selfieImage
+					: dataURLtoFile(selfieImage, "selfie.jpg");
 
+			if (selfieFile) formData.append("selfie", selfieFile);
+		}
 		galleryImages.forEach((img, i) => {
 			if (!img) return;
-			formData.append(
-				"siteImages",
-				img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`)
-			);
+
+			const imageFile =
+				img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`);
+
+			if (imageFile) formData.append("siteImages", imageFile);
 		});
 
 		if (testReportFile) formData.append("testReport", testReportFile);
@@ -812,13 +828,13 @@ export default function InspectionForm() {
 													<td>{e.enclosure}</td>
 
 													<td>
-													  {enclosureActions[e.id] === 'UPLOAD' ? (
-													    <button onClick={() => setUploadPopup(e.id)}>Upload</button>
-													  ) : (
-													    <button onClick={() => setChecklistPopup(e.id)}>
-													      {enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
-													    </button>
-													  )}
+														{enclosureActions[e.id] === 'UPLOAD' ? (
+															<button onClick={() => setUploadPopup(e.id)}>Upload</button>
+														) : (
+															<button onClick={() => setChecklistPopup(e.id)}>
+																{enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
+															</button>
+														)}
 													</td>
 
 
@@ -954,6 +970,7 @@ export default function InspectionForm() {
 																	boxSizing: "border-box",
 																	resize: "vertical"
 																}}
+																disabled={viewMode}
 															/>
 															<div
 																style={{
@@ -969,6 +986,7 @@ export default function InspectionForm() {
 																	marginTop: 0,
 																	marginBottom: 0
 																}}
+																
 															>
 																{1000 - (engineerRemarks?.length || 0)} {'limit'}
 															</div>
