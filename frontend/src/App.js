@@ -55,7 +55,7 @@ function App() {
           <Route path='/AssignExecutive' element={<AssignExecutive />} />
           <Route path='/OfflineInspectionForm' element={<OfflineInspectionForm />} />
           <Route path='/InspectionReferenceForm' element={<InspectionReferenceForm />} />
-          <Route path='/EditProfile' element={<EditProfile />} />
+          <Route path='/EditProfile' element={<EditProfile />} /> 
           {/* Add more protected routes here */}
         </Route>
 
