@@ -22,3 +22,8 @@
 .editprofile .info-block{
   margin-bottom: 28px;
 }
+@media(max-width: 770px){
+  .profile-container{
+    flex-direction: column;
+  }
+}
