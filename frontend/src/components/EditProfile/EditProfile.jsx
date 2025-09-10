@@ -1,32 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import './EditProfile.css';
 
-const initialProfile = {
-  name: "Shanmukh Venkatesh Pallikonda",
-  role: "UI/UX Developer",
-  email: "venkatesh.ps@synergizglobal.com",
-  phone: "98979989898",
-  personalNumber: "98979989898",
-  userRole: "IT Admin",
-  userType: "",
-  department: "IT",
-  reportingTo: "",
-  landLine: "",
-  extension: "",
-  pmisKey: "SGS11",
-
-};
+const userId = localStorage.getItem("userId");
+const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
 const EditProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(initialProfile);
+  const [profile, setProfile] = useState(false);
   const [form, setForm] = useState({
     email: profile.email,
     phone: profile.phone,
     personalNumber: profile.personalNumber
   });
-  const [profileImg, setProfileImg] = useState(null); // base64 or object URL
+  const [profileImg, setProfileImg] = useState(null);
   const fileInputRef = useRef(null);
 
   // Edit/save/cancel handlers
@@ -39,13 +26,67 @@ const EditProfile = () => {
       personalNumber: profile.personalNumber
     });
   };
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-  };
-  const handleSave = () => {
-    setProfile(p => ({ ...p, ...form }));
-    setIsEditing(false);
+  
+  useEffect(() => {
+     if (!userId) return;
+
+     fetch(`${API_BASE_URL}api/profile/${userId}`)
+       .then(res => res.json())
+       .then(data => {
+         setProfile(data);
+         setForm({
+           email: data.email,
+           phone: data.phone,
+           personalNumber: data.personalNumber
+         });
+       })
+       .catch(err => console.error("Failed to fetch profile:", err));
+   }, []);
+   
+   if (!userId) {
+     window.location.href = "/login";
+   }
+   
+   const handleChange = (e) => {
+     const { name, value } = e.target;
+
+     // Update form
+     setForm(f => ({ ...f, [name]: value }));
+
+     // Validate length
+     if (name === "phone" || name === "personalNumber") {
+       setErrors(err => ({
+         ...err,
+         [name]: value.length !== 10
+       }));
+     }
+   };
+  
+  const [errors, setErrors] = useState({
+    phone: false,
+    personalNumber: false
+  });
+  
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}api/profile/${userId}/contact`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!response.ok) throw new Error("Failed to update");
+
+      const result = await response.text();
+      console.log("✅ Update successful:", result);
+      setProfile(p => ({ ...p, ...form }));
+      setIsEditing(false);
+    } catch (error) {
+      console.error("❌ Update failed:", error);
+      alert("Failed to update contact info. Please try again.");
+    }
   };
 
   // Image upload handler
@@ -63,6 +104,8 @@ const EditProfile = () => {
   const handleAvatarClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
+  
+  const isFormValid = !errors.phone && !errors.personalNumber;
 
   return (
     <div className="dashboard create-rfi editprofile">
@@ -204,12 +247,13 @@ const EditProfile = () => {
                     <div style={{ fontSize: 13, color: '#888' }}>Phone</div>
                     {isEditing
                       ? <input
-                          type="text"
-                          name="phone"
-                          value={form.phone}
-                          onChange={handleChange}
-                          style={{ width: 120, padding: 4, borderRadius: 4, border: '1px solid #ddd' }}
-                        />
+						  type="text"
+						  name="phone"
+						  value={form.phone}
+						  onChange={handleChange}
+						  maxLength={10}
+						  style={{ width: 120, padding: 4, borderRadius: 4, border: errors.phone ? '1px solid red' : '1px solid #ddd' }}
+						/>
                       : <div style={{ fontWeight: 500 }}>{profile.phone}</div>
                     }
                   </div>
@@ -221,7 +265,8 @@ const EditProfile = () => {
                           name="personalNumber"
                           value={form.personalNumber}
                           onChange={handleChange}
-                          style={{ width: 120, padding: 4, borderRadius: 4, border: '1px solid #ddd' }}
+						  maxLength={10}
+                          style={{ width: 120, padding: 4, borderRadius: 4, border: errors.personalNumber ? '1px solid red' : '1px solid #ddd' }}
                         />
                       : <div style={{ fontWeight: 500 }}>{profile.personalNumber}</div>
                     }
@@ -231,6 +276,7 @@ const EditProfile = () => {
                   <div style={{ marginTop: 12 }}>
                     <button
                       onClick={handleSave}
+					  disabled={errors.phone || errors.personalNumber}
                       style={{ background: '#3f51b5', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 22px', marginRight: 10, cursor: 'pointer' }}
                     >Save</button>
                     <button
