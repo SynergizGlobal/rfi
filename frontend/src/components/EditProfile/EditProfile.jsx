@@ -207,7 +207,7 @@ const EditProfile = () => {
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Reporting To</div>
-                    <div style={{ fontWeight: 500 }}>{profile.reportingTo}</div>
+                    <div style={{ fontWeight: 500 }}>{userMap[profile.reportingTo] || profile.reportingTo}</div>
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Extension</div>
