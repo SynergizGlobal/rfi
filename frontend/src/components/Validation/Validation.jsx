@@ -227,7 +227,7 @@ export default function Validation() {
 			if (idx !== 0) doc.addPage();
 			let y = margin;
 			doc.setFontSize(14).setFont(undefined, 'bold');	
-			doc.text('Mombai Rail Vikas Corporation',pageWidth / 2, y, { align: 'center' });
+			doc.text('Mumbai Rail Vikas Corporation',pageWidth / 2, y, { align: 'center' });
 			if (logo) doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
 			y += 18;
 			doc.setFontSize(14).setFont(undefined, 'bold');
