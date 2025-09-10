@@ -14,6 +14,7 @@ const EditProfile = () => {
     personalNumber: profile.personalNumber
   });
   const [profileImg, setProfileImg] = useState(null);
+  const [userMap, setUserMap] = useState({});
   const fileInputRef = useRef(null);
 
   // Edit/save/cancel handlers
@@ -28,24 +29,24 @@ const EditProfile = () => {
   };
   
   useEffect(() => {
-     if (!userId) return;
+    if (!userId) return;
 
-     fetch(`${API_BASE_URL}api/profile/${userId}`)
-       .then(res => res.json())
-       .then(data => {
-         setProfile(data);
-         setForm({
-           email: data.email,
-           phone: data.phone,
-           personalNumber: data.personalNumber
-         });
-       })
-       .catch(err => console.error("Failed to fetch profile:", err));
-   }, []);
-   
-   if (!userId) {
-     window.location.href = "/login";
-   }
+    // Fetch profile
+    fetch(`${API_BASE_URL}api/profile/${userId}`)
+      .then(res => res.json())
+      .then(data => setProfile(data));
+
+    // Fetch all users
+    fetch(`${API_BASE_URL}api/users`)
+      .then(res => res.json())
+      .then(users => {
+        const map = {};
+        users.forEach(u => {
+          map[u.userId] = u.userName;
+        });
+        setUserMap(map);
+      });
+  }, []);
    
    const handleChange = (e) => {
      const { name, value } = e.target;
@@ -198,7 +199,7 @@ const EditProfile = () => {
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Reporting To</div>
-                    <div style={{ fontWeight: 500 }}>{profile.reportingTo}</div>
+                    <div style={{ fontWeight: 500 }}>{userMap[profile.reportingTo] || profile.reportingTo}</div>
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Extension</div>

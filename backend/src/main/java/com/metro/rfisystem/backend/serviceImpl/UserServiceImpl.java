@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService{
 	        dto.setDepartment(user.getDepartmentFk());
 	        dto.setReportingTo(user.getReportingToIdSrfk());
 	        dto.setLandLine(user.getLandline() != null ? user.getLandline().toString() : null);
-	        dto.setExtension(user.getExtension() != null ? user.getExtension().toString() : null);
+	        dto.setExtension(user.getExtension() != null ? String.valueOf(user.getExtension().longValue()) : null);
 	        dto.setPmisKey(user.getPmisKeyFk());
 	        return dto;
 	    }
