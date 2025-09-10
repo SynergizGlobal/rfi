@@ -11,12 +11,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
+import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiDetailsDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RfiValidation;
+import com.metro.rfisystem.backend.repository.rfi.ChecklistDescriptionRepository;
+import com.metro.rfisystem.backend.repository.rfi.RFIEnclosureRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.repository.rfi.RfiValidationRepository;
 import com.metro.rfisystem.backend.service.RfiValidationService;
@@ -31,6 +36,8 @@ public class RfiValidationServiceImpl implements RfiValidationService {
  
 	private final RFIRepository rfiRepository;
 	private final RfiValidationRepository rfiValidationRepository;
+	private final ChecklistDescriptionRepository checklistDescriptionRepository; 
+	private final RFIEnclosureRepository enclosureRepository;
 	
 
 	@Override
@@ -88,9 +95,18 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
  
 	@Override
-	public List<RfiReportDTO> getRfiReportDetails(long id) {
-		return rfiRepository.getRfiReportDetails(id);
+	public RfiDetailsDTO getRfiPreview(Long rfiId) {
+	    // Get report details (you already have List, so take first if present)
+	    List<RfiReportDTO> reportList = rfiRepository.getRfiReportDetails(rfiId);
+	    RfiReportDTO report = reportList.isEmpty() ? null : reportList.get(0);
+
+	    // Get checklist + enclosures
+	    List<ChecklistItemDTO> checklist = checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
+	    List<EnclosureDTO> enclosures = enclosureRepository.findEnclosuresByRfiId(rfiId);
+
+	    return new RfiDetailsDTO(report, checklist, enclosures);
 	}
+
 	
 	@Override
 	@Transactional

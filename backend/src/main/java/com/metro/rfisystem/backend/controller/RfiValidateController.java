@@ -17,7 +17,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
+import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiDetailsDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
@@ -75,16 +79,17 @@ public class RfiValidateController {
 
 
 
-	@GetMapping("/getRfiReportDetails/{id}")
-	public ResponseEntity<List<RfiReportDTO>> getRfiReportDetails(@PathVariable long id) {
-		List<RfiReportDTO> list = rfiValidationService.getRfiReportDetails(id);
-
-		if (list.isEmpty()) {
-			return ResponseEntity.noContent().build();
-		}
-		return ResponseEntity.ok(list);
+	@GetMapping("/getRfiReportDetail/{rfiId}")
+	public ResponseEntity<RfiDetailsDTO> getRfiPreview(@PathVariable Long rfiId) {
+		RfiDetailsDTO dto = rfiValidationService.getRfiPreview(rfiId);
+	    if (dto.getReportDetails() == null) {
+	        return ResponseEntity.noContent().build();
+	    }
+	    return ResponseEntity.ok(dto);
 	}
 
+    
+    
 	@GetMapping("/previewFiles")
 	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
 	    String decodedPath = URLDecoder.decode(filepath, StandardCharsets.UTF_8);
