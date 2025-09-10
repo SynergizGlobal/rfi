@@ -34,7 +34,15 @@ const EditProfile = () => {
     // Fetch profile
     fetch(`${API_BASE_URL}api/profile/${userId}`)
       .then(res => res.json())
-      .then(data => setProfile(data));
+      .then(data => {
+        setProfile(data);
+        setForm({
+          email: data.email || "",
+          phone: data.phone || "",
+          personalNumber: data.personalNumber || ""
+        });
+      })
+      .catch(err => console.error("Failed to fetch profile:", err));
 
     // Fetch all users
     fetch(`${API_BASE_URL}api/users`)
@@ -199,7 +207,7 @@ const EditProfile = () => {
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Reporting To</div>
-                    <div style={{ fontWeight: 500 }}>{userMap[profile.reportingTo] || profile.reportingTo}</div>
+                    <div style={{ fontWeight: 500 }}>{profile.reportingTo}</div>
                   </div>
                   <div>
                     <div style={{ color: '#888', fontSize: 13 }}>Extension</div>
