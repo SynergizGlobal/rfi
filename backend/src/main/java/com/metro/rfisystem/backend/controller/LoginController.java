@@ -71,6 +71,7 @@ public class LoginController {
 			session.setAttribute("user", user);
 			session.setAttribute("userId", user.getUserId());
 			session.setAttribute("userName", user.getUserName());
+			session.setAttribute("emailId", user.getEmailId());
 			session.setAttribute("userRoleNameFk", user.getUserRoleNameFk());
 			session.setAttribute("userTypeFk", user.getUserTypeFk());
 			session.setAttribute("allowedContracts", allowedContracts);
@@ -83,7 +84,7 @@ public class LoginController {
 			System.out.println("Reporting To: " + user.getReportingToIdSrfk());
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
-			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),
+			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getEmailId(), user.getUserRoleNameFk(),
 					user.getUserTypeFk(), loginDepartment, user.getDepartmentFk(), allowedContracts, designationWithEngineers);
 
 			logger.info("Login successful for user: {}", user.getUserName());
@@ -113,7 +114,7 @@ public class LoginController {
 			session.invalidate();
 
 			logger.info("Logout successful for user: {}", userName);
-			return ResponseEntity.ok(new LoginResponse(null, null, null, "Logged out successfully", null, null, null, null));
+			return ResponseEntity.ok(new LoginResponse(null, null,null,  null, "Logged out successfully", null, null, null, null));
 
 		} catch (Exception e) {
 			logger.error("Error during logout", e);
@@ -127,7 +128,7 @@ public class LoginController {
 		User user = (User) session.getAttribute("user");
 
 		if (user != null) {
-			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getUserRoleNameFk(),
+			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getEmailId(), user.getUserRoleNameFk(),
 					user.getDepartmentFk(), "Session active", null, null, null);
 			return ResponseEntity.ok(response);
 		} else {

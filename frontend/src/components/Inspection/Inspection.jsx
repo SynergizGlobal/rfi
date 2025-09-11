@@ -6,6 +6,7 @@ import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
 import DropdownPortal from '../DropdownPortal/DropdownPortal';
 import axios from 'axios';
+import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
 
 
 const DropdownMenu = ({ style, children }) => {
@@ -35,7 +36,7 @@ const Inspection = () => {
 	const [data, setData] = useState([]);
 	const [confirmPopupData, setConfirmPopupData] = useState(null);
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
-
+	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
@@ -66,7 +67,10 @@ const Inspection = () => {
 			});
 	}, []);
 
-
+	useEffect(() => {
+		const stored = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");
+		setCompletedOfflineInspections(stored);
+	}, [data]);
 
 	useEffect(() => {
 		const handleClickOutside = (e) => {
@@ -227,8 +231,18 @@ const Inspection = () => {
 								}}
 							>
 								<button onClick={() => handleInspectionComplete(row.original.id, row.original.status)}>Start Inspection Online</button>
-								<button>Start Inspection Offline</button>
-						{	/*	{userRole !== 'Engg' && (
+								<button
+									onClick={() => {
+										navigate('/InspectionForm', {
+											state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
+										});
+										setOpenDropdownRow(null);
+										setDropdownInfo({ rowId: null, targetRef: null });
+									}}
+								>
+									Start Inspection Offline
+								</button>
+								{	/*	{userRole !== 'Engg' && (
 									<button
 										onClick={() => {
 											navigate('/InspectionForm', {
@@ -243,46 +257,46 @@ const Inspection = () => {
 								)}*/}
 
 								{deptFK.toLowerCase() === 'engg' &&
-								 row.original.status === 'INSPECTED_BY_AE' &&
-								 row.original.approvalStatus?.toLowerCase() === 'accepted' && (
-								  <button
-								    onClick={() => {
-								      console.log("📌 Send for Validation clicked for RFI:", row.original.id);
-								      console.log("📌 deptFK:", deptFK);
+									row.original.status === 'INSPECTED_BY_AE' &&
+									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
+										<button
+											onClick={() => {
+												console.log("📌 Send for Validation clicked for RFI:", row.original.id);
+												console.log("📌 deptFK:", deptFK);
 
-								      setConfirmPopupData({
-								        message: "Are you sure you want to send this RFI for validation?",
-								        rfiId: row.original.id, // ✅ correct numeric id
-								        onConfirm: (id) => {
-								          console.log("📌 Confirming send-for-validation for id:", id);
+												setConfirmPopupData({
+													message: "Are you sure you want to send this RFI for validation?",
+													rfiId: row.original.id, // ✅ correct numeric id
+													onConfirm: (id) => {
+														console.log("📌 Confirming send-for-validation for id:", id);
 
-								          fetch(`${API_BASE_URL}send-for-validation/${id}`, {
-								            method: "POST",
-								            headers: { "Content-Type": "application/json" },
-								          })
-								            .then(async (res) => {
-								              const text = await res.text();
-								              console.log("📌 API response status:", res.status, "body:", text);
+														fetch(`${API_BASE_URL}send-for-validation/${id}`, {
+															method: "POST",
+															headers: { "Content-Type": "application/json" },
+														})
+															.then(async (res) => {
+																const text = await res.text();
+																console.log("📌 API response status:", res.status, "body:", text);
 
-								              if (!res.ok) {
-								                alert("❌ " + text);
-								              } else {
-								                alert("✅ " + text);
-								              }
-								              setConfirmPopupData(null);
-								            })
-								            .catch((err) => {
-								              console.error("❌ API error:", err);
-								              alert("⚠️ Something went wrong while sending RFI.");
-								              setConfirmPopupData(null);
-								            });
-								        },
-								      });
-								    }}
-								  >
-								    Send for Validation
-								  </button>
-								)}
+																if (!res.ok) {
+																	alert("❌ " + text);
+																} else {
+																	alert("✅ " + text);
+																}
+																setConfirmPopupData(null);
+															})
+															.catch((err) => {
+																console.error("❌ API error:", err);
+																alert("⚠️ Something went wrong while sending RFI.");
+																setConfirmPopupData(null);
+															});
+													},
+												});
+											}}
+										>
+											Send for Validation
+										</button>
+									)}
 
 
 								<button
@@ -296,7 +310,17 @@ const Inspection = () => {
 								>
 									View
 								</button>
-								{userRole !== 'engg' && <button>Submit</button>}
+								{userRole !== 'engg' && (
+									<button
+										disabled={!completedOfflineInspections[row.original.id]}  // ✅ enable only if offline completed
+										onClick={() => {
+											// call your submit logic
+											console.log("Submitting inspection for", row.original.id);
+										}}
+									>
+										Submit
+									</button>
+								)}
 							</DropdownPortal>
 						)}
 					</div>

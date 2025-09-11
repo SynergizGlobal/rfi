@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private String userId;
     private String userName;
+    private String emailId;
     private String role;
     private String userRoleNameFk;
     private String userTypeFk;
@@ -24,10 +25,11 @@ public class LoginResponse {
 
 
     
-    public LoginResponse(String userId, String username, String userRoleNameFk, String userTypeFk, String departmentFk, String loginDepartment,
+    public LoginResponse(String userId, String username,String emailId, String userRoleNameFk, String userTypeFk, String departmentFk, String loginDepartment,
     	List<AllowedContractDTO > allowedContracts,	List<ContractDesignationEngineersDTO> designationWithEngineers) {
         this.userId = userId;
         this.userName = username;
+        this.emailId= emailId;
         this.userRoleNameFk = userRoleNameFk;
         this.userTypeFk= userTypeFk;
         this.message = "Login successful";

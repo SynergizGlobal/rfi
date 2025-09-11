@@ -105,6 +105,9 @@ public class RFI {
 	@Column(name = "created_by")
 	private String createdBy;
 
+	@Column(name ="email_user ")
+	private String emailUser;
+	
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false)
 	private EnumRfiStatus status;

@@ -5,6 +5,8 @@ import CameraCapture from '../CameraCapture/CameraCapture';
 import axios from "axios"
 import DataTable from "react-data-table-component"
 import './InspectionForm.css';
+import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
+
 
 //const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
@@ -348,12 +350,31 @@ export default function InspectionForm() {
 	};
 
 	const handleUploadSubmit = async (id, file) => {
-		const enclosure = enclosuresData.find(e => e.id === id)?.enclosure || '';
-		const formData = new FormData();
+		const enclosureName = enclosuresData.find(e => e.id === id)?.enclosure || '';
 
+		if (!navigator.onLine) {
+			const offlineEnclosure = {
+				enclosureName,
+				file
+			};
+
+			// ✅ Save without fake ID
+			await saveOfflineEnclosure(rfiData.id, offlineEnclosure);
+
+			setEnclosureStates(prev => ({
+				...prev,
+				[id]: { ...prev[id], uploadedFile: file }
+			}));
+
+			setUploadPopup(null);
+			return;
+		}
+
+		// ✅ Online flow → direct upload
+		const formData = new FormData();
 		formData.append('rfiId', rfiData.id);
 		formData.append('file', file);
-		formData.append('enclosureName', enclosure);
+		formData.append('enclosureName', enclosureName);
 
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/upload`, {
@@ -361,19 +382,26 @@ export default function InspectionForm() {
 				body: formData,
 				credentials: "include",
 			});
+
 			const text = await res.text();
 			if (!res.ok) {
 				console.error("Upload failed:", text);
 				alert(`Upload failed: ${text}`);
 				return;
 			}
-			setEnclosureStates(prev => ({ ...prev, [id]: { ...prev[id], uploadedFile: file } }));
+
+			setEnclosureStates(prev => ({
+				...prev,
+				[id]: { ...prev[id], uploadedFile: file }
+			}));
+
 			setUploadPopup(null);
 		} catch (err) {
 			console.error("Upload failed:", err);
 			alert("Upload failed: " + err.message);
 		}
 	};
+
 
 	const handleSaveInspection = async () => {
 		const formData = new FormData();
@@ -432,39 +460,6 @@ export default function InspectionForm() {
 		{ type: "", L: "", B: "", H: "", No: "", total: "" },
 	]);
 
-	useEffect(() => {
-		if (rfiData?.id) {
-			fetchMeasurementData(rfiData.id);
-		}
-	}, [rfiData]);
-
-	const fetchMeasurementData = async (rfiId) => {
-		try {
-			const res = await fetch(`${API_BASE_URL}rfi/inspection/measurement-data/${rfiId}`, {
-				method: "GET",
-				credentials: "include",
-			});
-
-			if (res.status === 200) {
-				const data = await res.json();
-
-				setMeasurements([
-					{
-						type: data.measurementType || "",
-						L: data.length || "",
-						B: data.breadth || "",
-						H: data.height || "",
-						No: data.noOfItems || "",
-						total: data.totalQty || "",
-					},
-				]);
-			} else {
-				console.log("No previous measurements found.");
-			}
-		} catch (err) {
-			console.error("Error fetching measurement data:", err);
-		}
-	};
 
 	const handleAddMeasurement = () => {
 		setMeasurements((prev) => [
@@ -510,6 +505,20 @@ export default function InspectionForm() {
 
 
 	const handleSaveDraft = async () => {
+
+		if (!navigator.onLine) {
+			const offlineData = {
+				inspectionId: inspectionId || Date.now(), // unique ID if new
+				rfiId: rfiData.id,
+				selfieImage: selfieImage || null,
+				galleryImages: galleryImages || [],
+				testReportFile: testReportFile || null
+			};
+
+			await saveOfflineInspection(offlineData);
+			alert("📌 Images saved offline successfully!");
+			return;
+		}
 		const formData = new FormData();
 
 		const inspectionPayload = {
@@ -528,6 +537,7 @@ export default function InspectionForm() {
 			testInsiteLab: testInLab || null,
 			engineerRemarks: engineerRemarks || null
 		};
+
 
 		formData.append("data", JSON.stringify(inspectionPayload));
 
@@ -703,9 +713,101 @@ export default function InspectionForm() {
 
 		fetchInspections();
 	}, [rfiData?.id]);
+	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
+
+	const syncOfflineInspections = async () => {
+		if (!navigator.onLine) return;
+
+		// ✅ Sync inspection images first
+		const offlineInspections = await getAllOfflineInspections();
+		for (const inspection of offlineInspections) {
+			try {
+				const formData = new FormData();
+				formData.append("data", JSON.stringify({ rfiId: inspection.rfiId }));
+
+				// Selfie
+				if (inspection.selfieImage) {
+					formData.append("selfie", inspection.selfieImage instanceof File
+						? inspection.selfieImage
+						: dataURLtoFile(inspection.selfieImage, "selfie.jpg"));
+				}
+
+				// Site Images
+				inspection.galleryImages?.forEach((img, i) => {
+					if (img) formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
+				});
+
+				// Test Report
+				if (inspection.testReportFile) {
+					formData.append("testReport", inspection.testReportFile);
+				}
+
+				const res = await fetch(`${API_BASE_URL}rfi/saveDraft`, {
+					method: "POST",
+					body: formData,
+					credentials: "include"
+				});
+
+				if (!res.ok) {
+					console.error(`❌ Failed to sync inspection ${inspection.rfiId}`);
+					continue;
+				}
+
+				console.log(`✅ Synced inspection ${inspection.rfiId}`);
+
+				const completed = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");
+				completed[inspection.rfiId] = true;
+				localStorage.setItem("completedOfflineInspections", JSON.stringify(completed));
+
+				await removeOfflineInspection(inspection.inspectionId);
+
+			} catch (err) {
+				console.error(`⚠️ Failed to sync inspection ${inspection.rfiId}:`, err);
+			}
+		}
+
+		const offlineEnclosures = await getAllOfflineEnclosures();
+		for (const enclosure of offlineEnclosures) {
+			try {
+				const enclosureForm = new FormData();
+				enclosureForm.append('rfiId', enclosure.rfiId);
+				enclosureForm.append('file', enclosure.file);
+				enclosureForm.append('enclosureName', enclosure.enclosureName);
+
+				const res = await fetch(`${API_BASE_URL}rfi/upload`, {
+					method: 'POST',
+					body: enclosureForm,
+					credentials: 'include'
+				});
+
+				if (!res.ok) {
+					console.error(`❌ Failed to sync enclosure ${enclosure.enclosureName}`);
+					continue;
+				}
+
+				console.log(`📂 Synced enclosure ${enclosure.enclosureName}`);
+			} catch (err) {
+				console.error(`⚠️ Failed to sync enclosure ${enclosure.enclosureName}:`, err);
+			}
+		}
+
+		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
 
 
-	if (!rfiData) return <div>Loading RFI details...</div>;
+	};
+
+
+	const [isOffline, setIsOffline] = useState(false);
+
+
+
+	useEffect(() => {
+		window.addEventListener("online", syncOfflineInspections);
+		return () => window.removeEventListener("online", syncOfflineInspections);
+	}, []);
+
+	if (!rfiData)
+		return <div>Loading RFI details...</div>;
 
 	return (
 		<div className="dashboard create-rfi inspection-form">
@@ -986,7 +1088,7 @@ export default function InspectionForm() {
 																	marginTop: 0,
 																	marginBottom: 0
 																}}
-																
+
 															>
 																{1000 - (engineerRemarks?.length || 0)} {'limit'}
 															</div>
