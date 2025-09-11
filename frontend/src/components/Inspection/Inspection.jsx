@@ -98,7 +98,7 @@ const Inspection = () => {
 		if (deptFK === "engg") {
 			const allowedStatuses = ["INSPECTED_BY_CON", "INSPECTED_BY_ENGINEER",];
 			if (!allowedStatuses.includes(status)) {
-				alert("Engineer inspection not allowed until contractor has inspected.");
+				alert("Inspection not allowed until Contractor completes inspection.");
 				return;
 			}
 		}
