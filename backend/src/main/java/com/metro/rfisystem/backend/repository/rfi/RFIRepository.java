@@ -36,25 +36,25 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        ico.inspection_status AS inspectionStatus,
 			        r.status AS status,
 			        r.action AS action,
-			        rid.measurement_type AS measurementType,   -- ✅ Fetch from inspection_details
-			        rid.total_qty AS totalQty,                 -- ✅ Fetch from inspection_details
+			        rid.measurement_type AS measurementType,   
+			        rid.total_qty AS totalQty,                 
 			        ic.site_image AS imgClient,
 			        ico.site_image AS imgContractor
 			    FROM rfi_data r
 			    LEFT JOIN (
 			        SELECT rfi_id_fk, site_image
 			        FROM rfi_inspection_details
-			        WHERE uploaded_by = 'Engg'
+			        WHERE uploaded_by = 'Engg' and work_status = 1
 			    ) ic ON r.id = ic.rfi_id_fk
 			    LEFT JOIN (
 			        SELECT rfi_id_fk, inspection_status, site_image
 			        FROM rfi_inspection_details
-			        WHERE uploaded_by != 'Engg'
+			        WHERE uploaded_by != 'Engg' and work_status = 1
 			    ) ico ON r.id = ico.rfi_id_fk
 			    LEFT JOIN (
-			        SELECT rfi_id_fk, measurement_type, total_qty
+			        SELECT rfi_id_fk, measurement_type, total_qty,work_status
 			        FROM rfi_inspection_details
-			    ) rid ON r.id = rid.rfi_id_fk
+			    ) rid ON r.id = rid.rfi_id_fk and work_status = 1
 			    ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiListDTO> findAllRfiList();
@@ -117,16 +117,15 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        ic.site_image as imgClient
 			    FROM rfi_data r
 			    LEFT JOIN (select rfi_id_fk, site_image, inspection_status from rfi_inspection_details
-			    where uploaded_by != 'Engg') ico
+			    where uploaded_by != 'Engg' and work_status = 1) ico
 			    on r.id = ico.rfi_id_fk
 			    LEFT JOIN (select rfi_id_fk, site_image from rfi_inspection_details
-			    where uploaded_by = 'Engg') ic
+			    where uploaded_by = 'Engg' and work_status = 1) ic
 			    on r.id = ic.rfi_id_fk
-
 			       LEFT JOIN (
-			     SELECT rfi_id_fk, measurement_type, total_qty
+			     SELECT rfi_id_fk, measurement_type, total_qty,work_status
 			     FROM rfi_inspection_details
-			 ) rid ON r.id = rid.rfi_id_fk
+			 ) rid ON r.id = rid.rfi_id_fk and work_status = 1
 			    WHERE r.created_by = :createdBy
 			    ORDER BY r.created_at DESC
 			""", nativeQuery = true)
@@ -152,12 +151,12 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 		        ico.site_image as imgContractor,
 		        ic.site_image as imgClient
 		    FROM rfi_data r
-		    LEFT JOIN (SELECT rfi_id_fk, site_image, inspection_status FROM rfi_inspection_details WHERE uploaded_by != 'Engg') ico
+		    LEFT JOIN (SELECT rfi_id_fk, site_image, inspection_status FROM rfi_inspection_details WHERE uploaded_by != 'Engg' and work_status = 1) ico
 		        ON r.id = ico.rfi_id_fk
-		    LEFT JOIN (SELECT rfi_id_fk, site_image,test_insite_lab FROM rfi_inspection_details WHERE uploaded_by = 'Engg') ic
+		    LEFT JOIN (SELECT rfi_id_fk, site_image,test_insite_lab FROM rfi_inspection_details WHERE uploaded_by = 'Engg' and work_status = 1) ic
 		        ON r.id = ic.rfi_id_fk
-		    LEFT JOIN (SELECT rfi_id_fk, measurement_type, total_qty FROM rfi_inspection_details) rid
-		        ON r.id = rid.rfi_id_fk
+		    LEFT JOIN (SELECT rfi_id_fk, measurement_type, total_qty,work_status FROM rfi_inspection_details) rid
+		        ON r.id = rid.rfi_id_fk and work_status = 1
 		    WHERE r.assigned_person_client = :assignedPersonClient
 		    ORDER BY r.created_at DESC
 		""", nativeQuery = true)

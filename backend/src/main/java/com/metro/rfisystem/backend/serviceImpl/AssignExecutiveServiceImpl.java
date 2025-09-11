@@ -30,7 +30,7 @@ public class AssignExecutiveServiceImpl implements  AssignExecutiveService {
 
 	@Override
 	public List<AssignExecutiveResponse> getAllAssignments() {
-	    return assignExecutiveRepository.findAllByOrderByAssignedAtDesc()
+	    return assignExecutiveRepository.findLatestAssignments()
 	            .stream()
 	            .map(log -> new AssignExecutiveResponse(
 	                    log.getContract(),
@@ -39,6 +39,7 @@ public class AssignExecutiveServiceImpl implements  AssignExecutiveService {
 	                    log.getAssignedPersonClient()))
 	            .collect(Collectors.toList());
 	}
+
 
 
 }
