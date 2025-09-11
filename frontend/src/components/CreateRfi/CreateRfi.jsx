@@ -730,7 +730,7 @@ const CreateRfi = () => {
 		  console.log("👉 formState:", formState);
 
 		  if (!validateStep2()) {
-		    alert("Please fill all required fields.");
+		    alert("Please make sure all mandatory fields are filled in.");
 		    return;
 		  }
 
@@ -754,7 +754,7 @@ const CreateRfi = () => {
 		      const timeChanged = currentTime && currentTime !== originalTime;
 
 		      if (!dateChanged && !timeChanged) {
-		        alert("Please change the Date of Inspection or the Time of Inspection before proceeding.");
+		        alert("Rescheduling requires changing the Date of Inspection, Time of Inspection, or both.");
 		        return;
 		      }
 		    }
