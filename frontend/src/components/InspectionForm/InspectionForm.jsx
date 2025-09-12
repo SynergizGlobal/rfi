@@ -101,16 +101,28 @@ export default function InspectionForm() {
 					}
 
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
-						const latestInspection = data.inspectionDetails.reduce((latest, current) =>
-							current.id > latest.id ? current : latest
-						);
-						setInspectionId(latestInspection.id);
+					  // if contractor is logged in
+					  const contractorInspection = data.inspectionDetails
+					    .filter(det => det.uploadedBy === "CON")
+					    .sort((a, b) => b.id - a.id)[0]; // latest contractor row
+
+					  // if engineer is logged in
+					  const engineerInspection = data.inspectionDetails
+					    .filter(det => det.uploadedBy === "ENGG")
+					    .sort((a, b) => b.id - a.id)[0]; // latest engineer row
+
+					  if (deptFK.toLocaleLowerCase === "con" && contractorInspection) {
+					    setInspectionId(contractorInspection.id);
+					  } else if (deptFK.toLocaleLowerCase === "engg" && engineerInspection) {
+					    setInspectionId(engineerInspection.id);
+					  }
 					} else {
-						const savedId = localStorage.getItem("latestInspectionId");
-						if (savedId) {
-							setInspectionId(parseInt(savedId));
-						}
+					  const savedId = localStorage.getItem("latestInspectionId");
+					  if (savedId) {
+					    setInspectionId(parseInt(savedId));
+					  }
 					}
+
 				})
 				.catch(err => console.error("Error fetching RFI details:", err));
 		}
@@ -447,7 +459,7 @@ export default function InspectionForm() {
 			});
 			if (!res.ok) throw new Error(await res.text());
 			const id = await res.json();
-			setInspectionId(id);
+		//	setInspectionId(id);
 			localStorage.setItem("latestInspectionId", id);
 			alert("Draft saved successfully. Inspection ID: " + id);
 		} catch (err) {
@@ -562,7 +574,7 @@ export default function InspectionForm() {
 			if (!res.ok) throw new Error(await res.text());
 
 			const id = await res.json();
-			setInspectionId(id);
+		//	setInspectionId(id);
 			alert("Draft saved successfully!");
 		} catch (err) {
 			console.error("Draft save failed:", err);
@@ -684,7 +696,7 @@ export default function InspectionForm() {
 				const data = await res.json();
 				if (data.length > 0) {
 					const latestInspection = data[data.length - 1];
-					setInspectionId(latestInspection.inspectionId);
+				//	setInspectionId(latestInspection.inspectionId);
 					setLocationText(latestInspection.location || "");
 					setChainage(latestInspection.chainage || "");
 					setMeasurements([{
@@ -1226,7 +1238,6 @@ export default function InspectionForm() {
 									<button
 										className="btn btn-green"
 										onClick={handleSubmitInspection}
-										disabled={viewMode}
 									>
 										Submit
 									</button>

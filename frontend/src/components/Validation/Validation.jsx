@@ -152,7 +152,7 @@ export default function Validation() {
 	};
 
 	const handleDownload = () => {
-		if (selectedInspection && checklistItems.length > 0) {
+		if (selectedInspection ) {
 			generatePDF([selectedInspection], checklistItems, enclosures);
 		} else {
 			alert("⚠️ No data available to generate PDF!");
