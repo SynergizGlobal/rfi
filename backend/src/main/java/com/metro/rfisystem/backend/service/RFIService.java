@@ -17,7 +17,7 @@ import com.metro.rfisystem.backend.model.rfi.RFI;
 import jakarta.servlet.http.HttpSession;
 
 public interface RFIService {
-	RFI createRFI(RFI_DTO dto, String userName);
+	RFI createRFI(RFI_DTO dto, String userName, String emailId);
 
 	List<ProjectDTO> getAllProjectNames();
 
