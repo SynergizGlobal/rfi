@@ -206,6 +206,8 @@ const RfiLog = () => {
 			Header: 'Action',
 			Cell: ({ row }) => {
 				const btnRef = (buttonRefs.current[row.id] ||= React.createRef());
+				const assignedPerson = assignedPersons[row.id] || row.values.clientPerson;
+
 				return (
 					<div className="action-dropdown">
 						<button
@@ -225,6 +227,7 @@ const RfiLog = () => {
 										setSelectedContractId(contractId);
 										setShowPopup(true);
 										setOpenDropdownRow(null);
+
 										console.log("🧩 contractId from row.values:", row.values.contractId);
 										console.log("🧩 contractId from row.original:", row.original.contractId);
 
@@ -235,7 +238,9 @@ const RfiLog = () => {
 										}
 									}}
 								>
-									Assign RFI
+									{assignedPerson && assignedPerson !== '—' 
+										? "Change Executive" 
+										: "Assign Executive"}
 								</button>
 								<button>Close RFI</button>
 								<button>Delete</button>

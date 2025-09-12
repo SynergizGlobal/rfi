@@ -35,6 +35,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
 			        ico.inspection_status AS inspectionStatus,
 			        r.status AS status,
+			        ic.test_insite_lab as approvalStatus,
 			        r.action AS action,
 			        rid.measurement_type AS measurementType,   
 			        rid.total_qty AS totalQty,                 
@@ -42,7 +43,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        ico.site_image AS imgContractor
 			    FROM rfi_data r
 			    LEFT JOIN (
-			        SELECT rfi_id_fk, site_image
+			        SELECT rfi_id_fk, site_image,test_insite_lab
 			        FROM rfi_inspection_details
 			        WHERE uploaded_by = 'Engg' and work_status = 1
 			    ) ic ON r.id = ic.rfi_id_fk
