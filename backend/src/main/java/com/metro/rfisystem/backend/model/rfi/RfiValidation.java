@@ -2,7 +2,6 @@ package com.metro.rfisystem.backend.model.rfi;
 
 import java.time.LocalDateTime;
 
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.metro.rfisystem.backend.constants.EnumValidation;
 
@@ -20,34 +19,35 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString(exclude = "rfi")
 public class RfiValidation {
-	
+
 	@Id
 	@Column(name = "id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
+
 	@OneToOne
 	@JsonBackReference
-    @JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
-    private RFI rfi;
-	
+	@JoinColumn(name = "rfi_id_fk", referencedColumnName = "id")
+	private RFI rfi;
+
 	@Column(name = "sent_for_validation_at", columnDefinition = "TIMESTAMP")
 	private LocalDateTime sentForValidationAt;
 
-	@Column(name = "remarks",nullable = true)
+	@Column(name = "remarks", nullable = true)
 	private String Remarks;
-	
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "action")
 	private EnumValidation enumValidation;
 
 	@Column
 	private String DscFilePath;
+	@Column(name = "comment", length = 500)
+	private String comment;
 }

@@ -66,7 +66,7 @@ public class RFIServiceImpl implements RFIService {
 
 	@Override
 	@Transactional
-	public RFI createRFI(RFI_DTO dto, String userName) {
+	public RFI createRFI(RFI_DTO dto, String userName, String emailId) {
 
 		String contractShortName = dto.getContract();
 
@@ -111,6 +111,7 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setDateOfSubmission(dto.getDateOfSubmission() != null ? dto.getDateOfSubmission() : LocalDate.now());
 		rfi.setDateOfInspection(dto.getDateOfInspection());
 		rfi.setCreatedBy(userName);
+		rfi.setEmailUser(emailId);
 		rfi.setDyHodUserId(dto.getDyHodUserId());
 		rfi.setAssignedPersonClient(dto.getContractor());
 		rfi.setStatus(EnumRfiStatus.CREATED);

@@ -17,5 +17,6 @@ public class RfiValidateDTO {
     private String remarks;
     private EnumValidation action;
     private MultipartFile file; 
+    private String comment;
     
 }

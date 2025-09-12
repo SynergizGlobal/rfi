@@ -43,7 +43,7 @@ public class RfiValidateController {
 	@PostMapping(value = "/validate", consumes = { "multipart/form-data" })
 	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
 		rfiValidationService.validateRfiWithFile(dto);
-		return ResponseEntity.ok("RFI validated with file uploaded.");
+		return ResponseEntity.ok("RFI validated with file uploaded mail sent.");
 	}
 	
 	
