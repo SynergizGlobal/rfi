@@ -75,12 +75,13 @@ public class RFIController {
 	@PostMapping("/create")
 	public ResponseEntity<String> createRFI(@RequestBody RFI_DTO dto, HttpSession session) {
 	    String userName = (String) session.getAttribute("userName");
+	    String emailId=(String) session.getAttribute("emailId");
 
 	    if (userName == null) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired. Please log in again.");
 	    }
 
-	    RFI saved = rfiService.createRFI(dto, userName);
+	    RFI saved = rfiService.createRFI(dto, userName, emailId);
 	    return ResponseEntity.ok("RFI " + saved.getRfi_Id() + " created successfully!");
 	}
 	
