@@ -243,19 +243,6 @@ const Inspection = () => {
 								>
 									Start Inspection Offline
 								</button>
-								{	/*	{userRole !== 'Engg' && (
-									<button
-										onClick={() => {
-											navigate('/InspectionForm', {
-												state: { rfi: row.original.id, skipSelfie: true },
-											});
-											setOpenDropdownRow(null);
-											setDropdownInfo({ rowId: null, targetRef: null });
-										}}
-									>
-										Upload Test Results
-									</button>
-								)}*/}
 
 								{deptFK.toLowerCase() === 'engg' &&
 									row.original.status === 'INSPECTED_BY_AE' &&
@@ -431,19 +418,18 @@ const Inspection = () => {
 							</span>
 							<div className="pagination">
 								<button onClick={previousPage} disabled={!canPreviousPage}>
-									‹
+									«
 								</button>
-								{pageOptions.map((_, i) => (
-									<button
-										key={i}
-										onClick={() => gotoPage(i)}
-										className={pageIndex === i ? 'activePage' : ''}
-									>
-										{i + 1}
-									</button>
-								))}
+
+								{/* Current Page / Total Pages */}
+								<span style={{ fontWeight: 'bold' }}>
+								  Page {pageIndex + 1} of {pageOptions.length}
+								</span>
+
+
+								{/* Next Button */}
 								<button onClick={nextPage} disabled={!canNextPage}>
-									›
+									»
 								</button>
 							</div>
 							<div></div>
