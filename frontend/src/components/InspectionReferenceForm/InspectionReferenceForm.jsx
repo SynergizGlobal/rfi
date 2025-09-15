@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTable, usePagination, useGlobalFilter } from "react-table";
 import axios from "axios";
@@ -69,96 +68,6 @@ const InspectionReferenceForm = () => {
 		}
 	}, [selectedOption, API_BASE_URL]);
 
-// Add row handler for third table
-const handleThirdAddRow = () => {
-  setThirdTableData(prev => {
-    const newRow = {
-      sr_no: prev.length + 1,
-      fieldOne: '',
-      fieldTwo: '',
-      enclosures: [],
-      isNew: true,
-      isEditing: true,
-    };
-    const newData = [...prev, newRow];
-    
-    // Calculate last page index based on new data length
-    const lastPageIndex = Math.floor(newData.length / pageSize);
-    
-    // Update pagination and editing state after setThirdTableData
-    setThirdPageIndex(lastPageIndex);      // 0-based index
-    setThirdCurrentPage(lastPageIndex + 1);// 1-based page number
-    setThirdEditingSrNo(newRow.sr_no);
-    setThirdSearchInput(''); // Reset search to show new row
-
-    return newData; // Update state with new row included
-  });
-};
-
-
-	useEffect(() => {
-  axios
-    .get(`${API_BASE_URL}api/v1/enclouser/names`, { params: { action: "OPEN" } })
-    .then((res) => setOpenEnclosers(res.data))
-    .catch((err) => console.error("Error fetching enclosure names:", err));
-}, [API_BASE_URL]);
-
-	useEffect(() => {
-    if (selectedOption === "third") {
-      fetch(`${API_BASE_URL}rfi/Referenece-Form`)
-        .then((res) => res.json())
-        .then((data) => {
-          const withSrNo = data.map((item, index) => ({
-            sr_no: index + 1,
-            fieldOne: item.activity || "",           // Replace with actual property names
-            fieldTwo: item.rfiDescription || "",     // Replace with actual property names
-            enclosures: item.enclosures
-            ? Array.isArray(item.enclosures)
-              ? item.enclosures // already array
-              : item.enclosures.split(',').map(e => e.trim()) // CSV to array
-            : [],
-            isNew: false,
-            isEditing: false,
-          }));
-          setThirdTableData(withSrNo);
-          setThirdCurrentPage(1);
-          setThirdGlobalFilter("");
-          setThirdEditInputs({});
-          setThirdEditingSrNo(null);
-        })
-        .catch((err) => console.error("Error fetching third form data:", err));
-    }
-  }, [selectedOption, API_BASE_URL]);
-
-   // Pagination and Filter utility
-const paginateAndFilter = (data, filter, page, size) => {
-  const lowerFilter = filter.toLowerCase();
-  const filtered = data.filter(row => {
-    if (row.isNew || row.isEditing) return true; // always show new/editing rows
-    return (
-      (row.fieldOne && row.fieldOne.toLowerCase().includes(lowerFilter)) ||
-      (row.fieldTwo && row.fieldTwo.toLowerCase().includes(lowerFilter)) ||
-      (row.enclosures && row.enclosures.some(val => val.toLowerCase().includes(lowerFilter)))
-    );
-  });
-  const start = (page - 1) * size;
-  return {
-    paginated: filtered.slice(start, start + size),
-    total: Math.ceil(filtered.length / size) || 1,
-  };
-};
-
-
-  // Third Form filtered + paginated data
-const { paginated: thirdPaginated, total } = useMemo(() => {
-  return paginateAndFilter(thirdTableData, thirdSearchInput, thirdPageIndex + 1, pageSize);
-}, [thirdSearchInput, thirdTableData, thirdPageIndex, pageSize]);
-
-const totalPages = total;
-
-
-
-
 	useEffect(() => {
 		axios.get("http://localhost:8000/rfi/open")
 			.then(res => setOpenEnclosers(res.data))
@@ -188,23 +97,24 @@ const totalPages = total;
 	};
 
 	const handleAddDescription = () => {
-		if (!newDescription.trim()) {
-			alert("Please enter a description");
-			return;
-		}
-		const dto = { checkListDescription: newDescription };
-		axios
-			.post(`${API_BASE_URL}api/v1/enclouser/addDesctiption/${subOptionId}`, dto)
-			.then((res) => {
-				setNewDescription("");
-				fetchChecklistItems();
-			})
-			.catch((err) => {
-				console.error("Error adding description:", err);
-				console.error("Error response:", err.response?.data);
-				alert("Error adding description");
-			});
-	};
+	    if (!newDescription.trim()) {
+	      alert("Please enter a description");
+	      return;
+	    }
+		    const dto = { checkListDescription: newDescription };
+	    axios
+	      .post(`${API_BASE_URL}api/v1/enclouser/addDesctiption/${subOptionId}`, dto)
+	      .then((res) => {
+	        setNewDescription("");
+	        fetchChecklistItems(); // Refresh the list
+	        
+	      })
+	      .catch((err) => {
+	        console.error("Error adding description:", err);
+	        console.error("Error response:", err.response?.data);
+	        alert("Error adding description");
+	      });
+	  };
 
 	const handleUpdateDescription = (id) => {
 		if (!editDescription.trim()) {
@@ -265,17 +175,47 @@ const totalPages = total;
 		setSubOption(selectedEnclosure?.encloserName || "");
 	};
 
+	// Table 2: Checklist Description Columns
 
-	// third table scripts
+	const table2Columns = useMemo(
+		() => [
+			{ Header: "S. No", accessor: "sno" },
+			{ Header: "Reference Description", accessor: "description" },
+			{
+				Header: "Actions",
+				accessor: "actions",
+				Cell: ({ row }) => (
+					<div className="irf-action-buttons">
+						<button
+							className="irf-btn-edit"
+							onClick={() => startEditing(row.original)}
+						>
+							Edit
+						</button>
+						<button
+							className="irf-btn-delete"
+							onClick={() => handleDeleteDescription(row.original.id)}
+						>
+							Delete
+						</button>
+					</div>
+				),
+			},
+		],
+		[]
+	);
+	
+	
+	/*// third table scripts
 
 	const addRfiEnclosuresOptions = useMemo(
-    () =>
-      openEnclosers.map((encl) => ({
-        value: encl.encloserName,
-        label: encl.encloserName,
-      })),
-    [openEnclosers]
-  );
+	  () =>
+	    openEnclosers.map((encl) => ({
+	      value: encl.encloserName,
+	      label: encl.encloserName,
+	    })),
+	  [openEnclosers]
+	);*/
 
 
 
@@ -382,36 +322,6 @@ const totalPages = total;
 		},
 	], [editingEnclosureId, editInputs, handleInputChange]);
 
-	// Table 2: Checklist Description Columns
-
-	const table2Columns = useMemo(
-		() => [
-			{ Header: "S. No", accessor: "sno" },
-			{ Header: "Reference Description", accessor: "description" },
-			{
-				Header: "Actions",
-				accessor: "actions",
-				Cell: ({ row }) => (
-					<div className="irf-action-buttons">
-						<button
-							className="irf-btn-edit"
-							onClick={() => startEditing(row.original)}
-						>
-							Edit
-						</button>
-						<button
-							className="irf-btn-delete"
-							onClick={() => handleDeleteDescription(row.original.id)}
-						>
-							Delete
-						</button>
-					</div>
-				),
-			},
-		],
-		[]
-	);
-
 	// Select columns and data depending on dropdown choice
 
 	const activeColumns = useMemo(
@@ -474,46 +384,62 @@ const totalPages = total;
 	};
 
 	const handleSubmitRow = async (id) => {
-		const inputVal = editInputs[id]?.trim();
-		if (!inputVal) {
-			alert("Please enter a valid enclosure name");
-			return;
-		}
+	  const inputVal = editInputs[id]?.trim();
+	  if (!inputVal) {
+	    alert("Please enter a valid enclosure name");
+	    return;
+	  }
 
-		const rowData = openEnclosers.find(item => item.id === id);
-		const payload = { encloserName: inputVal };
+	  const rowData = openEnclosers.find(item => item.id === id);
+	  const payload = { encloserName: inputVal };
 
-		try {
-			if (rowData?.isNew) {
-				// New row → POST
-				await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, payload);
-			} else {
-				// Existing row → PUT
-				await axios.put(`${API_BASE_URL}api/v1/enclouser/updateEnclosureName/${id}`, payload);
-			}
+	  try {
+	    if (rowData?.isNew) {
+	      // 🔥 POST new row
+	      const res = await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, payload);
 
-			// Update local state
-			setOpenEnclosers(prev =>
-				prev.map(item =>
-					item.id === id
-						? { ...item, encloserName: inputVal, isNew: false }
-						: item
-				)
-			);
+	      // Backend should return saved row with real ID
+	      const savedRow = res.data;
 
-			setEditingEnclosureId(null);
-			setEditInputs(inputs => {
-				const copy = { ...inputs };
-				delete copy[id];
-				return copy;
-			});
+	      setOpenEnclosers(prev =>
+	        prev.map(item =>
+	          item.id === id
+	            ? {
+	                ...item,
+	                id: savedRow.id,              // ✅ replace fake id with DB id
+	                encloserName: savedRow.encloserName,
+	                isNew: false
+	              }
+	            : item
+	        )
+	      );
+	    } else {
+	      // 🔥 PUT update existing row
+	      await axios.put(`${API_BASE_URL}api/v1/enclouser/updateEnclosureName/${id}`, payload);
 
-			console.log(rowData?.isNew ? "Row submitted successfully" : "Row updated successfully");
-		} catch (error) {
-			console.error("Error saving row:", error);
-			alert("Failed to save row. Please try again.");
-		}
+	      setOpenEnclosers(prev =>
+	        prev.map(item =>
+	          item.id === id
+	            ? { ...item, encloserName: inputVal }
+	            : item
+	        )
+	      );
+	    }
+
+	    setEditingEnclosureId(null);
+	    setEditInputs(inputs => {
+	      const copy = { ...inputs };
+	      delete copy[id];
+	      return copy;
+	    });
+
+	    console.log(rowData?.isNew ? "Row submitted successfully" : "Row updated successfully");
+	  } catch (error) {
+	    console.error("Error saving row:", error);
+	    alert("Failed to save row. Please try again.");
+	  }
 	};
+
 	// Handler: Cancel row editing
 
 	const cancelEditingNewRow = (id) => {
@@ -545,191 +471,331 @@ const totalPages = total;
 			alert("Failed to delete row");
 		}
 	};
+	
+	const [addRfiEnclosuresOptions, setAddRfiEnclosuresOptions] = useState([]);
 
-	// Focus on input when editingEnclosureId changes
+	// ------------------- ADD ROW -------------------
+	const handleThirdAddRow = () => {
+	  setThirdTableData((prev) => {
+	    const newRow = {
+	      sr_no: prev.length + 1,
+	      activity: "",
+	      rfiDescription: "",
+	      enclosures: [],
+	      isNew: true,
+	      isEditing: true,
+	    };
+	    const newData = [...prev, newRow];
 
+	    // Jump to last page where new row will appear
+	    const lastPageIndex = Math.floor(newData.length / pageSize);
+	    setThirdPageIndex(lastPageIndex);
+	    setThirdCurrentPage(lastPageIndex + 1);
+	    setThirdSearchInput(""); // reset search
+
+	    return newData;
+	  });
+	};
+
+	// ------------------- FETCH ENCLOSURE OPTIONS -------------------
 	useEffect(() => {
-		if (editingEnclosureId && newRowRef.current) {
-			newRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-			const input = newRowRef.current.querySelector("input");
-			if (input) input.focus();
-		}
-	}, [editingEnclosureId, page]);
+	  axios
+	    .get(`${API_BASE_URL}api/v1/enclouser/names`, { params: { action: "OPEN" } })
+	    .then((res) => {
+	      const options = (res.data || []).map((e) => ({
+	        value: e.encloserName || e, // backend may return object or string
+	        label: e.encloserName || e,
+	      }));
+	      setAddRfiEnclosuresOptions(options);
+	    })
+	    .catch((err) => console.error("Error fetching enclosure names:", err));
+	}, [API_BASE_URL]);
 
-	 // Handlers for Third Form inputs/actions
-  const handleThirdInputChange = (sr_no, field, value) => {
-    setThirdTableData((prev) =>
-      prev.map((row) => (row.sr_no === sr_no ? { ...row, [field]: value } : row))
-    );
-    setThirdEditInputs((prev) => ({
-      ...prev,
-      [sr_no]: { ...prev[sr_no], [field]: value },
-    }));
-  };
+	// ------------------- FETCH TABLE DATA -------------------
+	useEffect(() => {
+	  if (selectedOption === "third") {
+	    fetch(`${API_BASE_URL}rfi/Referenece-Form`)
+	      .then((res) => res.json())
+	      .then((data) => {
+	        const withSrNo = data.map((item, index) => ({
+	          id: item.id, // keep DB id
+	          sr_no: index + 1, // frontend only
+	          activity: item.activity || "",
+	          rfiDescription: item.rfiDescription || "",
+			  enclosures: item.enclosures
+			    ? Array.isArray(item.enclosures)
+			      ? item.enclosures
+			      : item.enclosures.split(",").map(e => e.trim())
+			    : [],
+	          isNew: false,
+	          isEditing: false,
+	        }));
+	        setThirdTableData(withSrNo);
+	        setThirdCurrentPage(1);
+	        setThirdEditInputs({});
+	      })
+	      .catch((err) => console.error("Error fetching third form data:", err));
+	  }
+	}, [selectedOption, API_BASE_URL]);
 
-  const handleThirdAction = (sr_no) => {
-    setThirdTableData((prev) =>
-      prev.map((row) => (row.sr_no === sr_no ? { ...row, isEditing: true } : row))
-    );
-  };
+	// ------------------- PAGINATION + FILTER -------------------
+	const paginateAndFilter = (data, filter, page, size) => {
+	  const lowerFilter = filter.toLowerCase();
+	  const filtered = data.filter((row) => {
+	    if (row.isNew || row.isEditing) return true;
+	    return (
+	      (row.activity && row.activity.toLowerCase().includes(lowerFilter)) ||
+	      (row.rfiDescription &&
+	        row.rfiDescription.toLowerCase().includes(lowerFilter)) ||
+	      (row.enclosures &&
+	        row.enclosures.some((val) =>
+	          val.toLowerCase().includes(lowerFilter)
+	        ))
+	    );
+	  });
+	  const start = (page - 1) * size;
+	  return {
+	    paginated: filtered.slice(start, start + size),
+	    total: Math.ceil(filtered.length / size) || 1,
+	  };
+	};
 
-  const handleThirdSubmit = async (rowData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}rfi/Third-Form-Add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rowData),
-      });
-      if (response.ok) {
-        const saved = await response.json();
-        setThirdTableData((prev) =>
-          prev.map((r) =>
-            r.sr_no === rowData.sr_no ? { ...r, id: saved.id, isNew: false, isEditing: false } : r
-          )
-        );
-        alert("Third form row submitted successfully!");
-      } else {
-        alert("Error submitting third form row");
-      }
-    } catch (error) {
-      console.error("Third form submit error:", error);
-    }
-  };
+	const { paginated: thirdPaginated, total } = useMemo(() => {
+	  return paginateAndFilter(
+	    thirdTableData,
+	    thirdSearchInput,
+	    thirdPageIndex + 1,
+	    pageSize
+	  );
+	}, [thirdSearchInput, thirdTableData, thirdPageIndex, pageSize]);
 
-  const handleThirdEdit = async (rowData) => {
-    if (!rowData.id) {
-      alert("Row does not exist in DB yet.");
-      return;
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}rfi/Third-Form-Update/${rowData.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rowData),
-      });
-      if (response.ok) {
-        setThirdTableData((prev) =>
-          prev.map((r) => (r.sr_no === rowData.sr_no ? { ...r, isEditing: false } : r))
-        );
-        alert("Third form row updated successfully!");
-      } else {
-        alert("Error updating third form row");
-      }
-    } catch (error) {
-      console.error("Third form update error:", error);
-    }
-  };
+	const totalPages = total;
 
-const handleThirdCancelEdit = (sr_no) => {
-  setThirdTableData(prev => {
-    // Remove the cancelled row
-    let newData = prev.filter(row => row.sr_no !== sr_no);
-    // Recalculate sr_no sequentially
-    newData = newData.map((row, index) => ({
-      ...row,
-      sr_no: index + 1,
-    }));
-    return newData;
-  });
+	// ------------------- HANDLERS -------------------
+	const handleThirdInputChange = (sr_no, field, value) => {
+	  setThirdTableData((prev) =>
+	    prev.map((row) => (row.sr_no === sr_no ? { ...row, [field]: value } : row))
+	  );
+	  setThirdEditInputs((prev) => ({
+	    ...prev,
+	    [sr_no]: { ...prev[sr_no], [field]: value },
+	  }));
+	};
 
-  setThirdEditInputs(prev => {
-    const copy = { ...prev };
-    delete copy[sr_no];
-    return copy;
-  });
+	const handleThirdAction = (sr_no) => {
+	  setThirdTableData((prev) =>
+	    prev.map((row) =>
+	      row.sr_no === sr_no ? { ...row, isEditing: true } : row
+	    )
+	  );
+	};
 
-  // Optionally reset to first page or adjust pagination
-  setThirdCurrentPage(1);    
-  setThirdPageIndex(0);
-};
+	const handleThirdSubmit = async (rowData) => {
+	  try {
+	    const response = await fetch(`${API_BASE_URL}rfi/send-data`, {
+	      method: "POST",
+	      headers: { "Content-Type": "application/json" },
+	      body: JSON.stringify({
+	        activity: rowData.activity,
+	        rfiDescription: rowData.rfiDescription,
+	        enclosures: Array.isArray(rowData.enclosures)
+	          ? rowData.enclosures.join(",")
+	          : rowData.enclosures,
+	      }),
+	    });
 
+	    if (response.ok) {
+	      const saved = await response.json();
+	      setThirdTableData((prev) =>
+	        prev.map((r) =>
+	          r.sr_no === rowData.sr_no
+	            ? { ...r, id: saved.id, isNew: false, isEditing: false }
+	            : r
+	        )
+	      );
+	      alert("Row submitted successfully!");
+	    } else {
+	      const errorText = await response.text();
+	      console.error("Error response:", errorText);
+	      alert("Error submitting row");
+	    }
+	  } catch (error) {
+	    console.error("Submit error:", error);
+	  }
+	};
 
+	const handleThirdEdit = async (rowData) => {
+	  if (!rowData.id) {
+	    alert("Row does not exist in DB yet. Please submit first.");
+	    return;
+	  }
 
-  // Third Form columns
-  const thirdTableColumns = [
-    { Header: "Sr No", accessor: "sr_no" },
-    {
-      Header: "Activity",
-      accessor: "fieldOne",
-      Cell: ({ row }) => {
-        const { sr_no, fieldOne, isEditing, isNew } = row.original;
-        return isEditing || isNew ? (
-          <input
-            value={thirdEditInputs[sr_no]?.fieldOne ?? fieldOne ?? ""}
-            onChange={(e) =>
-              handleThirdInputChange(sr_no, "fieldOne", e.target.value)
-            }
-          />
-        ) : (
-          fieldOne
-        );
-      },
-    },
-    {
-      Header: "RFI Description",
-      accessor: "fieldTwo",
-      Cell: ({ row }) => {
-        const { sr_no, fieldTwo, isEditing, isNew } = row.original;
-        return isEditing || isNew ? (
-          <input
-            value={thirdEditInputs[sr_no]?.fieldTwo ?? fieldTwo ?? ""}
-            onChange={(e) =>
-              handleThirdInputChange(sr_no, "fieldTwo", e.target.value)
-            }
-          />
-        ) : (
-          fieldTwo
-        );
-      },
-    },
-    {
-      Header: "Enclosure/Attachments",
-      accessor: "enclosures",
-      Cell: ({ row }) => {
-        const { sr_no, enclosures, isEditing, isNew } = row.original;
-        if (isEditing || isNew) {
-          return (
-            <Select
-              isMulti
-              options={addRfiEnclosuresOptions}
-              value={addRfiEnclosuresOptions.filter(opt => (enclosures || []).includes(opt.value))}
-              onChange={selectedOptions =>
-                handleThirdInputChange(
-                  sr_no,
-                  "enclosures",
-                  selectedOptions ? selectedOptions.map(opt => opt.value) : []
-                )
-              }
-              placeholder="Select Enclosures"
-            />
-          );
-        } else {
-          return enclosures && enclosures.length > 0
-            ? enclosures.map(val =>
-                addRfiEnclosuresOptions.find(opt => opt.value === val)?.label || val
-              ).join(", ")
-            : "";
-        }
-      }
-    },
-    {
-      Header: "Action",
-      accessor: "action",
-      Cell: ({ row }) => {
-        const { sr_no, isEditing, isNew } = row.original;
-        if (isEditing || isNew) {
-          return (
-            <>
-              <button onClick={() => handleThirdSubmit(row.original)}>Save</button>
-              <button onClick={() => handleThirdCancelEdit(sr_no)}>Cancel</button>
-            </>
-          );
-        }
-        return <button onClick={() => handleThirdAction(sr_no)}>Edit</button>;
-      },
-    },
-  ];
+	  try {
+	    const payload = {
+	      activity: rowData.activity || "",
+	      rfiDescription: rowData.rfiDescription || "",
+	      enclosures: rowData.enclosures && Array.isArray(rowData.enclosures)
+	        ? rowData.enclosures.join(",")
+	        : rowData.enclosures || "",
+	    };
 
+	    const response = await fetch(`${API_BASE_URL}rfi/Update/${rowData.id}`, {
+	      method: "PUT",
+	      headers: { "Content-Type": "application/json" },
+	      body: JSON.stringify(payload),
+	    });
+
+	    if (response.ok) {
+	      const updated = await response.json();
+
+	      setThirdTableData((prev) =>
+	        prev.map((r) =>
+	          r.sr_no === rowData.sr_no
+	            ? {
+	                ...r,
+	                ...updated,
+	                sr_no: rowData.sr_no,
+	                isEditing: false,
+	                enclosures: updated.enclosures
+	                  ? updated.enclosures.split(",").map((e) => e.trim())
+	                  : [],
+	              }
+	            : r
+	        )
+	      );
+	      alert("Row updated successfully!");
+	    } else {
+	      const text = await response.text();
+	      console.error("Update failed:", text);
+	      alert("Error updating row: " + text);
+	    }
+	  } catch (error) {
+	    console.error("Update error:", error);
+	    alert("Error updating row: " + error.message);
+	  }
+	};
+	
+	const handleThirdCancelEdit = (sr_no) => {
+	  setThirdTableData((prev) =>
+	    prev.map((row) => {
+	      if (row.sr_no === sr_no) {
+	        return row.isNew
+	          ? null // remove new row
+	          : { ...row, isEditing: false }; // revert edit
+	      }
+	      return row;
+	    }).filter(Boolean)
+	  );
+	};
+	// ------------------- TABLE COLUMNS -------------------
+	const thirdTableColumns = [
+	  {
+	    Header: "Sr No",
+	    accessor: "sr_no",
+	  },
+	  {
+	    Header: "Activity",
+	    accessor: "activity",
+	    Cell: ({ row }) => {
+	      const { sr_no, activity, isEditing, isNew } = row.original;
+	      return isEditing || isNew ? (
+	        <input
+	          value={thirdEditInputs[sr_no]?.activity ?? activity ?? ""}
+	          onChange={(e) =>
+	            handleThirdInputChange(sr_no, "activity", e.target.value)
+	          }
+	        />
+	      ) : (
+	        activity
+	      );
+	    },
+	  },
+	  {
+	    Header: "RFI Description",
+	    accessor: "rfiDescription",
+	    Cell: ({ row }) => {
+	      const { sr_no, rfiDescription, isEditing, isNew } = row.original;
+	      return isEditing || isNew ? (
+	        <input
+	          value={thirdEditInputs[sr_no]?.rfiDescription ?? rfiDescription ?? ""}
+	          onChange={(e) =>
+	            handleThirdInputChange(sr_no, "rfiDescription", e.target.value)
+	          }
+	        />
+	      ) : (
+	        rfiDescription
+	      );
+	    },
+	  },
+	  {
+	    Header: "Enclosure/Attachments",
+	    accessor: "enclosures",
+	    Cell: ({ row }) => {
+	      const { sr_no, enclosures, isEditing, isNew } = row.original;
+	      return isEditing || isNew ? (
+	        <Select
+	          isMulti
+	          options={addRfiEnclosuresOptions}
+	          value={addRfiEnclosuresOptions.filter((opt) =>
+	            (enclosures || []).includes(opt.value)
+	          )}
+	          onChange={(selectedOptions) =>
+	            handleThirdInputChange(
+	              sr_no,
+	              "enclosures",
+	              selectedOptions
+	                ? selectedOptions.map((opt) => opt.value)
+	                : []
+	            )
+	          }
+	          placeholder="Select Enclosures"
+	        />
+	      ) : enclosures && enclosures.length > 0 ? (
+	        enclosures
+	          .map(
+	            (val) =>
+	              addRfiEnclosuresOptions.find((opt) => opt.value === val)?.label ||
+	              val
+	          )
+	          .join(", ")
+	      ) : (
+	        ""
+	      );
+	    },
+	  },
+	  {
+	    Header: "Action",
+	    accessor: "action",
+	    Cell: ({ row }) => {
+	      const { sr_no, isEditing, isNew } = row.original;
+	      const handleClick = () => {
+	        if (isNew) {
+	          handleThirdSubmit(row.original);
+	        } else if (isEditing) {
+	          handleThirdEdit(row.original);
+	        } else {
+	          handleThirdAction(sr_no);
+	        }
+	      };
+	      return (
+	        <>
+	          <button onClick={handleClick}>
+	            {isNew ? "Submit" : isEditing ? "Save" : "Edit"}
+	          </button>
+	          {(isEditing || isNew) && (
+	            <button
+	              style={{ marginLeft: "6px" }}
+	              onClick={() => handleThirdCancelEdit(sr_no)}
+	            >
+	              Cancel
+	            </button>
+	          )}
+	        </>
+	      );
+	    },
+	  },
+	];
+     
 	return (
 		<div className="dashboard create-rfi inspection">
 			<HeaderRight />
