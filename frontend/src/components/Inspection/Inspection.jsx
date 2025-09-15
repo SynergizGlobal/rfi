@@ -91,12 +91,13 @@ const Inspection = () => {
 	const handleInspectionComplete = (rfi, status) => {
 
 		if (status === "INSPECTION_DONE") {
-			alert("Inspection is already closed. Further inspection not allowed.")
+			alert("Inspection is already closed. Further inspection not allowed.");
+			return;
 		}
 		const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 
 		if (deptFK === "engg") {
-			const allowedStatuses = ["INSPECTED_BY_CON", "INSPECTED_BY_ENGINEER",];
+			const allowedStatuses = ["INSPECTED_BY_CON", "INSPECTED_BY_AE",];
 			if (!allowedStatuses.includes(status)) {
 				alert("Inspection not allowed until Contractor completes inspection.");
 				return;
