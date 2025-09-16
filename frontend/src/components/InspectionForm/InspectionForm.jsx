@@ -46,90 +46,103 @@ export default function InspectionForm() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	useEffect(() => {
-	  if (id) {
-	    fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
-	      .then((res) => res.json())
-	      .then((data) => {
-	        setRfiData(data);
-	        setContractorRep(data.nameOfRepresentative || "");
+		if (id) {
+			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
+				.then((res) => res.json())
+				.then((data) => {
+					setRfiData(data);
+					setContractorRep(data.nameOfRepresentative || "");
 
-	        if (data.enclosures) {
-	          const enclosuresArr = Array.isArray(data.enclosures)
-	            ? data.enclosures
-	            : data.enclosures.split(",").map((enc) => enc.trim());
+					if (data.enclosures) {
+						const enclosuresArr = Array.isArray(data.enclosures)
+							? data.enclosures
+							: data.enclosures.split(",").map((enc) => enc.trim());
 
-	          const formatted = enclosuresArr.map((enc, index) => ({
-	            id: `${data.id}-${index}`,
-	            rfiDescription: data.rfiDescription,
-	            enclosure: enc,
-	          }));
+						const formatted = enclosuresArr.map((enc, index) => ({
+							id: `${data.id}-${index}`,
+							rfiDescription: data.rfiDescription,
+							enclosure: enc,
+						}));
 
-	          setEnclosuresData(formatted);
-			  const fetchEnclosureActions = async () => {
-			    const actionsState = {};
-			    const checklistState = {};
+						setEnclosuresData(formatted);
+						const fetchEnclosureActions = async () => {
+							const actionsState = {};
+							const checklistState = {};
 
-			    for (const item of formatted) {
-			      try {
-			        const result = await fetchChecklistDataFromApi(id, item.enclosure);
+							for (const item of formatted) {
+								try {
+									const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
-			        if (result) {
-			          const action = result.checklist?.length > 0 ? "EDIT" : "OPEN";
+									if (result) {
+										let hasData = false;
 
-			          actionsState[item.id] = action;
+										if (Array.isArray(result.checklist)) {
+											hasData = result.checklist.some(
+												(chk) =>
+													(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+													(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
+													(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+													(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+											);
+										}
 
-			          checklistState[item.id] = {
-			            checklist: result.checklist || [],
-			            gradeOfConcrete: result.gradeOfConcrete || "",
-			            checklistDone: action === "EDIT",
-			          };
-			        } else {
-			          actionsState[item.id] = "UPLOAD";
-			          checklistState[item.id] = {
-			            checklist: [],
-			            gradeOfConcrete: "",
-			            checklistDone: false,
-			          };
-			        }
-			      } catch (err) {
-			        console.log("Error fetching checklist for enclosure:", item.enclosure, err);
-			        actionsState[item.id] = "UPLOAD";
-			        checklistState[item.id] = {
-			          checklist: [],
-			          gradeOfConcrete: "",
-			          checklistDone: false,
-			        };
-			      }
-			    }
-			    setEnclosureActions(actionsState);
-			    setEnclosureStates(checklistState);
-			  };
-			  fetchEnclosureActions();
-	        }
+										const action = hasData ? "EDIT" : "OPEN";
 
-	        if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
-	          const contractorInspection = data.inspectionDetails
-	            .filter((det) => det.uploadedBy === "CON")
-	            .sort((a, b) => b.id - a.id)[0]; // latest contractor row
+										actionsState[item.id] = action;
+										checklistState[item.id] = {
+											checklist: result.checklist || [],
+											gradeOfConcrete: result.gradeOfConcrete || "",
+											checklistDone: hasData,
+										};
+									} else {
+										actionsState[item.id] = "UPLOAD";
+										checklistState[item.id] = {
+											checklist: [],
+											gradeOfConcrete: "",
+											checklistDone: false,
+										};
+									}
+								} catch (err) {
+									console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+									actionsState[item.id] = "UPLOAD";
+									checklistState[item.id] = {
+										checklist: [],
+										gradeOfConcrete: "",
+										checklistDone: false,
+									};
+								}
+							}
 
-	          const engineerInspection = data.inspectionDetails
-	            .filter((det) => det.uploadedBy === "Engg")
-	            .sort((a, b) => b.id - a.id)[0]; // latest engineer row
+							setEnclosureActions(actionsState);
+							setEnclosureStates(checklistState);
+						};
 
-	          if (deptFK.toLowerCase() === "con" && contractorInspection) {
-	            setInspectionId(contractorInspection.id);
-	          } else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
-	            setInspectionId(engineerInspection.id);
-	          }
-	        } else {
-	          const savedId = localStorage.getItem("latestInspectionId");
-	          if (savedId) {
-	            setInspectionId(parseInt(savedId));
-	          }
-	        }
-	      })
-	      .catch((err) => console.error("Error fetching RFI details:", err));
-	  }
+						fetchEnclosureActions();
+					}
+
+					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+						const contractorInspection = data.inspectionDetails
+							.filter((det) => det.uploadedBy === "CON")
+							.sort((a, b) => b.id - a.id)[0]; // latest contractor row
+
+						const engineerInspection = data.inspectionDetails
+							.filter((det) => det.uploadedBy === "Engg")
+							.sort((a, b) => b.id - a.id)[0]; // latest engineer row
+
+						if (deptFK.toLowerCase() === "con" && contractorInspection) {
+							setInspectionId(contractorInspection.id);
+						} else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
+							setInspectionId(engineerInspection.id);
+						}
+					} else {
+						const savedId = localStorage.getItem("latestInspectionId");
+						if (savedId) {
+							setInspectionId(parseInt(savedId));
+						}
+					}
+				})
+				.catch((err) => console.error("Error fetching RFI details:", err));
+		}
 	}, [id, API_BASE_URL]);
 
 
@@ -431,8 +444,8 @@ export default function InspectionForm() {
 
 
 	const handleSaveDraft = async () => {
-		
-		if (isSaving) return; 
+
+		if (isSaving) return;
 		setIsSaving(true);
 
 		if (!navigator.onLine) {
@@ -491,13 +504,13 @@ export default function InspectionForm() {
 			if (!res.ok) throw new Error(await res.text());
 
 			const id = await res.json();
-		//	setInspectionId(id);
+			//	setInspectionId(id);
 			alert("Draft saved successfully!");
 			setIsSaving(false);
 		} catch (err) {
 			console.error("Draft save failed:", err);
 			alert(`Draft save failed: ${err.message}`);
-			setIsSaving(false);	
+			setIsSaving(false);
 		}
 	};
 
@@ -544,7 +557,7 @@ export default function InspectionForm() {
 			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
-		
+
 		if (isSubmitting) return;
 		setIsSubmitting(true);
 
@@ -598,7 +611,7 @@ export default function InspectionForm() {
 
 			const msg = await res.text();
 			alert(msg || "Inspection submitted successfully!");
-			 setIsSubmitting(false);
+			setIsSubmitting(false);
 		} catch (err) {
 			console.error("Submission failed:", err);
 			alert(`Submission failed: ${err.message}`);
@@ -620,7 +633,7 @@ export default function InspectionForm() {
 				const data = await res.json();
 				if (data.length > 0) {
 					const latestInspection = data[data.length - 1];
-				//	setInspectionId(latestInspection.inspectionId);
+					//	setInspectionId(latestInspection.inspectionId);
 					setLocationText(latestInspection.location || "");
 					setChainage(latestInspection.chainage || "");
 					setMeasurements([{
@@ -866,18 +879,18 @@ export default function InspectionForm() {
 													<td>{e.enclosure}</td>
 
 													<td>
-													  {enclosureActions[e.id] === 'UPLOAD' ? (
-													    <button
-													      onClick={() => setUploadPopup(e.id)}
-													      disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
-													    >
-													      Upload
-													    </button>
-													  ) : (
-													    <button onClick={() => setChecklistPopup(e.id)}>
-													      {enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
-													    </button>
-													  )}
+														{enclosureActions[e.id] === 'UPLOAD' ? (
+															<button
+																onClick={() => setUploadPopup(e.id)}
+																disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
+															>
+																Upload
+															</button>
+														) : (
+															<button onClick={() => setChecklistPopup(e.id)}>
+																{enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
+															</button>
+														)}
 													</td>
 													<td>
 														{enclosureFile ? (
@@ -1151,19 +1164,19 @@ export default function InspectionForm() {
 								<div className="btn-row" style={{ marginTop: 12 }}>
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
 									<button
-									  className="btn btn-blue"
-									  onClick={handleSaveDraft}
-									  disabled={viewMode || isSaving}
+										className="btn btn-blue"
+										onClick={handleSaveDraft}
+										disabled={viewMode || isSaving}
 									>
-									  {isSaving ? "Saving..." : "Save Draft"}
+										{isSaving ? "Saving..." : "Save Draft"}
 									</button>
 
 									<button
-									  className="btn btn-green"
-									  onClick={handleSubmitInspection}
-									  disabled={viewMode || isSubmitting}
+										className="btn btn-green"
+										onClick={handleSubmitInspection}
+										disabled={viewMode || isSubmitting}
 									>
-									  {isSubmitting ? "Submitting..." : "Submit"}
+										{isSubmitting ? "Submitting..." : "Submit"}
 									</button>
 
 								</div>

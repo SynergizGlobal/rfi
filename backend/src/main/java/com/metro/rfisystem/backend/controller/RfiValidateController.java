@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import java.util.Collections;
@@ -17,12 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
-import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiDetailsDTO;
-import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
 import jakarta.servlet.http.HttpSession;
@@ -47,17 +44,24 @@ public class RfiValidateController {
 	}
 	
 	
-    @PostMapping("/send-for-validation/{rfiId}")
-    public ResponseEntity<String> sendForValidation(@PathVariable Long rfiId) {
-        String result = rfiValidationService.sendRfiForValidation(rfiId);
+	@PostMapping("/send-for-validation/{rfiId}")
+	public ResponseEntity<String> sendForValidation(@PathVariable Long rfiId) {
+	    try {
+	        String result = rfiValidationService.sendRfiForValidation(rfiId);
 
-        // return 200 if success, 400 otherwise
-        if ("RFI sent for validation successfully.".equals(result)) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
-        }
-    }
+	        if ("RFI sent for validation successfully.".equals(result)) {
+	            return ResponseEntity.ok(result); 
+	        } else {
+	            return ResponseEntity.badRequest().body(result); 
+	        }
+	    } catch (DataIntegrityViolationException ex) {
+	        return ResponseEntity.badRequest().body("This RFI is already sent for validation.");
+	    } catch (Exception ex) {
+	        return ResponseEntity.badRequest().body("Failed to send RFI for validation. Please try again.");
+	    }
+	}
+
+    
 	
 
 	@GetMapping("/getRfiValidations")

@@ -103,11 +103,9 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 	@Override
 	public RfiDetailsDTO getRfiPreview(Long rfiId) {
-		// Get report details (you already have List, so take first if present)
 		List<RfiReportDTO> reportList = rfiRepository.getRfiReportDetails(rfiId);
 		RfiReportDTO report = reportList.isEmpty() ? null : reportList.get(0);
 
-		// Get checklist + enclosures
 		List<ChecklistItemDTO> checklist = checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
 		List<EnclosureDTO> enclosures = enclosureRepository.findEnclosuresByRfiId(rfiId);
 
@@ -126,32 +124,26 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 		System.out.println("RFI ID: " + rfi.getId() + ", Status: " + rfi.getStatus() + ", Approval Status: "
 				+ rfi.getApprovalStatus());
 
-		// Already sent for validation
 		if (EnumRfiStatus.VALIDATION_PENDING.name().equalsIgnoreCase(rfi.getStatus())) {
 			return "RFI has already been sent for validation.";
 		}
 
-		// Already sent for validation
 		if (EnumRfiStatus.INSPECTION_DONE.name().equalsIgnoreCase(rfi.getStatus())) {
 			return "RFI has already been Closed.";
 		}
 
-		// Not yet inspected by engineer
 		if (!EnumRfiStatus.INSPECTED_BY_AE.name().equalsIgnoreCase(rfi.getStatus())) {
 			return "RFI has not been inspected yet by the engineer.";
 		}
 
-		// Rejected by engineer
 		if (rfi.getApprovalStatus() == null) {
 			return "Inspection Approval Status By Engineer is Pending...";
 		}
 
-		// Rejected by engineer
 		if (!"Accepted".equalsIgnoreCase(rfi.getApprovalStatus())) {
 			return "Inspection was rejected  by the engineer.";
 		}
 
-		// ✅ Allowed case: INSPECTED_BY_AE + Accepted → move to VALIDATION_PENDING
 		RFI fullRfi = rfiRepository.findById(rfi.getId()).orElseThrow(() -> new RuntimeException("RFI not found"));
 
 		fullRfi.setStatus(EnumRfiStatus.VALIDATION_PENDING);
