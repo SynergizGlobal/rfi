@@ -19,6 +19,12 @@ const InspectionReferenceForm = () => {
 	const [editDescription, setEditDescription] = useState(""); // for editing description
 	const [editingEnclosureId, setEditingEnclosureId] = useState(null);
 	const [editInputs, setEditInputs] = useState({});
+	const [firstPageIndex, setFirstPageIndex] = useState(0);
+	const [firstSearchInput, setFirstSearchInput] = useState("");
+	const [firstGlobalFilter, setFirstGlobalFilter] = useState("");
+	const [secondPageIndex, setSecondPageIndex] = useState(0);
+	const [secondGlobalFilter, setSecondGlobalFilter] = useState("");
+	const [secondSearchInput, setSecondSearchInput] = useState("");
 	const [thirdTableData, setThirdTableData] = useState([]);
 	const [thirdCurrentPage, setThirdCurrentPage] = useState(1);
 	const [thirdGlobalFilter, setThirdGlobalFilter] = useState("");
@@ -90,6 +96,7 @@ const InspectionReferenceForm = () => {
 					description: item.checklistDescription || "No description available",
 				}));
 				setChecklistItems(checklistItems);
+				setSecondPageIndex(0);
 			})
 			.catch((err) => {
 				console.error("Error fetching checklist:", err);
@@ -229,6 +236,7 @@ const InspectionReferenceForm = () => {
 		})),
 		[openEnclosers]
 	);
+
 	const EditableCell = React.memo(({ value, onChange, inputRef }) => {
 		useEffect(() => {
 			if (inputRef && inputRef.current) {
@@ -321,6 +329,69 @@ const InspectionReferenceForm = () => {
 			},
 		},
 	], [editingEnclosureId, editInputs, handleInputChange]);
+
+	const firstTableInstance = useTable(
+  {
+    columns: table1Columns,
+    data: table1Data,
+    pageIndex: firstPageIndex,         
+    pageSize,                         
+    initialState: { pageIndex: firstPageIndex, pageSize },
+    autoResetPage: false,
+    manualPagination: false,
+  },
+  useGlobalFilter,
+  usePagination
+);
+
+const {
+    getTableProps: getTableProps1,
+    getTableBodyProps: getTableBodyProps1,
+    headerGroups: headerGroups1,
+    page: page1,
+    prepareRow: prepareRow1,
+    state: stateFirst,
+    setGlobalFilter: setGlobalFilter1,
+    canNextPage: canNextPage1,
+    canPreviousPage: canPreviousPage1,
+    nextPage: nextPage1,
+    previousPage: previousPage1,
+    gotoPage: gotoPage1,
+    pageOptions: pageOptions1,
+  } = firstTableInstance;
+
+  useEffect(() => { setFirstPageIndex(stateFirst.pageIndex); setFirstGlobalFilter(stateFirst.globalFilter); }, [stateFirst.pageIndex, stateFirst.globalFilter]);
+
+  // Second Table
+  const secondTableInstance = useTable(
+    {
+      columns: table2Columns,
+      data: checklistItems,
+      initialState: { pageIndex: secondPageIndex, pageSize, globalFilter: secondGlobalFilter },
+      autoResetPage: false,
+    },
+    useGlobalFilter,
+    usePagination,
+  );
+
+  const {
+    getTableProps: getTableProps2,
+    getTableBodyProps: getTableBodyProps2,
+    headerGroups: headerGroups2,
+    page: page2,
+    prepareRow: prepareRow2,
+    state: stateSecond,
+    setGlobalFilter: setGlobalFilter2,
+    canNextPage: canNextPage2,
+    canPreviousPage: canPreviousPage2,
+    nextPage: nextPage2,
+    previousPage: previousPage2,
+    gotoPage: gotoPage2,
+    pageOptions: pageOptions2,
+  } = secondTableInstance;
+
+  useEffect(() => { setSecondPageIndex(stateSecond.pageIndex); setSecondGlobalFilter(stateSecond.globalFilter); }, [stateSecond.pageIndex, stateSecond.globalFilter]);
+
 
 	// Select columns and data depending on dropdown choice
 
@@ -532,6 +603,7 @@ const InspectionReferenceForm = () => {
 	        }));
 	        setThirdTableData(withSrNo);
 	        setThirdCurrentPage(1);
+			setThirdPageIndex(0);
 	        setThirdEditInputs({});
 	      })
 	      .catch((err) => console.error("Error fetching third form data:", err));
@@ -539,37 +611,42 @@ const InspectionReferenceForm = () => {
 	}, [selectedOption, API_BASE_URL]);
 
 	// ------------------- PAGINATION + FILTER -------------------
-	const paginateAndFilter = (data, filter, page, size) => {
-	  const lowerFilter = filter.toLowerCase();
-	  const filtered = data.filter((row) => {
-	    if (row.isNew || row.isEditing) return true;
-	    return (
-	      (row.activity && row.activity.toLowerCase().includes(lowerFilter)) ||
-	      (row.rfiDescription &&
-	        row.rfiDescription.toLowerCase().includes(lowerFilter)) ||
-	      (row.enclosures &&
-	        row.enclosures.some((val) =>
-	          val.toLowerCase().includes(lowerFilter)
-	        ))
-	    );
-	  });
-	  const start = (page - 1) * size;
-	  return {
-	    paginated: filtered.slice(start, start + size),
-	    total: Math.ceil(filtered.length / size) || 1,
-	  };
-	};
+const paginateAndFilter = (data, filter, page, size) => {
+  const lowerFilter = filter.toLowerCase();
+  const filtered = data.filter(row =>
+    row.isNew || row.isEditing ||
+    (row.activity && row.activity.toLowerCase().includes(lowerFilter)) ||
+    (row.rfiDescription && row.rfiDescription.toLowerCase().includes(lowerFilter)) ||
+    (row.enclosures && Array.isArray(row.enclosures) &&
+      row.enclosures.some(val => val && val.toLowerCase().includes(lowerFilter))) ||
+    (row.description && row.description.toLowerCase().includes(lowerFilter)) // for checklist
+  );
+  const start = page * size;
+  return {
+    paginated: filtered.slice(start, start + size),
+    totalPages: Math.ceil(filtered.length / size) || 1,
+    totalRows: filtered.length
+  };
+};
 
-	const { paginated: thirdPaginated, total } = useMemo(() => {
-	  return paginateAndFilter(
-	    thirdTableData,
-	    thirdSearchInput,
-	    thirdPageIndex + 1,
-	    pageSize
-	  );
-	}, [thirdSearchInput, thirdTableData, thirdPageIndex, pageSize]);
+// First Table
+const { paginated: firstPaginated, totalPages: firstTotalPages, totalRows: firstTotalRows } = useMemo(
+  () => paginateAndFilter(table1Data, firstSearchInput, firstPageIndex, pageSize),
+  [table1Data, firstSearchInput, firstPageIndex, pageSize]
+);
 
-	const totalPages = total;
+// Second Table
+const { paginated: secondPaginated, totalPages: secondTotalPages, totalRows: secondTotalRows } = useMemo(
+  () => paginateAndFilter(checklistItems, secondSearchInput, secondPageIndex, pageSize),
+  [checklistItems, secondSearchInput, secondPageIndex, pageSize]
+);
+
+// Third Table
+const { paginated: thirdPaginated, totalPages: thirdTotalPages, totalRows: thirdTotalRows } = useMemo(
+  () => paginateAndFilter(thirdTableData, thirdSearchInput, thirdPageIndex, pageSize),
+  [thirdTableData, thirdSearchInput, thirdPageIndex, pageSize]
+);
+
 
 	// ------------------- HANDLERS -------------------
 	const handleThirdInputChange = (sr_no, field, value) => {
@@ -795,6 +872,16 @@ const InspectionReferenceForm = () => {
 	    },
 	  },
 	];
+
+	const PaginationControls = ({ pageIndex, canPreviousPage, canNextPage, previousPage, nextPage, gotoPage, pageOptions }) => (
+    <div className="irf-pagination">
+      <button disabled={!canPreviousPage} onClick={previousPage}>Prev</button>
+      {pageOptions.map(i => (
+        <button key={i} className={i === pageIndex ? "irf-activePage" : ""} onClick={() => gotoPage(i)}>{i + 1}</button>
+      ))}
+      <button disabled={!canNextPage} onClick={nextPage}>Next</button>
+    </div>
+  );
      
 	return (
 		<div className="dashboard create-rfi inspection">
@@ -965,6 +1052,7 @@ const InspectionReferenceForm = () => {
 
 						{/* Table */}
             {(selectedOption === "first" || selectedOption === "second") && (
+				
 						<div className="table-section">
 							<div className="table-wrapper">
 								<table {...getTableProps()} className="irf-responsive-table">
@@ -977,51 +1065,50 @@ const InspectionReferenceForm = () => {
 											</tr>
 										))}
 									</thead>
-									<tbody {...getTableBodyProps()}>
-										{page.length > 0 ? (
-											page.map((row) => {
-												prepareRow(row);
-												return (
-													<tr
-														{...row.getRowProps()}
-														key={row.original.id}  // Only here
-													// DO NOT put ref here!
-													>
-														{row.cells.map((cell) => {
-															const columnId = cell.column.id;
-															const rowId = row.original ? row.original.id : undefined;
-
-															return (
-																<td {...cell.getCellProps()}>
-																	{columnId === "encloserName" && row.original && editingEnclosureId === rowId ? (
-																	<input
-																		value={editInputs[rowId] ?? ""}
-																		onChange={(e) =>
-																		setEditInputs(prev => ({ ...prev, [rowId]: e.target.value }))
-																		}
-																		placeholder="Enter enclosure name"
-																	/>
-																	) : (
-																	cell.render("Cell")
-																	)}
-																</td>
-															);
-														})}
-													</tr>
-												);
+									<tbody {...(selectedOption === "first" ? getTableBodyProps1() : getTableBodyProps2())}>
+										{(selectedOption === "first" ? page1 : page2).length > 0 ? (
+											(selectedOption === "first" ? page1 : page2).map(row => {
+											(selectedOption === "first" ? prepareRow1 : prepareRow2)(row);
+											return (
+												<tr
+												{...row.getRowProps()}
+												key={row.original.id}
+												>
+												{row.cells.map(cell => {
+													const columnId = cell.column.id;
+													const rowId = row.original ? row.original.id : undefined;
+													return (
+													<td {...cell.getCellProps()}>
+														{columnId === "encloserName" && row.original && editingEnclosureId === rowId ? (
+														<input
+															value={editInputs[rowId] ?? ""}
+															onChange={e => setEditInputs(prev => ({ ...prev, [rowId]: e.target.value }))}
+															placeholder="Enter enclosure name"
+														/>
+														) : (
+														cell.render("Cell")
+														)}
+													</td>
+													);
+												})}
+												</tr>
+											);
 											})
 										) : (
 											<tr>
-												<td colSpan={activeColumns.length} className="irf-no-data">
-													{selectedOption === "second" && subOptionId
-														? "No checklist items available"
-														: "No data available"}
-												</td>
+											<td colSpan={activeColumns.length} className="irf-no-data">
+												{selectedOption === "second" && subOptionId
+												? "No checklist items available"
+												: "No data available"}
+											</td>
 											</tr>
 										)}
-									</tbody>
+										</tbody>
+
 								</table>
 							</div>
+							
+							
 						</div>
             )}
 
@@ -1046,50 +1133,93 @@ const InspectionReferenceForm = () => {
 										thirdPaginated.map((row) => (
 										<tr key={row.sr_no}>
 											{thirdTableColumns.map((col) => (
-                      <td key={col.accessor}>
-                        {col.Cell
-                          ? col.Cell({ row: { original: row } }) // <-- wrap your data row as { original : ... }
-                          : row[col.accessor]}
-                      </td>
-                      ))}
+											<td key={col.accessor}>
+												{col.Cell
+												? col.Cell({ row: { original: row } }) // <-- wrap your data row as { original : ... }
+												: row[col.accessor]}
+											</td>
+											))}
 
 										</tr>
 										))
 									)}
 									</tbody>
 								</table>
+								
 								</>
 							)}
 
 						{/* Pagination */}
 						<div className="d-flex align-items-center justify-content-between mt-2">
 							<span className="irf-showing-entries">
-								{selectedOption === 'third' ? (
-									<>
-										Showing {thirdPageIndex * pageSize + 1} to {Math.min((thirdPageIndex + 1) * pageSize, thirdTableData.length)} of {thirdTableData.length} entries
-									</>
-									) : (
-									<>
-										Showing {pageIndex * pageSize + 1} to {Math.min((pageIndex + 1) * pageSize, activeData.length)} of {activeData.length} entries
-									</>
-									)}
-           					 </span>
+							{selectedOption === "third" ? (
+								<>
+								Showing {thirdPageIndex * pageSize + 1} to {Math.min((thirdPageIndex + 1) * pageSize, thirdTableData.length)} of {thirdTableData.length} entries
+								</>
+							) : selectedOption === "first" ? (
+								<>
+								Showing {stateFirst.pageIndex * pageSize + 1} to {Math.min((stateFirst.pageIndex + 1) * pageSize, table1Data.length)} of {table1Data.length} entries
+								</>
+							) : selectedOption === "second" ? (
+								<>
+								Showing {stateSecond.pageIndex * pageSize + 1} to {Math.min((stateSecond.pageIndex + 1) * pageSize, checklistItems.length)} of {checklistItems.length} entries
+								</>
+							) : null}
+							</span>
 
+
+						{(selectedOption === "first" || selectedOption === "second") && (
+								<>
+									{/* Pagination Controls */}
 							<div className="irf-pagination">
-								<button disabled={thirdPageIndex === 0} onClick={() => setThirdPageIndex(i => Math.max(i -1, 0))}>Prev</button>
-								{[...Array(totalPages).keys()].map(i => (
-									<button
-									key={i}
-									className={i === thirdPageIndex ? 'irf-activePage' : ''}
-									onClick={() => setThirdPageIndex(i)}
-									>
-									{i + 1}
-									</button>
-								))}
-								<button disabled={thirdPageIndex === totalPages - 1} onClick={() => setThirdPageIndex(i => Math.min(i + 1, totalPages - 1))}>Next</button>
-								</div>
+							<button
+								disabled={selectedOption === "first" ? !canPreviousPage1 : !canPreviousPage2}
+								onClick={selectedOption === "first" ? previousPage1 : previousPage2}
+							>
+								Prev
+							</button>
+							{[...(selectedOption === "first" ? pageOptions1 : pageOptions2).keys()].map(i => (
+								<button
+								key={i}
+								className={
+									i === (selectedOption === "first" ? stateFirst.pageIndex : stateSecond.pageIndex)
+									? "irf-activePage"
+									: ""
+								}
+								onClick={() => (selectedOption === "first" ? gotoPage1(i) : gotoPage2(i))}
+								>
+								{i + 1}
+								</button>
+							))}
+							<button
+								disabled={selectedOption === "first" ? !canNextPage1 : !canNextPage2}
+								onClick={selectedOption === "first" ? nextPage1 : nextPage2}
+							>
+								Next
+							</button>
+							</div>
+								</>
+							
+							)}
+							{selectedOption === "third" && (
+								<>
+									<div className="irf-pagination">
+										<button disabled={thirdPageIndex === 0} onClick={() => setThirdPageIndex(i => Math.max(i - 1, 0))}>Prev</button>
+										{[...Array(thirdTotalPages).keys()].map(i => (
+										<button
+											key={i}
+											className={i === thirdPageIndex ? 'irf-activePage' : ''}
+											onClick={() => setThirdPageIndex(i)}
+										>{i + 1}</button>
+										))}
+										<button disabled={thirdPageIndex === thirdTotalPages - 1} onClick={() => setThirdPageIndex(i => Math.min(i + 1, thirdTotalPages - 1))}>Next</button>
+									</div>
+								</>
+							)}	
 
 						</div>
+
+						
 					</div>
 				</div>
 			</div>
