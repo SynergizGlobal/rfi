@@ -186,17 +186,15 @@ public class RFIController {
 
 		@GetMapping("/getExecutivesList")
 		public ResponseEntity<List<ExecutiveDTO>> getExcecutives(
-				@RequestParam(name = "contractId", required = true) String contractId,
 				@RequestParam(name = "structureType", required = true) String structureType,
 				@RequestParam(name = "structure", required = true) String structure) {
 
-			List<ExecutiveDTO> list = activityRepository.getExcecutives(contractId, structureType, structure);
+			List<ExecutiveDTO> list = activityRepository.getExcecutives(structureType, structure);
 			if (list.isEmpty()) {
 				return ResponseEntity.ok(Collections.emptyList());
 			}
 
 			return ResponseEntity.ok(list);
-
 		}
 		
 // Bulk update for returned RfiIds setting Executive.

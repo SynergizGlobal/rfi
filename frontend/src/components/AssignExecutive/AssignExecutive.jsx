@@ -91,10 +91,10 @@ const AssignExecutive = () => {
       });
   }, [API_BASE_URL]);
 
-  const fetchExecutives = async (contractId, structureType, structure) => {
+  const fetchExecutives = async ( structureType, structure) => {
     try {
       const response = await axios.get(`${API_BASE_URL}rfi/getExecutivesList`, {
-        params: { contractId, structureType, structure }
+        params: { structureType, structure }
       });
 
       setExecutives(
@@ -407,7 +407,7 @@ const AssignExecutive = () => {
                     setRfiIds?.([]);
 
                     if (contractId && structureType && newStructure) {
-                      fetchExecutives(contractId, structureType, newStructure);
+                      fetchExecutives( structureType, newStructure);
                     }
                   }}
                   isDisabled={!isEditable}
