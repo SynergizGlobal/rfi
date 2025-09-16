@@ -316,7 +316,7 @@ export default function Validation() {
 			y += 15;
 			ensureSpace(lineHeight);
 			doc.setFont(undefined, "bold").setFontSize(11).text("Status:", margin, y);
-			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.status), margin + 35, y);
+			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.validationStatus), margin + 35, y);
 			y += lineHeight;
 			doc.setFont(undefined, "bold").setFontSize(11).text("Remarks:", margin, y);
 			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.remarks), margin + 35, y);
