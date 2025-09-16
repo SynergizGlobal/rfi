@@ -114,9 +114,9 @@ public class InspectionController {
 
 	        switch (result) {
 	            case ENGINEER_SUCCESS:
-	                return ResponseEntity.ok("Inspection Submitted By Engineer.");
+	                return ResponseEntity.ok("Inspection Submitted.");
 	            case CONTRACTOR_SUCCESS:
-	                return ResponseEntity.ok("Inspection Submitted By Contractor.");
+	                return ResponseEntity.ok("Inspection Submitted.");
 	            default:
 	                return ResponseEntity.ok("RFI Submission Failed..!");
 	        }
@@ -248,9 +248,9 @@ public class InspectionController {
 
 	        switch (result) {
 	            case ENGINEER_SUCCESS:
-	                return ResponseEntity.ok("Inspection Submitted By Engineer.");
+	                return ResponseEntity.ok("Inspection Submitted.");
 	            case CONTRACTOR_SUCCESS:
-	                return ResponseEntity.ok("Inspection Submitted By Contractor.");
+	                return ResponseEntity.ok("Inspection Submitted.");
 	            default:
 	                return ResponseEntity.ok("RFI Submission Failed..!");
 	        }
