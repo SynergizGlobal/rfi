@@ -820,7 +820,7 @@ const CreateRfi = () => {
 		<div className="dashboard create-rfi">
 			<HeaderRight />
 			<div className="right">
-				<div className="max-w-lg mx-auto p-4 bg-white rounded-xl shadow-md">
+				<div className="dashboard-main">
 					<h2 className="text-xl font-bold mb-4 page-heading">
 						{mode === 'edit' ? 'Edit RFI Details' : 'Add RFI Details'}
 					</h2>

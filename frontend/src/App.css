@@ -197,7 +197,7 @@ padding: 0 15px;
 	overflow: auto;
 	background-color: #F5F9FF;
 	margin-left: 20%;
-	padding-top: 50px;
+	padding-top: 0px;
 	transition: 0.3s ease-in-out;
 	min-height: 100vh;
 }

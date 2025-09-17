@@ -951,7 +951,7 @@ const { paginated: thirdPaginated, totalPages: thirdTotalPages, totalRows: third
 									/>
 									<button
 										onClick={handleAddDescription}
-										className="irf-btn-add"
+										className="btn btn-primary"
 									>
 										Add Row
 									</button>
@@ -1030,8 +1030,9 @@ const { paginated: thirdPaginated, totalPages: thirdTotalPages, totalRows: third
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", margin: "6px 0" }}>
-              {(selectedOption === "first" || selectedOption === "second") && (
+              {(selectedOption === "first") && (
                 <button
+				className="btn btn-primary"
                   onClick={() => {
                     handleAddRow();
                     setTimeout(() => {

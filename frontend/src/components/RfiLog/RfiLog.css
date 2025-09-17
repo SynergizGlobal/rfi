@@ -87,6 +87,7 @@ table {
 .rfi-table-container {
   position: relative;
   overflow: visible !important;
+  padding: 20px;
 }
 
 .table-section {
