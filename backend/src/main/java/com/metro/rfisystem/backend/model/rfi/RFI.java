@@ -148,6 +148,11 @@ public class RFI {
     @JsonManagedReference
     private List<RFIEnclosure> enclosure = new ArrayList<>();
     
+    @OneToOne(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Measurements measurements;
+
+    
     public List<String> getEnclosuresList() {
         return (enclosures != null && !enclosures.isEmpty())
                 ? Arrays.asList(enclosures.split(","))

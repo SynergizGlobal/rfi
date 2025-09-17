@@ -25,9 +25,11 @@ import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
+import com.metro.rfisystem.backend.model.rfi.Measurements;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.RfiValidation;
+import com.metro.rfisystem.backend.repository.rfi.MeasurementsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
@@ -52,6 +54,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	private final RFIRepository rfiRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
+	private final MeasurementsRepository measurementsRepository;
 
 	@Value("${rfi.inspection.images.upload-dir}")
 	private String uploadDir;
@@ -239,6 +242,12 @@ public class InspectionServiceImpl implements InspectionService {
 	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk);
 
 	    RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
+	    
+	    Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
+	    
+	    Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
+	    
+	    
 	    inspection.setRfi(rfi);
 		if ("Engg".equalsIgnoreCase(deptFk)) {
 			inspection.setUploadedBy("Engg");
@@ -273,19 +282,22 @@ public class InspectionServiceImpl implements InspectionService {
 	        inspection.setTimeOfInspection(LocalTime.now());
 	    }
 
-	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
-	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
-	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
-	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
-	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
-	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+	    if (dto.getMeasurementType() != null) measurements.setMeasurementType(dto.getMeasurementType());
+	    if (dto.getLength() != null) measurements.setLength(dto.getLength());
+	    if (dto.getBreadth() != null) measurements.setBreadth(dto.getBreadth());
+	    if (dto.getHeight() != null) measurements.setHeight(dto.getHeight());
+	    if (dto.getNoOfItems() != null) measurements.setNoOfItems(dto.getNoOfItems());
+	    if (dto.getTotalQty() != null) measurements.setTotalQty(dto.getTotalQty());
+	    if (dto.getRfiId() != null) measurements.setRfi(rfi);
 	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
 	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
 	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
 
 	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
 
+	    
 	    inspectionRepository.save(inspection);
+	    measurementsRepository.save(measurements);
 	    return inspection.getId();
 	}
 	
@@ -310,6 +322,10 @@ public class InspectionServiceImpl implements InspectionService {
 	        inspection = inspectionRepository.findById(dto.getInspectionId())
 	                .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + dto.getInspectionId()));
 	    }
+	    
+	    Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
+	    
+	    Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
 
 		if ("Engg".equalsIgnoreCase(deptFk)) {
 			inspection.setUploadedBy("Engg");
@@ -320,12 +336,13 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
 	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
-	    if (dto.getMeasurementType() != null) inspection.setMeasurementType(dto.getMeasurementType());
-	    if (dto.getLength() != null) inspection.setLength(dto.getLength());
-	    if (dto.getBreadth() != null) inspection.setBreadth(dto.getBreadth());
-	    if (dto.getHeight() != null) inspection.setHeight(dto.getHeight());
-	    if (dto.getNoOfItems() != null) inspection.setNoOfItems(dto.getNoOfItems());
-	    if (dto.getTotalQty() != null) inspection.setTotalQty(dto.getTotalQty());
+	    if (dto.getMeasurementType() != null) measurements.setMeasurementType(dto.getMeasurementType());
+	    if (dto.getLength() != null) measurements.setLength(dto.getLength());
+	    if (dto.getBreadth() != null) measurements.setBreadth(dto.getBreadth());
+	    if (dto.getHeight() != null) measurements.setHeight(dto.getHeight());
+	    if (dto.getNoOfItems() != null) measurements.setNoOfItems(dto.getNoOfItems());
+	    if (dto.getTotalQty() != null) measurements.setTotalQty(dto.getTotalQty());
+	    if (dto.getRfiId() != null) measurements.setRfi(rfi);
 	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
 	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
 	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
@@ -353,6 +370,7 @@ public class InspectionServiceImpl implements InspectionService {
 	    }
 
 	    inspectionRepository.save(inspection);
+	    measurementsRepository.save(measurements);
 	    rfiRepository.save(rfi);
 
 	    return "Engg".equalsIgnoreCase(deptFk)
@@ -455,41 +473,6 @@ public class InspectionServiceImpl implements InspectionService {
 		return false;
 	}
 
-	
-	@Override
-	@Transactional
-	public InspectionSubmitResult SubmitInspection(RFIInspectionRequestDTO dto, MultipartFile testDocument, String deptFk) {
-	    RFI rfi = rfiRepository.findById(dto.getRfiId())
-	            .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID: " + dto.getRfiId()));
-
-	    RFIInspectionDetails inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk).orElseGet(() -> {
-	        RFIInspectionDetails newInsp = new RFIInspectionDetails();
-	        newInsp.setRfi(rfi);
-	        newInsp.setUploadedBy(deptFk);
-	        return newInsp;
-	    });
-
-	    inspection.setInspectionStatus(dto.getInspectionStatus());
-
-	    if (testDocument != null && !testDocument.isEmpty()) {
-	        String filename = saveFile(testDocument);
-	        inspection.setTestSiteDocuments(filename);
-	    }
-
-	    if ("Engg".equalsIgnoreCase(deptFk) && rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE) {
-	        inspection.setTestInsiteLab(dto.getTestInsiteLab());
-	        inspectionRepository.save(inspection);
-	        rfiRepository.save(rfi);
-	        return InspectionSubmitResult.ENGINEER_SUCCESS;
-	    } else if (!"Engg".equalsIgnoreCase(deptFk)) {
-	        inspectionRepository.save(inspection);
-	        rfiRepository.save(rfi);
-	        return InspectionSubmitResult.CONTRACTOR_SUCCESS;
-	    }
-
-	    return InspectionSubmitResult.FAILURE;
-	}
-
 
 	@Override
 	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)
@@ -545,4 +528,6 @@ public class InspectionServiceImpl implements InspectionService {
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
 				.contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
 	}
+
+
 }
