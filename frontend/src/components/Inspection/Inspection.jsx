@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTable, usePagination, useGlobalFilter } from 'react-table';
 import HeaderRight from '../HeaderRight/HeaderRight';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation  } from 'react-router-dom';
 import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
 import DropdownPortal from '../DropdownPortal/DropdownPortal';
@@ -40,32 +40,43 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	
+	const location = useLocation();
+	const { filterStatus } = location.state || {};
+
 
 
 	useEffect(() => {
-		fetch(`${API_BASE_URL}rfi/rfi-details`, {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			credentials: 'include',
-		})
-			.then((res) => {
-				if (!res.ok) {
-					throw new Error("Network error");
-				}
-				return res.json();
-			})
-			.then((data) => {
-				setData(data);
-				setLoading(false);
-			})
-			.catch((err) => {
-				console.error(err);
-				setError("Failed to load RFI data");
-				setLoading(false);
-			});
-	}, []);
+	  fetch(`${API_BASE_URL}rfi/rfi-details`, {
+	    method: "GET",
+	    headers: { "Content-Type": "application/json" },
+	    credentials: "include",
+	  })
+	    .then((res) => {
+	      if (!res.ok) {
+	        throw new Error("Network error");
+	      }
+	      return res.json();
+	    })
+	    .then((data) => {
+	      let filteredData = data;
+
+	      // ✅ Apply status filter from Created RFI (via Dashboard navigation)
+	      if (filterStatus && filterStatus.length > 0) {
+	        filteredData = data.filter((rfi) =>
+	          filterStatus.includes(rfi.status)
+	        );
+	      }
+
+	      setData(filteredData);
+	      setLoading(false);
+	    })
+	    .catch((err) => {
+	      console.error(err);
+	      setError("Failed to load RFI data");
+	      setLoading(false);
+	    });
+	}, [filterStatus, API_BASE_URL]);
 
 	useEffect(() => {
 		const stored = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");

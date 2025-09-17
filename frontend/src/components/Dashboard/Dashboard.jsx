@@ -108,13 +108,13 @@ const Dashboard = () => {
 								{/* Card 2: Inspections */}
 								<div
 									className="cards"
-									onClick={() => navigateWithStatus("INSPECTION_DONE")}
+									onClick={() => navigate("/Inspection", { state: { filterStatus: ["INSPECTED_BY_AE"] } })}
 									style={{ cursor: 'pointer' }}
 								>
 									<div className="card-inner">
 										<div className="card-top">
 											<div className="card-count">
-												<span className="card-number">{statusCounts.INSPECTION_DONE}</span>
+												<span className="card-number">{statusCounts.INSPECTED_BY_AE}</span>
 											</div>
 											<div className="cards-icon">
 												<img src="/images/verify.png" alt="tick symbol" width="25" height="25" />
@@ -132,7 +132,7 @@ const Dashboard = () => {
 								{/* Card 3: Pending */}
 								<div
 									className="cards"
-									onClick={() => navigate("/CreatedRfi", { state: { filterStatus: ["CREATED", "UPDATED", "REASSIGNED", "INSPECTED_BY_AE", "VALIDATION_PENDING"] } })}
+									onClick={() => navigate("/Inspection", { state: { filterStatus: ["CREATED", "UPDATED", "REASSIGNED"] } })}
 									style={{ cursor: 'pointer' }}
 								>
 									<div className="card-inner">

@@ -397,46 +397,39 @@ public class RFIController {
 
 	    if (isAdmin || isDyHOD) {
 	        // Show total counts for Admin or DyHOD
-	        counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
+	        counts.put("INSPECTED_BY_AE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_AE));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED,
-	            EnumRfiStatus.INSPECTED_BY_AE,
-	            EnumRfiStatus.VALIDATION_PENDING
+	            EnumRfiStatus.REASSIGNED
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatuses(pendingStatuses));
 	    } 
 	    else if (userRole.equalsIgnoreCase("Contractor")) {
 	        // Filter counts for RFIs created by this user
-	        counts.put("INSPECTION_DONE", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("INSPECTED_BY_AE", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_AE, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.RESCHEDULED, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED,
-	            EnumRfiStatus.INSPECTED_BY_AE,
-	            EnumRfiStatus.VALIDATION_PENDING
+	            EnumRfiStatus.REASSIGNED
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndCreatedBy(pendingStatuses, userName));
 	    } 
 	    else if (userDepartment.equalsIgnoreCase("Engg")) {
 	        // Filter counts for RFIs assigned to this user
-	        counts.put("INSPECTION_DONE", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("INSPECTED_BY_AE", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_AE, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED,
-	            EnumRfiStatus.INSPECTED_BY_AE,
-	            EnumRfiStatus.VALIDATION_PENDING
+	            EnumRfiStatus.REASSIGNED
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndAssignedPersonClient(pendingStatuses, userName));
 	    }
 
 	    return ResponseEntity.ok(counts);
 	}
-
 
 }
