@@ -6,14 +6,20 @@ import axios from "axios"
 import DataTable from "react-data-table-component"
 import './InspectionForm.css';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
+import { useNavigate } from "react-router-dom";
+
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
+const isEngineer = deptFK === "engg";
+
 
 export default function InspectionForm() {
+	const navigate = useNavigate();
+
 	const location = useLocation();
 	const id = location.state?.rfi;
 	const skipSelfie = location.state?.skipSelfie;
-	const viewMode = location.state?.viewMode || false;
+	const [viewMode, setViewMode] = useState(location.state?.viewMode || false);
 	const [step, setStep] = useState(skipSelfie ? 2 : 1);
 	const [rfiData, setRfiData] = useState(null);
 	const [locationText, setLocationText] = useState('');
@@ -21,6 +27,8 @@ export default function InspectionForm() {
 	const [contractorRep, setContractorRep] = useState('');
 	const [selfieImage, setSelfieImage] = useState(null);
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
+	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
+
 
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
@@ -45,6 +53,18 @@ export default function InspectionForm() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
+	const contractorSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy !== "ENGG");
+	const engineerSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy === "ENGG");
+
+	const getDisabled = () => {
+		if (inspectionStatusMode === "DRAFT") return false;
+
+		if (isEngineer) {
+			return engineerSubmitted; // engg locked only after engg submits
+		} else {
+			return contractorSubmitted; // non-engg locked once they submit
+		}
+	};
 	useEffect(() => {
 		if (id) {
 			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
@@ -448,6 +468,9 @@ export default function InspectionForm() {
 		if (isSaving) return;
 		setIsSaving(true);
 
+		setInspectionStatusMode("DRAFT");
+
+
 		if (!navigator.onLine) {
 			const offlineData = {
 				inspectionId: inspectionId || Date.now(), // unique ID if new
@@ -459,6 +482,7 @@ export default function InspectionForm() {
 
 			await saveOfflineInspection(offlineData);
 			alert("📌 Images saved offline successfully!");
+			navigate("/inspection");
 			return;
 		}
 		const formData = new FormData();
@@ -507,6 +531,8 @@ export default function InspectionForm() {
 			//	setInspectionId(id);
 			alert("Draft saved successfully!");
 			setIsSaving(false);
+			navigate("/inspection"); // Redirect after offline save
+
 		} catch (err) {
 			console.error("Draft save failed:", err);
 			alert(`Draft save failed: ${err.message}`);
@@ -549,6 +575,8 @@ export default function InspectionForm() {
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
+
+
 
 
 
@@ -612,6 +640,11 @@ export default function InspectionForm() {
 			const msg = await res.text();
 			alert(msg || "Inspection submitted successfully!");
 			setIsSubmitting(false);
+
+			setInspectionStatusMode("SUBMITTED");
+			localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
+			navigate("/inspection"); 
+
 		} catch (err) {
 			console.error("Submission failed:", err);
 			alert(`Submission failed: ${err.message}`);
@@ -620,6 +653,13 @@ export default function InspectionForm() {
 	};
 
 
+	useEffect(() => {
+		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
+			setInspectionStatusMode("SUBMITTED");
+		} else {
+			setInspectionStatusMode("DRAFT");
+		}
+	}, [id]);
 	useEffect(() => {
 		if (!rfiData?.id) return;
 
@@ -800,7 +840,9 @@ export default function InspectionForm() {
 								<div className="form-grid">
 									<div className="form-left">
 										<label>Location <span class="red">*</span>:</label>
-										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)} disabled={viewMode} />
+										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)}
+											disabled={getDisabled()}
+										/>
 										{errors.location && <p className="error-text">{errors.location}</p>}
 										<label>Date of Inspection:</label>
 										<input type="date" value={dateOfInspection} onChange={e => setDateOfInspection(e.target.value)} disabled={viewMode} />
@@ -817,8 +859,7 @@ export default function InspectionForm() {
 														setCameraMode('environment');
 														setShowCamera(`gallery-${i}`);
 													}}
-													disabled={viewMode}
-												>
+													disabled={getDisabled()}												>
 													📷 Capture Image {i + 1}
 												</button>
 
@@ -833,8 +874,7 @@ export default function InspectionForm() {
 															setGalleryImages(updated);
 														}
 													}}
-													disabled={viewMode}
-												/>
+													disabled={getDisabled()} />
 
 												{galleryImages[i] && (
 													<img
@@ -952,8 +992,7 @@ export default function InspectionForm() {
 												<select
 													value={inspectionStatus}
 													onChange={(e) => setInspectionStatus(e.target.value)}
-													disabled={viewMode}
-												>
+													disabled={getDisabled()}												>
 													<option value="" disabled hidden>Select</option>
 													<option value="VISUAL">Visual</option>
 													<option value="LAB_TEST">Lab Test</option>
@@ -968,7 +1007,9 @@ export default function InspectionForm() {
 													<label>Upload Test Report Here</label>
 													<input
 														type="file"
-														onChange={(e) => setTestReportFile(e.target.files[0])} disabled={viewMode}
+														onChange={(e) => setTestReportFile(e.target.files[0])}
+														disabled={getDisabled()}
+
 													/>
 												</>
 											)}
@@ -996,8 +1037,7 @@ export default function InspectionForm() {
 																setEngineerRemarks("");
 															}
 														}}
-														disabled={viewMode}
-													>
+														disabled={getDisabled()}													>
 														<option value="">Select</option>
 														<option value="Accepted">Accepted</option>
 														<option value="Rejected">Rejected</option>
@@ -1021,8 +1061,7 @@ export default function InspectionForm() {
 																	boxSizing: "border-box",
 																	resize: "vertical"
 																}}
-																disabled={viewMode}
-															/>
+																disabled={getDisabled()} />
 															<div
 																style={{
 																	position: "absolute",
@@ -1077,8 +1116,7 @@ export default function InspectionForm() {
 															className="measurement-input"
 															value={row.type}
 															onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
-															disabled={viewMode}
-														>
+															disabled={getDisabled()}														>
 															<option value="">Select</option>
 															<option value="Area">Area</option>
 															<option value="Length">Length</option>
@@ -1094,7 +1132,7 @@ export default function InspectionForm() {
 															className="measurement-input"
 															value={row.L}
 															onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
-															disabled={viewMode || row.type === "Number"}
+															disabled={getDisabled() || row.type === "Number"}
 														/>
 													</td>
 
@@ -1105,7 +1143,7 @@ export default function InspectionForm() {
 															className="measurement-input"
 															value={row.B}
 															onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
-															disabled={viewMode || row.type === "Length" || row.type === "Number"} // ✅
+															disabled={getDisabled() || row.type === "Length" || row.type === "Number"} // ✅
 														/>
 													</td>
 
@@ -1116,9 +1154,10 @@ export default function InspectionForm() {
 															className="measurement-input"
 															value={row.H}
 															onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
-															disabled={viewMode || row.type === "Area" || row.type === "Length" || row.type === "Number"} // ✅
+															disabled={getDisabled() || row.type === "Area" || row.type === "Length" || row.type === "Number"} // ✅
 														/>
 													</td>
+
 
 													{/* No */}
 													<td>
@@ -1127,7 +1166,8 @@ export default function InspectionForm() {
 															className="measurement-input"
 															value={row.No}
 															onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
-															disabled={viewMode}
+															disabled={getDisabled()}
+
 														/>
 													</td>
 
@@ -1166,7 +1206,7 @@ export default function InspectionForm() {
 									<button
 										className="btn btn-blue"
 										onClick={handleSaveDraft}
-										disabled={viewMode || isSaving}
+										disabled={getDisabled()}
 									>
 										{isSaving ? "Saving..." : "Save Draft"}
 									</button>
@@ -1174,7 +1214,7 @@ export default function InspectionForm() {
 									<button
 										className="btn btn-green"
 										onClick={handleSubmitInspection}
-										disabled={viewMode || isSubmitting}
+										disabled={getDisabled()}
 									>
 										{isSubmitting ? "Submitting..." : "Submit"}
 									</button>
@@ -1193,6 +1233,8 @@ export default function InspectionForm() {
 									handleChecklistSubmit(checklistPopup, checklistData, grade)
 								}
 								onClose={() => setChecklistPopup(null)}
+								statusMode={inspectionStatusMode}   // ✅ NEW
+
 							/>
 						)}
 
@@ -1231,13 +1273,15 @@ export default function InspectionForm() {
 }
 
 // Updated ChecklistPopup component with autofill support
-function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose }) {
+function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode }) {
 	const [checklistData, setChecklistData] = useState([]);
 	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
 	const location = useLocation();
 	const id = location.state?.rfi;
 	const skipSelfie = location.state?.skipSelfie;
 	const viewMode = location.state?.viewMode || false;
+	const isReadOnly = statusMode === "SUBMITTED"; // 🟢 lock only when submitted
+
 	const [errorMsg, setErrorMsg] = useState('');
 	const [loading, setLoading] = useState(true);
 	const [isExistingData, setIsExistingData] = useState(false);
@@ -1312,7 +1356,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`contractorStatus-${row.id}`}
 							checked={row.contractorStatus === 'YES'}
 							onChange={() => handleChange(row.id, 'contractorStatus', 'YES')}
-							disabled={viewMode || deptFK === 'engg'}
+							disabled={isReadOnly || deptFK === 'engg'}
 						/> Yes
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1321,7 +1365,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`contractorStatus-${row.id}`}
 							checked={row.contractorStatus === 'NO'}
 							onChange={() => handleChange(row.id, 'contractorStatus', 'NO')}
-							disabled={viewMode || deptFK === 'engg'}
+							disabled={isReadOnly || deptFK === 'engg'}
 						/> No
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1330,7 +1374,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`contractorStatus-${row.id}`}
 							checked={row.contractorStatus === 'NA'}
 							onChange={() => handleChange(row.id, 'contractorStatus', 'NA')}
-							disabled={viewMode || deptFK === 'engg'}
+							disabled={isReadOnly || deptFK === 'engg'}
 						/> N/A
 					</label>
 				</div>
@@ -1378,7 +1422,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 				<input
 					value={row.contractorRemark}
 					onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)}
-					disabled={viewMode || deptFK === 'engg'}
+					disabled={isReadOnly || deptFK === 'engg'}
 					style={{ width: '100%', padding: '4px' }}
 				/>
 			),
@@ -1461,7 +1505,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							id="concrete_grade"
 							value={gradeOfConcrete}
 							onChange={e => setGradeOfConcrete(e.target.value)}
-							disabled={viewMode || deptFK === 'engg'} />
+							disabled={isReadOnly || deptFK === 'engg'} />
 					</div>
 				</div>
 
