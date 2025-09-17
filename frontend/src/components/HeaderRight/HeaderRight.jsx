@@ -11,7 +11,7 @@ const HeaderRight = () => {
 	const isContractor = userRole === "contractor" && loginDepartment !== "engg";
 	const isRegularUser = userRole === "regular user";
 	const isITAdmin = userRole === "it admin";
-	const isDyHOD = userType === "dyhod";
+	const isDyHOD = !isITAdmin && userType === "dyhod"; 
 	const isEnggDept = loginDepartment === "engg";
 	const isDyHODEngg = isDyHOD && isEnggDept; // DyHOD in Engg Dept
 	const isEngineerOnly = isEnggDept && !isDyHOD; // Pure engineer without DyHOD tag
