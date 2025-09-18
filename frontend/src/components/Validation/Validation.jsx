@@ -370,6 +370,7 @@ export default function Validation() {
 
 				doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
 				y += 5;
+				
 
 				for (const file of files) {
 					const extension = file.split('.').pop().toLowerCase();
@@ -814,8 +815,9 @@ export default function Validation() {
 								<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
 
 								{selectedInspection.selfieClient && (
+									<>
+									<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 									<div className="image-gallery">
-										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 										{selectedInspection.selfieClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -832,12 +834,14 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByClient && (
+									<>
+									<h4>Site Images By Inspector</h4>
 									<div className="image-gallery">
-										<h4>Site Images By Inspector</h4>
 										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -854,11 +858,13 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 								{selectedInspection.selfieContractor && (
+									<>
+									<h4>Contractor Selfie</h4>
 									<div className="image-gallery">
-										<h4>Contractor Selfie</h4>
 										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -875,12 +881,14 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByContractor && (
+									<>
+									<h4>Site Images By Contractor</h4>
 									<div className="image-gallery">
-										<h4>Site Images By Contractor</h4>
 										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -897,6 +905,7 @@ export default function Validation() {
 											);
 										})}
 									</div>
+								</>
 								)}
 
 
@@ -911,8 +920,9 @@ export default function Validation() {
 											return groups;
 										}, {})
 									).map(([enclosureName, files], idx) => (
+										<>
+										<h4>Enclosures Uploaded ({enclosureName})</h4>
 										<div key={idx} className="image-gallery">
-											<h4>Enclosures Uploaded ({enclosureName})</h4>
 											{files.map((rawPath, i) => {
 												const path = rawPath.trim();
 												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
@@ -926,20 +936,22 @@ export default function Validation() {
 																type="application/pdf"
 																width="100%"
 																height="500px"
-																className="preview-pdf"
+																className="preview-pdf w-100"
 															/>
 														) : (
 															<img
-																src={fileUrl}
-																alt={`Enclosure ${i + 1}`}
-																className="preview-image"
-																onError={() => console.error("Image load error:", fileUrl)}
-															/>
+															src={fileUrl}
+															alt={`Enclosure ${i + 1}`}
+															className="preview-image"
+															style={{width: "100%", height: "100%", objectFit: "contain"}}
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
 														)}
 													</a>
 												);
 											})}
 										</div>
+									</>
 									))
 								) : (
 									<p>No enclosures uploaded.</p>
@@ -949,8 +961,9 @@ export default function Validation() {
 
 
 								{selectedInspection.testSiteDocumentsContractor && (
+									<>
+									<h4>Test Report Uploaded By Contractor</h4>
 									<div className="image-gallery">
-										<h4>Test Report Uploaded By Contractor</h4>
 
 										{(() => {
 											const path = selectedInspection.testSiteDocumentsContractor.trim();
@@ -980,6 +993,7 @@ export default function Validation() {
 											);
 										})()}
 									</div>
+									</>
 								)}
 
 
