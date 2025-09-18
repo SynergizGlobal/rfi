@@ -34,8 +34,47 @@ const CreateRfi = () => {
 	}, [status]);
 
 	useEffect(() => {
-		setIsEditable(mode?.toLowerCase() !== 'edit');
+	  setIsEditable(mode?.toLowerCase() !== "edit");
 	}, [mode]);
+
+	// Unified helper (replaces isFieldDisabled)
+	const getDisabledStatus = (step, field) => {
+	  // ✅ If not in edit mode → always editable
+	  if (mode?.toLowerCase() !== "edit") return false;
+
+	  const action = formState.action;
+
+	  // ✅ If no action selected yet (Step 2 & 3) → only Action enabled
+	  if ((step === 2 || step === 3) && !action) {
+	    return field !== "action";
+	  }
+
+	  if (step === 2) {
+	    if (action === "Reschedule") {
+	      return !(field === "dateOfInspection" || field === "timeOfInspection");
+	    }
+	    if (action === "Reassign") {
+	      return field !== "nameOfRepresentative";
+	    }
+	    if (action === "Update") {
+	      return true; // all Step 2 disabled
+	    }
+	  }
+
+	  if (step === 3) {
+	    if (action === "Reschedule") {
+	      return !(field === "dateOfInspection" || field === "timeOfInspection");
+	    }
+	    if (action === "Reassign") {
+	      return field !== "nameOfRepresentative";
+	    }
+	    if (action === "Update") {
+	      return !(field === "enclosures" || field === "description");
+	    }
+	  }
+
+	  return false;
+	};
 
 	const [step, setStep] = useState(1);
 	const [formState, setFormState] = useState({
@@ -820,7 +859,7 @@ const CreateRfi = () => {
 		<div className="dashboard create-rfi">
 			<HeaderRight />
 			<div className="right">
-				<div className="dashboard-main">
+				<div className="dashboard-main no-overflow">
 					<h2 className="text-xl font-bold mb-4 page-heading">
 						{mode === 'edit' ? 'Edit RFI Details' : 'Add RFI Details'}
 					</h2>
@@ -1168,6 +1207,7 @@ const CreateRfi = () => {
 											name="action"
 											value={formState.action}
 											onChange={handleChange}
+											isDisabled={getDisabledStatus(2, "action")}
 											className="form-control"
 										>
 											<option value="">-- Select Action --</option>
@@ -1199,6 +1239,7 @@ const CreateRfi = () => {
 										options={typeOfRfiOptions}
 										value={formState.typeOfRFI ? { value: formState.typeOfRFI, label: formState.typeOfRFI } : null}
 										onChange={(selected) => setFormState({ ...formState, typeOfRFI: selected?.value || '' })}
+										isDisabled={getDisabledStatus(2, "typeOfRfi")}
 									/>
 								</div>
 
@@ -1226,6 +1267,7 @@ const CreateRfi = () => {
 										}
 										placeholder="Select Representative..."
 										isClearable
+										isDisabled={getDisabledStatus(2, "nameOfRepresentative")} 
 									/>
 
 								</div>
@@ -1237,6 +1279,7 @@ const CreateRfi = () => {
 										name="dateOfSubmission"
 										value={formState.dateOfSubmission}
 										onChange={handleChange}
+										disabled={getDisabledStatus(2, "dateOfSubmission")}
 										min={getTodayISO()}
 										readOnly
 									/>
@@ -1250,6 +1293,7 @@ const CreateRfi = () => {
 										name="timeOfInspection"
 										value={formState.timeOfInspection}
 										onChange={handleChange}
+										disabled={getDisabledStatus(2, "timeOfInspection")}
 										placeholder="Enter value"
 										style={{
 											borderColor: errors.reschedule ? "red" : "#ccc"
@@ -1265,6 +1309,7 @@ const CreateRfi = () => {
 										name="dateOfInspection"
 										value={formState.dateOfInspection}
 										onChange={handleChange}
+										disabled={getDisabledStatus(2, "dateOfInspection")}
 										min={getMinInspectionDate()}
 										style={{
 											borderColor: errors.reschedule ? "red" : "#ccc"
@@ -1308,6 +1353,7 @@ const CreateRfi = () => {
 												enclosures: selectedOptions.map(opt => opt.value) || [] // ✅ Store only string values
 											})
 										}
+										isDisabled={getDisabledStatus(3, "enclosures")}
 									/>
 
 
@@ -1365,6 +1411,7 @@ const CreateRfi = () => {
 										name="description"
 										value={formState.description}
 										onChange={handleChange}
+										disabled={getDisabledStatus(3, "description")}
 										className="w-full p-2 border rounded"
 										rows={4}
 										placeholder="Enter Description"
