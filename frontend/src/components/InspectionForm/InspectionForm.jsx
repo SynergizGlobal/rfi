@@ -643,7 +643,7 @@ export default function InspectionForm() {
 
 			setInspectionStatusMode("SUBMITTED");
 			localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
-			navigate("/inspection"); 
+			navigate("/inspection");
 
 		} catch (err) {
 			console.error("Submission failed:", err);
@@ -660,6 +660,7 @@ export default function InspectionForm() {
 			setInspectionStatusMode("DRAFT");
 		}
 	}, [id]);
+	
 	useEffect(() => {
 		if (!rfiData?.id) return;
 
@@ -673,17 +674,25 @@ export default function InspectionForm() {
 				const data = await res.json();
 				if (data.length > 0) {
 					const latestInspection = data[data.length - 1];
-					//	setInspectionId(latestInspection.inspectionId);
+
 					setLocationText(latestInspection.location || "");
 					setChainage(latestInspection.chainage || "");
-					setMeasurements([{
-						type: latestInspection.measurementType || "",
-						L: latestInspection.length || "",
-						B: latestInspection.breadth || "",
-						H: latestInspection.height || "",
-						No: latestInspection.noOfItems || "",
-						total: latestInspection.totalQty || ""
-					}]);
+
+					// ✅ measurements now comes from `latestInspection.measurements`
+					if (latestInspection.measurements) {
+						const m = latestInspection.measurements;
+						setMeasurements([{
+							type: m.measurementType || "",
+							L: m.l || "",
+							B: m.b || "",
+							H: m.h || "",
+							No: m.No || "",
+							total: m.totalQty || ""
+						}]);
+					} else {
+						setMeasurements([]);
+					}
+
 					setSelfieImage(latestInspection.selfiePath || null);
 					setGalleryImages(
 						latestInspection.siteImage
@@ -702,6 +711,7 @@ export default function InspectionForm() {
 
 		fetchInspections();
 	}, [rfiData?.id]);
+
 	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
 
 	const syncOfflineInspections = async () => {

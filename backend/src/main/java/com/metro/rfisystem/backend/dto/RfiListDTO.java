@@ -17,9 +17,10 @@ public interface RfiListDTO {
     String getImgClient();
     String getImgContractor();
     String getNameOfRepresentative();
+    Boolean getRepresentativeReportingToContractor();
     String getMeasurementType();
     Double getTotalQty();
-    Boolean getRepresentativeReportingToContractor();
+    
 
 }
 

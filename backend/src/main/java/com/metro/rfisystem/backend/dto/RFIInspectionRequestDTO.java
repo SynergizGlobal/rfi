@@ -36,6 +36,9 @@ public class RFIInspectionRequestDTO {
     private String engineerRemarks;
     private Object workStatus;
     private String uploadedBy;
+    
+    private MeasurementDTO measurements;
+
 
 	
    

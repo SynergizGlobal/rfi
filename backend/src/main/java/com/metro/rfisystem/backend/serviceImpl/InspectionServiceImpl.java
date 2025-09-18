@@ -22,6 +22,7 @@ import com.itextpdf.text.Element;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
+import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
@@ -398,31 +399,35 @@ public class InspectionServiceImpl implements InspectionService {
                 .toList();
     }
 
-    private RFIInspectionRequestDTO convertToFullDTO(RFIInspectionDetails inspection) {
-        RFI rfi = inspection.getRfi();
+	private RFIInspectionRequestDTO convertToFullDTO(RFIInspectionDetails inspection) {
+	    RFIInspectionRequestDTO dto = new RFIInspectionRequestDTO();
+	    dto.setRfiId(inspection.getRfi().getId());
+	    dto.setInspectionId(inspection.getId());
+	    dto.setLocation(inspection.getLocation());
+	    dto.setSiteImage(inspection.getSiteImage());
+	    dto.setChainage(inspection.getChainage());
+	    dto.setInspectionStatus(inspection.getInspectionStatus());
+	    dto.setTestInsiteLab(inspection.getTestInsiteLab());
+	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
+	    dto.setUploadedBy(inspection.getUploadedBy());
 
-        return RFIInspectionRequestDTO.builder()
-                .inspectionId(inspection.getId())
-                .rfiId(rfi.getId())
-                .location(inspection.getLocation())
-                .chainage(inspection.getChainage())
-                .selfiePath(inspection.getSelfiePath())
-                .siteImage(inspection.getSiteImage())
-                .testSiteDocuments(inspection.getTestSiteDocuments())
-                .testInsiteLab(inspection.getTestInsiteLab())
-                .measurementType(inspection.getMeasurementType())
-                .inspectionStatus(inspection.getInspectionStatus())
-                .length(inspection.getLength())
-                .breadth(inspection.getBreadth())
-                .height(inspection.getHeight())
-                .noOfItems(inspection.getNoOfItems())
-                .totalQty(inspection.getTotalQty())
-                .engineerRemarks(inspection.getEngineerRemarks())
-               
-                .build();
-    }
+	    // fetch measurements
+	    measurementsRepository.findByRfiId(inspection.getRfi().getId())
+	        .ifPresent(m -> {
+	            MeasurementDTO mDto = new MeasurementDTO(
+	                    m.getMeasurementType(),
+	                    m.getLength(),
+	                    m.getBreadth(),
+	                    m.getHeight(),
+	                    m.getNoOfItems(),
+	                    m.getTotalQty()
+	            );
+	            dto.setMeasurements(mDto);
+	        });
 
-	
+	    return dto;
+	}
+
 	
 	
 	
