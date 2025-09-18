@@ -22,6 +22,7 @@ import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
+import com.metro.rfisystem.backend.dto.TaskCodeRequestDto;
 import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.pmis.User;
@@ -71,19 +72,30 @@ public class RFIServiceImpl implements RFIService {
 		String contractShortName = dto.getContract();
 
 		String contractId = dto.getContractId();
-
+		
+		String rfiId;
 		if (contractId == null) {
 			throw new RuntimeException("No contract ID found for short name: " + contractShortName);
 		}
 
 		long totalCount = rfiRepository.count() + 1;
 		String rfiNumber = String.format("RFI%04d", totalCount);
-		String date = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"));
 		String revision = "R0";
-
-		String rfiId = String.format("%s/%s/%s/%s/%s/%s", contractId, userName, date, dto.getActivity(), rfiNumber,
-				revision);
-
+		
+		
+		TaskCodeRequestDto taskReqDto = new TaskCodeRequestDto();
+		taskReqDto.setContractId(dto.getContractId());
+		taskReqDto.setStructureType(dto.getStructureType());
+		taskReqDto.setStructure(dto.getStructure());
+		taskReqDto.setComponent(dto.getComponent());
+		taskReqDto.setElement(dto.getElement());
+		taskReqDto.setActivityName(dto.getActivity());
+		Optional<String> taskCode = p6ActivityRepository.getTaskCodeforSelectedDetails(taskReqDto);
+		if (taskCode.isPresent()) {
+		    rfiId = String.format("%s_%s_%s", taskCode.get(), rfiNumber, revision);
+		} else {
+		    rfiId = String.format("%s_%s_%s_%s",contractId,dto.getActivity(), rfiNumber, revision);
+		}
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
 		rfi.setContract(dto.getContract());
@@ -309,11 +321,11 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	private String incrementRevision(String rfiId) {
-		if (rfiId == null || !rfiId.contains("/R")) {
+		if (rfiId == null || !rfiId.contains("_R")) {
 			return rfiId;
 		}
 
-		String[] parts = rfiId.split("/");
+		String[] parts = rfiId.split("_");
 		String lastPart = parts[parts.length - 1];
 
 		if (lastPart.startsWith("R")) {
@@ -327,7 +339,7 @@ public class RFIServiceImpl implements RFIService {
 			parts[parts.length - 1] = "R1";
 		}
 
-		return String.join("/", parts);
+		return String.join("_", parts);
 	}
 
 	@Override
@@ -405,5 +417,7 @@ public class RFIServiceImpl implements RFIService {
 			throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
 		}
 	}
+
+
 
 }

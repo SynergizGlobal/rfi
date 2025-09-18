@@ -1,12 +1,14 @@
 package com.metro.rfisystem.backend.repository.pmis;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.metro.rfisystem.backend.dto.ExecutiveDTO;
+import com.metro.rfisystem.backend.dto.TaskCodeRequestDto;
 import com.metro.rfisystem.backend.model.pmis.P6Activity;
 
 public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer> {
@@ -28,21 +30,20 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			@Param("contractId") String contractId, @Param("structure") String structure);
 
 	@Query(value = """
-									   	SELECT DISTINCT
-			    component_id AS strip_chart_component_id_name
-			FROM p6_activities a
-			LEFT JOIN structure s ON s.structure_id = a.structure_id_fk
-			WHERE component_id IS NOT NULL
-			  AND (component_details != 'OBC' OR component_details IS NULL)
-			  AND component_id <> ''
-			  AND a.contract_id_fk = :contractId
-			  AND s.structure_type_fk = :structureType
-			  AND s.structure = :structure
-			  AND component = :component
-									    """, nativeQuery = true)
-	List<String> findElementByStructureTypeAndStructureAndComponent(@Param("contractId") String contractId,
-			@Param("structureType") String structureType, @Param("structure") String structure,
-			@Param("component") String component);
+						   	SELECT DISTINCT
+    component_id AS strip_chart_component_id_name
+FROM p6_activities a
+LEFT JOIN structure s ON s.structure_id = a.structure_id_fk
+WHERE component_id IS NOT NULL
+  AND (component_details != 'OBC' OR component_details IS NULL)
+  AND component_id <> ''
+  AND a.contract_id_fk = :contractId
+  AND s.structure_type_fk = :structureType
+  AND s.structure = :structure
+  AND component = :component
+						    """, nativeQuery = true)
+	List<String> findElementByStructureTypeAndStructureAndComponent(@Param("contractId") String contractId,@Param("structureType") String structureType,
+			@Param("structure") String structure, @Param("component") String component);
 
 	@Query(value = """
 						   SELECT
@@ -62,7 +63,6 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 	List<String> findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(
 			@Param("structureType") String structureType, @Param("structure") String structure,
 			@Param("component") String component, @Param("component_id") String component_id);
-
 
 	@Query(value = """
 			SELECT
@@ -144,5 +144,18 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			    END ASC;
 						""", nativeQuery = true)
 	List<ExecutiveDTO> getExcecutives(String structureType, String structure);
+	
+	@Query(value = "SELECT TOP 1 task_code FROM activities_view " +
+	        "WHERE contract_id = :#{#dto.contractId} " +
+	        "AND structure_type = :#{#dto.structureType} " +
+	        "AND structure = :#{#dto.structure} " +
+	        "AND component = :#{#dto.component} " +
+	        "AND component_id = :#{#dto.element} " +
+	        "AND activity_name = :#{#dto.activityName} " +
+	        "ORDER BY last_updated_date DESC",
+	        nativeQuery = true)
+	Optional<String> getTaskCodeforSelectedDetails(@Param("dto") TaskCodeRequestDto dto);
+
+
 
 }
