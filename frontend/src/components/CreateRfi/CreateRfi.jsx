@@ -854,6 +854,12 @@ const CreateRfi = () => {
 		  }
 		};
 
+		// Utility function to add days to a date
+		const addDays = (date, days) => {
+		  const newDate = new Date(date);
+		  newDate.setDate(newDate.getDate() + days);
+		  return newDate.toISOString().split("T")[0]; // return in yyyy-mm-dd
+		};
 
 	return (
 		<div className="dashboard create-rfi">
@@ -1304,16 +1310,29 @@ const CreateRfi = () => {
 								<div className="form-fields flex-1">
 									<label htmlFor="dateOfInspection" className="block mb-1">Date of Inspection <span class="red">*</span>:</label>
 									<input
-										type="date"
-										id="dateOfInspection"
-										name="dateOfInspection"
-										value={formState.dateOfInspection}
-										onChange={handleChange}
-										disabled={getDisabledStatus(2, "dateOfInspection")}
-										min={getMinInspectionDate()}
-										style={{
-											borderColor: errors.reschedule ? "red" : "#ccc"
-										}}
+									  type="date"
+									  id="dateOfInspection"
+									  name="dateOfInspection"
+									  value={formState.dateOfInspection}
+									  onChange={handleChange}
+									  disabled={getDisabledStatus(2, "dateOfInspection")}
+									  min={
+									    formState.typeOfRFI === "SPOT RFI"
+									      ? mode === "create"
+									        ? formState.dateOfSubmission || getTodayISO()
+									        : getTodayISO()   // in edit, reschedule from today
+									      : getMinInspectionDate()
+									  }
+									  max={
+									    formState.typeOfRFI === "SPOT RFI"
+									      ? mode === "create"
+									        ? addDays(formState.dateOfSubmission || getTodayISO(), 2)
+									        : addDays(new Date(), 2)   // in edit, allow 2 days from today
+									      : undefined
+									  }
+									  style={{
+									    borderColor: errors.reschedule ? "red" : "#ccc"
+									  }}
 									/>
 								</div>
 
