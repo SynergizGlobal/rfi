@@ -587,6 +587,27 @@ export default function InspectionForm() {
 		}
 
 		if (isSubmitting) return;
+
+		if (!isEngineer) {
+			const hasNo = Object.values(enclosureStates).some(enc =>
+				enc.checklist?.some(row => row.contractorStatus === "NO")
+			);
+			if (hasNo) {
+				alert("Submission blocked: Checklist contains 'NO'. Save as draft instead.");
+				return;
+			}
+		}
+		if (isEngineer) {
+			const conflict = Object.values(enclosureStates).some(enc =>
+				enc.checklist?.some(row =>
+					row.contractorStatus === "YES" && row.engineerStatus === "NO"
+				)
+			);
+			if (conflict) {
+				setTestInLab("Rejected");
+				alert("⚠️ Contractor marked YES but Engineer marked NO → Inspection auto-rejected.");
+			}
+		}
 		setIsSubmitting(true);
 
 		const formData = new FormData();
@@ -660,7 +681,7 @@ export default function InspectionForm() {
 			setInspectionStatusMode("DRAFT");
 		}
 	}, [id]);
-	
+
 	useEffect(() => {
 		if (!rfiData?.id) return;
 
@@ -686,7 +707,7 @@ export default function InspectionForm() {
 							L: m.l || "",
 							B: m.b || "",
 							H: m.h || "",
-							No: m.No || "",
+							No: m.no || "",
 							total: m.totalQty || ""
 						}]);
 					} else {
@@ -1029,25 +1050,23 @@ export default function InspectionForm() {
 												<>
 													<label>Inspection Status</label>
 													<select
-														value={
-															testInLab !== null && testInLab !== undefined
-																? testInLab.toString()
-																: rfiData?.inspectionDetails?.find((d) => d.uploadedBy === "Engg")
-																	?.testInsiteLab || ""
-														}
+														value={testInLab || ""}
 														onChange={(e) => {
 															const value = e.target.value;
-															if (value === "Accepted") {
-																setTestInLab("Accepted");
-																setEngineerRemarks(""); // clear remarks
-															} else if (value === "Rejected") {
+															const conflict = Object.values(enclosureStates).some(enc =>
+																enc.checklist?.some(row =>
+																	row.contractorStatus === "YES" && row.engineerStatus === "NO"
+																)
+															);
+															if (conflict) {
 																setTestInLab("Rejected");
-															} else {
-																setTestInLab(null);
-																setEngineerRemarks("");
+																alert("Checklist mismatch (Contractor=YES, Engineer=NO) → Inspection auto-rejected.");
+																return;
 															}
+															setTestInLab(value);
 														}}
-														disabled={getDisabled()}													>
+														disabled={getDisabled()}
+													>
 														<option value="">Select</option>
 														<option value="Accepted">Accepted</option>
 														<option value="Rejected">Rejected</option>
@@ -1244,6 +1263,8 @@ export default function InspectionForm() {
 								}
 								onClose={() => setChecklistPopup(null)}
 								statusMode={inspectionStatusMode}   // ✅ NEW
+								  engineerSubmitted={engineerSubmitted}   // 🔑 pass here
+
 
 							/>
 						)}
@@ -1283,7 +1304,7 @@ export default function InspectionForm() {
 }
 
 // Updated ChecklistPopup component with autofill support
-function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode }) {
+function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode,engineerSubmitted  }) {
 	const [checklistData, setChecklistData] = useState([]);
 	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
 	const location = useLocation();
@@ -1401,7 +1422,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`engineerStatus-${row.id}`}
 							checked={row.engineerStatus === 'YES'}
 							onChange={() => handleChange(row.id, 'engineerStatus', 'YES')}
-							disabled={viewMode || deptFK !== 'engg'}
+							disabled={!isEngineer || engineerSubmitted}
 						/> Yes
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1410,7 +1431,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`engineerStatus-${row.id}`}
 							checked={row.engineerStatus === 'NO'}
 							onChange={() => handleChange(row.id, 'engineerStatus', 'NO')}
-							disabled={viewMode || deptFK !== 'engg'}
+							disabled={!isEngineer || engineerSubmitted}
 						/> No
 					</label>
 					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1419,7 +1440,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 							name={`engineerStatus-${row.id}`}
 							checked={row.engineerStatus === 'NA'}
 							onChange={() => handleChange(row.id, 'engineerStatus', 'NA')}
-							disabled={viewMode || deptFK !== 'engg'}
+							disabled={!isEngineer || engineerSubmitted}
 						/> N/A
 					</label>
 				</div>
@@ -1444,7 +1465,7 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 				<input
 					value={row.aeRemark}
 					onChange={e => handleChange(row.id, 'aeRemark', e.target.value)}
-					disabled={viewMode || deptFK !== 'engg'}
+					disabled={!isEngineer || engineerSubmitted}
 					style={{ width: '100%', padding: '4px' }}
 				/>
 			),
