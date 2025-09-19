@@ -106,51 +106,51 @@ const Dashboard = () => {
 								</div>
 
 								{/* Card 2: Inspections */}
-								<div
-									className="cards"
-									onClick={() => navigate("/Inspection", { state: { filterStatus: ["INSPECTED_BY_AE"] } })}
-									style={{ cursor: 'pointer' }}
-								>
-									<div className="card-inner">
-										<div className="card-top">
-											<div className="card-count">
-												<span className="card-number">{statusCounts.INSPECTED_BY_AE}</span>
-											</div>
-											<div className="cards-icon">
-												<img src="/images/verify.png" alt="tick symbol" width="25" height="25" />
-											</div>
+							<div
+								className="cards"
+								onClick={() => navigate("/Inspection", { state: { filterStatus: ["INSPECTED_BY_CON"] } })}
+								style={{ cursor: 'pointer' }}
+							>
+								<div className="card-inner">
+									<div className="card-top">
+										<div className="card-count">
+											<span className="card-number">{statusCounts.INSPECTED_BY_CON}</span>
 										</div>
-										<div className="card-bottom">
-											<div className="card-title">
-												<span className="card-text">Inspections</span>
-											</div>
+										<div className="cards-icon">
+											<img src="/images/verify.png" alt="tick symbol" width="25" height="25" />
+										</div>
+									</div>
+									<div className="card-bottom">
+										<div className="card-title">
+											<span className="card-text">Inspections</span>
 										</div>
 									</div>
 								</div>
+							</div>
 
 
-								{/* Card 3: Pending */}
-								<div
-									className="cards"
-									onClick={() => navigate("/Inspection", { state: { filterStatus: ["CREATED", "UPDATED", "REASSIGNED"] } })}
-									style={{ cursor: 'pointer' }}
-								>
-									<div className="card-inner">
-										<div className="card-top">
-											<div className="card-count">
-												<span className="card-number">{statusCounts.PENDING}</span>
-											</div>
-											<div className="cards-icon">
-												<img src="/images/caution.png" alt="tick symbol" width="25" height="25" />
-											</div>
+							{/* Card 3: Pending */}
+							<div
+								className="cards"
+								onClick={() => navigate("/Inspection", { state: { filterStatus: ["CREATED", "UPDATED", "REASSIGNED"] } })}
+								style={{ cursor: 'pointer' }}
+							>
+								<div className="card-inner">
+									<div className="card-top">
+										<div className="card-count">
+											<span className="card-number">{statusCounts.PENDING}</span>
 										</div>
-										<div className="card-bottom">
-											<div className="card-title">
-												<span className="card-text">Pending</span>
-											</div>
+										<div className="cards-icon">
+											<img src="/images/caution.png" alt="tick symbol" width="25" height="25" />
+										</div>
+									</div>
+									<div className="card-bottom">
+										<div className="card-title">
+											<span className="card-text">Pending</span>
 										</div>
 									</div>
 								</div>
+							</div>
 
 								{/* Card 4: Rescheduled */}
 								<div
