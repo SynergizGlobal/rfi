@@ -854,12 +854,12 @@ const CreateRfi = () => {
 		  }
 		};
 
-		// Utility function to add days to a date
 		const addDays = (date, days) => {
-		  const newDate = new Date(date);
-		  newDate.setDate(newDate.getDate() + days);
-		  return newDate.toISOString().split("T")[0]; // return in yyyy-mm-dd
+		  const result = new Date(date);
+		  result.setDate(result.getDate() + days);
+		  return result.toISOString().split("T")[0];
 		};
+
 
 	return (
 		<div className="dashboard create-rfi">
@@ -1318,22 +1318,14 @@ const CreateRfi = () => {
 									  disabled={getDisabledStatus(2, "dateOfInspection")}
 									  min={
 									    formState.typeOfRFI === "SPOT RFI"
-									      ? mode === "create"
-									        ? formState.dateOfSubmission || getTodayISO()
-									        : getTodayISO()   // in edit, reschedule from today
-									      : getMinInspectionDate()
-									  }
-									  max={
-									    formState.typeOfRFI === "SPOT RFI"
-									      ? mode === "create"
-									        ? addDays(formState.dateOfSubmission || getTodayISO(), 2)
-									        : addDays(new Date(), 2)   // in edit, allow 2 days from today
-									      : undefined
+									      ? getTodayISO() // already defined earlier in your code
+									      : addDays(new Date(formState.dateOfSubmission || getTodayISO()), 2)
 									  }
 									  style={{
 									    borderColor: errors.reschedule ? "red" : "#ccc"
 									  }}
 									/>
+
 								</div>
 
 
