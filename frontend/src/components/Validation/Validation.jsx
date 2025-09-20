@@ -34,6 +34,7 @@ export default function Validation() {
 	};
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [enclosures, setEnclosures] = useState([]);
+		const [Measurement,setMeasurement ] = useState([]);
 
 
 
@@ -147,13 +148,14 @@ export default function Validation() {
 				setSelectedInspection(data.reportDetails);
 				setChecklistItems(data.checklistItems);
 				setEnclosures(data.enclosures);
+				setMeasurement(data.measurementDetails);
 			})
 			.catch((err) => console.error(err));
 	};
 
 	const handleDownload = () => {
 		if (selectedInspection ) {
-			generatePDF([selectedInspection], checklistItems, enclosures);
+			generatePDF([selectedInspection], checklistItems, enclosures,Measurement);
 		} else {
 			alert("⚠️ No data available to generate PDF!");
 		}
@@ -204,7 +206,7 @@ export default function Validation() {
 		return new Blob([mergedPdfBytes], { type: 'application/pdf' });
 	}
 
-	const generatePDF = async (inspectionList, checklistItems, enclosures) => {
+	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 		const safe = (val) => val || '---';
 		const logoUrl = 'https://www.manabadi.com/wp-content/uploads/2016/11/4649MRVC.jpg';
@@ -258,27 +260,42 @@ export default function Validation() {
 				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
 				['Enclosures', inspection.enclosures]
 			];
+			doc.autoTable({
+			  startY: y,
+			  body: fields,
+			  styles: { fontSize: 9 },
+			  theme: "plain",
+			  columnStyles: { 0: { fontStyle: "bold" } }
+			});
+			y = doc.lastAutoTable.finalY || (y + 20);
+			ensureSpace(lineHeight);
 
+			if (measurements && (Array.isArray(measurements) ? measurements.length > 0 : true)) {
+			  const measurementArray = Array.isArray(measurements) ? measurements : [measurements];
 
-			rfiName = inspection.rfiId;
+			  y += 10;
+			  doc.setFont(undefined, "bold").setFontSize(12);
+			  doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
 
-			for (let i = 0; i < fields.length; i += 2) {
-				const left = `${fields[i][0]}: ${safe(fields[i][1])}`;
-				const right = fields[i + 1] ? `${fields[i + 1][0]}: ${safe(fields[i + 1][1])}` : '';
-				const wrappedLeft = doc.splitTextToSize(left, contentWidth / 2 - 5);
-				const wrappedRight = doc.splitTextToSize(right, contentWidth / 2 - 5);
-				const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
-				for (let j = 0; j < maxLines; j++) {
-					const leftText = wrappedLeft[j] || '';
-					const rightText = wrappedRight[j] || '';
-					doc.text(leftText, margin, y);
-					doc.text(rightText, pageWidth / 2 + 5, y);
-					y += lineHeight;
-					if (y > pageHeight - 20) { doc.addPage(); y = margin; }
-				}
+			  doc.autoTable({
+			    startY: y + 5,
+			    head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
+			    body: measurementArray.map((m) => [
+			      safe(m.measurementType),
+			      safe(m.l),
+			      safe(m.b),
+			      safe(m.h),
+			      safe(m.no),
+			      safe(m.totalQty),
+			    ]),
+			    styles: { fontSize: 9 },
+			    headStyles: { fillColor: [0, 102, 153], textColor: 255 },
+			    theme: "grid",
+			  });
+			  y = doc.lastAutoTable.finalY || (y + 20);
+			  ensureSpace(lineHeight);
 			}
-			console.log("Checklist Items: ", checklistItems);
-
+			rfiName = inspection.rfiId;
 			ensureSpace(lineHeight);
 			if (checklistItems && checklistItems.length > 0) {
 				const grouped = checklistItems.reduce((groups, item) => {
@@ -290,7 +307,7 @@ export default function Validation() {
 				for (const [enclosureName, items] of Object.entries(grouped)) {
 					y += 10;
 					doc.setFont(undefined, "bold").setFontSize(12);
-					doc.text(`Checklist - ${enclosureName}`, margin, y);
+					doc.text(`${enclosureName}`, pageWidth / 2, y, { align: "center" });
 					ensureSpace(lineHeight);
 					doc.autoTable({
 						startY: y + 5,
@@ -315,51 +332,76 @@ export default function Validation() {
 
 			y += 15;
 			ensureSpace(lineHeight);
-			doc.setFont(undefined, "bold").setFontSize(11).text("Status:", margin, y);
-			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.validationStatus), margin + 35, y);
+			
+			doc.setFont(undefined, "bold").setFontSize(11).text("Validation Status & Remarks:", margin, y);
 			y += lineHeight;
-			doc.setFont(undefined, "bold").setFontSize(11).text("Remarks:", margin, y);
-			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.remarks), margin + 35, y);
+			doc.setFont(undefined, "bold").setFontSize(11).text("Status:", margin + 10, y);
+			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.validationStatus), margin + 30, y);
+			y += lineHeight;
+			doc.setFont(undefined, "bold").setFontSize(11).text("Remarks:", margin + 10, y);
+			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.remarks), margin + 30, y);
 			y += 15;
-
-
 			ensureSpace(lineHeight);
-			const imageSection = async (label, paths) => {
-				if (!paths || !paths.trim()) return;
-				const files = paths.split(',').map(f => f.trim()).filter(Boolean);
-				if (!files.length) return;
-				doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
-				y += 5;
+			const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
+			    if (!paths || !paths.trim()) return;
+			    const files = paths.split(',').map(f => f.trim()).filter(Boolean);
+			    if (!files.length) return;
 
-				for (const file of files) {
-					const extension = file.split('.').pop().toLowerCase();
-					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+			    const align = options.align || "left";
 
-					if (extension === 'pdf') {
-						const response = await fetch(fileUrl);
-						if (response.ok) {
-							const blob = await response.blob();
-							externalPdfBlobs.push(blob);
-						}
-					} else {
-						const imgData = await toBase64(fileUrl);
-						if (imgData) {
-							if (y + imageHeight > pageHeight - 20) {
-								doc.addPage();
-								y = margin;
-							}
-							doc.addImage(imgData, 'JPEG', margin, y, imageWidth, imageHeight);
-							y += imageHeight + 5;
-						} else {
-							doc.setDrawColor(0);
-							doc.setLineWidth(0.2);
-							doc.rect(margin, y, imageWidth, imageHeight);
-							doc.text('Image not available', margin + 3, y + 20);
-							y += imageHeight + 5;
-						}
-					}
-				}
+			    if (align === "center") {
+			        doc.setFont(undefined, 'bold');
+			        const textWidth = doc.getTextWidth(`${label}:`);
+			        const centerX = (pageWidth - textWidth) / 2;
+			        doc.text(`${label}:`, centerX, yPos);
+			    } else {
+			        doc.setFont(undefined, 'bold').text(`${label}:`, margin, yPos);
+			    }
+			    yPos += 5;
+
+			    for (const file of files) {
+			        const extension = file.split('.').pop().toLowerCase();
+			        const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+
+			        if (extension === 'pdf') {
+			            const response = await fetch(fileUrl);
+			            if (response.ok) {
+			                const blob = await response.blob();
+			                externalPdfBlobs.push(blob);
+			            }
+			        } else {
+			            const imgData = await toBase64(fileUrl);
+			            if (imgData) {
+			                if (yPos + imageHeight > pageHeight - 20) {
+			                    doc.addPage();
+			                    yPos = margin;
+			                }
+
+			                let imgX = margin;
+			                if (align === "center") {
+			                    imgX = (pageWidth - imageWidth) / 2;
+			                }
+
+			                doc.addImage(imgData, 'JPEG', imgX, yPos, imageWidth, imageHeight);
+			                yPos += imageHeight + 5;
+			            } else {
+			                doc.setDrawColor(0);
+			                doc.setLineWidth(0.2);
+
+			                let rectX = margin;
+			                if (align === "center") {
+			                    rectX = (pageWidth - imageWidth) / 2;
+			                }
+
+			                doc.rect(rectX, yPos, imageWidth, imageHeight);
+			                doc.text('Image not available', rectX + 3, yPos + 20);
+			                yPos += imageHeight + 5;
+			            }
+			        }
+			    }
+			    y = yPos;
 			};
+
 			ensureSpace(lineHeight);
 
 			const handlePdfOrImage = async (label, filePaths) => {
@@ -367,10 +409,9 @@ export default function Validation() {
 
 				const files = filePaths.split(',').map(f => f.trim()).filter(Boolean);
 				if (!files.length) return;
-
-				doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
+				ensureSpace(lineHeight);
+			//	doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
 				y += 5;
-				
 
 				for (const file of files) {
 					const extension = file.split('.').pop().toLowerCase();
@@ -389,6 +430,7 @@ export default function Validation() {
 								doc.addPage();
 								y = margin;
 							}
+							ensureSpace(lineHeight);
 							doc.addImage(imgData, "JPEG", margin, y, imageWidth, imageHeight);
 							y += imageHeight + 5;
 						}
@@ -396,18 +438,30 @@ export default function Validation() {
 				}
 			};
 
+			ensureSpace(lineHeight);
+			await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
+			y += 10;
 
-			await imageSection('Inspector Selfie', inspection.selfieClient);
-			await imageSection('Inspector Site Images', inspection.imagesUploadedByClient);
-			await imageSection('Contractor Selfie', inspection.selfieContractor);
-			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor);
+			ensureSpace(lineHeight);
+			await imageSection('Inspector Site Images', inspection.imagesUploadedByClient, margin, y, { align: "center" });
+			y += 15;
 
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
+			y += 10;
+
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
+			y += 15;
+
+			ensureSpace(lineHeight);
 			if (enclosures && enclosures.length > 0) {
 				for (const enc of enclosures) {
 					await handlePdfOrImage(enc.enclosureName, enc.file);
 				}
 			}
-			await handlePdfOrImage('Test Report Uploaded by Contractor', inspection.testSiteDocumentsContractor);
+			ensureSpace(lineHeight);
+			await handlePdfOrImage('Test Report',inspection.testSiteDocumentsContractor);
 
 		}
 
@@ -430,7 +484,13 @@ export default function Validation() {
 				inspection.remarks = remarksList[idx] || '';
 				inspection.status = statusList[idx] || '';
 
-				await generatePDF([inspection], res.data.checklistItems || [], res.data.enclosures || []);
+				await generatePDF(
+				  [inspection],
+				  res.data.checklistItems || [],
+				  res.data.enclosures || [],
+				  res.data.measurementDetails ? [res.data.measurementDetails] : []
+				);
+
 			} else {
 				alert("No inspection details found.");
 			}
@@ -467,7 +527,7 @@ export default function Validation() {
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
-					<h2 className="validation-heading">Validation</h2>
+					<h2 className="validation-heading">RFI VALIDATION</h2>
 
 
 
@@ -478,7 +538,7 @@ export default function Validation() {
 								value={pageSize}
 								onChange={(e) => {
 									setPageSize(Number(e.target.value));
-									setPageIndex(0); // Reset to first page
+									setPageIndex(0); 
 								}}
 							>
 								{[5, 10, 20, 50].map((size) => (
@@ -764,7 +824,38 @@ export default function Validation() {
 									</div>
 
 
-								</div>
+								</div >
+								
+								{Measurement && (<div className='previewTable-section'>
+									<h3> Measurement Details</h3>
+									<div className='measurements-table-prev'>
+										<table>
+											<thead>
+											<tr>
+											<th>Type</th>
+											<th>Length</th>
+											<th>Breadth</th>
+											<th>Height</th>
+											<th>Count</th>
+											<th>Total Quantity</th>
+											</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>{Measurement.measurementType}</td>
+													<td>{Measurement.l}</td>
+													<td>{Measurement.b}</td>
+													<td>{Measurement.h}</td>
+													<td>{Measurement.no	}</td>
+													<td>{Measurement.totalQty}</td>
+												</tr>
+											</tbody>
+
+										</table>
+
+									</div>
+								</div>)
+								}
 
 								{checklistItems && checklistItems.length > 0 ? (
 									Object.entries(
@@ -776,9 +867,9 @@ export default function Validation() {
 											return groups;
 										}, {})
 									).map(([enclosureName, items], idx) => (
-										<div key={idx} className="enclosure-section">
-											<h4>{enclosureName}</h4>
-											<table className="preview-table">
+										<div key={idx} className="previewTable-section">
+											<h3 >{enclosureName}</h3>
+											<table className="measurements-table-prev">
 												<thead>
 													<tr>
 														<th>ID</th>
@@ -810,14 +901,15 @@ export default function Validation() {
 
 
 
-								<h4>Validation Status & Remarks</h4>
+								<div className='previewTable-section'>
+								<h3>Validation Status & Remarks</h3>
 								<p><strong> Status:</strong> {selectedInspection.validationStatus || '---'}</p>
 								<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
 
+								</div>
 								{selectedInspection.selfieClient && (
-									<>
-									<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 									<div className="image-gallery">
+										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 										{selectedInspection.selfieClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -834,14 +926,12 @@ export default function Validation() {
 											);
 										})}
 									</div>
-									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByClient && (
-									<>
-									<h4>Site Images By Inspector</h4>
 									<div className="image-gallery">
+										<h4>Site Images By Inspector</h4>
 										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -858,13 +948,11 @@ export default function Validation() {
 											);
 										})}
 									</div>
-									</>
 								)}
 
 								{selectedInspection.selfieContractor && (
-									<>
-									<h4>Contractor Selfie</h4>
 									<div className="image-gallery">
+										<h4>Contractor Selfie</h4>
 										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -881,14 +969,12 @@ export default function Validation() {
 											);
 										})}
 									</div>
-									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByContractor && (
-									<>
-									<h4>Site Images By Contractor</h4>
 									<div className="image-gallery">
+										<h4>Site Images By Contractor</h4>
 										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -905,65 +991,60 @@ export default function Validation() {
 											);
 										})}
 									</div>
-								</>
 								)}
 
 
 
 								{enclosures && enclosures.length > 0 ? (
-									Object.entries(
-										enclosures.reduce((groups, item) => {
-											if (!groups[item.enclosureName]) {
-												groups[item.enclosureName] = [];
-											}
-											groups[item.enclosureName].push(item.file);
-											return groups;
-										}, {})
-									).map(([enclosureName, files], idx) => (
-										<>
-										<h4>Enclosures Uploaded ({enclosureName})</h4>
-										<div key={idx} className="image-gallery">
-											{files.map((rawPath, i) => {
-												const path = rawPath.trim();
-												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
-												const extension = getExtension(path);
+																	Object.entries(
+																		enclosures.reduce((groups, item) => {
+																			if (!groups[item.enclosureName]) {
+																				groups[item.enclosureName] = [];
+																			}
+																			groups[item.enclosureName].push(item.file);
+																			return groups;
+																		}, {})
+																	).map(([enclosureName, files], idx) => (
+																		<div key={idx} className="image-gallery">
+																			<h4>Enclosures Uploaded ({enclosureName})</h4>
+																			{files.map((rawPath, i) => {
+																				const path = rawPath.trim();
+																				const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+																				const extension = getExtension(path);
 
-												return (
-													<a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
-														{extension === "pdf" ? (
-															<embed
-																src={fileUrl}
-																type="application/pdf"
-																width="100%"
-																height="500px"
-																className="preview-pdf w-100"
-															/>
-														) : (
-															<img
-															src={fileUrl}
-															alt={`Enclosure ${i + 1}`}
-															className="preview-image"
-															style={{width: "100%", height: "100%", objectFit: "contain"}}
-															onError={() => console.error("Image load error:", fileUrl)}
-														/>
-														)}
-													</a>
-												);
-											})}
-										</div>
-									</>
-									))
-								) : (
-									<p>No enclosures uploaded.</p>
-								)}
+																				return (
+																					<a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
+																						{extension === "pdf" ? (
+																							<embed
+																								src={fileUrl}
+																								type="application/pdf"
+																								width="100%"
+																								height="500px"
+																								className="preview-pdf"
+																							/>
+																						) : (
+																							<img
+																								src={fileUrl}
+																								alt={`Enclosure ${i + 1}`}
+																								className="preview-image"
+																								onError={() => console.error("Image load error:", fileUrl)}
+																							/>
+																						)}
+																					</a>
+																				);
+																			})}
+																		</div>
+																	))
+																) : (
+																	<p>No enclosures uploaded.</p>
+																)}
 
 
 
 
 								{selectedInspection.testSiteDocumentsContractor && (
-									<>
-									<h4>Test Report Uploaded By Contractor</h4>
 									<div className="image-gallery">
+										<h4>Test Report Uploaded By Contractor</h4>
 
 										{(() => {
 											const path = selectedInspection.testSiteDocumentsContractor.trim();
@@ -993,7 +1074,6 @@ export default function Validation() {
 											);
 										})()}
 									</div>
-									</>
 								)}
 
 
@@ -1010,4 +1090,4 @@ export default function Validation() {
 			</div>
 		</div>
 	);
-}
+	}

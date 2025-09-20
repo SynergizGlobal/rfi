@@ -17,6 +17,7 @@ import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
 import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RfiDetailsDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
@@ -24,6 +25,7 @@ import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RfiValidation;
 import com.metro.rfisystem.backend.repository.rfi.ChecklistDescriptionRepository;
+import com.metro.rfisystem.backend.repository.rfi.MeasurementsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIEnclosureRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.repository.rfi.RfiValidationRepository;
@@ -41,6 +43,7 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	private final RfiValidationRepository rfiValidationRepository;
 	private final ChecklistDescriptionRepository checklistDescriptionRepository;
 	private final RFIEnclosureRepository enclosureRepository;
+	private final MeasurementsRepository measurementsRepository;
 
 	@Autowired
 	private EmailService emailService;
@@ -105,11 +108,12 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	public RfiDetailsDTO getRfiPreview(Long rfiId) {
 		List<RfiReportDTO> reportList = rfiRepository.getRfiReportDetails(rfiId);
 		RfiReportDTO report = reportList.isEmpty() ? null : reportList.get(0);
+		Optional<MeasurementDTO> measurementDetails = measurementsRepository.findMeasurementByRfiId(rfiId);
 
 		List<ChecklistItemDTO> checklist = checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
 		List<EnclosureDTO> enclosures = enclosureRepository.findEnclosuresByRfiId(rfiId);
 
-		return new RfiDetailsDTO(report, checklist, enclosures);
+		return new RfiDetailsDTO(report, checklist, enclosures,measurementDetails);
 	}
 
 	@Override

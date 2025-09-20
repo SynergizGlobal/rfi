@@ -74,7 +74,7 @@ const RfiLog = () => {
 					contractor: item.createdBy,
 					submissionDate: item.dateOfSubmission || '—',
 					clientPerson: item.assignedPersonClient || '—',
-					contractId: item.rfi_Id.split('/')[0],
+					contractId: item.contractId,
 
 				}));
 				setData(formatted);

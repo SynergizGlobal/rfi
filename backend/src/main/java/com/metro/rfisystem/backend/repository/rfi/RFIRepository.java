@@ -32,6 +32,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.activity AS activity,
 			    r.created_by AS createdBy,
 			    r.assigned_person_client AS assignedPersonClient,
+			    r.contract_id as contractId,
 			    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
 			    ico.inspection_status AS inspectionStatus,
 			    r.status AS status,

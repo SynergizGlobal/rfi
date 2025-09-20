@@ -140,4 +140,57 @@
   margin: 0 auto;
 }
 
+.previewTable-section {
+  margin-top: 20px;
+  padding: 0; 
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  overflow-x: auto;
+}
+
+.previewTable-section h3 {
+  background-color: #808080;  
+  color: #fff;                 
+  margin: 0;                   
+  padding: 10px 15px;
+  border-radius: 8px 8px 0 0;  
+  font-size: 16px;
+}
+
+.previewTable-section table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.previewTable-section th,
+.previewTable-section td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 14px;
+   text-align: center;
+}
+
+.previewTable-section th {
+  background-color: #f5f7fa;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.previewTable-section tr:nth-child(even) {
+  background-color: #fafafa;
+}
+.previewTable-section tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+
+.measurements-table-prev {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
 

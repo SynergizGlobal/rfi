@@ -20,6 +20,7 @@ public interface RfiListDTO {
     Boolean getRepresentativeReportingToContractor();
     String getMeasurementType();
     Double getTotalQty();
+    String getContractId();
     
 
 }
