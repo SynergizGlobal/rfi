@@ -1,6 +1,7 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
 
+import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
 import com.metro.rfisystem.backend.dto.CheckListDescriptionDto;
 import com.metro.rfisystem.backend.dto.CheckListResponse;
 import com.metro.rfisystem.backend.dto.ChecklistDTO;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -117,13 +119,13 @@ public class ChecklistDescriptionServiceIMPL {
 
     }
     
-    public List<CheckListResponse>getChecklistDesciptionDetails(String encloserName, Long rfiId) {
+    public List<CheckListResponse> getChecklistDesciptionDetails(String encloserName, Long rfiId, String dept) {
         List<ChecklistProjection> allWithConditionalChecklistDescription =
                 descriptionRepository.findAllChecklistDescriptionByName(encloserName);
 
-
-        List<Long> listOfCheckListIds = allWithConditionalChecklistDescription.stream().map(ChecklistProjection::getChecklistId).toList();
-
+        List<Long> listOfCheckListIds = allWithConditionalChecklistDescription.stream()
+                .map(ChecklistProjection::getChecklistId)
+                .toList();
 
         List<ChecklistDescription> allById = descriptionRepository.findAllById(listOfCheckListIds);
 
@@ -133,25 +135,61 @@ public class ChecklistDescriptionServiceIMPL {
             response.setChecklistDescription(check.getChecklistDescription());
             return response;
         }).toList();
+
         List<Long> checkListDescriptionIds = allById.stream().map(ChecklistDescription::getId).toList();
 
-        List<RFIChecklistItem> byChecklistDescription = checklistItemRepository.findByChecklistDescriptionAndRfi(checkListDescriptionIds, rfiId);
+        List<RFIChecklistItem> byChecklistDescription =
+                checklistItemRepository.findByChecklistDescriptionAndRfi(checkListDescriptionIds, rfiId);
 
-        for (CheckListResponse res : list) {
-            RFIChecklistItem matchedItem =
-                    byChecklistDescription.stream().filter(item -> item.getChecklistDescription().getId().equals(res.getChecklistDescId()))
-                            .findFirst().orElse(null);
-            if(matchedItem != null) {
-            	res.setGradeOfConcrete(matchedItem.getGradeOfConcrete());
-                res.setEngineerStatus(matchedItem.getEngineerStatus());
-                res.setContractorStatus(matchedItem.getContractorStatus());
-                res.setContractorRemarks(matchedItem.getContractorRemark());
-                res.setEngineerRemark(matchedItem.getAeRemark());
+        Optional<Integer> enggWorkStatusValue = Optional.empty();
+        InspectionWorkFlowStatus enggWorkStatus = null;
+
+        if (!dept.equalsIgnoreCase("Engg")) {
+            enggWorkStatusValue = checklistItemRepository.getWorkStatusbyRfiIdAndUploadedby(rfiId, "Engg");
+            if (enggWorkStatusValue.isPresent()) {
+                enggWorkStatus = (enggWorkStatusValue.get() == 1)
+                        ? InspectionWorkFlowStatus.SUBMITTED
+                        : InspectionWorkFlowStatus.draft;
             }
         }
 
-        return list;
+        if (dept.equalsIgnoreCase("Engg")) {
+            for (CheckListResponse res : list) {
+                RFIChecklistItem matchedItem =
+                        byChecklistDescription.stream()
+                                .filter(item -> item.getChecklistDescription().getId().equals(res.getChecklistDescId()))
+                                .findFirst()
+                                .orElse(null);
 
+                if (matchedItem != null) {
+                    res.setGradeOfConcrete(matchedItem.getGradeOfConcrete());
+                    res.setEngineerStatus(matchedItem.getEngineerStatus());
+                    res.setContractorStatus(matchedItem.getContractorStatus());
+                    res.setContractorRemarks(matchedItem.getContractorRemark());
+                    res.setEngineerRemark(matchedItem.getAeRemark());
+                }
+            }
+        } else {
+            for (CheckListResponse res : list) {
+                RFIChecklistItem matchedItem =
+                        byChecklistDescription.stream()
+                                .filter(item -> item.getChecklistDescription().getId().equals(res.getChecklistDescId()))
+                                .findFirst()
+                                .orElse(null);
+
+                if (matchedItem != null) {
+                    res.setGradeOfConcrete(matchedItem.getGradeOfConcrete());
+                    res.setContractorStatus(matchedItem.getContractorStatus());
+                    res.setContractorRemarks(matchedItem.getContractorRemark());
+
+                    if (enggWorkStatus == InspectionWorkFlowStatus.SUBMITTED) {
+                        res.setEngineerStatus(matchedItem.getEngineerStatus());
+                        res.setEngineerRemark(matchedItem.getAeRemark());
+                    }
+                }
+            }
+        }
+        return list;
     }
 }
 

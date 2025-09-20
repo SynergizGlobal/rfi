@@ -173,7 +173,7 @@ export default function InspectionForm() {
 			try {
 				const existingResponse = await axios.get(
 					`${API_BASE_URL}api/v1/enclouser/checklist-items?enclosureName=${encodeURIComponent(enclosureName)}&rfiId=${rfiId}`,
-					{ credentials: 'include' }
+					{ withCredentials: true }
 				);
 
 				if (existingResponse.data && existingResponse.data.length > 0) {

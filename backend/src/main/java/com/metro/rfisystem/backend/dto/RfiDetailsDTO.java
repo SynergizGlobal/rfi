@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @NoArgsConstructor
@@ -11,5 +12,6 @@ import java.util.List;
 public class RfiDetailsDTO {
     private RfiReportDTO reportDetails;              
     private List<ChecklistItemDTO> checklistItems;  
-    private List<EnclosureDTO> enclosures;          
+    private List<EnclosureDTO> enclosures;
+    private Optional<MeasurementDTO> measurementDetails;
 }

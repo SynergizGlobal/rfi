@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
 import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIChecklistItem;
@@ -25,6 +26,11 @@ public interface RFIInspectionChecklistRepository extends JpaRepository<RFICheck
 
     @Query("FROM RFIChecklistItem r where r.checklistDescription.id IN (:ids)")
     List<RFIChecklistItem> findByChecklistDescription(@Param("ids") List<Long> ids);
+    
+    
+    @Query(value = "select work_status from rfi_inspection_details "
+    		+ "where rfi_id_fk = :id and uploaded_by = :uploadedBy",nativeQuery = true)
+    public Optional<Integer> getWorkStatusbyRfiIdAndUploadedby(long id,String uploadedBy);
 
 	Optional<RFIChecklistItem> findByRfiAndEnclosureNameAndChecklistDescription(RFI inspection, String enclosureName,
 			ChecklistDescription description);

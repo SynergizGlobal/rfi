@@ -7,6 +7,7 @@ import com.metro.rfisystem.backend.model.rfi.ChecklistDescription;
 import com.metro.rfisystem.backend.serviceImpl.ChecklistDescriptionServiceIMPL;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpSession;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,9 +65,11 @@ public class EncloserMasterController {
     }
 
     @GetMapping("/checklist-items")
-    public List<CheckListResponse> getAllChecklistsDescriptionByEnclosureAndRfi( @RequestParam("enclosureName") String enclosername,  @RequestParam Long rfiId) {
+    public List<CheckListResponse> getAllChecklistsDescriptionByEnclosureAndRfi( @RequestParam("enclosureName") String enclosername,
+    		@RequestParam Long rfiId,HttpSession session) {
+    	String deptFk = (String) session.getAttribute("departmentFk");
 
-        return checklistDescriptionService.getChecklistDesciptionDetails(enclosername,rfiId);
+        return checklistDescriptionService.getChecklistDesciptionDetails(enclosername,rfiId,deptFk);
     }
 
     
