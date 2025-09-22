@@ -199,7 +199,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query(value = "SELECT\r\n" + "  -- RFI base fields\r\n" + "  r.consultant AS consultant,\r\n"
 			+ "  r.contract_short_name AS contract,\r\n" + "  r.created_by AS contractor,\r\n"
 			+ "  r.contract_id AS contractId,\r\n" + "  r.rfi_id AS rfiId,\r\n" + "  r.status AS rfiStatus,\r\n"
-			+ "  DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS dateOfInspection,\r\n" + "  r.location AS location,\r\n"
+			+ "  DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS dateOfInspection,\r\n" + "  ico.location AS location,\r\n"
 			+ "  TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime,\r\n"
 			+ "  TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime,\r\n" + "\r\n"
 			+ "  -- Description\r\n" + "  r.rfi_description AS rfiDescription,\r\n"
