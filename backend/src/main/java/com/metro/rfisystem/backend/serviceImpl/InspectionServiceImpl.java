@@ -332,7 +332,8 @@ public class InspectionServiceImpl implements InspectionService {
 			inspection.setUploadedBy("Engg");
 		} else {
 			inspection.setUploadedBy("CON");
-		}	    inspection.setDateOfInspection(LocalDate.now());
+		}
+		inspection.setDateOfInspection(LocalDate.now());
 	    inspection.setTimeOfInspection(LocalTime.now());
 
 	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
@@ -364,11 +365,14 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
 
-	    if ("Engg".equalsIgnoreCase(deptFk)) {
-	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
-	    } else {
-	        rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
-	    }
+		if ("Engg".equalsIgnoreCase(deptFk)) {
+			if (dto.getTestInsiteLab() != null && dto.getTestInsiteLab().toString().equalsIgnoreCase("Rejected")) {
+				rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
+			} else
+				rfi.setStatus(EnumRfiStatus.INSPECTED_BY_AE);
+		} else {
+			rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
+		}
 
 	    inspectionRepository.save(inspection);
 	    measurementsRepository.save(measurements);

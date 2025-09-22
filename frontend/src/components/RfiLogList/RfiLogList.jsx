@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReactDOM from "react-dom";
+
 import axios from 'axios';
 import { useTable, usePagination, useGlobalFilter } from 'react-table';
 import Select from 'react-select';
@@ -80,6 +82,50 @@ export default function RfiLogList() {
 		})),
 		[data]);
 
+		const NotesCell = ({ value }) => {
+		  const [showPopup, setShowPopup] = useState(false);
+
+		  if (!value) return null;
+
+		  const modalContent = (
+		    <div className="popup-modal-rfi-loglist bg-black bg-opacity-50 z-50">
+		      <div className="popup-modal-inner bg-white rounded-xl shadow-lg p-4 max-w-md w-full">
+		        <h2 className="text-lg font-semibold mb-2">Notes</h2>
+		        <p className="text-gray-700 whitespace-pre-wrap ">{value}</p>
+				<div className='d-flex justify-content-end'>
+					<button
+			          onClick={() => setShowPopup(false)}
+			          className="btn btn-white"
+			        >
+			          Close
+			        </button>
+				</div>
+		      </div>
+		    </div>
+		  );
+		  return (
+		    <>
+		      {value.length > 30 ? (
+		        <>
+		          <button
+		            onClick={() => setShowPopup(true)}
+		            className="text-blue-600 underline"
+		          >
+		            View
+		          </button>
+		          {showPopup &&
+		            ReactDOM.createPortal(
+		              modalContent,
+		              document.querySelector(".dashboard")
+		            )}
+		        </>
+		      ) : (
+		        <span>{value}</span>
+		      )}
+		    </>
+		  );
+		};
+
 
 
 	const columns = useMemo(() => [
@@ -100,7 +146,11 @@ export default function RfiLogList() {
 			Header: 'Status',
 			accessor: 'displayStatus',
 		},
-		{ Header: 'Notes', accessor: 'notes' },
+		{
+		  Header: "Notes",
+		  accessor: "notes",
+		  Cell: ({ value }) => <NotesCell value={value} />
+		},
 		{
 			Header: 'View',
 			accessor: 'view',
@@ -141,7 +191,7 @@ export default function RfiLogList() {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="rfi-table-container">
-						<h2 className="section-heading">Request For Inspection Log (Rfi Log)</h2>
+						<h2 className="section-heading">REQUEST FOR INSPECTION LOG-(RFI LOG)</h2>
 
 						<div className="filters">
 							<div className="form-row">

@@ -215,8 +215,8 @@ export default function Validation() {
 		const pageHeight = doc.internal.pageSize.getHeight();
 		const margin = 10;
 		const contentWidth = pageWidth - 2 * margin;
-		const imageWidth = 60;
-		const imageHeight = 40;
+		const imageWidth = 120
+		const imageHeight = 100;
 		const lineHeight = 6;
 
 		let rfiName = null;
@@ -259,7 +259,7 @@ export default function Validation() {
 				['RFI Description', inspection.rfiDescription], ["Contractor's Representative", inspection.contractorRepresentative],
 				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
 				['Enclosures', inspection.enclosures]
-			];
+			].map(([lable,value]) => [lable, value ?? "N/A"]);
 			doc.autoTable({
 			  startY: y,
 			  body: fields,
@@ -407,14 +407,11 @@ export default function Validation() {
 			const handlePdfOrImage = async (label, filePaths) => {
 				if (!filePaths) return;
 
-				const files = filePaths.split(',').map(f => f.trim()).filter(Boolean);
+				const files = filePaths.split(",").map(f => f.trim()).filter(Boolean);
 				if (!files.length) return;
-				ensureSpace(lineHeight);
-			//	doc.setFont(undefined, 'bold').text(`${label}:`, margin, y);
-				y += 5;
 
 				for (const file of files) {
-					const extension = file.split('.').pop().toLowerCase();
+					const extension = file.split(".").pop().toLowerCase();
 					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
 					if (extension === "pdf") {
@@ -426,17 +423,26 @@ export default function Validation() {
 					} else {
 						const imgData = await toBase64(fileUrl);
 						if (imgData) {
-							if (y + imageHeight > pageHeight - 20) {
-								doc.addPage();
-								y = margin;
-							}
-							ensureSpace(lineHeight);
-							doc.addImage(imgData, "JPEG", margin, y, imageWidth, imageHeight);
-							y += imageHeight + 5;
+							doc.addPage();
+
+							const pageWidth = doc.internal.pageSize.getWidth();
+							const pageHeight = doc.internal.pageSize.getHeight();
+
+							doc.setFont("helvetica", "bold");
+							doc.setFontSize(16);
+							doc.text(label, pageWidth / 2, 20, { align: "center" });
+
+							const imgWidth = pageWidth * 0.8;   
+							const imgHeight = pageHeight * 0.6;
+							const x = (pageWidth - imgWidth) / 2;
+							const y = (pageHeight - imgHeight) / 2;
+
+							doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
 						}
 					}
 				}
 			};
+
 
 			ensureSpace(lineHeight);
 			await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
@@ -571,9 +577,9 @@ export default function Validation() {
 						<tbody>
 							{rfiList.length > 0 ? (
 								rfiList
-									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize) // 👈 only take current page
+									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize) 
 									.map((rfi, idx) => {
-										const globalIndex = pageIndex * pageSize + idx; // 👈 actual index in full list
+										const globalIndex = pageIndex * pageSize + idx; 
 										const remarks = remarksList[globalIndex];
 										const status = statusList[globalIndex];
 										const isValidated = submittedList[globalIndex];
@@ -908,8 +914,9 @@ export default function Validation() {
 
 								</div>
 								{selectedInspection.selfieClient && (
+									<>									
+									<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 									<div className="image-gallery">
-										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
 										{selectedInspection.selfieClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -926,12 +933,14 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByClient && (
+									<>
+									<h4>Site Images By Inspector</h4>
 									<div className="image-gallery">
-										<h4>Site Images By Inspector</h4>
 										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -948,11 +957,13 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 								{selectedInspection.selfieContractor && (
+									<>
+									<h4>Contractor Selfie</h4>
 									<div className="image-gallery">
-										<h4>Contractor Selfie</h4>
 										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -969,12 +980,14 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByContractor && (
+									<>
+									<h4>Site Images By Contractor</h4>
 									<div className="image-gallery">
-										<h4>Site Images By Contractor</h4>
 										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
 											const trimmedPath = img.trim();
 											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
@@ -991,60 +1004,64 @@ export default function Validation() {
 											);
 										})}
 									</div>
+									</>
 								)}
 
 
 
 								{enclosures && enclosures.length > 0 ? (
-																	Object.entries(
-																		enclosures.reduce((groups, item) => {
-																			if (!groups[item.enclosureName]) {
-																				groups[item.enclosureName] = [];
-																			}
-																			groups[item.enclosureName].push(item.file);
-																			return groups;
-																		}, {})
-																	).map(([enclosureName, files], idx) => (
-																		<div key={idx} className="image-gallery">
-																			<h4>Enclosures Uploaded ({enclosureName})</h4>
-																			{files.map((rawPath, i) => {
-																				const path = rawPath.trim();
-																				const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
-																				const extension = getExtension(path);
+								  Object.entries(
+								    enclosures.reduce((groups, item) => {
+								      if (!groups[item.enclosureName]) groups[item.enclosureName] = [];
+								      groups[item.enclosureName].push(item.file);
+								      return groups;
+								    }, {})
+								  ).map(([enclosureName, files], idx) => (
+								    <React.Fragment key={idx}>
+								      <h4>Enclosures Uploaded ({enclosureName})</h4>
+								      <div className="image-gallery">
+								        {files.map((rawPath, i) => {
+								          const path = rawPath.trim();
+								          const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+								          const extension = getExtension(path);
 
-																				return (
-																					<a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
-																						{extension === "pdf" ? (
-																							<embed
-																								src={fileUrl}
-																								type="application/pdf"
-																								width="100%"
-																								height="500px"
-																								className="preview-pdf"
-																							/>
-																						) : (
-																							<img
-																								src={fileUrl}
-																								alt={`Enclosure ${i + 1}`}
-																								className="preview-image"
-																								onError={() => console.error("Image load error:", fileUrl)}
-																							/>
-																						)}
-																					</a>
-																				);
-																			})}
-																		</div>
-																	))
-																) : (
-																	<p>No enclosures uploaded.</p>
-																)}
+								          return (
+								            <a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
+								              {extension === "pdf" ? (
+								                <embed
+								                  src={fileUrl}
+								                  type="application/pdf"
+								                  width="100%"
+								                  height="500px"
+								                  className="preview-pdf w-100"
+								                />
+								              ) : (
+								                <img
+								                  src={fileUrl}
+								                  alt={`Enclosure ${i + 1}`}
+								                  className="preview-image"
+												  style={{width: "100%", height: "100%", objectFit: "contain"}}
+								                  onError={() => console.error("Image load error:", fileUrl)}
+								                />
+								              )}
+								            </a>
+								          );
+								        })}
+								      </div>
+								    </React.Fragment>
+								  ))
+								) : (
+								  <p>No enclosures uploaded.</p>
+								)}
+
 
 
 
 
 								{selectedInspection.testSiteDocumentsContractor && (
+									<>
+									<h4>Test Report Uploaded By Contractor</h4>
 									<div className="image-gallery">
-										<h4>Test Report Uploaded By Contractor</h4>
 
 										{(() => {
 											const path = selectedInspection.testSiteDocumentsContractor.trim();
@@ -1060,13 +1077,14 @@ export default function Validation() {
 															type="application/pdf"
 															width="100%"
 															height="500px"
-															className="preview-pdf"
+															className="preview-pdf w-100"
 														/>
 													) : (
 														<img
 															src={fileUrl}
 															alt="Test Report"
 															className="preview-image"
+															style={{width: "100%", height: "100%", objectFit: "contain"}}
 															onError={() => console.error("Image load error:", fileUrl)}
 														/>
 													)}
@@ -1074,6 +1092,7 @@ export default function Validation() {
 											);
 										})()}
 									</div>
+									</>
 								)}
 
 

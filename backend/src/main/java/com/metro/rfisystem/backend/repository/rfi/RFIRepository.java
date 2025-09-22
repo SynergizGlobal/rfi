@@ -221,13 +221,14 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query(value = "SELECT " + "r.id AS id, " + "r.rfi_id AS rfiId, "
 			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "
-			+ "r.description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
+			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
 			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
 			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, "
 			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "r.status AS status, "
-			+ "rv.remarks AS notes, " + "r.project_name AS project, " + "r.work_short_name AS work, "
+			+ "COALESCE(i.ae_remarks, rv.remarks) AS notes\r\n"
+			+ ", " + "r.project_name AS project, " + "r.work_short_name AS work, "
 			+ "r.contract_short_name AS contract, " + "r.name_of_representative AS nameOfRepresentative "
-			+ "FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk "
+			+ "FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'"
 			+ "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " + "GROUP BY r.id "
 			+ "ORDER BY r.created_at DESC", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogItAdmin();
@@ -235,7 +236,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 //For Contractor query using the field "created_by" in the rfi_table.
 	@Query(value = "SELECT " + "r.id AS id, " + "r.rfi_id AS rfiId, "
 			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "
-			+ "r.description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
+			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
 			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
 			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, "
 			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "r.status AS status, "
@@ -252,20 +253,20 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        r.id AS id,
 			        r.rfi_id AS rfiId,
 			        DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission,
-			        r.description AS rfiDescription,
+			        r.rfi_description AS rfiDescription,
 			        r.created_by AS rfiRequestedBy,
 			        r.client_department AS department,
 			        r.assigned_person_client AS person,
 			        DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,
 			        DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,
 			        r.status AS status,
-			        rv.remarks AS notes,
+			        COALESCE(i.ae_remarks, rv.remarks) AS notes,
 			        r.project_name AS project,
 			        r.work_short_name AS work,
 			        r.contract_short_name AS contract,
 			        r.name_of_representative AS nameOfRepresentative
 			    FROM rfi_data r
-			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk
+			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'
 			    LEFT JOIN rfi_validation rv ON rv.rfi_id_fk = r.id
 			    WHERE r.assigned_person_client = :userName
 			    GROUP BY r.id
@@ -275,14 +276,15 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query(value = "SELECT " + "r.id AS id, " + "r.rfi_id AS rfiId, "
 			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "
-			+ "r.description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
+			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
 			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
 			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, "
 			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "r.status AS status, "
-			+ "rv.remarks AS notes, " + "r.project_name AS project, " + "r.work_short_name AS work, "
+			+ "COALESCE(i.ae_remarks, rv.remarks) AS notes\r\n"
+			+ ", " + "r.project_name AS project, " + "r.work_short_name AS work, "
 			+ "r.contract_short_name AS contract, " + "r.name_of_representative AS nameOfRepresentative " + // ✅ ADD
 																											// THIS
-			"FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk "
+			"FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'"
 			+ "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " + "WHERE r.dy_hod_user_id = :userId "
 			+ "GROUP BY r.id " + "ORDER BY r.created_at DESC", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogByDyHod(String userId);
@@ -390,13 +392,13 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,
 			        DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,
 			        r.status AS status,
-			        rv.remarks AS notes,
+			        COALESCE(i.ae_remarks, rv.remarks) AS notes,
 			        r.project_name AS project,
 			        r.work_short_name AS work,
 			        r.contract_short_name AS contract,
 			        r.name_of_representative AS nameOfRepresentative
 			    FROM rfi_data r
-			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk
+			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'
 			    LEFT JOIN rfi_validation rv ON rv.rfi_id_fk = r.id
 			    WHERE LOWER(r.name_of_representative) = LOWER(:userName)
 			    GROUP BY r.id
