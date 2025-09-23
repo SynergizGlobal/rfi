@@ -260,16 +260,11 @@ const Inspection = () => {
 									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
 										<button
 											onClick={() => {
-												console.log("📌 Send for Validation clicked for RFI:", row.original.id);
-												console.log("📌 deptFK:", deptFK);
-
 												setConfirmPopupData({
 													message: "Are you sure you want to send this RFI for validation?",
-													rfiId: row.original.id, // ✅ correct numeric id
+													rfiId: row.original.id, 
 													onConfirm: (id) => {
-														console.log("📌 Confirming send-for-validation for id:", id);
-
-														fetch(`${API_BASE_URL}send-for-validation/${id}`, {
+														fetch(`${API_BASE_URL}validation/send-for-validation/${id}`, {
 															method: "POST",
 															headers: { "Content-Type": "application/json" },
 														})
