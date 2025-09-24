@@ -39,9 +39,9 @@ public class RfiValidateController {
 
 
 
-	@PostMapping(value = "/validate", consumes = { "multipart/form-data" })
+	@PostMapping(value = "/validate")
 	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
-		rfiValidationService.validateRfiWithFile(dto);
+		rfiValidationService.validateRfi(dto);
 		return ResponseEntity.ok("RFI validated with file uploaded mail sent.");
 	}
 	
@@ -85,7 +85,8 @@ public class RfiValidateController {
 
 
 
-	@GetMapping("/getRfiReportDetail/{rfiId}")
+	@GetMapping(value ="/getRfiReportDetail/{rfiId}",
+			produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<RfiDetailsDTO> getRfiPreview(@PathVariable Long rfiId) {
 		RfiDetailsDTO dto = rfiValidationService.getRfiPreview(rfiId);
 	    if (dto.getReportDetails() == null) {

@@ -1,7 +1,6 @@
 package com.metro.rfisystem.backend.repository.rfi;
 
 import java.util.Optional;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,15 +8,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
+import com.metro.rfisystem.backend.dto.RfiDetailsLogDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
-import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.model.rfi.RFI;
-
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public interface RFIRepository extends JpaRepository<RFI, Long> {
@@ -218,6 +215,59 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "\r\n" + "-- Enclosures split by uploaded_by\r\n" + "LEFT JOIN rfi_enclosure re\r\n"
 			+ "  ON re.rfi_id_fk = r.id\r\n" + "WHERE r.id = :id\r\n" + "GROUP BY r.id;", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
+	
+	@Query(value = "SELECT " +
+	        "r.project_name as project, " +
+	        "r.work_short_name as work, " +
+	        "r.contract_short_name AS contract, " +
+	        "r.contract_id AS contractId, " +
+	        "r.structure_type as structureType, " +
+	        "r.structure, " +
+	        "r.component, " +
+	        "r.element, " +
+	        "r.activity, " +
+	        "r.rfi_description AS rfiDescription, " +
+	        "r.action, " +
+	        "r.type_of_rfi as typeOfRfi, " +
+	        "r.name_of_representative AS contractorRepresentative, " +
+	        "r.created_by AS contractor, " +
+	        "r.enclosures AS enclosures, " +
+	        "r.rfi_id AS rfiId, " +
+	        "r.status AS rfiStatus, " +
+	        "r.description AS descriptionByContractor, " +
+	        "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfCreation, " +
+	        "DATE_FORMAT(ico.inspection_date, '%Y-%m-%d') AS conInspDate, " +
+	        "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS proposedDateOfInspection, " +
+	        "DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS actualDateOfInspection, " +
+	        "TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime, " +
+	        "TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime, " +
+	        "r.dy_hod_user_id as dyHOdUserId, " +
+	        "r.assigned_person_client AS clientRepresentative, " +
+	        "r.client_department as clientDepartment, " +
+	        "ico.location AS ConLocation, " +
+	        "ic.location AS ClientLocation, " +
+	        "ico.chainage as Chainage, " +
+	        "v.action AS validationStatus, " +
+	        "v.remarks AS remarks, " +
+	        "v.comment as validationComments, " +
+	        "ic.selfie_path AS selfieClient, " +
+	        "ico.selfie_path AS selfieContractor, " +
+	        "ic.site_image AS imagesUploadedByClient, " +
+	        "ico.site_image AS imagesUploadedByContractor, " +
+	        "ico.inspection_status AS typeOfTest, " +
+	        "ic.test_insite_lab AS testStatus, " +
+	        "ic.ae_remarks as engineerRemarks, " +
+	        "ico.test_site_documents AS testSiteDocumentsContractor " +
+	        "FROM rfi_data r " +
+	        "LEFT JOIN rfi_inspection_details ic ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg' and ic.work_status = 1 " +
+	        "LEFT JOIN rfi_inspection_details ico ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg' and ico.work_status = 1 " +
+	        "LEFT JOIN rfi_validation v ON v.rfi_id_fk = r.id " +
+	        "LEFT JOIN rfi_enclosure re ON re.rfi_id_fk = r.id " +
+	        "WHERE r.id = :id " +
+	        "GROUP BY r.id", 
+	        nativeQuery = true)
+	List<RfiDetailsLogDTO> getRfiReportDetailsRfiLog(@Param("id") long id);
+
 
 	@Query(value = "SELECT " + "r.id AS id, " + "r.rfi_id AS rfiId, "
 			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "

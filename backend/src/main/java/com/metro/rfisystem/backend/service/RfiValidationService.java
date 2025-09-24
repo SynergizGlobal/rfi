@@ -10,7 +10,7 @@ public interface RfiValidationService {
 	List<GetRfiDTO> showValidations(String UserRole, String UserType, String UserId, String Department,
 			String UserName);
 
-	void validateRfiWithFile(RfiValidateDTO dto);
+	void validateRfi(RfiValidateDTO dto);
 
 	String sendRfiForValidation(Long rfiId);
 

@@ -40,7 +40,10 @@ export default function Validation() {
 
 
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}/validation/getRfiValidations`, { withCredentials: true })
+		axios.get(`${API_BASE_URL}/validation/getRfiValidations`, { withCredentials: true,		headers: {
+					            'Content-Type': 'application/json',
+					            'Accept': 'application/json'
+					        } })
 			.then(res => {
 				console.log("GET /getRfiValidations response:", res.data);
 
@@ -114,7 +117,11 @@ export default function Validation() {
 		formData.append("action", action);
 		formData.append("comment", comment);
 
-		axios.post(`${API_BASE_URL}/validation/validate`, formData)
+		axios.post(`${API_BASE_URL}/validation/validate`, formData,{
+		        headers: {
+		            'Accept': 'application/json'
+		        }
+		    })
 			.then(() => {
 				alert('Validation submitted successfully.');
 				setRfiList(prevList => {
@@ -142,7 +149,12 @@ export default function Validation() {
 
 
 	const fetchPreview = (rfiId) => {
-		axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`)
+		axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`,		{
+		        headers: {
+		            'Content-Type': 'application/json',
+		            'Accept': 'application/json'
+		        }
+		    })
 			.then((res) => {
 				const data = res.data;
 				setSelectedInspection(data.reportDetails);
@@ -482,7 +494,12 @@ export default function Validation() {
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
-			const res = await axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`);
+			const res = await axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`,{
+			        headers: {
+			            'Content-Type': 'application/json',
+			            'Accept': 'application/json'
+			        }
+			    });
 
 			if (res.data?.reportDetails) {
 				const inspection = res.data.reportDetails;

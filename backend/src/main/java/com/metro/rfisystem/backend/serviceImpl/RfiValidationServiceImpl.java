@@ -1,18 +1,12 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
 import com.metro.rfisystem.backend.dto.EnclosureDTO;
@@ -36,8 +30,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class RfiValidationServiceImpl implements RfiValidationService {
-	@Value("${file.uploadDsc.path}")
-	private String dscBasePath;
+
 
 	private final RFIRepository rfiRepository;
 	private final RfiValidationRepository rfiValidationRepository;
@@ -61,7 +54,7 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 	@Override
 	@Transactional
-	public void validateRfiWithFile(RfiValidateDTO dto) {
+	public void validateRfi(RfiValidateDTO dto) {
 		Optional<RFI> rfiOpt = rfiRepository.findById(dto.getLong_rfi_id());
 		Optional<RfiValidation> valOpt = rfiValidationRepository.findById(dto.getLong_rfi_validate_id());
 
@@ -79,31 +72,13 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 		validation.setEnumValidation(dto.getAction());
         validation.setComment(dto.getComment());
 
-
-		MultipartFile file = dto.getFile();
-		if (file != null && !file.isEmpty()) {
-			try {
-				String folderPath = dscBasePath + "/UploadDsc";
-				Path uploadDir = Paths.get(folderPath);
-				Files.createDirectories(uploadDir);
-
-				String fileName = file.getOriginalFilename();
-				Path fullFilePath = uploadDir.resolve(fileName);
-				file.transferTo(fullFilePath.toFile());
-
-				validation.setDscFilePath(fullFilePath.toString());
-
-			} catch (IOException e) {
-				throw new RuntimeException("Failed to upload DSC file", e);
-			}
-		}
-
 		rfiValidationRepository.save(validation);
 
 		emailService.sendValidationMail(rfi, validation);
 
 	}
 
+	
 	@Override
 	public RfiDetailsDTO getRfiPreview(Long rfiId) {
 		List<RfiReportDTO> reportList = rfiRepository.getRfiReportDetails(rfiId);

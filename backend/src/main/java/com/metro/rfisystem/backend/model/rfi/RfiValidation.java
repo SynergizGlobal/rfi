@@ -46,8 +46,7 @@ public class RfiValidation {
 	@Column(name = "action")
 	private EnumValidation enumValidation;
 
-	@Column
-	private String DscFilePath;
+	
 	@Column(name = "comment", length = 500)
 	private String comment;
 }
