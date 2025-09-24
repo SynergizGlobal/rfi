@@ -18,7 +18,6 @@ import com.metro.rfisystem.backend.service.ForgotPasswordService;
 
 @RestController
 @RequestMapping("/api/forgot")
-@CrossOrigin(origins = "http://localhost:9090", allowCredentials = "true")
 public class ForgotPasswordController {
 	
 	 @Autowired

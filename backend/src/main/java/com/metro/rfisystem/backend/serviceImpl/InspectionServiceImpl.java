@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
@@ -49,9 +50,57 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Optional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
+import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.dto.RfiStatusProjection;
+import com.metro.rfisystem.backend.model.rfi.RFI;
+import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
+import com.metro.rfisystem.backend.model.rfi.RfiValidation;
+import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
+import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
+import com.metro.rfisystem.backend.service.InspectionService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.pdf.PdfWriter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.io.ByteArrayOutputStream;
+import java.util.Objects;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class InspectionServiceImpl implements InspectionService {
+	
+	private final JdbcTemplate jdbcTemplate;
+
 
 	private final RFIRepository rfiRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
@@ -59,6 +108,8 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Value("${rfi.inspection.images.upload-dir}")
 	private String uploadDir;
+	
+	
 
 	@Override
 	public RfiInspectionDTO getById(Long id) {
@@ -332,8 +383,7 @@ public class InspectionServiceImpl implements InspectionService {
 			inspection.setUploadedBy("Engg");
 		} else {
 			inspection.setUploadedBy("CON");
-		}
-		inspection.setDateOfInspection(LocalDate.now());
+		}	    inspection.setDateOfInspection(LocalDate.now());
 	    inspection.setTimeOfInspection(LocalTime.now());
 
 	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
@@ -365,7 +415,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
 
-		if ("Engg".equalsIgnoreCase(deptFk)) {
+	   		if ("Engg".equalsIgnoreCase(deptFk)) {
 			if (dto.getTestInsiteLab() != null && dto.getTestInsiteLab().toString().equalsIgnoreCase("Rejected")) {
 				rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
 			} else
@@ -538,5 +588,51 @@ public class InspectionServiceImpl implements InspectionService {
 				.contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
 	}
 
+	
+	@Override
+	public boolean SaveTxnId(String txnId, Long rfiId) {
+	    String sql = "UPDATE rfi_data SET txn_id = ? WHERE id = ?";
+	    int rowsUpdated = jdbcTemplate.update(sql, txnId, rfiId);
+	    return rowsUpdated > 0;
+	}
+ 
+ 
+	@Override
+	public RFIInspectionDetails getRFIIdTxnId(String espTxnID) {
+	    System.out.println("Executing query for txn_id: " + espTxnID);
+ 
+	    String sql = "SELECT rfi_id, id, txn_id, created_by " +
+	                 "FROM rfi_data WHERE txn_id = ?";
+ 
+	    try {
+	        return jdbcTemplate.queryForObject(
+	            sql,
+	            new Object[]{espTxnID},
+	            (rs, rowNum) -> {
+	                RFIInspectionDetails details = new RFIInspectionDetails();
+	                details.setId(rs.getLong("id"));
+	                details.setRfi_id(rs.getString("rfi_id"));
+	                details.setTxn_id(rs.getString("txn_id"));
+	                details.setCreated_by(rs.getString("created_by"));
+	                return details;
+	            }
+	        );
+	    } catch (EmptyResultDataAccessException e) {
+	        System.out.println("No RFI record found for txn_id: " + espTxnID);
+	        return null; // return null if not found
+	    }
+	}
+ 
+	@Override
+	public String getLastTxnIdForRfi(Long rfiId) {
+	    String sql = "SELECT txn_id FROM rfi_data WHERE id = ?";
+	    try {
+	        return jdbcTemplate.queryForObject(sql, new Object[]{rfiId}, String.class);
+	    } catch (EmptyResultDataAccessException e) {
+	        return null; // no txnId found
+	    }
+	}
+ 
+ 
 
 }

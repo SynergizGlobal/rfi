@@ -14,9 +14,11 @@ const enclosuresDB = localforage.createInstance({
 
 // ----- INSPECTIONS -----
 export const saveOfflineInspection = async (inspection) => {
-    const id = inspection.inspectionId || Date.now();
+    const id = inspection.rfiId; // ✅ use rfiId as the key
+    if (!id) throw new Error("Missing rfiId in inspection");
     await inspectionsDB.setItem(String(id), inspection);
 };
+
 
 export const getOfflineInspection = async (id) => {
     return await inspectionsDB.getItem(String(id));
@@ -28,8 +30,8 @@ export const getAllOfflineInspections = async () => {
     return inspections;
 };
 
-export const removeOfflineInspection = async (id) => {
-    await inspectionsDB.removeItem(String(id));
+export const removeOfflineInspection = async (rfiId) => {
+    await inspectionsDB.removeItem(String(rfiId));
 };
 
 // ----- ENCLOSURES -----

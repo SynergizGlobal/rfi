@@ -69,6 +69,10 @@ public class RFIInspectionDetails {
     @Column(name="uploaded_by")
     private String uploadedBy;
     
+    private String txn_id;
+    private String created_by;
+    private String rfi_id;
+    
     @Column(name = "measurement_type")
     private String measurementType;
 

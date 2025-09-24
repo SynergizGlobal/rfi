@@ -13,31 +13,41 @@ import java.util.Arrays;
 
 @Configuration
 public class SecurityConfig {
-	
-	 @Value("${REACT_APP_API_FRONTEND_URL}")
-	    private String frontendUrl;
 
+	@Value("${REACT_APP_API_FRONTEND_URL}")
+	private String frontendUrl;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.cors().configurationSource(corsConfigurationSource())
-				.and().csrf().disable().authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-				.headers()
-				.frameOptions().disable();
+		http
+				// enable CORS using your existing bean
+				.cors().configurationSource(corsConfigurationSource()).and()
+				// disable CSRF for simplicity, needed for external POST requests like eSign
+				.csrf().disable()
+				// configure URL authorization
+				.authorizeHttpRequests(auth -> auth
+						// allow eSign callback to be accessed without authentication
+						.requestMatchers("/rfiSystem/signedResponse").permitAll()
+						.requestMatchers("/rfiSystem/engineerSignedResponse").permitAll()
+						// protect your session check endpoint
+						.requestMatchers("/api/auth/session").authenticated()
+						// allow all other requests
+						.anyRequest().permitAll())
+				// allow iframe if needed
+				.headers().frameOptions().disable().and()
+				// form login configuration (or your login method)
+				.formLogin();
 
 		return http.build();
 	}
 
-
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(Arrays.asList(frontendUrl)); 
+		config.setAllowedOrigins(Arrays.asList(frontendUrl, "https://es-staging.cdac.in"));
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(Arrays.asList("*"));
 		config.setAllowCredentials(true);
-		
-		
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);

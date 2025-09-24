@@ -7,6 +7,7 @@ import DataTable from "react-data-table-component"
 import './InspectionForm.css';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
 import { useNavigate } from "react-router-dom";
+import { generateInspectionPdf, mergeWithExternalPdfs, toBase64 } from '../../utils/pdfUtils';
 
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
@@ -482,7 +483,8 @@ export default function InspectionForm() {
 
 			await saveOfflineInspection(offlineData);
 			alert("📌 Images saved offline successfully!");
-			navigate("/inspection");
+			/*			navigate("/inspection");
+			*/
 			return;
 		}
 		const formData = new FormData();
@@ -579,7 +581,6 @@ export default function InspectionForm() {
 
 
 
-
 	const handleSubmitInspection = async () => {
 		if (!validateStep()) {
 			alert("⚠️ Please fill required data before submitting.");
@@ -588,6 +589,7 @@ export default function InspectionForm() {
 
 		if (isSubmitting) return;
 
+		// Contractor rules
 		if (!isEngineer) {
 			const hasNo = Object.values(enclosureStates).some(enc =>
 				enc.checklist?.some(row => row.contractorStatus === "NO")
@@ -597,6 +599,8 @@ export default function InspectionForm() {
 				return;
 			}
 		}
+
+		// Engineer rules
 		if (isEngineer) {
 			const conflict = Object.values(enclosureStates).some(enc =>
 				enc.checklist?.some(row =>
@@ -608,71 +612,226 @@ export default function InspectionForm() {
 				alert("⚠️ Contractor marked YES but Engineer marked NO → Inspection auto-rejected.");
 			}
 		}
+
 		setIsSubmitting(true);
 
-		const formData = new FormData();
-		const inspectionPayload = {
-			inspectionId: inspectionId || null,
-			rfiId: rfiData.id,
-			location: locationText || null,
-			chainage: chainage || null,
-			nameOfRepresentative: contractorRep || null,
-			measurementType: measurements[0]?.type || null,
-			length: parseFloat(measurements[0]?.L) || null,
-			breadth: parseFloat(measurements[0]?.B) || null,
-			height: parseFloat(measurements[0]?.H) || null,
-			noOfItems: parseInt(measurements[0]?.No) || null,
-			totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
-			inspectionStatus: inspectionStatus || null,
-			testInsiteLab: testInLab || null,
-			engineerRemarks: engineerRemarks || null
-		};
-
-		formData.append("data", JSON.stringify(inspectionPayload));
-
-		if (selfieImage) {
-			const selfieFile =
-				selfieImage instanceof File
-					? selfieImage
-					: dataURLtoFile(selfieImage, "selfie.jpg");
-
-			if (selfieFile) formData.append("selfie", selfieFile);
-		}
-		galleryImages.forEach((img, i) => {
-			if (!img) return;
-
-			const imageFile =
-				img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`);
-
-			if (imageFile) formData.append("siteImages", imageFile);
-		});
-
-		if (testReportFile) formData.append("testReport", testReportFile);
-
 		try {
+			// 1️⃣ Submit inspection data to backend
+			const formData = new FormData();
+			const inspectionPayload = {
+				inspectionId: inspectionId || null,
+				rfiId: rfiData.id,
+				location: locationText || null,
+				chainage: chainage || null,
+				nameOfRepresentative: contractorRep || null,
+				measurementType: measurements[0]?.type || null,
+				length: parseFloat(measurements[0]?.L) || null,
+				breadth: parseFloat(measurements[0]?.B) || null,
+				height: parseFloat(measurements[0]?.H) || null,
+				noOfItems: parseInt(measurements[0]?.No) || null,
+				totalQty:
+					measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) ||
+					null,
+				inspectionStatus: inspectionStatus || null,
+				testInsiteLab: testInLab || null,
+				engineerRemarks: engineerRemarks || null,
+			};
+
+			formData.append("data", JSON.stringify(inspectionPayload));
+
+			if (selfieImage) {
+				const selfieFile =
+					selfieImage instanceof File
+						? selfieImage
+						: dataURLtoFile(selfieImage, "selfie.jpg");
+				if (selfieFile) formData.append("selfie", selfieFile);
+			}
+
+			galleryImages.forEach((img, i) => {
+				if (!img) return;
+				const imageFile =
+					img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`);
+				if (imageFile) formData.append("siteImages", imageFile);
+			});
+
+			if (testReportFile) formData.append("testReport", testReportFile);
+
 			const res = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 				method: "POST",
 				body: formData,
-				credentials: "include"
+				credentials: "include",
 			});
 
 			if (!res.ok) throw new Error(await res.text());
 
-			const msg = await res.text();
-			alert(msg || "Inspection submitted successfully!");
-			setIsSubmitting(false);
+			// 2️⃣ Prepare enclosures for PDF
+			const checklistsByEnclosure = enclosuresData.map((e) => {
+				const state = enclosureStates[e.id] || {};
+				return {
+					id: e.id,
+					enclosure: e.enclosure,
+					description: e.rfiDescription,
+					checklist: state.checklist || [],
+				};
+			});
 
+			// 3️⃣ Generate PDF (same for both roles)
+			const doc = await generateInspectionPdf({
+				rfi_Id: rfiData.rfi_Id,
+				project: rfiData.project,
+				contractor: rfiData.createdBy,
+				contractorRep,
+				location: locationText,
+				chainage,
+				submissionDate: new Date().toLocaleDateString(),
+				dateOfInspection,
+				timeOfInspection,
+				rfiDescription: rfiData.rfiDescription,
+				StructureType: rfiData.structureType,
+				Structure: rfiData.structure,
+				Component: rfiData.component,
+				Element: rfiData.element,
+				activity: rfiData.activity,
+				inspectionStatus: (testInLab || "").trim(),
+				enclosures: checklistsByEnclosure,
+				measurements: measurements.map((m) => ({
+					type: m.type,
+					l: m.L,
+					b: m.B,
+					h: m.H,
+					no: m.No,
+					total: m.total,
+				})),
+				engineerRemarks: engineerRemarks || "",
+				contractorRemarks: rfiData.contractorRemarks,
+				images: await Promise.all(
+					galleryImages.map(async (img) =>
+						img instanceof File
+							? await toBase64(URL.createObjectURL(img))
+							: img
+					)
+				),
+			});
+
+			const y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 50;
+			const pdfBlob = doc.output("blob");
+
+			// 4️⃣ Upload PDF to backend
+			const pdfFormData = new FormData();
+			pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+			pdfFormData.append("rfiId", rfiData?.id);
+
+			const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
+				method: "POST",
+				body: pdfFormData,
+				credentials: "include",
+			});
+
+			if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+
+			console.log("✅ PDF uploaded successfully");
+
+			// 5️⃣ eSign (different API for Contractor vs Engineer)
+			if (!isEngineer) {
+				const txnId = generateUniqueTxnId();
+				const signForm = new FormData();
+				signForm.append("pdfBlob", pdfBlob);
+				signForm.append("sc", "Y");
+				signForm.append("txnId", txnId);
+				signForm.append("rfiId", rfiData?.id ?? "");
+				signForm.append("signerName", "Swathi");
+				signForm.append("contractorName", "M V");
+				signForm.append("signY", Math.floor(y));
+
+				const signRes = await fetch(`${API_BASE_URL}rfi/getSignedXmlRequest`, {
+					method: "POST",
+					body: signForm,
+					credentials: "include",
+				});
+				const response = await signRes.json();
+
+				const form = document.createElement("form");
+				form.method = "POST";
+				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.style.display = "none";
+
+				const signedXmlRequest = document.createElement("input");
+				signedXmlRequest.type = "hidden";
+				signedXmlRequest.name = "eSignRequest";
+				signedXmlRequest.value = response.signedXmlRequest;
+				form.appendChild(signedXmlRequest);
+
+				const aspTxnID = document.createElement("input");
+				aspTxnID.type = "hidden";
+				aspTxnID.name = "aspTxnID";
+				aspTxnID.value = txnId;
+				form.appendChild(aspTxnID);
+
+				const contentType = document.createElement("input");
+				contentType.type = "hidden";
+				contentType.name = "Content-Type";
+				contentType.value = "application/xml";
+				form.appendChild(contentType);
+
+				document.body.appendChild(form);
+				form.submit();
+			} else {
+				const engForm = new FormData();
+				engForm.append("sc", "Y");
+				engForm.append("rfiId", rfiData?.id ?? "");
+				engForm.append("signerName", "Pranavi");
+				engForm.append("engineerName", "PVM");
+				engForm.append("signY", Math.floor(y));
+
+				const engRes = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
+					method: "POST",
+					body: engForm,
+					credentials: "include",
+				});
+				const text = await engRes.text(); // always read as text first
+				let response = {};
+				try {
+					response = text ? JSON.parse(text) : {};
+				} catch (err) {
+					console.error("Failed to parse JSON response:", text);
+				}
+				const form = document.createElement("form");
+				form.method = "POST";
+				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.style.display = "none";
+
+				const signedXmlRequest = document.createElement("input");
+				signedXmlRequest.type = "hidden";
+				signedXmlRequest.name = "eSignRequest";
+				signedXmlRequest.value = response.signedXmlRequest;
+				form.appendChild(signedXmlRequest);
+
+				const aspTxnID = document.createElement("input");
+				aspTxnID.type = "hidden";
+				aspTxnID.name = "aspTxnID";
+				aspTxnID.value = response.txnId;
+				form.appendChild(aspTxnID);
+
+				const contentType = document.createElement("input");
+				contentType.type = "hidden";
+				contentType.name = "Content-Type";
+				contentType.value = "application/xml";
+				form.appendChild(contentType);
+
+				document.body.appendChild(form);
+				form.submit();
+			}
+
+			setIsSubmitting(false);
 			setInspectionStatusMode("SUBMITTED");
 			localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
 			navigate("/inspection");
-
 		} catch (err) {
-			console.error("Submission failed:", err);
+			console.error("❌ Submission failed:", err);
 			alert(`Submission failed: ${err.message}`);
-			setIsSubmitting(true);
+			setIsSubmitting(false);
 		}
 	};
-
 
 	useEffect(() => {
 		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
@@ -779,8 +938,8 @@ export default function InspectionForm() {
 				completed[inspection.rfiId] = true;
 				localStorage.setItem("completedOfflineInspections", JSON.stringify(completed));
 
-				await removeOfflineInspection(inspection.inspectionId);
-
+/*				await removeOfflineInspection(inspection.inspectionId);
+*/
 			} catch (err) {
 				console.error(`⚠️ Failed to sync inspection ${inspection.rfiId}:`, err);
 			}
@@ -804,6 +963,8 @@ export default function InspectionForm() {
 					console.error(`❌ Failed to sync enclosure ${enclosure.enclosureName}`);
 					continue;
 				}
+				
+				
 
 				console.log(`📂 Synced enclosure ${enclosure.enclosureName}`);
 			} catch (err) {
@@ -811,8 +972,8 @@ export default function InspectionForm() {
 			}
 		}
 
-		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
-
+/*		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
+*/
 
 	};
 
@@ -825,6 +986,12 @@ export default function InspectionForm() {
 		window.addEventListener("online", syncOfflineInspections);
 		return () => window.removeEventListener("online", syncOfflineInspections);
 	}, []);
+
+	const generateUniqueTxnId = () => {
+		const timestamp = Date.now();
+		const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+		return `${timestamp}${randomSuffix}`;
+	};
 
 	if (!rfiData)
 		return <div>Loading RFI details...</div>;
@@ -876,11 +1043,11 @@ export default function InspectionForm() {
 										/>
 										{errors.location && <p className="error-text">{errors.location}</p>}
 										<label>Date of Inspection:</label>
-										<input type="date" value={dateOfInspection} onChange={e => setDateOfInspection(e.target.value)} disabled={viewMode} />
+										<input type="date" value={dateOfInspection} onChange={e => setDateOfInspection(e.target.value)} readOnly />
 										<label>Time of Inspection:</label>
-										<input type="time" value={timeOfInspection} onChange={e => setTimeOfInspection(e.target.value)} disabled={viewMode} />
+										<input type="time" value={timeOfInspection} onChange={e => setTimeOfInspection(e.target.value)} readOnly />
 										<label>Contractor's Representative:</label>
-										<input type="text" value={contractorRep} onChange={e => setContractorRep(e.target.value)} disabled={viewMode} />
+										<input type="text" value={contractorRep} onChange={e => setContractorRep(e.target.value)} readOnly />
 									</div>
 									<div className="upload-grid">
 										{[0, 1, 2, 3].map(i => (
@@ -1240,7 +1407,16 @@ export default function InspectionForm() {
 										{isSaving ? "Saving..." : "Save Draft"}
 									</button>
 
+									{/*<button
+										className="btn btn-green"
+										onClick={handleSubmitInspection}
+										disabled={getDisabled()}
+									>
+										{isSubmitting ? "Submitting..." : "Submit"}
+									</button>*/}
+
 									<button
+										type="button"
 										className="btn btn-green"
 										onClick={handleSubmitInspection}
 										disabled={getDisabled()}
@@ -1248,6 +1424,191 @@ export default function InspectionForm() {
 										{isSubmitting ? "Submitting..." : "Submit"}
 									</button>
 
+
+									{/*		{deptFK !== "engg" ? (
+										<button
+											type="button"
+											className="btn btn-green"
+
+											onClick={async () => {
+												if (isSubmitting) return;
+												setIsSubmitting(true);
+												// 1. Generate PDF
+												const doc = await generateInspectionPdf({
+													rfiId: rfiData?.id,
+													project: rfiData?.project,
+													contractorRep,
+													location: locationText,
+													chainage,
+													dateOfInspection,
+													timeOfInspection,
+													inspectionStatus,
+												});
+
+												const y = doc.lastAutoTable?.finalY
+													? doc.lastAutoTable.finalY + 20
+													: 50;
+
+												const pdfBlob = doc.output("blob");
+
+												// 2. Send PDF to backend for saving
+												const pdfFormData = new FormData();
+												pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+												pdfFormData.append("rfiId", rfiData?.id);
+
+												try {
+													const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
+														method: "POST",
+														body: pdfFormData,
+														credentials: "include", // ✅ keep consistent
+													});
+
+													if (!uploadRes.ok) {
+														throw new Error("Failed to upload PDF");
+													}
+													console.log("PDF saved on server!");
+
+													// 3. Aadhaar eSign flow
+													const txnId = generateUniqueTxnId();
+													const formData = new FormData();
+													formData.append("pdfBlob", pdfBlob);
+													formData.append("sc", "Y");
+													formData.append("txnId", txnId);
+													formData.append("rfiId", rfiData?.id ?? "");
+
+													formData.append("signerName", "Swathi" || "");
+													formData.append("contractorName", "M V" || "");
+													formData.append("signY", Math.floor(y));
+
+													const res = await fetch(
+														`${API_BASE_URL}rfi/getSignedXmlRequest`,
+														{
+															method: "POST",
+															body: formData,
+															credentials: "include",
+														}
+													);
+													const response = await res.json();
+
+													// 4. Redirect to CDAC eSign form
+													const form = document.createElement("form");
+													form.method = "POST";
+													form.action =
+														"https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+													form.style.display = "none";
+
+													const signedXmlRequest = document.createElement("input");
+													signedXmlRequest.type = "hidden";
+													signedXmlRequest.name = "eSignRequest";
+													signedXmlRequest.value = response.signedXmlRequest;
+													form.appendChild(signedXmlRequest);
+
+													const aspTxnID = document.createElement("input");
+													aspTxnID.type = "hidden";
+													aspTxnID.name = "aspTxnID";
+													aspTxnID.value = txnId;
+													form.appendChild(aspTxnID);
+
+													const contentType = document.createElement("input");
+													contentType.id = "Content-Type";
+													contentType.name = "Content-Type";
+													contentType.type = "hidden";
+													contentType.value = "application/xml";
+													form.appendChild(contentType);
+
+													document.body.appendChild(form);
+
+													console.log("Signed XML Request:", response.signedXmlRequest);
+													console.log("Txn ID:", txnId);
+
+													form.submit();
+												} catch (err) {
+													console.error("Error:", err);
+												}
+											}}
+											disabled={getDisabled()}
+
+										>
+											{isSubmitting ? "Submitting..." : "Submit to Engineer"}
+										</button>
+									) : (
+										<button
+											type="button"
+											className="btn btn-green"
+											onClick={async () => {
+												if (isSubmitting) return;
+												setIsSubmitting(true)
+												try {
+													const doc = await generateInspectionPdf({
+														rfiId: rfiData?.id,
+														project: rfiData?.project,
+														contractorRep,
+														location: locationText,
+														chainage,
+														dateOfInspection,
+														timeOfInspection,
+														inspectionStatus,
+													});
+
+													const y = doc.lastAutoTable?.finalY
+														? doc.lastAutoTable.finalY + 20
+														: 50;
+
+
+													const formData = new FormData();
+													formData.append("sc", "Y");
+													formData.append("rfiId", rfiData?.id ?? "");
+													formData.append("signerName", "Pranavi" || "");
+													formData.append("engineerName", "PVM" || "");
+													formData.append("signY", Math.floor(y));
+
+
+													const res = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
+														method: "POST",
+														body: formData,
+														credentials: "include",
+													});
+
+													const response = await res.json();
+
+													// 3. Redirect to CDAC eSign form
+													const form = document.createElement("form");
+													form.method = "POST";
+													form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+													form.style.display = "none";
+
+													const signedXmlRequest = document.createElement("input");
+													signedXmlRequest.type = "hidden";
+													signedXmlRequest.name = "eSignRequest";
+													signedXmlRequest.value = response.signedXmlRequest;
+													form.appendChild(signedXmlRequest);
+
+													const aspTxnID = document.createElement("input");
+													aspTxnID.type = "hidden";
+													aspTxnID.name = "aspTxnID";
+													aspTxnID.value = response.txnId;
+													form.appendChild(aspTxnID);
+
+													const contentType = document.createElement("input");
+													contentType.id = "Content-Type";
+													contentType.name = "Content-Type";
+													contentType.type = "hidden";
+													contentType.value = "application/xml";
+													form.appendChild(contentType);
+
+													document.body.appendChild(form);
+													form.submit();
+												} catch (err) {
+													console.error("Error:", err);
+												}
+											}}
+											disabled={getDisabled()}
+
+										>
+											{isSubmitting ? "Submitting..." : "Submit"}
+										</button>
+									)}
+*/}
 								</div>
 							</div>
 						)}
@@ -1263,7 +1624,7 @@ export default function InspectionForm() {
 								}
 								onClose={() => setChecklistPopup(null)}
 								statusMode={inspectionStatusMode}   // ✅ NEW
-								  engineerSubmitted={engineerSubmitted}   // 🔑 pass here
+								engineerSubmitted={engineerSubmitted}   // 🔑 pass here
 
 
 							/>
@@ -1304,7 +1665,7 @@ export default function InspectionForm() {
 }
 
 // Updated ChecklistPopup component with autofill support
-function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode,engineerSubmitted  }) {
+function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode, engineerSubmitted }) {
 	const [checklistData, setChecklistData] = useState([]);
 	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
 	const location = useLocation();

@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTable, usePagination, useGlobalFilter } from 'react-table';
 import HeaderRight from '../HeaderRight/HeaderRight';
-import { useNavigate, useLocation  } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Inspection.css';
 import InspectionForm from '../InspectionForm/InspectionForm';
 import DropdownPortal from '../DropdownPortal/DropdownPortal';
 import axios from 'axios';
-import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
+import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures, getOfflineEnclosures } from '../../utils/offlineStorage';
+import { generateOfflineInspectionPdf, mergeWithExternalPdfs } from '../../utils/pdfGenerate';
 
 
 const DropdownMenu = ({ style, children }) => {
@@ -40,42 +41,42 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
-	
+
 	const location = useLocation();
 	const { filterStatus } = location.state || {};
 
 
 
 	useEffect(() => {
-	  fetch(`${API_BASE_URL}rfi/rfi-details`, {
-	    method: "GET",
-	    headers: { "Content-Type": "application/json" },
-	    credentials: "include",
-	  })
-	    .then((res) => {
-	      if (!res.ok) {
-	        throw new Error("Network error");
-	      }
-	      return res.json();
-	    })
-	    .then((data) => {
-	      let filteredData = data;
+		fetch(`${API_BASE_URL}rfi/rfi-details`, {
+			method: "GET",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+		})
+			.then((res) => {
+				if (!res.ok) {
+					throw new Error("Network error");
+				}
+				return res.json();
+			})
+			.then((data) => {
+				let filteredData = data;
 
-	      // ✅ Apply status filter from Created RFI (via Dashboard navigation)
-	      if (filterStatus && filterStatus.length > 0) {
-	        filteredData = data.filter((rfi) =>
-	          filterStatus.includes(rfi.status)
-	        );
-	      }
+				// ✅ Apply status filter from Created RFI (via Dashboard navigation)
+				if (filterStatus && filterStatus.length > 0) {
+					filteredData = data.filter((rfi) =>
+						filterStatus.includes(rfi.status)
+					);
+				}
 
-	      setData(filteredData);
-	      setLoading(false);
-	    })
-	    .catch((err) => {
-	      console.error(err);
-	      setError("Failed to load RFI data");
-	      setLoading(false);
-	    });
+				setData(filteredData);
+				setLoading(false);
+			})
+			.catch((err) => {
+				console.error(err);
+				setError("Failed to load RFI data");
+				setLoading(false);
+			});
 	}, [filterStatus, API_BASE_URL]);
 
 	useEffect(() => {
@@ -97,6 +98,13 @@ const Inspection = () => {
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
+
+
+	const generateUniqueTxnId = () => {
+		const timestamp = Date.now();
+		const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+		return `${timestamp}${randomSuffix}`;
+	};
 
 
 	const handleInspectionComplete = (rfi, status) => {
@@ -149,6 +157,32 @@ const Inspection = () => {
 			setDownloadingId(null);
 		}
 	};
+
+	function dataURLtoFile(dataUrl, filename) {
+		if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
+			console.warn("⚠️ Invalid data URL, skipping:", dataUrl);
+			return null;
+		}
+
+		try {
+			const arr = dataUrl.split(",");
+			const mimeMatch = arr[0].match(/:(.*?);/);
+			const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+			const bstr = atob(arr[1]);
+			let n = bstr.length;
+			const u8arr = new Uint8Array(n);
+
+			while (n--) {
+				u8arr[n] = bstr.charCodeAt(n);
+			}
+
+			return new File([u8arr], filename, { type: mime });
+		} catch (error) {
+			console.error("❌ Failed to convert dataURL to File:", error);
+			return null;
+		}
+	}
+
 
 
 	const columns = useMemo(() => [
@@ -262,7 +296,7 @@ const Inspection = () => {
 											onClick={() => {
 												setConfirmPopupData({
 													message: "Are you sure you want to send this RFI for validation?",
-													rfiId: row.original.id, 
+													rfiId: row.original.id,
 													onConfirm: (id) => {
 														fetch(`${API_BASE_URL}validation/send-for-validation/${id}`, {
 															method: "POST",
@@ -292,7 +326,6 @@ const Inspection = () => {
 										</button>
 									)}
 
-
 								<button
 									onClick={() => {
 										navigate('/InspectionForm', {
@@ -306,14 +339,107 @@ const Inspection = () => {
 								</button>
 								{userRole !== 'engg' && (
 									<button
-										disabled={!completedOfflineInspections[row.original.id]}  // ✅ enable only if offline completed
-										onClick={() => {
-											// call your submit logic
-											console.log("Submitting inspection for", row.original.id);
+										disabled={!completedOfflineInspections[row.original.id]}
+										onClick={async () => {
+											try {
+												const offlineDataArr = await getAllOfflineInspections(row.original.id);
+												const offlineData = offlineDataArr[0]; // ✅ Get the actual object
+
+												console.log("📌 Offline Data object:", offlineData);
+												console.log("📌 Selfie:", offlineData.selfieImage);
+												console.log("📌 Gallery:", offlineData.galleryImages);
+												const enclosures = await getOfflineEnclosures(row.original.id);
+												console.log("📌 Enclosures fetched from DB:", enclosures);
+												const doc = await generateOfflineInspectionPdf({
+													selfieImage: offlineData.selfieImage,
+													galleryImages: offlineData.galleryImages,
+													testReportFile: offlineData.testReportFile,
+													enclosureImages: enclosures,
+												});
+
+
+												// 3️⃣ Save locally for user confirmation
+												doc.save(`Offline_Inspection_${row.original.id}.pdf`);
+
+												// 4️⃣ Convert PDF to Blob
+												const pdfBlob = doc.output("blob");
+
+												// 5️⃣ Upload to backend
+												const pdfFormData = new FormData();
+												pdfFormData.append("pdf", pdfBlob, `${row.original.id}.pdf`);
+												pdfFormData.append("rfiId", row.original.id);
+
+												const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
+													method: "POST",
+													body: pdfFormData,
+													credentials: "include",
+												});
+
+												if (!uploadRes.ok) throw new Error("Failed to upload offline PDF");
+
+												// 6️⃣ Trigger DSC sign request
+												const txnId = generateUniqueTxnId();
+												const signForm = new FormData();
+												signForm.append("pdfBlob", pdfBlob);
+												signForm.append("sc", "Y");
+												signForm.append("txnId", txnId);
+												signForm.append("rfiId", row.original.id);
+												signForm.append("signerName", "Swathi");
+												signForm.append("contractorName", "M V");
+												signForm.append("signY", 100);
+
+												const signRes = await fetch(`${API_BASE_URL}rfi/getSignedXmlRequest`, {
+													method: "POST",
+													body: signForm,
+													credentials: "include",
+												});
+
+												const response = await signRes.json();
+
+												// 7️⃣ Auto-submit DSC form
+												const form = document.createElement("form");
+												form.method = "POST";
+												form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+												form.style.display = "none";
+
+												const signedXmlRequest = document.createElement("input");
+												signedXmlRequest.type = "hidden";
+												signedXmlRequest.name = "eSignRequest";
+												signedXmlRequest.value = response.signedXmlRequest;
+												form.appendChild(signedXmlRequest);
+
+												const aspTxnID = document.createElement("input");
+												aspTxnID.type = "hidden";
+												aspTxnID.name = "aspTxnID";
+												aspTxnID.value = txnId;
+												form.appendChild(aspTxnID);
+
+												const contentType = document.createElement("input");
+												contentType.type = "hidden";
+												contentType.name = "Content-Type";
+												contentType.value = "application/xml";
+												form.appendChild(contentType);
+
+												document.body.appendChild(form);
+												form.submit();
+
+												// 8️⃣ Clear offline cache
+												await removeOfflineInspection(row.original.id);
+												await clearOfflineEnclosures(row.original.id);
+
+												alert("✅ Offline inspection submitted successfully with images + DSC!");
+											} catch (err) {
+												console.error("❌ Offline submit failed:", err);
+												alert("Failed to submit offline inspection: " + err.message);
+											}
 										}}
+
 									>
 										Submit
 									</button>
+
+
+
 								)}
 							</DropdownPortal>
 						)}
@@ -429,7 +555,7 @@ const Inspection = () => {
 
 								{/* Current Page / Total Pages */}
 								<span style={{ fontWeight: 'bold' }}>
-								  Page {pageIndex + 1} of {pageOptions.length}
+									Page {pageIndex + 1} of {pageOptions.length}
 								</span>
 
 

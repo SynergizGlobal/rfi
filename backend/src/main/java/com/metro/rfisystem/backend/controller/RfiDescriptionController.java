@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/rfi")
-@CrossOrigin(origins = "http://localhost:3000") 
+@CrossOrigin(origins = "https://localhost:3000") 
 public class RfiDescriptionController {
 
     @Autowired

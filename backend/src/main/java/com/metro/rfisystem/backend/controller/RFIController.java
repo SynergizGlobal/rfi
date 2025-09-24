@@ -51,7 +51,7 @@ import com.metro.rfisystem.backend.service.RFIService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://localhost:3000")
 @RestController
 @RequestMapping("/rfi")
 @RequiredArgsConstructor

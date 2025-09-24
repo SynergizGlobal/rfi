@@ -17,6 +17,8 @@ import AssignExecutive from './components/AssignExecutive/AssignExecutive';
 import OfflineInspectionForm from './components/OfflineInspectionForm/OfflineInspectionForm';
 import InspectionReferenceForm from './components/InspectionReferenceForm/InspectionReferenceForm';
 import EditProfile from './components/EditProfile/EditProfile';
+import SignedResponse from './components/InspectionForm/SignedResponse';
+import EngineerSignedResponse from './components/InspectionForm/EngineerSignedResponse';
 
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
@@ -56,6 +58,8 @@ function App() {
           <Route path='/OfflineInspectionForm' element={<OfflineInspectionForm />} />
           <Route path='/InspectionReferenceForm' element={<InspectionReferenceForm />} />
           <Route path='/EditProfile' element={<EditProfile />} /> 
+            <Route path='/signedResponse' element={<SignedResponse />} />
+          <Route path='/engineerSignedResponse' element={<EngineerSignedResponse />} />
           {/* Add more protected routes here */}
         </Route>
 
