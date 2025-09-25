@@ -739,30 +739,37 @@ const CreateRfi = () => {
 	};
 
 	const validateStep2 = () => {
-		  const newErrors = {};
+	  const newErrors = {};
 
-		  // action is required in edit mode
-		  if (mode === "edit" && (!formState.action || formState.action.trim() === "")) {
-		    newErrors.action = "Action is required";
-		  }
+	  // Action required only in edit mode
+	  if (mode === "edit" && (!formState.action || formState.action.trim() === "")) {
+	    newErrors.action = "Action is required";
+	  }
 
-		  // Common required fields
-		  if (!formState.dateOfSubmission) newErrors.dateOfSubmission = "Date of submission is required";
+	  // Always required (both create + edit)
+	  if (!formState.dateOfSubmission) newErrors.dateOfSubmission = "Date of submission is required";
+	  if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+	  if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
+	  if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
 
-		  // Only check representative/date/time if action demands it
-		  if (formState.action?.toLowerCase() === "reschedule") {
-		    if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
-		    if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
-		    if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
-		  }
+	  // Extra validation in edit mode based on action
+	  if (mode === "edit") {
+	    const action = formState.action?.toLowerCase();
 
-		  if (formState.action?.toLowerCase() === "reassign") {
-		    if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
-		  }
+	    if (action === "reschedule") {
+	      if (!formState.dateOfInspection) newErrors.dateOfInspection = "Date of inspection is required";
+	      if (!formState.timeOfInspection) newErrors.timeOfInspection = "Time of inspection is required";
+	      if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+	    }
 
-		  setErrors(newErrors);
-		  return Object.keys(newErrors).length === 0;
-		};
+	    if (action === "reassign") {
+	      if (!formState.nameOfRepresentative) newErrors.nameOfRepresentative = "Representative is required";
+	    }
+	  }
+
+	  setErrors(newErrors);
+	  return Object.keys(newErrors).length === 0;
+	};
 
 		const handleStep2Next = () => {
 		  console.log("👉 initialData:", initialData);
