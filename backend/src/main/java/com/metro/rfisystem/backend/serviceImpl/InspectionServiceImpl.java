@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import com.itextpdf.text.Element;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
+import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
@@ -433,25 +435,49 @@ public class InspectionServiceImpl implements InspectionService {
 	            : InspectionSubmitResult.CONTRACTOR_SUCCESS;
 	}
 
-
-	
+	@Override
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk) {
-        List<RFIInspectionDetails> inspections;
+	    List<RFIInspectionDetails> inspections = inspectionRepository.findAllByRfiId(rfiId);
 
-        if ("CON".equalsIgnoreCase(deptFk)) {
-            inspections = new ArrayList<>(inspectionRepository.findDraftInspections("CON"));
-            inspections.addAll(inspectionRepository.findSubmittedByContractor("CON"));
-        } else if ("Engg".equalsIgnoreCase(deptFk)) {
-            inspections = inspectionRepository.findAllSubmitted();
-        } else {
-            inspections = inspectionRepository.findAllInspections();
-        }
+	    if (inspections.isEmpty()) {
+	        return Collections.emptyList();
+	    }
 
-        return inspections.stream()
-                .filter(ins -> ins.getRfi().getId().equals(rfiId)) // filter by RFI ID
-                .map(this::convertToFullDTO)
-                .toList();
-    }
+	    List<RFIInspectionDetails> contractorRows = inspections.stream()
+	            .filter(ins -> !"Engg".equalsIgnoreCase(ins.getUploadedBy()))
+	            .toList();
+
+	    List<RFIInspectionDetails> engineerRows = inspections.stream()
+	            .filter(ins -> "Engg".equalsIgnoreCase(ins.getUploadedBy()))
+	            .toList();
+
+	    List<RFIInspectionRequestDTO> result = new ArrayList<>();
+
+	    contractorRows.forEach(c -> {
+	        RFIInspectionRequestDTO dto = convertToFullDTO(c);
+
+	        engineerRows.forEach(e -> {
+	            if (e.getEngineerRemarks() != null) {
+	                if (dto.getEngineerRemarks() == null) dto.setEngineerRemarks(e.getEngineerRemarks());
+	                else dto.setEngineerRemarks(dto.getEngineerRemarks() + " | " + e.getEngineerRemarks());
+	            }
+	            if (e.getTestInsiteLab() != null && dto.getTestInsiteLab() == null) {
+	                dto.setTestInsiteLab(e.getTestInsiteLab());
+	            }
+	            if (!dto.getUploadedBy().contains("Engg")) {
+	                dto.setUploadedBy(dto.getUploadedBy() + ", Engg");
+	            }
+	        });
+
+	        result.add(dto);
+	    });
+
+	    if (contractorRows.isEmpty()) {
+	        engineerRows.forEach(e -> result.add(convertToFullDTO(e)));
+	    }
+
+	    return result;
+	}
 
 	private RFIInspectionRequestDTO convertToFullDTO(RFIInspectionDetails inspection) {
 	    RFIInspectionRequestDTO dto = new RFIInspectionRequestDTO();
@@ -460,27 +486,35 @@ public class InspectionServiceImpl implements InspectionService {
 	    dto.setLocation(inspection.getLocation());
 	    dto.setSiteImage(inspection.getSiteImage());
 	    dto.setChainage(inspection.getChainage());
-	    dto.setInspectionStatus(inspection.getInspectionStatus());
-	    dto.setTestInsiteLab(inspection.getTestInsiteLab());
-	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
-	    dto.setUploadedBy(inspection.getUploadedBy());
 
-	    // fetch measurements
+	    dto.setInspectionStatus(inspection.getInspectionStatus() != null
+	            ? inspection.getInspectionStatus()
+	            : InspectionStatus.VISUAL);
+
+	    dto.setUploadedBy(inspection.getUploadedBy());
+	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
+	    dto.setTestInsiteLab(inspection.getTestInsiteLab());
+
+	    // Fetch measurements if available
 	    measurementsRepository.findByRfiId(inspection.getRfi().getId())
-	        .ifPresent(m -> {
-	            MeasurementDTO mDto = new MeasurementDTO(
-	                    m.getMeasurementType(),
-	                    m.getLength(),
-	                    m.getBreadth(),
-	                    m.getHeight(),
-	                    m.getNoOfItems(),
-	                    m.getTotalQty()
-	            );
-	            dto.setMeasurements(mDto);
-	        });
+	            .ifPresent(m -> {
+	                MeasurementDTO mDto = new MeasurementDTO(
+	                        m.getMeasurementType(),
+	                        m.getLength(),
+	                        m.getBreadth(),
+	                        m.getHeight(),
+	                        m.getNoOfItems(),
+	                        m.getTotalQty()
+	                );
+	                dto.setMeasurements(mDto);
+	            });
+
 
 	    return dto;
 	}
+
+
+
 
 	
 	

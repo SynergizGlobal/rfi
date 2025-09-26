@@ -48,4 +48,10 @@ public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspect
 	@Query("SELECT i FROM RFIInspectionDetails i WHERE i.rfi.id = :rfiId ORDER BY i.id DESC")
 	List<RFIInspectionDetails> findInspectionsByRfiId(@Param("rfiId") Long rfiId);
 
+	@Query("SELECT i FROM RFIInspectionDetails i WHERE i.rfi.id = :rfiId")
+	List<RFIInspectionDetails> findAllByRfiId(@Param("rfiId") Long rfiId);
+
+	@Query("SELECT i FROM RFIInspectionDetails i WHERE i.rfi.id = :rfiId AND i.uploadedBy = 'Engg'")
+	List<RFIInspectionDetails> findEngineerInspectionsByRfiId(@Param("rfiId") Long rfiId);
+
 }

@@ -938,8 +938,8 @@ export default function InspectionForm() {
 				completed[inspection.rfiId] = true;
 				localStorage.setItem("completedOfflineInspections", JSON.stringify(completed));
 
-/*				await removeOfflineInspection(inspection.inspectionId);
-*/
+				/*				await removeOfflineInspection(inspection.inspectionId);
+				*/
 			} catch (err) {
 				console.error(`⚠️ Failed to sync inspection ${inspection.rfiId}:`, err);
 			}
@@ -963,8 +963,8 @@ export default function InspectionForm() {
 					console.error(`❌ Failed to sync enclosure ${enclosure.enclosureName}`);
 					continue;
 				}
-				
-				
+
+
 
 				console.log(`📂 Synced enclosure ${enclosure.enclosureName}`);
 			} catch (err) {
@@ -972,8 +972,8 @@ export default function InspectionForm() {
 			}
 		}
 
-/*		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
-*/
+		/*		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
+		*/
 
 	};
 
@@ -1721,8 +1721,27 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 	};
 
 	const handleDone = () => {
+		// If logged-in is Engineer → validate engineerStatus
+		if (isEngineer) {
+			if (checklistData.some(row => !row.engineerStatus)) {
+				setErrorMsg("⚠️ Please fill Engineer Status (Yes/No/N/A) for all items.");
+				return;
+			}
+		}
+
+		// If logged-in is Contractor → validate contractorStatus
+		else {
+			if (checklistData.some(row => !row.contractorStatus)) {
+				setErrorMsg("⚠️ Please fill Contractor Status (Yes/No/N/A) for all items.");
+				return;
+			}
+		}
+
+		// ✅ If everything is valid
+		setErrorMsg("");
 		onDone(checklistData, gradeOfConcrete);
 	};
+
 
 
 	// Define columns for DataTable
