@@ -1437,7 +1437,8 @@ const CreateRfi = () => {
 								</div>
 							</div>
 							<div className="d-flex justify-end">
-								<button onClick={() => setStep(2)} className="btn btn-white">
+								<button onClick={() => setStep(2)}  className={`btn ${mode === "edit" ? "btn-disabled" : "btn-white"}`}
+								disabled={mode === "edit"}>
 									Back
 								</button>
 								<button
@@ -1446,8 +1447,6 @@ const CreateRfi = () => {
 								>
 								  {mode === 'edit' ? 'Update' : 'Submit'}
 								</button>
-
-
 							</div>
 						</motion.div>
 					)}
