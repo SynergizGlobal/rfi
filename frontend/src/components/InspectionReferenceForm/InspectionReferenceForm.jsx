@@ -434,30 +434,51 @@ const {
 
 	// Handler: Add Row (added after useTable hook so it has access to gotoPage, pageOptions)
 
-	const handleAddRow = () => {
-		const newId = Date.now();
-		const newRow = {
-			id: newId,
-			encloserName: "",
-			action: "edit", // or "submit", "delete"
-			isNew: true,
-		};
-		setOpenEnclosers(prev => [...prev, newRow]);
-		setEditingEnclosureId(newId);
-		setEditInputs(inputs => ({ ...inputs, [newId]: "" }));
+	const [rowJustAdded, setRowJustAdded] = useState(false);
 
-		// Flip to last page after row added
-		setTimeout(() => {
-			if (pageOptions.length > 0) {
-				gotoPage(pageOptions.length - 1);
-			}
-		}, 0);
+	const handleAddRow = () => {
+	  const newId = Date.now();
+	  const newRow = {
+	    id: newId,
+	    encloserName: "",
+	    action: "edit",
+	    isNew: true,
+	  };
+	  setOpenEnclosers(prev => [...prev, newRow]);
+	  setEditingEnclosureId(newId);
+	  setEditInputs(inputs => ({ ...inputs, [newId]: "" }));
+	  setRowJustAdded(true); // mark that we just added a row
 	};
+
+	useEffect(() => {
+	  if (rowJustAdded) {
+	    const timer = setTimeout(() => {
+	      if (pageOptions1.length > 0) {
+	        gotoPage1(pageOptions1.length - 1); // ✅ use firstTableInstance here
+	      }
+	      setRowJustAdded(false);
+	    }, 0);
+
+	    return () => clearTimeout(timer);
+	  }
+	}, [rowJustAdded, pageOptions1, gotoPage1]);
 
 	const handleSubmitRow = async (id) => {
 	  const inputVal = editInputs[id]?.trim();
 	  if (!inputVal) {
 	    alert("Please enter a valid enclosure name");
+	    return;
+	  }
+
+	  // 🔍 Check duplicate before saving (ignore current editing row)
+	  const duplicate = openEnclosers.some(
+	    (item) =>
+	      item.id !== id &&
+	      item.encloserName?.trim().toLowerCase() === inputVal.toLowerCase()
+	  );
+
+	  if (duplicate) {
+	    alert("This enclosure name already exists!");
 	    return;
 	  }
 
@@ -469,7 +490,6 @@ const {
 	      // 🔥 POST new row
 	      const res = await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, payload);
 
-	      // Backend should return saved row with real ID
 	      const savedRow = res.data;
 
 	      setOpenEnclosers(prev =>
@@ -477,7 +497,7 @@ const {
 	          item.id === id
 	            ? {
 	                ...item,
-	                id: savedRow.id,              // ✅ replace fake id with DB id
+	                id: savedRow.id, 
 	                encloserName: savedRow.encloserName,
 	                isNew: false
 	              }
