@@ -21,7 +21,7 @@ export default function Validation() {
 	const isDyHOD = userType === "dyhod";
 
 
-	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL?.replace(/\/+$/, '');
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const [editModeList, setEditModeList] = useState([]);
 	const [comments, setComments] = useState({});
 	const handleCommentChange = (rowIndex, value) => {
@@ -40,7 +40,7 @@ export default function Validation() {
 
 
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}/validation/getRfiValidations`, { withCredentials: true,		headers: {
+		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, { withCredentials: true,		headers: {
 					            'Content-Type': 'application/json',
 					            'Accept': 'application/json'
 					        } })
@@ -117,12 +117,12 @@ export default function Validation() {
 		formData.append("action", action);
 		formData.append("comment", comment);
 
-		axios.post(`${API_BASE_URL}/validation/validate`, formData,{
+		axios.post(`${API_BASE_URL}api/validation/validate`, formData,{
 		        headers: {
 		            'Accept': 'application/json'
 		        }
 		    })
-			.then(() => {
+			.then((response) => {
 				alert('Validation submitted successfully.');
 				setRfiList(prevList => {
 					const updated = [...prevList];
@@ -143,13 +143,13 @@ export default function Validation() {
 			})
 			.catch(err => {
 				console.error('Validation error:', err);
-				alert('Submission failed.');
+				alert('Failed to Vaidate RFI.!');
 			});
 	};
 
 
 	const fetchPreview = (rfiId) => {
-		axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`,		{
+		axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,		{
 		        headers: {
 		            'Content-Type': 'application/json',
 		            'Accept': 'application/json'
@@ -175,7 +175,7 @@ export default function Validation() {
 
 
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
-	const fileBaseURL = `${API_BASE_URL}/validation/previewFiles`;
+	const fileBaseURL = `${API_BASE_URL}api/validation/previewFiles`;
 
 	const safe = (val) => val || '-';
 
@@ -494,7 +494,7 @@ export default function Validation() {
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
-			const res = await axios.get(`${API_BASE_URL}/validation/getRfiReportDetail/${rfiId}`,{
+			const res = await axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,{
 			        headers: {
 			            'Content-Type': 'application/json',
 			            'Accept': 'application/json'

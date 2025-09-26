@@ -8,6 +8,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import java.util.Collections;
 import java.util.List;
@@ -32,18 +33,26 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/validation")
+@RequestMapping("/api/validation")
 public class RfiValidateController {
 
 	private final RfiValidationService rfiValidationService;
 
 
-
 	@PostMapping(value = "/validate")
 	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
-		rfiValidationService.validateRfi(dto);
-		return ResponseEntity.ok("RFI validated with file uploaded mail sent.");
+		boolean success = false;
+	     success = rfiValidationService.validateRfi(dto);
+	    if (success == false) {
+	    	 return ResponseEntity
+		                .status(HttpStatus.BAD_REQUEST)
+		                .body("Failed to validate RFI.");
+	       
+	    } else {
+	    	 return ResponseEntity.ok("RFI validated successfully.");
+	    }
 	}
+
 	
 	
 	@PostMapping("/send-for-validation/{rfiId}")

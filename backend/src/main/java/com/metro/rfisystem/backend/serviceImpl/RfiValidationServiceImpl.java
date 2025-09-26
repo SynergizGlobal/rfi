@@ -54,27 +54,25 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 	@Override
 	@Transactional
-	public void validateRfi(RfiValidateDTO dto) {
+	public boolean validateRfi(RfiValidateDTO dto) {
+		
+		boolean success = false;
 		Optional<RFI> rfiOpt = rfiRepository.findById(dto.getLong_rfi_id());
 		Optional<RfiValidation> valOpt = rfiValidationRepository.findById(dto.getLong_rfi_validate_id());
-
 		if (rfiOpt.isEmpty() || valOpt.isEmpty()) {
 			throw new RuntimeException("Invalid RFI or Validation ID.");
 		}
-
 		RFI rfi = rfiOpt.get();
 		RfiValidation validation = valOpt.get();
-
 		rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
 		rfiRepository.save(rfi);
-
 		validation.setRemarks(dto.getRemarks());
 		validation.setEnumValidation(dto.getAction());
         validation.setComment(dto.getComment());
-
 		rfiValidationRepository.save(validation);
-
 		emailService.sendValidationMail(rfi, validation);
+		success = true;
+		return success;
 
 	}
 

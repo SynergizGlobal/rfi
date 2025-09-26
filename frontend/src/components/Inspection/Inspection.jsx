@@ -298,7 +298,7 @@ const Inspection = () => {
 													message: "Are you sure you want to send this RFI for validation?",
 													rfiId: row.original.id,
 													onConfirm: (id) => {
-														fetch(`${API_BASE_URL}validation/send-for-validation/${id}`, {
+														fetch(`${API_BASE_URL}api/validation/send-for-validation/${id}`, {
 															method: "POST",
 															headers: { "Content-Type": "application/json" },
 														})
