@@ -329,6 +329,10 @@ public class RFIController {
 		{
 			return ResponseEntity.ok(rfiService.countByCreatedBy(userName));
 		}
+		if (userRole.equalsIgnoreCase("Regular User")) {
+	        // Count RFIs where user is creator, assigned person, or representative
+	        return ResponseEntity.ok(rfiService.countByRegularUser(userName));
+	    }
 		if (userDepartment.equalsIgnoreCase("Engg")) {
 			return ResponseEntity.ok(rfiService.countByAssignedTo(userName));
 		}
@@ -384,7 +388,7 @@ public class RFIController {
 	    String userName = (String) session.getAttribute("userName");
 	    String userRole = (String) session.getAttribute("userRoleNameFk");
 	    String userType = (String) session.getAttribute("userTypeFk");
-	    String userDepartment =(String) session.getAttribute("departmentFk");
+	    String userDepartment = (String) session.getAttribute("departmentFk");
 	    
 	    if (userName == null || (userRole == null && userType == null)) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -397,7 +401,7 @@ public class RFIController {
 
 	    if (isAdmin || isDyHOD) {
 	        // Show total counts for Admin or DyHOD
-	        counts.put("Closed", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));  // ✅ add Closed
+	        counts.put("Closed", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
@@ -408,7 +412,7 @@ public class RFIController {
 	        counts.put("PENDING", rfiRepository.countByStatuses(pendingStatuses));
 	    } 
 	    else if (userRole.equalsIgnoreCase("Contractor")) {
-	        counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName)); // ✅
+	        counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.RESCHEDULED, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
@@ -418,8 +422,19 @@ public class RFIController {
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndCreatedBy(pendingStatuses, userName));
 	    } 
+	    else if (userRole.equalsIgnoreCase("Regular User")) { 
+	       // counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_CON, userName));
+	        counts.put("RESCHEDULED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.RESCHEDULED, userName));
+	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
+	            EnumRfiStatus.CREATED,
+	            EnumRfiStatus.UPDATED,
+	            EnumRfiStatus.REASSIGNED
+	        );
+	        counts.put("PENDING", rfiRepository.countByStatusesByRegularUser(pendingStatuses, userName));
+	    } 
 	    else if (userDepartment.equalsIgnoreCase("Engg")) {
-	        counts.put("Closed", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName)); // ✅
+	        counts.put("Closed", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
@@ -432,6 +447,5 @@ public class RFIController {
 
 	    return ResponseEntity.ok(counts);
 	}
-
 
 }

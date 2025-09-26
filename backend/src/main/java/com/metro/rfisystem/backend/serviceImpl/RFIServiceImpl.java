@@ -407,6 +407,14 @@ public class RFIServiceImpl implements RFIService {
 	public int countByCreatedBy(String createdBy) {
 		return rfiRepository.countByCreatedBy(createdBy);
 	}
+	
+	@Override
+	public int countByRegularUser(String userName) {
+	    return (int) rfiRepository.countByStatusesByRegularUser(
+	            Arrays.asList(EnumRfiStatus.values()), userName
+	    );
+	}
+
 
 	@Override
 	@Transactional

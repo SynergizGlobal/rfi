@@ -357,6 +357,19 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.assignedPersonClient = :assignedTo")
 	long countByStatusesAndAssignedPersonClient(@Param("statuses") List<EnumRfiStatus> statuses,
 			@Param("assignedTo") String assignedTo);
+	
+	// Count by single status for regular users (includes contractor rep, engineer, etc.)
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status = :status AND " +
+	       "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+	long countByStatusByRegularUser(@Param("status") EnumRfiStatus status,
+	                                @Param("userName") String userName);
+
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND " +
+		       "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+		long countByStatusesByRegularUser(@Param("statuses") List<EnumRfiStatus> statuses,
+		                                  @Param("userName") String userName);
+
+
 
 	@Query(value = "select id from rfi_data " + "where contract_id = :contract "
 			+ "and structure_type = :structureType " + "and structure = :structure", nativeQuery = true)
