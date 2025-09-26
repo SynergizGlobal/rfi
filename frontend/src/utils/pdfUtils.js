@@ -90,19 +90,19 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFillColor(255, 255, 0);
 	doc.rect(30, 140, 540, 20, "F");
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text(`Contractor :- ${contractor}`, 40, 155);
+	doc.text(`Contractor :- ${contractor}`, 40, 160);
 
 	// ==============================
 	// Part I: RFI Details
 	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.rect(30, 170, 540, 220);
+	doc.rect(30, 170, 540, 390);
 	doc.text("Part - I :", 40, 185);
-	doc.text("RFI.No : " + (rfiData.rfi_Id || "………………"), 450, 185);
+	doc.text("RFI.No : " + (rfiData.rfi_Id || "………………"), 300, 185, { maxWidth: 400 });
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 	doc.text("Name of Contractor's Representative :", 40, 205);
-	doc.text(contractorRep, 200, 205);
+	doc.text(contractorRep, 205, 210);
 	doc.text("Date of Submission :", 350, 205);
 	doc.text(submissionDate, 470, 205);
 
@@ -112,24 +112,24 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text(dateOfInspection, 470, 225);
 
 	doc.text("Structure Type/Structure/Component/Element/Activity :", 40, 245);
-	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 60, 260);
+	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 40, 260);
 
-	doc.text("Location :", 40, 285);
-	doc.text(locationText, 105, 285);
-	doc.text("Side :", 350, 285);
-	doc.text(sideText, 390, 285);
+	doc.text("Location :", 40, 282);
+	doc.text(locationText, 85, 282, { maxWidth: 400 });
+	doc.text("Side :", 40, 312);
+	doc.text(sideText, 105, 312, { maxWidth: 400 });
 
 	doc.setFont("helvetica", "bold");
-	doc.text("RFI Description:", 40, 305);
+	doc.text("RFI Description:", 40, 330);
 	doc.setFont("helvetica", "normal");
-	doc.rect(40, 310, 510, 40);
-	doc.text(rfiDescription, 45, 325, { maxWidth: 500 });
+	doc.rect(40, 335, 510, 40);
+	doc.text(rfiDescription, 45, 350, { maxWidth: 500 });
 
 	// ==============================
 	// Enclosures (Checkboxes)
 	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Enclosures:", 40, 370);
+	doc.text("Enclosures:", 40, 390);
 
 	const fixedEnclosures = ["FDD", "Level", "Gradation", "Measurement Sheet", "Drawing", "Other's"];
 	doc.setFont("helvetica", "normal").setFontSize(10);
@@ -140,7 +140,7 @@ export async function generateInspectionPdf(rfiData) {
 
 	fixedEnclosures.forEach((item, i) => {
 		const x = 120 + (i % 3) * 180;
-		const y = 365 + Math.floor(i / 3) * 25;
+		const y = 390 + Math.floor(i / 3) * 25;
 
 		doc.rect(x, y, 10, 10); // checkbox
 
@@ -150,7 +150,7 @@ export async function generateInspectionPdf(rfiData) {
 			const extras = actualEnclosures.filter(name => !fixedEnclosures.includes(name));
 			if (extras.length > 0) {
 				doc.text("✔", x + 2.5, y + 8);
-				doc.text(`${i + 1}) ${item}: ${extras.join(", ")}`, x + 15, y + 8, { maxWidth: 140 });
+				doc.text(`${i + 1}) ${item}: ${extras.join(", ")}`, x + 15, y + 8, { maxWidth: 60 });
 				return;
 			}
 		}
@@ -163,7 +163,7 @@ export async function generateInspectionPdf(rfiData) {
 	// Part II: Engineer's Remarks & Approval
 	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.text("Part - II : Engineer's Remarks", 40, 440);
+	doc.text("Part - II : Engineer's Remarks", 40, 445);
 	doc.setFont("helvetica", "normal").setFontSize(10);
 
 	doc.text("Submitted By", 50, 460);
