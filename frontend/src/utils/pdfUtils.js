@@ -79,7 +79,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFillColor(255, 255, 0);
 	doc.rect(30, 100, 540, 20, "F");
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text(`Project Name :- ${project}`, 40, 115);
+	doc.text(`Contract :- ${project}`, 40, 115);
 
 	// Engineer
 	doc.rect(30, 120, 540, 20);
@@ -104,26 +104,24 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Name of Contractor's Representative :", 40, 205);
 	doc.text(contractorRep, 212, 205);
 	doc.text("Date of Submission :", 350, 205);
-	doc.text(submissionDate, 470, 205);
+	doc.text(submissionDate, 449, 205);
 
 	doc.text("Time of Inspection :", 40, 225);
-	doc.text(timeOfInspection, 160, 225);
+	doc.text(timeOfInspection, 130, 225);
 	doc.text("Date of Inspection :", 350, 225);
-	doc.text(dateOfInspection, 470, 225);
+	doc.text(dateOfInspection, 440, 225);
 
 	doc.text("Structure Type/Structure/Component/Element/Activity :", 40, 245);
 	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 40, 260);
 
 	doc.text("Location :", 40, 282);
 	doc.text(locationText, 85, 282, { maxWidth: 400 });
-	doc.text("Side :", 40, 312);
-	doc.text(sideText, 105, 312, { maxWidth: 400 });
 
 	doc.setFont("helvetica", "bold");
-	doc.text("RFI Description:", 40, 330);
+	doc.text("RFI Description:", 40, 316);
 	doc.setFont("helvetica", "normal");
-	doc.rect(40, 335, 510, 40);
-	doc.text(rfiDescription, 45, 350, { maxWidth: 500 });
+	doc.rect(40, 328, 510, 40);
+	doc.text(rfiDescription, 45, 343, { maxWidth: 500 });
 
 	// ==============================
 	// Enclosures (Checkboxes)
@@ -194,14 +192,15 @@ export async function generateInspectionPdf(rfiData) {
 	const pageHeight = doc.internal.pageSize.getHeight();
 	const signY = pageHeight - 60;
 	doc.text("Contractor Representative", 80, signY);
-	doc.text("MRVC Representative", 380, signY);
+	doc.text("MRVC Representative", 300, signY);
 
 	// ==============================
 	// Measurement Record (mandatory)
 	// ==============================
 	doc.addPage();
+	doc.rect(30, 30, 540, 780);
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Measurement Record", 40, 40);
+	doc.text("Measurement Record", 40, 48);
 	autoTable(doc, {
 		startY: 60,
 		head: [["Type of Measurement", "L", "B", "H", "No.", "Total Qty."]],
@@ -269,6 +268,11 @@ export async function generateInspectionPdf(rfiData) {
 			console.warn("Image failed to add, skipping", e);
 		}
 	});
+
+	doc.addPage();
+	doc.rect(30, 30, 540, 780);
+	doc.setFont("helvetica", "bold").setFontSize(11);
+	doc.text("Test Report", 40, 48);
 
 	return doc;
 }
