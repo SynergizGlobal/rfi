@@ -102,7 +102,7 @@ export async function generateInspectionPdf(rfiData) {
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 	doc.text("Name of Contractor's Representative :", 40, 205);
-	doc.text(contractorRep, 205, 210);
+	doc.text(contractorRep, 212, 205);
 	doc.text("Date of Submission :", 350, 205);
 	doc.text(submissionDate, 470, 205);
 
@@ -131,7 +131,9 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Enclosures:", 40, 390);
 
-	const fixedEnclosures = ["FDD", "Level", "Gradation", "Measurement Sheet", "Drawing", "Other's"];
+	const fixedEnclosures = [
+		// "FDD", "Level", "Gradation", "Measurement Sheet", "Drawing", "Other's"
+	];
 	doc.setFont("helvetica", "normal").setFontSize(10);
 
 	const actualEnclosures = enclosuresData
@@ -181,7 +183,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Not Approved", 370, 500);
 
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Resident Engineer/Asst. Resident Engineer/Senior Project Engineer/ Project Engineer :", 40, 530);
+	doc.text("Remarks:", 40, 530);
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 	const remarksY = 550;
@@ -218,11 +220,11 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Enclosures + Checklists + Site Images
 	// ==============================
-	doc.addPage();
+	
 	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.text("Enclosures", 40, 40);
+	doc.text("Enclosures", 40, 160);
 
-	let encY = 70;
+	let encY = 180;
 	enclosuresData.forEach((enc, index) => {
 		if (encY > 750) { doc.addPage(); encY = 60; }
 		doc.setFont("helvetica", "bold").setFontSize(11);
