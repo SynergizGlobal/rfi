@@ -272,7 +272,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.addPage();
 	doc.rect(30, 30, 540, 780);
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Test Report", 40, 48);
+	doc.text("Test Report", 40, 49);
 
 	return doc;
 }
