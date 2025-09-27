@@ -122,8 +122,8 @@ const Inspection = () => {
 				return;
 			}
 		}
-		navigate(`/InspectionForm`, { state: { rfi } });
-	};
+			navigate(`/InspectionForm`, { state: { rfi } });
+		};
 
 
 	const [downloadingId, setDownloadingId] = useState(null);
@@ -192,7 +192,7 @@ const Inspection = () => {
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
-		{ Header: 'Assigned Person Client', accessor: 'assignedPersonClient' },
+		{ Header: "Assigned Employer's Engineer" , accessor: 'assignedPersonClient' },
 		{ Header: 'Measurement Type', accessor: 'measurementType' },
 		{ Header: 'Total Qty', accessor: 'totalQty' },
 		{

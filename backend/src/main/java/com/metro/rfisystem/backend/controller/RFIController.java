@@ -2,15 +2,12 @@ package com.metro.rfisystem.backend.controller;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,27 +24,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
-
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
-import com.metro.rfisystem.backend.dto.AssignExecutiveDTO;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
-import com.metro.rfisystem.backend.dto.ExecutiveDTO;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
-import com.metro.rfisystem.backend.dto.RfiIdDTO;
 import com.metro.rfisystem.backend.dto.RfiListDTO;
-import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.WorkDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
-import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.ContractorRepository;
-import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RFIService;
-
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -60,10 +49,7 @@ public class RFIController {
 	private final RFIService rfiService;
 
 	private final RFIRepository rfiRepository;
-	
-	private final ContractRepository contractRepository;
-	
-	private final P6ActivityRepository activityRepository;
+		
 	
 	@Autowired
 	private ContractorRepository contractorRepo;
@@ -169,44 +155,7 @@ public class RFIController {
 	    public ResponseEntity<List<RfiDescriptionDTO>> getRfiDescriptions(@RequestParam String activity) {
 	        List<RfiDescriptionDTO> descriptions = rfiService.getRfiDescriptionsByActivity(activity);
 	        return ResponseEntity.ok(descriptions);
-	    }
-	 
-		@GetMapping("/rfiIds")
-		public ResponseEntity<List<Integer>> getRfiIdsByFilter(
-				@RequestParam(name = "contractId", required = true) String contractId,
-				@RequestParam(name = "structureType", required = true) String structureType,
-				@RequestParam(name = "structure", required = true) String structure) {
-
-			List<Integer> list = rfiRepository.getRfiIdsByFilter( contractId, structureType, structure);
-			if (list.isEmpty()) {
-				return ResponseEntity.ok(Collections.emptyList());
-			}
-			return ResponseEntity.ok(list);
-		}
-
-		@GetMapping("/getExecutivesList")
-		public ResponseEntity<List<ExecutiveDTO>> getExcecutives(
-				@RequestParam(name = "structureType", required = true) String structureType,
-				@RequestParam(name = "structure", required = true) String structure) {
-
-			List<ExecutiveDTO> list = activityRepository.getExcecutives(structureType, structure);
-			if (list.isEmpty()) {
-				return ResponseEntity.ok(Collections.emptyList());
-			}
-
-			return ResponseEntity.ok(list);
-		}
-		
-// Bulk update for returned RfiIds setting Executive.
-		@PostMapping("/assign-bulk-executive")
-		public ResponseEntity<String> assignPersonToClient(@RequestBody AssignExecutiveDTO dto) {
-			if (dto.getRfiIds() == null || dto.getRfiIds().isEmpty()) {
-				return ResponseEntity.badRequest().body("No RFI IDs provided.");
-			}
-			rfiService.assignExecutiveToRfis(dto.getRfiIds(), dto.getExecutive(), dto.getDepartment());
-			return ResponseEntity.ok("Executives assigned successfully to all RFIs!");
-		}
-		
+	    }		
 		
 		 @GetMapping("/representatives")
 		 public ResponseEntity<List<String>> getContractorUserNamesWithReportingId(HttpSession session) {

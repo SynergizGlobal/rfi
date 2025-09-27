@@ -75,9 +75,6 @@ public interface RFIService {
 
 	List<Map<String, Object>> getRegularUsers(String userId);
 
-	void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department);
-
-
 	List<Map<String, Object>> getAllRepresentativesReportingToContractor();
 
 

@@ -27,4 +27,15 @@ public interface AssignExecutiveLogRepository extends JpaRepository<AssignExecut
 	List<AssignExecutiveLog> findLatestAssignments();
 	
 	AssignExecutiveLog findTopByContractIdAndStructureTypeAndStructureOrderByAssignedAtDesc(String contractId,
-			String structureType, String structure);}
+			String structureType, String structure);
+	
+	@Query(value = "select id from rfi_data where"
+			+ "  status = 'CREATED'\r\n"
+			+ " AND Structure_Type = :structureType"
+			+ " AND structure =:Structure"
+			+ " AND contract_id = :ContractId\r\n"
+			+ "", nativeQuery = true)
+	List<Long> getRfiIdsByStructureTypeAndStructure(String structureType, String Structure,String ContractId);
+	
+
+}

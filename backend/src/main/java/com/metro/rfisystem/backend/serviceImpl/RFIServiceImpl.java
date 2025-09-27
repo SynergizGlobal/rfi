@@ -415,17 +415,4 @@ public class RFIServiceImpl implements RFIService {
 	    );
 	}
 
-
-	@Override
-	@Transactional
-	public void assignExecutiveToRfis(List<Integer> rfiIds, String executive, String department) {
-		int updatedCount = rfiRepository.updateExecutivesForRfis(rfiIds, executive, department);
-
-		if (updatedCount == 0) {
-			throw new RuntimeException("No RFIs were updated. Check if RFI IDs exist: " + rfiIds);
-		}
-	}
-
-
-
 }

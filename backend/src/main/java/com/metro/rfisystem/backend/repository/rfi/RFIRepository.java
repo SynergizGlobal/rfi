@@ -14,6 +14,8 @@ import com.metro.rfisystem.backend.dto.RfiLogDTO;
 import com.metro.rfisystem.backend.dto.RfiReportDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
 import com.metro.rfisystem.backend.model.rfi.RFI;
+import jakarta.transaction.Transactional;
+
 import java.util.List;
 
 @Repository
@@ -378,11 +380,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query(value = "SELECT * FROM rfi_data WHERE id IN (:ids)", nativeQuery = true)
 	List<RFI> findByIds(@Param("ids") List<Integer> ids);
 
-	@Modifying
-	@Query("UPDATE RFI r " + "SET r.assignedPersonClient = :executive, " + "    r.clientDepartment = :department "
-			+ "WHERE r.id IN :ids")
-	int updateExecutivesForRfis(@Param("ids") List<Integer> ids, @Param("executive") String executive,
-			@Param("department") String department);
+
 
 	@Query(value = """
 			SELECT
@@ -468,5 +466,17 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogByRepresentative(@Param("userName") String userName);
+	
+	//REpository Data inserting Method For Bulk updating theExecutive to filtered rfi-Ids in Assign Executive Page
+	@Transactional
+    @Modifying
+    @Query("UPDATE RFI r SET r.assignedPersonUserId = :userId, " +
+           "r.clientDepartment = :department, " +
+           "r.assignedPersonClient = :client " +
+           "WHERE r.id IN :ids")
+    int bulkUpdateAssignedExecutive(@Param("userId") String userId,
+                                    @Param("department") String department,
+                                    @Param("client") String client,
+                                    @Param("ids") List<Long> ids);
 
 }
