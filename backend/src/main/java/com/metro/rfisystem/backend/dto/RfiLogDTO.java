@@ -17,12 +17,14 @@ public class RfiLogDTO {
     private String person;
     private String dateRaised;
     private String dateResponded;
+    private String  enggApproval;
     private String status;
     private String notes;
     private String project;
     private String work;
     private String contract;
 	private String nameOfRepresentative;
+	private String txnId;
 
 
 }

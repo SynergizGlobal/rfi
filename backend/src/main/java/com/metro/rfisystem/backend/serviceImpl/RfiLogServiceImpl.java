@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
 import com.metro.rfisystem.backend.dto.EnclosureDTO;
@@ -16,6 +17,10 @@ import com.metro.rfisystem.backend.repository.rfi.RFIEnclosureRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RfiLogService;
 import lombok.RequiredArgsConstructor;
+import java.io.File;
+import java.io.FileNotFoundException;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,9 @@ public class RfiLogServiceImpl implements RfiLogService {
 	private final RFIEnclosureRepository enclosureRepository;
 	private final MeasurementsRepository measurementsRepository;
 	private final UserRepository userRepository;
+	
+	   @Value("${rfi.pdf.storage-path}")
+	    private String pdfStoragePath;
 
 
 	@Override
@@ -68,5 +76,24 @@ public class RfiLogServiceImpl implements RfiLogService {
 
 		return new RfiLogWrappedDTO(report, checklist, enclosures,measurementDetails);
 	}
+	
+	@Override
+	public File getSignedPdfByTxnId(String txnId) throws FileNotFoundException {
+	    File pdfDir = new File(pdfStoragePath);
+
+	    File contractorPdf = new File(pdfDir, "signed_" + txnId + ".pdf");
+	    File engineerPdf = new File(pdfDir, "signed_engineer_" + txnId + "_final.pdf");
+
+	    if (engineerPdf.exists()) {
+	        return engineerPdf;
+	    } else if (contractorPdf.exists()) {
+	        return contractorPdf;
+	    } else {
+	        throw new FileNotFoundException(
+	            "No PDF found for txnId: " + txnId + " in " + pdfStoragePath);
+	    }
+	}
+
+
 
 }

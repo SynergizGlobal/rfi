@@ -9,9 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +34,6 @@ public class RfiLogController {
 
 	private final RfiLogService logService;
 	
-
 
 	@GetMapping("/getAllRfiLogDetails")
 	public ResponseEntity<List<RfiLogDTO>> getAllRfiLogDetails(HttpSession session) {
@@ -82,5 +83,22 @@ public class RfiLogController {
 	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
 	        .body(resource);
 	}
+	
+	@GetMapping("/pdf/download/{rfiId}/{txnId}")
+	public ResponseEntity<byte[]> downloadPdf(@PathVariable String txnId, @PathVariable String rfiId) {
+	    try {
+	        String downloadedFileName = rfiId + ".pdf"; 
+	        File pdfFile = logService.getSignedPdfByTxnId(txnId);
+	        byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
+	        return ResponseEntity.ok()
+	                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadedFileName + "\"")
+	                .contentType(MediaType.APPLICATION_PDF)
+	                .body(pdfBytes);
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+	                .body(("PDF not found for txnId: " + txnId).getBytes());
+	    }
+	}
+
 
 }

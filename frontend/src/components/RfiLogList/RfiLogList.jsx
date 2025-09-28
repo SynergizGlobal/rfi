@@ -20,8 +20,6 @@ export default function RfiLogList() {
 	const [contractIdMap, setContractIdMap] = useState({});
 	const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
 	const [allData, setAllData] = useState([]);
-
-
 	const [selectedInspection, setSelectedInspection] = useState(null);
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [enclosures, setEnclosures] = useState([]);
@@ -87,12 +85,32 @@ export default function RfiLogList() {
 	}, [formState, allData]);
 
 
-	const processedData = useMemo(() =>
-		data.map(row => ({
-			...row,
-			displayStatus: row.status === 'INSPECTION_DONE' ? 'Closed' : 'Open',
-		})),
-		[data]);
+	const processedData = useMemo(
+	  () =>
+	    data.map(row => {
+	      let displayStatus = '';
+	      let color = '';
+
+	      if (row.enggApproval === 'Rejected') {
+	        displayStatus = 'Rejected';
+	        color = 'red';
+	      } else if (row.status === 'INSPECTION_DONE') {
+	        displayStatus = 'Closed';
+	        color = 'blue';
+	      } else {
+	        displayStatus = 'Open';
+	        color = 'green';
+	      }
+
+	      return {
+	        ...row,
+	        displayStatus,
+	        displayColor: color, // optional: for styling in table cell
+	      };
+	    }),
+	  [data]
+	);
+
 
 	const NotesCell = ({ value }) => {
 		const [showPopup, setShowPopup] = useState(false);
@@ -123,7 +141,7 @@ export default function RfiLogList() {
 							onClick={() => setShowPopup(true)}
 							className="text-blue-600 underline"
 						>
-							View
+							👁️
 						</button>
 						{showPopup &&
 							ReactDOM.createPortal(
@@ -136,16 +154,6 @@ export default function RfiLogList() {
 				)}
 			</>
 		);
-	};
-
-
-
-	const handleDownload = () => {
-		if (selectedInspection) {
-			generatePDF([selectedInspection], checklistItems, enclosures, Measurement);
-		} else {
-			alert("⚠️ No data available to generate PDF!");
-		}
 	};
 
 	const handlePrint = () => {
@@ -516,7 +524,7 @@ export default function RfiLogList() {
 			.catch((err) => console.error(err));
 	};
 
-	const downloadPDFWithDetails = async (rfiId, idx) => {
+/*	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
 			const res = await axios.get(`${API_BASE_URL}api/rfiLog/getRfiReportDetails/${rfiId}`);
 
@@ -540,7 +548,28 @@ export default function RfiLogList() {
 			console.error("Error fetching details for PDF:", err);
 			alert("Failed to generate PDF. Please try again.");
 		}
+	};*/
+	
+	
+	const downloadPDF = async (rfiId,txnId) => {
+	    try {
+	        const response = await fetch(`${API_BASE_URL}api/rfiLog/pdf/download/${rfiId}/${txnId}`);
+	        if (!response.ok) throw new Error("File not found");
+
+	        const blob = await response.blob();
+	        const url = window.URL.createObjectURL(blob);
+
+	        const a = document.createElement("a");
+	        a.href = url;
+	        a.download = `${rfiId}_Details_Pdf.pdf`; 
+	        a.click();
+	        window.URL.revokeObjectURL(url);
+	    } catch (err) {
+	        alert(err.message);
+	    }
 	};
+
+
 
 
 
@@ -559,8 +588,13 @@ export default function RfiLogList() {
 		{ Header: 'Date Raised', accessor: 'dateRaised' },
 		{ Header: 'Date Responded', accessor: 'dateResponded' },
 		{
-			Header: 'Status',
-			accessor: 'displayStatus',
+		  Header: 'Status',
+		  accessor: 'displayStatus',
+		  Cell: ({ row }) => (
+		    <span style={{ color: row.original.displayColor }}>
+		      {row.original.displayStatus}
+		    </span>
+		  ),
 		},
 		{
 			Header: "Notes",
@@ -579,12 +613,14 @@ export default function RfiLogList() {
 					)
 				},
 				{
-					Header: 'Download',
-					Cell: ({ row }) => (
-						<button onClick={() => downloadPDFWithDetails(row.original.id, row.index)}>
-							⬇️
-						</button>
-					)
+				  Header: 'Download',
+				  Cell: ({ row }) => (
+				    row.original.txnId ? (
+				      <button onClick={() => downloadPDF(row.original.rfiId, row.original.txnId, row.index)}>
+				        ⬇️
+				      </button>
+				    ) : null
+				  )
 				}
 			]
 		}
@@ -784,12 +820,21 @@ export default function RfiLogList() {
 											<p>Mumbai Rail Vikas Corporation</p>
 										</div>
 										<div style={{ textAlign: 'right' }}>
-											<label style={{ color: '#636363' }}>RFI Status:</label>
-											<p style={{
-												color: selectedInspection.rfiStatus === "INSPECTION_DONE" ? "red" : "green",
-												fontWeight: "bold",
-											}}
-											>{selectedInspection.rfiStatus === "INSPECTION_DONE" ? "Closed" : "Active"}</p>
+										  <label style={{ color: '#636363' }}>RFI Status:</label>
+										  <p style={{
+										    color: selectedInspection.testStatus === "Rejected" 
+										            ? "red" 
+										            : selectedInspection.rfiStatus === "INSPECTION_DONE" 
+										              ? "blue" 
+										              : "green",
+										    fontWeight: "bold",
+										  }}>
+										    {selectedInspection.testStatus === "Rejected" 
+										      ? "Rejected" 
+										      : selectedInspection.rfiStatus === "INSPECTION_DONE" 
+										        ? "Closed" 
+										        : "Active"}
+										  </p>
 										</div>
 									</div>
 
@@ -975,12 +1020,12 @@ export default function RfiLogList() {
 												</thead>
 												<tbody>
 													<tr>
-														<td>{Measurement.measurementType}</td>
-														<td>{Measurement.l}</td>
-														<td>{Measurement.b}</td>
-														<td>{Measurement.h}</td>
-														<td>{Measurement.no}</td>
-														<td>{Measurement.totalQty}</td>
+														<td>{Measurement.measurementType ?? "---"}</td>
+														<td>{Measurement.l ?? "---"}</td>
+														<td>{Measurement.b ?? "---"}</td>
+														<td>{Measurement.h ?? "---"}</td>
+														<td>{Measurement.no ?? "---"}</td>
+														<td>{Measurement.totalQty ?? "---"}</td>
 													</tr>
 												</tbody>
 
@@ -1228,7 +1273,6 @@ export default function RfiLogList() {
 									<div className="popup-actions">
 										<button onClick={() => setSelectedInspection(null)}>Close</button>
 										<button onClick={handlePrint}>Print</button>
-										<button onClick={handleDownload}>Download PDF</button>
 									</div>
 								</div>
 							</div>
