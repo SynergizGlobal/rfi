@@ -99,4 +99,12 @@ public class RFIInspectionDetails {
     @Column(name = "work_status")
     private InspectionWorkFlowStatus workStatus;
     
+    @Column(name = "contractor_submitted_date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate contractor_submitted_date;
+    
+    @Column(name = "engineer_submitted_date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate engineer_submitted_date;
+    
 }

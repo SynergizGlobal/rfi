@@ -117,7 +117,7 @@ public class EsignService {
 	private PdfService pdfService;
 	
 	public void signWithDS(String txnId, String eSignResponse, String conName) throws Exception {
-	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId);
+	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId, "Contractor");
 
 	    File pdfDir = new File(pdfStoragePath);
 	    if (!pdfDir.exists()) pdfDir.mkdirs();
@@ -199,7 +199,7 @@ public class EsignService {
 
 
 	public void signWithDSEngineer(String txnId, String eSignResponse, String engName) throws Exception {
-	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId);
+	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId, "Engineer");
 
 	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 	    String today = LocalDate.now().format(formatter);
@@ -295,12 +295,12 @@ public class EsignService {
 
 	    if (isApproved) {
 	        return "RFI No. " + rfi.getId()
-	            + " is submitted by Contractor on " + submissionDate
-	            + " and approved by Engineer on " + approvedDate + ". "
+	            + " is submitted by Contractor on " + rfi.getContractor_submitted_date()
+	            + " and approved by Engineer on " + rfi.getEngineer_submitted_date() + ". "
 	            + "It is a digitally generated document and is electronically signed on 1st page of this RFI.";
 	    } else {
 	        return "RFI No. " + rfi.getId()
-	            + " is submitted by Contractor on " + submissionDate
+	            + " is submitted by Contractor on " + rfi.getContractor_submitted_date()
 	            + " and is yet to be approved by Engineer. "
 	            + "It is a digitally generated document and is electronically signed on 1st page of this RFI.";
 	    }
@@ -428,7 +428,7 @@ public class EsignService {
 	public SignedXmlResponse getEngSignedXmlRequestFromDocument (byte[] pdfData, String sc, String txnId, String signerName, String companyName, Integer signY) throws Exception {
 	    
 		
-		 File signedPdfFile = new File("C:/Users/OSuvarna/git/rfi/frontend/pdfs/signed_" + txnId + ".pdf");
+		 File signedPdfFile = new File(pdfStoragePath,"signed_" + txnId + ".pdf");
 		    if (!signedPdfFile.exists()) {
 		        throw new FileNotFoundException("Signed PDF not found: " + signedPdfFile.getAbsolutePath());
 		    }	

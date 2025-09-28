@@ -459,22 +459,59 @@ public class InspectionController {
 			        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
 			    }
 			}
-	 
 		@PostMapping("/rfi/signedResponse")
-		public String signedResponse(
+		public String signedResponse(@RequestParam("espTxnID") String espTxnID,
+		                             @RequestParam("eSignResponse") String eSignResponse,
+		                             HttpSession session) {
+		    try {
+		        String signerName = extractSignerName(eSignResponse);
+		        esignService.signWithDS(espTxnID, eSignResponse, signerName);
+
+		        // Mark eSign success in session
+		        session.setAttribute("eSignSuccess", true);
+
+		        // Redirect to front-end with txnId
+		        String redirectUrl = "https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID;
+		        return buildHtmlRedirect(redirectUrl, "Contractor Digital signed successfully!", true);
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		        return buildHtmlRedirect("https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID,
+		                                 "Contractor eSign Failed!", false);
+		    }
+		}
+
+		private String buildHtmlRedirect(String redirectUrl, String message, boolean success) {
+		    String bgColor = success ? "#d4edda" : "#f8d7da";
+		    String textColor = success ? "#155724" : "#721c24";
+
+		    return "<!DOCTYPE html>\n" +
+		           "<html>\n" +
+		           "<head>\n" +
+		           "<title>eSign Status</title>\n" +
+		           "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +
+		           "<style>body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
+		           ".msg { background-color: " + bgColor + "; color: " + textColor +
+		           "; padding: 20px; border-radius: 5px; display: inline-block; }</style>\n" +
+		           "</head>\n" +
+		           "<body><div class='msg'>" + message + "</div></body></html>";
+		}
+
+		
+		@PostMapping("/rfi/engineerSignedResponse")
+		public String engineerSignedResponse(
 		        @RequestParam("espTxnID") String espTxnID,
 		        @RequestParam("eSignResponse") String eSignResponse,
 		        HttpSession session) {
 			
 		    String redirectUrl = "https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID;
-		    String message = "Contractor Digital signed successfully!";
+		    String message = "Engineer Digital signed successfully!";		
 	 
 		    try {
 		    	String signerName = extractSignerName(eSignResponse);
-		        esignService.signWithDS(espTxnID, eSignResponse,signerName);
+		        esignService.signWithDSEngineer(espTxnID, eSignResponse,signerName);
 	 
-		        // Fetch RFI for session context if needed
-		        RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(espTxnID);
+		        // Fetch Engineer RFI details if needed
+		        RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(espTxnID, "Engineer");
 		        session.setAttribute("rfi", rfi);
 	 
 		        return "<!DOCTYPE html>\n" +
@@ -510,55 +547,7 @@ public class InspectionController {
 		    }
 		}
 		
-		@PostMapping("/rfi/engineerSignedResponse")
-		public String engineerSignedResponse(
-		        @RequestParam("espTxnID") String espTxnID,
-		        @RequestParam("eSignResponse") String eSignResponse,
-		        HttpSession session) {
-			
-		    String redirectUrl = "https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID;
-		    String message = "Engineer Digital signed successfully!";		
-	 
-		    try {
-		    	String signerName = extractSignerName(eSignResponse);
-		        esignService.signWithDSEngineer(espTxnID, eSignResponse,signerName);
-	 
-		        // Fetch Engineer RFI details if needed
-		        RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(espTxnID);
-		        session.setAttribute("rfi", rfi);
-	 
-		        return "<!DOCTYPE html>\n" +
-	            "<html>\n" +
-	            "<head>\n" +
-	            "<title>eSign Completed</title>\n" +
-	            "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +  // 3 sec delay
-	            "<style>\n" +
-	            "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
-	            ".msg { background-color: #d4edda; color: #155724; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
-	            "</style>\n" +
-	            "</head>\n" +
-	            "<body>\n" +
-	            "<div class='msg'>" + message + "</div>\n" +
-	            "</body>\n" +
-	            "</html>";
-		    } catch (Exception e) {
-		        e.printStackTrace();
-		        return "<!DOCTYPE html>\n" +
-	            "<html>\n" +
-	            "<head>\n" +
-	            "<title>eSign Failed</title>\n" +
-	            "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +
-	            "<style>\n" +
-	            "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
-	            ".msg { background-color: #f8d7da; color: #721c24; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
-	            "</style>\n" +
-	            "</head>\n" +
-	            "<body>\n" +
-	            "<div class='msg'>" + message + "</div>\n" +
-	            "</body>\n" +
-	            "</html>";
-		    }
-		}	
+		
 		public String extractSignerName(String eSignResponse) throws Exception {
 		    // Parse the eSignResponse XML
 		    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

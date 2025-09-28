@@ -12,7 +12,7 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 
 public interface InspectionService {
-	public RFIInspectionDetails getRFIIdTxnId(String espTxnID);
+//	public RFIInspectionDetails getRFIIdTxnId(String espTxnID);
 
 	public boolean SaveTxnId(String txnId, Long rfiId);
 
@@ -29,5 +29,8 @@ public interface InspectionService {
 			List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk);
 
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk);
+
+
+	public RFIInspectionDetails getRFIIdTxnId(String espTxnID, String user);
 
 }
