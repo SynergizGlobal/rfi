@@ -118,7 +118,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text(locationText, 85, 282, { maxWidth: 400 });
 
 	doc.setFont("helvetica", "bold");
-	doc.text("RFI Description:", 40, 316);
+	doc.text("RFI Description:", 40, 317);
 	doc.setFont("helvetica", "normal");
 	doc.rect(40, 328, 510, 40);
 	doc.text(rfiDescription, 45, 343, { maxWidth: 500 });
@@ -192,7 +192,7 @@ export async function generateInspectionPdf(rfiData) {
 	const pageHeight = doc.internal.pageSize.getHeight();
 	const signY = pageHeight - 60;
 	doc.text("Contractor Representative", 80, signY);
-	doc.text("MRVC Representative", 300, signY);
+	doc.text("MRVC Representative", 330, signY);
 
 	// ==============================
 	// Measurement Record (mandatory)
