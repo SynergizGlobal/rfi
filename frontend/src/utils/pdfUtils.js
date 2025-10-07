@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import autoTable from "jspdf-autotable";
 
+
 let externalPdfBlobs = [];
 
 // Convert image/File to Base64
@@ -16,7 +17,7 @@ export const toBase64 = async (url) => {
 };
 
 // Merge jsPDF with external PDFs
-export async function mergeWithExternalPdfs(jsPDFDoc) {
+export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 	const mainPdfBytes = jsPDFDoc.output("arraybuffer");
 	const mainPdf = await PDFDocument.load(mainPdfBytes);
 
@@ -39,7 +40,7 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Mandatory & optional fields handling
 	// ==============================
-	const project = rfiData.project || "";
+	const contract = rfiData.contract || "";
 	const contractor = rfiData.contractor || rfiData.createdBy || "";
 	const contractorRep = rfiData.contractorRep || "";
 	const locationText = rfiData.location || "Not Provided"; // mandatory
@@ -58,6 +59,9 @@ export async function generateInspectionPdf(rfiData) {
 	const engineerRemarks = rfiData.engineerRemarks || "";
 	const enclosuresData = Array.isArray(rfiData.enclosures) ? rfiData.enclosures : [];
 	const images = Array.isArray(rfiData.images) ? rfiData.images : [];
+	const testReportFile = rfiData.testReportFile || null;
+
+
 
 	// ==============================
 	// Header Section
@@ -79,7 +83,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFillColor(255, 255, 0);
 	doc.rect(30, 100, 540, 20, "F");
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text(`Contract :- ${project}`, 40, 115);
+	doc.text(`Contract :- ${contract}`, 40, 115);
 
 	// Engineer
 	doc.rect(30, 120, 540, 20);
@@ -126,38 +130,38 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Enclosures (Checkboxes)
 	// ==============================
+	// ==============================
+	// Enclosures (Dynamic from backend)
+	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Enclosures:", 40, 390);
 
-	const fixedEnclosures = [
-		// "FDD", "Level", "Gradation", "Measurement Sheet", "Drawing", "Other's"
+	// ✅ Extract dynamic enclosures from backend data
+	const dynamicEnclosures = [
+		...new Set(
+			(enclosuresData || [])
+				.map(e => (e && e.enclosure ? String(e.enclosure).trim() : ""))
+				.filter(name => name.length > 0)
+		)
 	];
+
 	doc.setFont("helvetica", "normal").setFontSize(10);
 
-	const actualEnclosures = enclosuresData
-		.map(e => (e && e.enclosure ? String(e.enclosure) : ""))
-		.filter(name => name.trim() !== "");
-
-	fixedEnclosures.forEach((item, i) => {
-		const x = 120 + (i % 3) * 180;
+	// Loop over dynamic enclosures and draw checkboxes
+	dynamicEnclosures.forEach((item, i) => {
+		const x = 120 + (i % 3) * 180;     // position in 3 columns
 		const y = 390 + Math.floor(i / 3) * 25;
 
-		doc.rect(x, y, 10, 10); // checkbox
+		// Draw checkbox
+		doc.rect(x, y, 10, 10);
 
-		if (actualEnclosures.includes(item)) {
-			doc.text("✔", x + 2.5, y + 8);
-		} else if (item === "Other's") {
-			const extras = actualEnclosures.filter(name => !fixedEnclosures.includes(name));
-			if (extras.length > 0) {
-				doc.text("✔", x + 2.5, y + 8);
-				doc.text(`${i + 1}) ${item}: ${extras.join(", ")}`, x + 15, y + 8, { maxWidth: 60 });
-				return;
-			}
-		}
+		// Mark as checked because enclosuresData already represents selected enclosures
+		doc.text("✔", x + 2.5, y + 8);
 
-		// Default label
-		doc.text(`${i + 1}) ${item}`, x + 15, y + 8);
+		// Label with index + name
+		doc.text(`${i + 1}) ${item}`, x + 15, y + 8, { maxWidth: 150 });
 	});
+
 
 	// ==============================
 	// Part II: Engineer's Remarks & Approval
@@ -219,13 +223,14 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Enclosures + Checklists + Site Images
 	// ==============================
-	
+
 	doc.setFont("helvetica", "bold").setFontSize(12);
 	doc.text("Enclosures", 40, 160);
 
 	let encY = 180;
-	enclosuresData.forEach((enc, index) => {
+	for (const [index, enc] of enclosuresData.entries()) {
 		if (encY > 750) { doc.addPage(); encY = 60; }
+
 		doc.setFont("helvetica", "bold").setFontSize(11);
 		doc.text(`Enclosure ${index + 1}: ${enc.enclosure || ""}`, 40, encY);
 
@@ -253,8 +258,28 @@ export async function generateInspectionPdf(rfiData) {
 				headStyles: { fillColor: [220, 220, 220] }
 			});
 			encY = doc.lastAutoTable.finalY + 20;
+		} if (enc.uploadedFile) {
+			const file = enc.uploadedFile;
+			if (file.type === "application/pdf") {
+				externalPdfBlobs.push(file);
+			} else if (file.type.startsWith("image/")) {
+				try {
+					const base64 = await toBase64(URL.createObjectURL(file));
+					if (encY > 600) { doc.addPage(); encY = 60; } // new page if overflow
+					doc.addImage(base64, "JPEG", 40, encY, 500, 300);
+					encY += 310;
+				} catch (err) {
+					console.warn("Failed to add enclosure image", err);
+				}
+			}
 		}
-	});
+
+
+
+	}
+
+
+
 
 	// Site Images
 	doc.setFont("helvetica", "bold").setFontSize(12);
@@ -269,10 +294,28 @@ export async function generateInspectionPdf(rfiData) {
 		}
 	});
 
-	doc.addPage();
-	doc.rect(30, 30, 540, 780);
-	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Test Report", 40, 49);
+	if (testReportFile) {
+		doc.addPage();
+		doc.setFont("helvetica", "bold").setFontSize(12);
+		doc.text("Test Report", 40, 50);
 
-	return doc;
+		if (testReportFile instanceof File && testReportFile.type === "application/pdf") {
+			// PDF → push to externalPdfBlobs for merging later
+			externalPdfBlobs.push(testReportFile);
+		} else {
+			// Image → convert to base64 and add to PDF
+			try {
+				const testReportBase64 =
+					testReportFile instanceof File
+						? await toBase64(URL.createObjectURL(testReportFile))
+						: testReportFile; // if already base64 string
+
+				// Add image on page
+				doc.addImage(testReportBase64, "JPEG", 40, 80, 500, 700);
+			} catch (err) {
+				console.warn("Failed to add test report file", err);
+			}
+		}
+	}
+	return { doc, externalPdfBlobs };
 }

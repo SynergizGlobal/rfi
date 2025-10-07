@@ -672,13 +672,15 @@ export default function InspectionForm() {
 					enclosure: e.enclosure,
 					description: e.rfiDescription,
 					checklist: state.checklist || [],
+					uploadedFile: state.uploadedFile || null
+
 				};
 			});
 
 			// 3️⃣ Generate PDF (same for both roles)
-			const doc = await generateInspectionPdf({
+			const { doc, externalPdfBlobs } = await generateInspectionPdf({
 				rfi_Id: rfiData.rfi_Id,
-				project: rfiData.project,
+				contract: rfiData.contract,
 				contractor: rfiData.createdBy,
 				contractorRep,
 				location: locationText,
@@ -703,6 +705,7 @@ export default function InspectionForm() {
 					total: m.total,
 				})),
 				engineerRemarks: engineerRemarks || "",
+				testReportFile,
 				contractorRemarks: rfiData.contractorRemarks,
 				images: await Promise.all(
 					galleryImages.map(async (img) =>
@@ -714,8 +717,19 @@ export default function InspectionForm() {
 			});
 
 			const y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 50;
-			const pdfBlob = doc.output("blob");
 
+
+			const pdfBlob = externalPdfBlobs.length > 0
+				? await mergeWithExternalPdfs(doc, externalPdfBlobs)
+				: doc.output("blob");
+
+			const mergedUrl = URL.createObjectURL(pdfBlob);
+			const link = document.createElement("a");
+			link.href = mergedUrl;
+			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
 			const pdfFormData = new FormData();
 			pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
