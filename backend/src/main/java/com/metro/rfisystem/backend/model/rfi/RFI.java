@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -109,19 +110,20 @@ public class RFI {
 	private String emailUser;
 	
 	@Enumerated(EnumType.STRING)
-	@Column(name = "status", nullable = false)
-	private EnumRfiStatus status;
-	
-	@Enumerated(EnumType.STRING)
 	@Column(name = "eSign_status",length = 30)
 	private ESignStatus eStatus;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false)
+	private EnumRfiStatus status;
 	
 	@Column(name = "assigned_person_client")
 	private String assignedPersonClient;
 	
 	@Column(name = "client_department")
 	private String clientDepartment;
- 
+    private String txn_id;
+
 	
     @Column(name = "assigned_person_contractor")
     private String assignedPersonContractor;
@@ -155,6 +157,21 @@ public class RFI {
     @OneToOne(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Measurements measurements;
+    
+    
+    @Column(name = "contractor_submitted_date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate contractor_submitted_date;
+    
+    @Column(name = "engineer_submitted_date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate engineer_submitted_date;
+    
+    @Column(name = "contractor_esign_done")
+    private Boolean contractorEsignDone = false;
+
+    @Column(name = "engineer_esign_done")
+    private Boolean engineerEsignDone = false;
 
     
     public List<String> getEnclosuresList() {

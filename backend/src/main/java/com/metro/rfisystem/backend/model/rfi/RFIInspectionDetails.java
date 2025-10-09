@@ -107,4 +107,10 @@ public class RFIInspectionDetails {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate engineer_submitted_date;
     
+    @Column(name = "contractor_esign_done")
+    private Boolean contractorEsignDone = false;
+
+    @Column(name = "engineer_esign_done")
+    private Boolean engineerEsignDone = false;
+    
 }

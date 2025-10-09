@@ -44,7 +44,7 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(Arrays.asList(frontendUrl, "https://es-staging.cdac.in"));
+		config.setAllowedOrigins(Arrays.asList(frontendUrl, "https://es-staging.cdac.in", "https://syntrackpro.com"));
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(Arrays.asList("*"));
 		config.setAllowCredentials(true);

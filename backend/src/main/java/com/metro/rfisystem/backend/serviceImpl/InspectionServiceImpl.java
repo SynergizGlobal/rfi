@@ -514,43 +514,43 @@ public class InspectionServiceImpl implements InspectionService {
 
 
  
- 
 	@Override
-	public RFIInspectionDetails getRFIIdTxnId(String espTxnID, String User) {
+	public RFI getRFIIdTxnId(String espTxnID, String User) {
 	    System.out.println("Executing query for txn_id: " + espTxnID);
- 
-	    String selectSql = "SELECT rfi_id, id, txn_id, created_by,contractor_submitted_date,engineer_submitted_date " +
-	                       "FROM rfi_data WHERE txn_id = ?";
- 
+
+	    // 1️⃣ Update date first
+	    if ("Contractor".equalsIgnoreCase(User)) {
+	        String updateSql = "UPDATE rfi_data SET contractor_submitted_date = NOW() WHERE txn_id = ?";
+	        int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
+	        System.out.println("Contractor submitted date updated. Rows affected: " + rowsAffected);
+	    } else if ("Engineer".equalsIgnoreCase(User)) {
+	        String updateSql = "UPDATE rfi_data SET engineer_submitted_date = NOW() WHERE txn_id = ?";
+	        int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
+	        System.out.println("Engineer submitted date updated. Rows affected: " + rowsAffected);
+	    }
+
+	    // 2️⃣ Fetch the updated RFI
+	    String selectSql = "SELECT rfi_id, id, txn_id, created_by, contractor_submitted_date, engineer_submitted_date "
+	            + "FROM rfi_data WHERE txn_id = ?";
+
 	    try {
-	        RFIInspectionDetails details = jdbcTemplate.queryForObject(
-	            selectSql,
-	            new Object[]{espTxnID},
-	            (rs, rowNum) -> {
-	                RFIInspectionDetails rfiDetails = new RFIInspectionDetails();
-	                rfiDetails.setId(rs.getLong("id"));
-	                rfiDetails.setRfi_id(rs.getString("rfi_id"));
-	                rfiDetails.setTxn_id(rs.getString("txn_id"));
-	                rfiDetails.setCreated_by(rs.getString("created_by"));
-	                rfiDetails.setContractor_submitted_date(rs.getObject("contractor_submitted_date", LocalDate.class));
-	                rfiDetails.setEngineer_submitted_date(rs.getObject("engineer_submitted_date", LocalDate.class));
-	                return rfiDetails;
-	            }
-	        );
- 
-	        // Handle role-specific updates
-	        if ("Contractor".equalsIgnoreCase(User)) {
-	            String updateSql = "UPDATE rfi_data SET contractor_submitted_date = NOW() WHERE txn_id = ?";
-	            int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
-	            System.out.println("Contractor submitted date updated. Rows affected: " + rowsAffected);
-	        } else if ("Engineer".equalsIgnoreCase(User)) {
-	            String updateSql = "UPDATE rfi_data SET engineer_submitted_date = NOW() WHERE txn_id = ?";
-	            int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
-	            System.out.println("Engineer submitted date updated. Rows affected: " + rowsAffected);
-	        }
- 
-	        return details;
- 
+	        return jdbcTemplate.queryForObject(selectSql, new Object[]{espTxnID}, (rs, rowNum) -> {
+	            RFI rfiDetails = new RFI();
+	            rfiDetails.setId(rs.getLong("id"));
+	            rfiDetails.setRfi_Id(rs.getString("rfi_id"));
+	            rfiDetails.setTxn_id(rs.getString("txn_id"));
+	            rfiDetails.setCreatedBy(rs.getString("created_by"));
+
+	            java.sql.Date contractorDate = rs.getDate("contractor_submitted_date");
+	            java.sql.Date engineerDate = rs.getDate("engineer_submitted_date");
+
+	            rfiDetails.setContractor_submitted_date(contractorDate != null ? contractorDate.toLocalDate() : null);
+	            rfiDetails.setEngineer_submitted_date(engineerDate != null ? engineerDate.toLocalDate() : null);
+
+	            System.out.println("engineer date after update: " + rfiDetails.getEngineer_submitted_date());
+
+	            return rfiDetails;
+	        });
 	    } catch (EmptyResultDataAccessException e) {
 	        System.out.println("No RFI record found for txn_id: " + espTxnID);
 	        return null;

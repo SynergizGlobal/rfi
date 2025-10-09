@@ -17,7 +17,7 @@ public class CorsConfig {
 		return new WebMvcConfigurer() {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
-				registry.addMapping("/**").allowedOrigins(frontendUrl) // React dev server
+				registry.addMapping("/**").allowedOrigins(frontendUrl, "https://syntrackpro.com") // React dev server
 						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS").allowedHeaders("*").
 	            allowCredentials(true);
 

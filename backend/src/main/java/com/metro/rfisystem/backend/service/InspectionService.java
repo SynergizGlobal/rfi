@@ -10,6 +10,7 @@ import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 
 public interface InspectionService {
@@ -39,7 +40,7 @@ public interface InspectionService {
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk);
 
 
-	public RFIInspectionDetails getRFIIdTxnId(String espTxnID, String user);
+	public RFI getRFIIdTxnId(String espTxnID, String user);
 
 
 }

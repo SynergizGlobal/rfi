@@ -198,7 +198,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query(value = "SELECT\r\n" + "  -- RFI base fields\r\n" + "  r.consultant AS consultant,\r\n"
 			+ "  r.contract_short_name AS contract,\r\n" + "  r.created_by AS contractor,\r\n"
 			+ "  r.contract_id AS contractId,\r\n" + "  r.rfi_id AS rfiId,\r\n" + "  r.status AS rfiStatus,\r\n"
-			+ "  DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS dateOfInspection,\r\n" + "  ico.location AS location,\r\n"
+			+ "  DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS dateOfInspection,\r\n"
+			+ "  ico.location AS location,\r\n"
 			+ "  TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime,\r\n"
 			+ "  TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime,\r\n" + "\r\n"
 			+ "  -- Description\r\n" + "  r.rfi_description AS rfiDescription,\r\n"
@@ -217,98 +218,59 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "\r\n" + "-- Enclosures split by uploaded_by\r\n" + "LEFT JOIN rfi_enclosure re\r\n"
 			+ "  ON re.rfi_id_fk = r.id\r\n" + "WHERE r.id = :id\r\n" + "GROUP BY r.id;", nativeQuery = true)
 	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
-	
-	@Query(value = "SELECT " +
-	        "r.project_name as project, " +
-	        "r.work_short_name as work, " +
-	        "r.contract_short_name AS contract, " +
-	        "r.contract_id AS contractId, " +
-	        "r.structure_type as structureType, " +
-	        "r.structure, " +
-	        "r.component, " +
-	        "r.element, " +
-	        "r.activity, " +
-	        "r.rfi_description AS rfiDescription, " +
-	        "r.action, " +
-	        "r.type_of_rfi as typeOfRfi, " +
-	        "r.name_of_representative AS contractorRepresentative, " +
-	        "r.created_by AS contractor, " +
-	        "r.enclosures AS enclosures, " +
-	        "r.rfi_id AS rfiId, " +
-	        "r.status AS rfiStatus, " +
-	        "r.description AS descriptionByContractor, " +
-	        "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfCreation, " +
-	        "DATE_FORMAT(ico.inspection_date, '%Y-%m-%d') AS conInspDate, " +
-	        "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS proposedDateOfInspection, " +
-	        "DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS actualDateOfInspection, " +
-	        "TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime, " +
-	        "TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime, " +
-	        "r.dy_hod_user_id as dyHOdUserId, " +
-	        "r.assigned_person_client AS clientRepresentative, " +
-	        "r.client_department as clientDepartment, " +
-	        "ico.location AS ConLocation, " +
-	        "ic.location AS ClientLocation, " +
-	        "ico.chainage as Chainage, " +
-	        "v.action AS validationStatus, " +
-	        "v.remarks AS remarks, " +
-	        "v.comment as validationComments, " +
-	        "ic.selfie_path AS selfieClient, " +
-	        "ico.selfie_path AS selfieContractor, " +
-	        "ic.site_image AS imagesUploadedByClient, " +
-	        "ico.site_image AS imagesUploadedByContractor, " +
-	        "ico.inspection_status AS typeOfTest, " +
-	        "ic.test_insite_lab AS testStatus, " +
-	        "ic.ae_remarks as engineerRemarks, " +
-	        "ico.test_site_documents AS testSiteDocumentsContractor " +
-	        "FROM rfi_data r " +
-	        "LEFT JOIN rfi_inspection_details ic ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg' and ic.work_status = 1 " +
-	        "LEFT JOIN rfi_inspection_details ico ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg' and ico.work_status = 1 " +
-	        "LEFT JOIN rfi_validation v ON v.rfi_id_fk = r.id " +
-	        "LEFT JOIN rfi_enclosure re ON re.rfi_id_fk = r.id " +
-	        "WHERE r.id = :id " +
-	        "GROUP BY r.id", 
-	        nativeQuery = true)
+
+	@Query(value = "SELECT " + "r.project_name as project, " + "r.work_short_name as work, "
+			+ "r.contract_short_name AS contract, " + "r.contract_id AS contractId, "
+			+ "r.structure_type as structureType, " + "r.structure, " + "r.component, " + "r.element, " + "r.activity, "
+			+ "r.rfi_description AS rfiDescription, " + "r.action, " + "r.type_of_rfi as typeOfRfi, "
+			+ "r.name_of_representative AS contractorRepresentative, " + "r.created_by AS contractor, "
+			+ "r.enclosures AS enclosures, " + "r.rfi_id AS rfiId, " + "r.status AS rfiStatus, "
+			+ "r.description AS descriptionByContractor, "
+			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfCreation, "
+			+ "DATE_FORMAT(ico.inspection_date, '%Y-%m-%d') AS conInspDate, "
+			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS proposedDateOfInspection, "
+			+ "DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS actualDateOfInspection, "
+			+ "TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime, "
+			+ "TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime, "
+			+ "r.dy_hod_user_id as dyHOdUserId, " + "r.assigned_person_client AS clientRepresentative, "
+			+ "r.client_department as clientDepartment, " + "ico.location AS ConLocation, "
+			+ "ic.location AS ClientLocation, " + "ico.chainage as Chainage, " + "v.action AS validationStatus, "
+			+ "v.remarks AS remarks, " + "v.comment as validationComments, " + "ic.selfie_path AS selfieClient, "
+			+ "ico.selfie_path AS selfieContractor, " + "ic.site_image AS imagesUploadedByClient, "
+			+ "ico.site_image AS imagesUploadedByContractor, " + "ico.inspection_status AS typeOfTest, "
+			+ "ic.test_insite_lab AS testStatus, " + "ic.ae_remarks as engineerRemarks, "
+			+ "ico.test_site_documents AS testSiteDocumentsContractor " + "FROM rfi_data r "
+			+ "LEFT JOIN rfi_inspection_details ic ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg' and ic.work_status = 1 "
+			+ "LEFT JOIN rfi_inspection_details ico ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg' and ico.work_status = 1 "
+			+ "LEFT JOIN rfi_validation v ON v.rfi_id_fk = r.id " + "LEFT JOIN rfi_enclosure re ON re.rfi_id_fk = r.id "
+			+ "WHERE r.id = :id " + "GROUP BY r.id", nativeQuery = true)
 	List<RfiDetailsLogDTO> getRfiReportDetailsRfiLog(@Param("id") long id);
 
-
-	@Query(value = "SELECT r.id AS id, " +
-            "r.rfi_id AS rfiId, " +
-            "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, " +
-            "r.rfi_description AS rfiDescription, " +
-            "r.created_by AS rfiRequestedBy, " +
-            "r.client_department AS department, " +
-            "r.assigned_person_client AS person, " +
-            "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, " +
-            "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " +
-            "i.test_insite_lab as enggApproval, " +
-            "r.status AS status, " +
-            "COALESCE(i.ae_remarks, rv.remarks) AS notes, " +
-            "r.project_name AS project, " +
-            "r.work_short_name AS work, " +
-            "r.contract_short_name AS contract, " +
-            "r.name_of_representative AS nameOfRepresentative, " +
-            "r.txn_id AS txnId " +
-            "FROM rfi_data AS r " +
-            "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk AND i.uploaded_by = 'Engg' " +
-            "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " +
-            "GROUP BY r.id " +
-            "ORDER BY r.created_at DESC", nativeQuery = true)
-List<RfiLogDTO> listAllRfiLogItAdmin();
-
+	@Query(value = "SELECT r.id AS id, " + "r.rfi_id AS rfiId, "
+			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "
+			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
+			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
+			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, "
+			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "i.test_insite_lab as enggApproval, "
+			+ "r.status AS status, " + "COALESCE(i.ae_remarks, rv.remarks) AS notes, " + "r.project_name AS project, "
+			+ "r.work_short_name AS work, " + "r.contract_short_name AS contract, "
+			+ "r.name_of_representative AS nameOfRepresentative, " + "r.txn_id AS txnId " + "FROM rfi_data AS r "
+			+ "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk AND i.uploaded_by = 'Engg' "
+			+ "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " + "GROUP BY r.id "
+			+ "ORDER BY r.created_at DESC", nativeQuery = true)
+	List<RfiLogDTO> listAllRfiLogItAdmin();
 
 //For Contractor query using the field "created_by" in the rfi_table.
 	@Query(value = "SELECT " + "r.id AS id, " + "r.rfi_id AS rfiId, "
 			+ "DATE_FORMAT(r.date_of_submission, '%Y-%m-%d') AS dateOfSubmission, "
 			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
 			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
-			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, " 
-			+ "i.test_insite_lab as enggApproval, "
+			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, " + "i.test_insite_lab as enggApproval, "
 			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "r.status AS status, "
 			+ "rv.remarks AS notes, " + "r.project_name AS project, " + "r.work_short_name AS work, "
-			+ "r.contract_short_name AS contract, "
-			+ "r.name_of_representative AS nameOfRepresentative, "
-			+ "r.txn_id AS txnId " 
-			+ "FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk "
+			+ "r.contract_short_name AS contract, " + "r.name_of_representative AS nameOfRepresentative, "
+			+ "r.txn_id AS txnId " + "FROM rfi_data AS r "
+			+ "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk "
 			+ "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " + "WHERE r.created_by = :userName "
 			+ "GROUP BY r.id " + "ORDER BY r.created_at DESC", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogByCreatedBy(@Param("userName") String userName);
@@ -324,14 +286,14 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 			        r.assigned_person_client AS person,
 			        DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised,
 			        DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded,
-			        i.test_insite_lab as enggApproval, 
+			        i.test_insite_lab as enggApproval,
 			        r.status AS status,
 			        COALESCE(i.ae_remarks, rv.remarks) AS notes,
 			        r.project_name AS project,
 			        r.work_short_name AS work,
 			        r.contract_short_name AS contract,
 			        r.name_of_representative AS nameOfRepresentative,
-			        r.txn_id AS txnId 
+			        r.txn_id AS txnId
 			    FROM rfi_data r
 			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'
 			    LEFT JOIN rfi_validation rv ON rv.rfi_id_fk = r.id
@@ -346,14 +308,11 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 			+ "r.rfi_description AS rfiDescription, " + "r.created_by AS rfiRequestedBy, "
 			+ "r.client_department AS department, " + "r.assigned_person_client AS person, "
 			+ "DATE_FORMAT(r.date_of_inspection, '%Y-%m-%d') AS dateRaised, "
-			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, "
-			+ "i.test_insite_lab as enggApproval, "
-			+ "r.status AS status, "
-			+ "COALESCE(i.ae_remarks, rv.remarks) AS notes\r\n"
-			+ ", " + "r.project_name AS project, " + "r.work_short_name AS work, "
-			+ "r.contract_short_name AS contract, " + "r.name_of_representative AS nameOfRepresentative, " 
-			+ "r.txn_id AS txnId "
-			+"FROM rfi_data AS r " + "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'"
+			+ "DATE_FORMAT(i.inspection_date, '%Y-%m-%d') AS dateResponded, " + "i.test_insite_lab as enggApproval, "
+			+ "r.status AS status, " + "COALESCE(i.ae_remarks, rv.remarks) AS notes\r\n" + ", "
+			+ "r.project_name AS project, " + "r.work_short_name AS work, " + "r.contract_short_name AS contract, "
+			+ "r.name_of_representative AS nameOfRepresentative, " + "r.txn_id AS txnId " + "FROM rfi_data AS r "
+			+ "LEFT JOIN rfi_inspection_details AS i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'"
 			+ "LEFT JOIN rfi_validation AS rv ON rv.rfi_id_fk = r.id " + "WHERE r.dy_hod_user_id = :userId "
 			+ "GROUP BY r.id " + "ORDER BY r.created_at DESC", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogByDyHod(String userId);
@@ -376,19 +335,17 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.assignedPersonClient = :assignedTo")
 	long countByStatusesAndAssignedPersonClient(@Param("statuses") List<EnumRfiStatus> statuses,
 			@Param("assignedTo") String assignedTo);
-	
-	// Count by single status for regular users (includes contractor rep, engineer, etc.)
-	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status = :status AND " +
-	       "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
-	long countByStatusByRegularUser(@Param("status") EnumRfiStatus status,
-	                                @Param("userName") String userName);
 
-	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND " +
-		       "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
-		long countByStatusesByRegularUser(@Param("statuses") List<EnumRfiStatus> statuses,
-		                                  @Param("userName") String userName);
+	// Count by single status for regular users (includes contractor rep, engineer,
+	// etc.)
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status = :status AND "
+			+ "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+	long countByStatusByRegularUser(@Param("status") EnumRfiStatus status, @Param("userName") String userName);
 
-
+	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND "
+			+ "(r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+	long countByStatusesByRegularUser(@Param("statuses") List<EnumRfiStatus> statuses,
+			@Param("userName") String userName);
 
 	@Query(value = "select id from rfi_data " + "where contract_id = :contract "
 			+ "and structure_type = :structureType " + "and structure = :structure", nativeQuery = true)
@@ -396,8 +353,6 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 
 	@Query(value = "SELECT * FROM rfi_data WHERE id IN (:ids)", nativeQuery = true)
 	List<RFI> findByIds(@Param("ids") List<Integer> ids);
-
-
 
 	@Query(value = """
 			SELECT
@@ -476,7 +431,7 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 			        r.work_short_name AS work,
 			        r.contract_short_name AS contract,
 			        r.name_of_representative AS nameOfRepresentative,
-			        r.txn_id AS txnId 
+			        r.txn_id AS txnId
 			    FROM rfi_data r
 			    LEFT JOIN rfi_inspection_details i ON r.id = i.rfi_id_fk and uploaded_by = 'Engg'
 			    LEFT JOIN rfi_validation rv ON rv.rfi_id_fk = r.id
@@ -485,17 +440,30 @@ List<RfiLogDTO> listAllRfiLogItAdmin();
 			    ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiLogDTO> listAllRfiLogByRepresentative(@Param("userName") String userName);
-	
-	//REpository Data inserting Method For Bulk updating theExecutive to filtered rfi-Ids in Assign Executive Page
+
+	// REpository Data inserting Method For Bulk updating theExecutive to filtered
+	// rfi-Ids in Assign Executive Page
 	@Transactional
-    @Modifying
-    @Query("UPDATE RFI r SET r.assignedPersonUserId = :userId, " +
-           "r.clientDepartment = :department, " +
-           "r.assignedPersonClient = :client " +
-           "WHERE r.id IN :ids")
-    int bulkUpdateAssignedExecutive(@Param("userId") String userId,
-                                    @Param("department") String department,
-                                    @Param("client") String client,
-                                    @Param("ids") List<Long> ids);
+	@Modifying
+	@Query("UPDATE RFI r SET r.assignedPersonUserId = :userId, " + "r.clientDepartment = :department, "
+			+ "r.assignedPersonClient = :client " + "WHERE r.id IN :ids")
+	int bulkUpdateAssignedExecutive(@Param("userId") String userId, @Param("department") String department,
+			@Param("client") String client, @Param("ids") List<Long> ids);
+
+	@Query("SELECT r.contractorEsignDone FROM RFI r WHERE r.id = :id")
+	Boolean isContractorSigned(@Param("id") Long id);
+
+	@Query("SELECT r.engineerEsignDone FROM RFI r WHERE r.id = :id")
+	Boolean isEngineerSigned(@Param("id") Long id);
+
+	@Modifying
+	@Transactional
+	@Query("UPDATE RFI r SET r.contractorEsignDone = TRUE WHERE r.id = :id")
+	void markContractorSigned(@Param("id") String espTxnID);
+
+	@Modifying
+	@Transactional
+	@Query("UPDATE RFI r SET r.engineerEsignDone = TRUE WHERE r.id = :id")
+	void markEngineerSigned(@Param("id") String espTxnID);
 
 }

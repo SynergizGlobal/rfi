@@ -82,6 +82,7 @@ import com.itextpdf.text.pdf.security.MakeSignature;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
 import com.metro.rfisystem.backend.controller.InspectionController;
+import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.SignedXmlResponse;
 import org.apache.xml.security.Init;
@@ -117,7 +118,7 @@ public class EsignService {
 	private PdfService pdfService;
 	
 	public void signWithDS(String txnId, String eSignResponse, String conName) throws Exception {
-	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId, "Contractor");
+	    RFI rfi = inspectionService.getRFIIdTxnId(txnId, "Contractor");
 
 	    File pdfDir = new File(pdfStoragePath);
 	    if (!pdfDir.exists()) pdfDir.mkdirs();
@@ -199,7 +200,7 @@ public class EsignService {
 
 
 	public void signWithDSEngineer(String txnId, String eSignResponse, String engName) throws Exception {
-	    RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(txnId, "Engineer");
+	    RFI rfi = inspectionService.getRFIIdTxnId(txnId, "Engineer");
 
 	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 	    String today = LocalDate.now().format(formatter);
@@ -301,7 +302,7 @@ public class EsignService {
 	}
 
 
-	private String buildDisclaimer(RFIInspectionDetails rfi, boolean isApproved, String approvedDate) {
+	private String buildDisclaimer(RFI rfi, boolean isApproved, String approvedDate) {
 	    String submissionDate = (rfi.getDateOfInspection() != null) 
 	            ? rfi.getDateOfInspection().toString() 
 	            : "xx-xx-202x";
