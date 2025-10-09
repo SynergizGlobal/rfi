@@ -271,15 +271,28 @@ public class EsignService {
 	    String disclaimerText = buildDisclaimer(rfi, true, today);
 
 	    for (int i = 2; i <= reader2.getNumberOfPages(); i++) {
-	        PdfContentByte canvas = stamper2.getOverContent(i);
-	        ColumnText.showTextAligned(
-	            canvas, Element.ALIGN_CENTER,
-	            new Phrase(disclaimerText, new Font(Font.FontFamily.HELVETICA, 8)),
-	            reader2.getPageSize(i).getWidth() / 2,
-	            25,
-	            0
-	        );
-	    }
+	    	PdfContentByte canvas = stamper2.getOverContent(i);
+            float pageWidth = reader2.getPageSize(i).getWidth();
+            float pageHeight = reader2.getPageSize(i).getHeight();
+            float bottomMargin = 45f; // Safe margin above the physical footer
+            float maxWidth = pageWidth - 100f; // left-right padding
+ 
+            Font footerFont = new Font(Font.FontFamily.HELVETICA, 8);
+            Phrase footerPhrase = new Phrase(disclaimerText, footerFont);
+ 
+            // Wrap long text to fit inside the page
+            ColumnText ct = new ColumnText(canvas);
+            ct.setSimpleColumn(
+                    50f, // left margin
+                    bottomMargin, // bottom Y limit
+                    pageWidth - 50f, // right margin
+                    bottomMargin + 40f // top Y limit for footer
+            );
+            ct.setAlignment(Element.ALIGN_CENTER);
+            ct.setText(footerPhrase);
+            ct.go();
+        }
+ 
 
 	    stamper2.close();
 	    reader2.close();

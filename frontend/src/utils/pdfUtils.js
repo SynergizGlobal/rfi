@@ -136,30 +136,36 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Enclosures:", 40, 390);
 
-	// ✅ Extract dynamic enclosures from backend data
 	const dynamicEnclosures = [
-		...new Set(
-			(enclosuresData || [])
-				.map(e => (e && e.enclosure ? String(e.enclosure).trim() : ""))
-				.filter(name => name.length > 0)
-		)
+	  ...new Set(
+	    (enclosuresData || [])
+	      .map(e => (e && e.enclosure ? String(e.enclosure).trim() : ""))
+	      .filter(name => name.length > 0)
+	  )
 	];
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 
-	// Loop over dynamic enclosures and draw checkboxes
+	// Layout config
+	const startX = 60;          // starting X position
+	const startY = 405;         // starting Y position (below "Enclosures:")
+	const colWidth = 160;       // width per column
+	const rowHeight = 22;       // spacing between rows
+	const columns = 3;          // number of columns
+
+	// Draw checkboxes and labels
 	dynamicEnclosures.forEach((item, i) => {
-		const x = 120 + (i % 3) * 180;     // position in 3 columns
-		const y = 390 + Math.floor(i / 3) * 25;
+	  const col = i % columns;
+	  const row = Math.floor(i / columns);
+	  const x = startX + col * colWidth;
+	  const y = startY + row * rowHeight;
 
-		// Draw checkbox
-		doc.rect(x, y, 10, 10);
+	  // Checkbox
+	  doc.rect(x, y - 8, 8, 8);
+	  doc.text("✔", x + 1.8, y - 1.5);
 
-		// Mark as checked because enclosuresData already represents selected enclosures
-		doc.text("✔", x + 2.5, y + 8);
-
-		// Label with index + name
-		doc.text(`${i + 1}) ${item}`, x + 15, y + 8, { maxWidth: 150 });
+	  // Label
+	  doc.text(`${i + 1}) ${item}`, x + 12, y - 1.5, { maxWidth: colWidth - 20 });
 	});
 
 
@@ -193,10 +199,11 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text(remarkText, 50, remarksY);
 
 	// Signature placeholders
-	const pageHeight = doc.internal.pageSize.getHeight();
+	// Reuse existing page height
+	let pageHeight = doc.internal.pageSize.getHeight();
 	const signY = pageHeight - 60;
 	doc.text("Contractor Representative", 80, signY);
-	doc.text("MRVC Representative", 330, signY);
+	doc.text("MRVC Representative", 316, signY);
 
 	// ==============================
 	// Measurement Record (mandatory)
@@ -235,7 +242,7 @@ export async function generateInspectionPdf(rfiData) {
 		doc.text(`Enclosure ${index + 1}: ${enc.enclosure || ""}`, 40, encY);
 
 		if (enc.description) {
-			doc.setFont("helvetica", "normal").setFontSize(10);
+				doc.setFont("helvetica", "normal").setFontSize(10);
 			doc.text(`Description: ${enc.description}`, 60, encY + 15, { maxWidth: 480 });
 			encY += 30;
 		} else {
@@ -281,41 +288,95 @@ export async function generateInspectionPdf(rfiData) {
 
 
 
-	// Site Images
+	// ==============================
+	// Site Images (auto-paginated)
+	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(12);
 	doc.text("Site Images:", 40, encY + 10);
+
+	const imageWidth = 220;
+	const imageHeight = 140;
+	const imagesPerRow = 2;
+	const columnSpacing = 250;
+	const rowSpacing = 160;
+	const imgStartX = 60;
+	let currentY = encY + 30;
+
+	// Loop through all site images
 	images.forEach((img, i) => {
-		const x = 40 + (i % 2) * 250;
-		const y = encY + 30 + Math.floor(i / 2) * 180;
+		const col = i % imagesPerRow;
+		const row = Math.floor(i / imagesPerRow);
+
+		const x = imgStartX + col * columnSpacing;
+		const y = currentY + row * rowSpacing;
+
+		// Check overflow before drawing each image
+		if (y + imageHeight + 40 > pageHeight) {
+			doc.addPage();
+			currentY = 60; // reset Y for new page
+			doc.setFont("helvetica", "bold").setFontSize(12);
+			doc.text("Site Images (contd...):", 40, currentY - 20);
+		}
+
 		try {
-			doc.addImage(img, "JPEG", x, y, 200, 150);
+			doc.addImage(img, "JPEG", x, currentY + (row % 2) * rowSpacing, imageWidth, imageHeight);
 		} catch (e) {
 			console.warn("Image failed to add, skipping", e);
 		}
+
+		// If we've just added two images in a row, check if we should move down
+		if ((i + 1) % imagesPerRow === 0) {
+			currentY += rowSpacing;
+		}
 	});
 
+	// Update encY to where we finished placing images
+	encY = currentY + 160;
+
+	// Example: after finishing "Site Image Cont..." section
+	currentY += 300; // or however tall the site image section is
+
+	// Then start your test report
 	if (testReportFile) {
-		doc.addPage();
 		doc.setFont("helvetica", "bold").setFontSize(12);
-		doc.text("Test Report", 40, 50);
+
+		// Add spacing before new section
+		currentY += 30;
+		if (currentY > pageHeight - 150) {
+			// not enough space → new page
+			doc.addPage();
+			currentY = 50;
+		}
+
+		doc.text("Test Report", 40, currentY);
 
 		if (testReportFile instanceof File && testReportFile.type === "application/pdf") {
-			// PDF → push to externalPdfBlobs for merging later
+			// store for merging later
 			externalPdfBlobs.push(testReportFile);
+			doc.setFont("helvetica", "italic").setFontSize(10);
+			currentY += 20;
+			doc.text("(Attached PDF test report will be merged)", 40, currentY);
 		} else {
-			// Image → convert to base64 and add to PDF
 			try {
 				const testReportBase64 =
 					testReportFile instanceof File
 						? await toBase64(URL.createObjectURL(testReportFile))
-						: testReportFile; // if already base64 string
+						: testReportFile;
 
-				// Add image on page
-				doc.addImage(testReportBase64, "JPEG", 40, 80, 500, 700);
+				const availableHeight = pageHeight - currentY - 100; // reserve footer space
+				currentY += 30;
+				doc.addImage(testReportBase64, "JPEG", 40, currentY, 500, availableHeight);
+				currentY += availableHeight + 20;
 			} catch (err) {
 				console.warn("Failed to add test report file", err);
 			}
 		}
+
+		// Footer
+		doc.setDrawColor(0);
+		doc.line(40, pageHeight - 40, 550, pageHeight - 40);
+		doc.setFont("helvetica", "italic").setFontSize(9);
 	}
+
 	return { doc, externalPdfBlobs };
 }
