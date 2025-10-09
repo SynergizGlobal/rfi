@@ -26,6 +26,7 @@ import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
@@ -570,7 +571,7 @@ public class InspectionController {
 		        esignService.signWithDSEngineer(espTxnID, eSignResponse, signerName);
 
 		        // Fetch Engineer RFI details if needed
-		        RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(espTxnID, "Engineer");
+		        RFI rfi = inspectionService.getRFIIdTxnId(espTxnID, "Engineer");
 		        session.setAttribute("rfi", rfi);
 		        inspectionService.saveESignStatusEngg(ESignStatus.ENGG_SUCCESS, espTxnID);
 		        esignWebSocketService.sendStatusUpdate(
