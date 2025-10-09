@@ -4,8 +4,11 @@ import { Client } from "@stomp/stompjs";
 let stompClient = null;
 
 export const connectEsignSocket = (txnId, onMessage) => {
+	
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
   stompClient = new Client({
-    webSocketFactory: () => new SockJS("https://localhost:8443/ws"),
+    webSocketFactory: () => new SockJS(`${API_BASE_URL}ws`),
     reconnectDelay: 5000,
     onConnect: () => {
       console.log("✅ Connected to WebSocket");
