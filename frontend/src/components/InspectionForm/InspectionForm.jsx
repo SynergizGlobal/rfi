@@ -8,6 +8,8 @@ import './InspectionForm.css';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
 import { useNavigate } from "react-router-dom";
 import { generateInspectionPdf, mergeWithExternalPdfs, toBase64 } from '../../utils/pdfUtils';
+import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket"; 
+
 
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
@@ -600,7 +602,6 @@ export default function InspectionForm() {
 			}
 		}
 
-		// Engineer rules
 		if (isEngineer) {
 			const conflict = Object.values(enclosureStates).some(enc =>
 				enc.checklist?.some(row =>
@@ -656,13 +657,6 @@ export default function InspectionForm() {
 
 			if (testReportFile) formData.append("testReport", testReportFile);
 
-			const res = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
-				method: "POST",
-				body: formData,
-				credentials: "include",
-			});
-
-			if (!res.ok) throw new Error(await res.text());
 
 			// 2️⃣ Prepare enclosures for PDF
 			const checklistsByEnclosure = enclosuresData.map((e) => {
@@ -673,10 +667,10 @@ export default function InspectionForm() {
 					description: e.rfiDescription,
 					checklist: state.checklist || [],
 					uploadedFile: state.uploadedFile || null
-
 				};
 			});
 
+			// 3️⃣ Generate PDF (same for both roles)
 			// 3️⃣ Generate PDF (same for both roles)
 			const { doc, externalPdfBlobs } = await generateInspectionPdf({
 				rfi_Id: rfiData.rfi_Id,
@@ -745,8 +739,9 @@ export default function InspectionForm() {
 
 			console.log("✅ PDF uploaded successfully");
 
-			// 5️⃣ eSign (different API for Contractor vs Engineer)
+
 			if (!isEngineer) {
+				// ✅ Contractor Submission Flow
 				const txnId = generateUniqueTxnId();
 				const signForm = new FormData();
 				signForm.append("pdfBlob", pdfBlob);
@@ -764,9 +759,14 @@ export default function InspectionForm() {
 				});
 				const response = await signRes.json();
 
+				// ✅ Open eSign in new window
+				const targetName = "esignPortal";
+				const esignWindow = window.open('', targetName, 'width=800,height=600');
+
 				const form = document.createElement("form");
 				form.method = "POST";
 				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.target = targetName;
 				form.style.display = "none";
 
 				const signedXmlRequest = document.createElement("input");
@@ -789,29 +789,122 @@ export default function InspectionForm() {
 
 				document.body.appendChild(form);
 				form.submit();
+
+				// ✅ WebSocket listener + popup-close detection
+				const esignPromise = new Promise((resolve, reject) => {
+					connectEsignSocket(txnId, (msg) => {
+						console.log("Contractor WebSocket message:", msg);
+						if (msg.status === "SUCCESS") resolve(true);
+						if (msg.status === "FAILED") reject(false);
+					});
+
+					const popupChecker = setInterval(() => {
+						try {
+							if (esignWindow.closed) {
+								clearInterval(popupChecker);
+								disconnectEsignSocket();
+								setIsSubmitting(false);
+								// just reject to stop waiting for WebSocket, no error message needed
+								reject(false);
+								alert("Submission Process Canceled!");
+							}
+						} catch (err) {
+							// Ignore cross-origin errors
+						}
+					}, 500);
+				});
+
+				try {
+					const esignConSuccess = await esignPromise;
+					disconnectEsignSocket();
+
+					if (!esignConSuccess) throw new Error("Contractor eSign failed or timed out.");
+
+					// ✅ Continue normal final submit
+					const resCon = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+					});
+
+					if (!resCon.ok) throw new Error(await resCon.text());
+
+					setInspectionStatusMode("SUBMITTED");
+					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
+					alert("✅ Contractor eSign completed successfully.");
+					setIsSubmitting(false);
+					navigate("/inspection");
+				} catch (err) {
+					console.error(err);
+					disconnectEsignSocket();
+					alert(`❌ ${err.message}`);
+					setIsSubmitting(false);
+				}
 			} else {
+				// ✅ Engineer Submission Flow
 				const engForm = new FormData();
 				engForm.append("sc", "Y");
 				engForm.append("rfiId", rfiData?.id ?? "");
 				engForm.append("signerName", "Pranavi");
 				engForm.append("engineerName", "PVM");
 				engForm.append("signY", Math.floor(y));
-
 				const engRes = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
 					method: "POST",
 					body: engForm,
 					credentials: "include",
 				});
-				const text = await engRes.text(); // always read as text first
+
 				let response = {};
+
 				try {
-					response = text ? JSON.parse(text) : {};
+
+
+					const contentType = engRes.headers.get("content-type") || "";
+
+					if (contentType.includes("application/json")) {
+						response = await engRes.json();
+
+						if (response.error) {
+							alert(`⚠️ ${response.error}`);
+							setIsSubmitting(false);
+							return;
+						}
+					} else {
+						// Handle non-JSON response as text
+						const text = await engRes.text();
+						if (text) {
+							alert(`⚠️ ${text}`);
+							setIsSubmitting(false);
+							return;
+						}
+					}
 				} catch (err) {
-					console.error("Failed to parse JSON response:", text);
+					console.error("Failed to parse eSign response:", err);
+					alert("Error preparing eSign request. Please try again.");
+					setIsSubmitting(false);
+					return;
 				}
+
+
+				if (response.error) {
+					alert(`⚠️ ${response.error}`);
+					setIsSubmitting(false);
+					return;
+				}
+
+				// ✅ Open eSign window
+				const targetName = "esignPortal";
+				const esignWindow = window.open('', targetName, 'width=800,height=600');
+				if (!esignWindow) {
+					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
+					setIsSubmitting(false);
+					return;
+				}
+
 				const form = document.createElement("form");
 				form.method = "POST";
 				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.target = targetName;
 				form.style.display = "none";
 
 				const signedXmlRequest = document.createElement("input");
@@ -834,19 +927,70 @@ export default function InspectionForm() {
 
 				document.body.appendChild(form);
 				form.submit();
+
+				// ✅ WebSocket listener + popup-close detection
+				const esignPromise = new Promise((resolve, reject) => {
+					connectEsignSocket(response.txnId, (msg) => {
+						console.log("Engineer WebSocket message:", msg);
+						if (msg.status === "SUCCESS") resolve(true);
+						if (msg.status === "FAILED") reject(false);
+					});
+
+					const popupChecker = setInterval(() => {
+						try {
+							if (esignWindow.closed) {
+								clearInterval(popupChecker);
+								disconnectEsignSocket();
+								setIsSubmitting(false);
+								// just reject to stop waiting for WebSocket, no error message needed
+								reject(false);
+								alert("Submission Process Canceled!");
+							}
+						} catch (err) {
+							// Ignore cross-origin errors
+						}
+					}, 500);
+				});
+
+				try {
+					const esignEngSuccess = await esignPromise;
+					disconnectEsignSocket();
+
+					if (!esignEngSuccess) throw new Error("Engineer eSign failed or timed out.");
+
+					const resEngg = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+					});
+
+					if (!resEngg.ok) {
+						const errText = await resEngg.text();
+						alert(`❌ Submission failed: ${errText}`);
+						throw new Error(errText);
+					}
+
+					setInspectionStatusMode("SUBMITTED");
+					setIsSubmitting(false);
+					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
+
+					alert("✅ Engineer eSign completed successfully.");
+					navigate("/inspection");
+				} catch (err) {
+					console.error(err);
+					disconnectEsignSocket();
+					alert(`❌ ${err.message}`);
+					setIsSubmitting(false);
+				}
 			}
 
-			setIsSubmitting(false);
-			setInspectionStatusMode("SUBMITTED");
-			localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
-			navigate("/inspection");
 		} catch (err) {
 			console.error("❌ Submission failed:", err);
 			alert(`Submission failed: ${err.message}`);
 			setIsSubmitting(false);
 		}
 	};
-
+	
 	useEffect(() => {
 		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
 			setInspectionStatusMode("SUBMITTED");

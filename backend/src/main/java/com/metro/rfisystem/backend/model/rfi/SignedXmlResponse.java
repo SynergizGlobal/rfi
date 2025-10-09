@@ -1,7 +1,9 @@
 package com.metro.rfisystem.backend.model.rfi;
+
 public class SignedXmlResponse {
     private String signedXmlRequest;
     private String txnId;
+    private String error; 
 
     public SignedXmlResponse() {}
 
@@ -10,20 +12,12 @@ public class SignedXmlResponse {
         this.txnId = txnId;
     }
 
-    public String getSignedXmlRequest() {
-        return signedXmlRequest;
-    }
+    public String getSignedXmlRequest() { return signedXmlRequest; }
+    public void setSignedXmlRequest(String signedXmlRequest) { this.signedXmlRequest = signedXmlRequest; }
 
-    public void setSignedXmlRequest(String signedXmlRequest) {
-        this.signedXmlRequest = signedXmlRequest;
-    }
+    public String getTxnId() { return txnId; }
+    public void setTxnId(String txnId) { this.txnId = txnId; }
 
-    public String getTxnId() {
-        return txnId;
-    }
-
-    public void setTxnId(String txnId) {
-        this.txnId = txnId;
-    }
+    public String getError() { return error; }
+    public void setError(String error) { this.error = error; }
 }
-

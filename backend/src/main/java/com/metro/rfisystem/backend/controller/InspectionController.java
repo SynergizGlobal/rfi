@@ -7,6 +7,7 @@ import java.net.URLDecoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
+import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.ChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
@@ -82,6 +84,7 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.SignedXmlResponse;
 import com.metro.rfisystem.backend.service.EsignService;
+import com.metro.rfisystem.backend.service.EsignWebSocketService;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
@@ -113,6 +116,8 @@ public class InspectionController {
 	private final RFIChecklistDescriptionService checklistDescriptionService;
 	private final RFIInspectionDetailsRepository inspectionRepository;
 
+	private final EsignWebSocketService esignWebSocketService;
+	
 	private final EsignService esignService;
 
 	@Value("${rfi.pdf.storage-path}")
@@ -405,8 +410,7 @@ public class InspectionController {
 	 
 			    try {
 			        byte[] pdfData = pdfBlob.getBytes();
-			        boolean isSave = inspectionService.SaveTxnId(txnId,rfiId);
-	 
+			        boolean isSave = inspectionService.SaveTxnIdSetEStatusCon(txnId,rfiId,ESignStatus.CON_PENDING);
 			        SignedXmlResponse signedXmlResponse = esignService.getSignedXmlRequestFromDocument(
 			            pdfData, sc, txnId, signerName, companyName, signY
 			        );
@@ -430,57 +434,107 @@ public class InspectionController {
 			        @RequestParam("sc") String sc,
 			        @RequestParam("rfiId") Long rfiId,
 			        @RequestParam("signerName") String signerName,
-			        @RequestParam("engineerName") String companyName,
+			        @RequestParam("engineerName") String engineerName,
 			        @RequestParam("signY") int signY) {
-	 
-	 
+
 			    try {
+			        // Get last contractor txnId
 			        String contractorTxnId = inspectionService.getLastTxnIdForRfi(rfiId);
-			        
-				    System.out.println("Engineer hit! Txn ID: " + sc + ", TXN ID: " + contractorTxnId);
-			        
-			        
+
+			        if (contractorTxnId == null) {
+			            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+			        }
+
+			        // Check contractor eSign status
+			        ESignStatus eStatus = inspectionService.getEsignStatusEngg(rfiId);
+
+			        if (eStatus != ESignStatus.CON_SUCCESS) {
+			            // Return a response with an error message instead of a plain string
+			            SignedXmlResponse errorResponse = new SignedXmlResponse();
+			            errorResponse.setError("Contractor not yet submitted");
+			            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+			        }
+
+
+			        // Load signed contractor PDF
 			        Path signedPdfPath = Paths.get(pdfStoragePath, "signed_" + contractorTxnId + ".pdf");
 			        if (!Files.exists(signedPdfPath)) {
 			            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 			        }
-	 
-			        byte[] pdfData = Files.readAllBytes(signedPdfPath);		
-			        
-	 
+
+			        byte[] pdfData = Files.readAllBytes(signedPdfPath);
+
+			        // Generate eSign XML request
 			        SignedXmlResponse signedXmlResponse = esignService.getEngSignedXmlRequestFromDocument(
-			            pdfData, sc, contractorTxnId, signerName, companyName, signY
+			            pdfData, sc, contractorTxnId, signerName, engineerName, signY
 			        );
 			        signedXmlResponse.setTxnId(contractorTxnId);
+
 			        return ResponseEntity.ok(signedXmlResponse);
-	 
+
 			    } catch (Exception e) {
 			        e.printStackTrace();
 			        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
 			    }
 			}
-		@PostMapping("/rfi/signedResponse")
-		public String signedResponse(@RequestParam("espTxnID") String espTxnID,
-		                             @RequestParam("eSignResponse") String eSignResponse,
-		                             HttpSession session) {
-		    try {
-		        String signerName = extractSignerName(eSignResponse);
-		        esignService.signWithDS(espTxnID, eSignResponse, signerName);
 
-		        // Mark eSign success in session
+		
+		
+		
+		@PostMapping("/rfi/signedResponse")
+		public String signedResponse(
+		        @RequestParam("espTxnID") String espTxnID,
+		        @RequestParam("eSignResponse") String eSignResponse,
+		        HttpSession session) {
+		    try {
+		        // 1️⃣ Extract signer name from eSign response
+		        String signerName = extractSignerName(eSignResponse);
+
+		        // 2️⃣ Apply digital signature to PDF
+		        esignService.signWithDS(espTxnID, eSignResponse, signerName);
+		        inspectionService.saveESignStatusCon(ESignStatus.CON_SUCCESS, espTxnID);
+
+
+		        // 3️⃣ Mark success in session
 		        session.setAttribute("eSignSuccess", true);
 
-		        // Redirect to front-end with txnId
-		        String redirectUrl = "https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID;
-		        return buildHtmlRedirect(redirectUrl, "Contractor Digital signed successfully!", true);
+		        // 4️⃣ Update DB eSign status to SUCCESS
+
+		        // 5️⃣ Redirect frontend with success message
+		        String redirectUrl = "https://localhost:3000/rfiSystem/InspectionForm";
+		        
+		        esignWebSocketService.sendStatusUpdate(
+		        	    espTxnID,
+		        	    "SUCCESS",
+		        	    "Contractor eSign completed successfully!"
+		        	);
+
+		        
+		        return buildHtmlRedirect( "Contractor Digital signed successfully!", true);
+
 		    } catch (Exception e) {
 		        e.printStackTrace();
-		        return buildHtmlRedirect("https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID,
-		                                 "Contractor eSign Failed!", false);
+
+		        // Optional: Update DB eSign status to FAILED
+		        try {
+		            inspectionService.saveESignStatusCon(ESignStatus.CON_FAILED, espTxnID);
+		            esignWebSocketService.sendStatusUpdate(
+		            	    espTxnID,
+		            	    "FAILED",
+		            	    "Contractor eSign failed."
+		            	);
+		        } catch (Exception ex) {
+		            ex.printStackTrace(); // Log but do not block
+		        }
+
+		        // Redirect frontend with failure message
+		        String redirectUrl = "https://localhost:3000/rfiSystem/InspectionForm?txnId=" + espTxnID;
+		        return buildHtmlRedirect( "Contractor eSign Failed!", false);
 		    }
 		}
 
-		private String buildHtmlRedirect(String redirectUrl, String message, boolean success) {
+
+		private String buildHtmlRedirect(String message, boolean success) {
 		    String bgColor = success ? "#d4edda" : "#f8d7da";
 		    String textColor = success ? "#155724" : "#721c24";
 
@@ -488,64 +542,91 @@ public class InspectionController {
 		           "<html>\n" +
 		           "<head>\n" +
 		           "<title>eSign Status</title>\n" +
-		           "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +
-		           "<style>body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
-		           ".msg { background-color: " + bgColor + "; color: " + textColor +
-		           "; padding: 20px; border-radius: 5px; display: inline-block; }</style>\n" +
+		           "<script>\n" +
+		           "  if (window.opener) {\n" +
+		           "    window.opener.postMessage({ type: 'esignStatus', success: " + success + ", message: '" + message + "' }, '*');\n" +
+		           "  }\n" +
+		           "  setTimeout(() => window.close(), 3000);\n" +
+		           "</script>\n" +
+		           "<style>\n" +
+		           "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
+		           ".msg { background-color: " + bgColor + "; color: " + textColor + 
+		           "; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
+		           "</style>\n" +
 		           "</head>\n" +
 		           "<body><div class='msg'>" + message + "</div></body></html>";
 		}
-
 		
 		@PostMapping("/rfi/engineerSignedResponse")
 		public String engineerSignedResponse(
 		        @RequestParam("espTxnID") String espTxnID,
 		        @RequestParam("eSignResponse") String eSignResponse,
 		        HttpSession session) {
-			
-		    String redirectUrl = "https://localhost:3000/rfiSystem/Inspection?txnId=" + espTxnID;
-		    String message = "Engineer Digital signed successfully!";		
-	 
+
+		    String message = "Engineer Digital signed successfully!";
+
 		    try {
-		    	String signerName = extractSignerName(eSignResponse);
-		        esignService.signWithDSEngineer(espTxnID, eSignResponse,signerName);
-	 
+		        String signerName = extractSignerName(eSignResponse);
+		        esignService.signWithDSEngineer(espTxnID, eSignResponse, signerName);
+
 		        // Fetch Engineer RFI details if needed
 		        RFIInspectionDetails rfi = inspectionService.getRFIIdTxnId(espTxnID, "Engineer");
 		        session.setAttribute("rfi", rfi);
-	 
-		        return "<!DOCTYPE html>\n" +
-	            "<html>\n" +
-	            "<head>\n" +
-	            "<title>eSign Completed</title>\n" +
-	            "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +  // 3 sec delay
-	            "<style>\n" +
-	            "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
-	            ".msg { background-color: #d4edda; color: #155724; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
-	            "</style>\n" +
-	            "</head>\n" +
-	            "<body>\n" +
-	            "<div class='msg'>" + message + "</div>\n" +
-	            "</body>\n" +
-	            "</html>";
+		        inspectionService.saveESignStatusEngg(ESignStatus.ENGG_SUCCESS, espTxnID);
+		        esignWebSocketService.sendStatusUpdate(
+		        	    espTxnID,
+		        	    "SUCCESS",
+		        	    "Engineer eSign completed successfully!"
+		        	);
+
+
+		        // ✅ Success HTML with postMessage to parent
+		        return buildHtmlRedirect(message, true);
+
 		    } catch (Exception e) {
 		        e.printStackTrace();
-		        return "<!DOCTYPE html>\n" +
-	            "<html>\n" +
-	            "<head>\n" +
-	            "<title>eSign Failed</title>\n" +
-	            "<meta http-equiv='refresh' content='3; URL=" + redirectUrl + "' />\n" +
-	            "<style>\n" +
-	            "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
-	            ".msg { background-color: #f8d7da; color: #721c24; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
-	            "</style>\n" +
-	            "</head>\n" +
-	            "<body>\n" +
-	            "<div class='msg'>" + message + "</div>\n" +
-	            "</body>\n" +
-	            "</html>";
+		        // Optional: save failure
+		        try {
+		        	esignWebSocketService.sendStatusUpdate(
+		        		    espTxnID,
+		        		    "FAILED",
+		        		    "Engineer eSign failed!"
+		        		);
+
+		            inspectionService.saveESignStatusEngg(ESignStatus.ENGG_FAILED, espTxnID);
+		        } catch (Exception ex) {
+		            ex.printStackTrace();
+		        }
+
+		        return buildHtmlRedirectEngg("Engineer eSign Failed!", false);
 		    }
 		}
+
+		// Reuse the same buildHtmlRedirect for both Contractor and Engineer
+		private String buildHtmlRedirectEngg(String message, boolean success) {
+		    String bgColor = success ? "#d4edda" : "#f8d7da";
+		    String textColor = success ? "#155724" : "#721c24";
+
+		    return "<!DOCTYPE html>\n" +
+		           "<html>\n" +
+		           "<head>\n" +
+		           "<title>eSign Status</title>\n" +
+		           "<script>\n" +
+		           "  if (window.opener) {\n" +
+		           "    window.opener.postMessage({ type: 'esignStatus', success: " + success + ", message: '" + message + "' }, '*');\n" +
+		           "  }\n" +
+		           "  setTimeout(() => window.close(), 3000);\n" +
+		           "</script>\n" +
+		           "<style>\n" +
+		           "body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }\n" +
+		           ".msg { background-color: " + bgColor + "; color: " + textColor + 
+		           "; padding: 20px; border-radius: 5px; display: inline-block; }\n" +
+		           "</style>\n" +
+		           "</head>\n" +
+		           "<body><div class='msg'>" + message + "</div></body></html>";
+		}
+
+
 		
 		
 		public String extractSignerName(String eSignResponse) throws Exception {

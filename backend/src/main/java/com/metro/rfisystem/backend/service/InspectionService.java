@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
+import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
@@ -14,7 +15,14 @@ import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 public interface InspectionService {
 //	public RFIInspectionDetails getRFIIdTxnId(String espTxnID);
 
-	public boolean SaveTxnId(String txnId, Long rfiId);
+		
+	public boolean SaveTxnIdSetEStatusCon(String txnId, Long rfiId,ESignStatus status);
+		
+	public void saveESignStatusCon(ESignStatus status, String txnID);
+	
+	public void saveESignStatusEngg(ESignStatus status, String txnID) ;
+
+	public ESignStatus getEsignStatusEngg(Long rfiId);
 
 	public String getLastTxnIdForRfi(Long rfiId);
 
@@ -32,5 +40,6 @@ public interface InspectionService {
 
 
 	public RFIInspectionDetails getRFIIdTxnId(String espTxnID, String user);
+
 
 }

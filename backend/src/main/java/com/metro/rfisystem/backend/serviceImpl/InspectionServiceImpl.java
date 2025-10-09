@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
+import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
@@ -477,11 +478,41 @@ public class InspectionServiceImpl implements InspectionService {
 
 	
 	@Override
-	public boolean SaveTxnId(String txnId, Long rfiId) {
-	    String sql = "UPDATE rfi_data SET txn_id = ? WHERE id = ?";
-	    int rowsUpdated = jdbcTemplate.update(sql, txnId, rfiId);
+	public boolean SaveTxnIdSetEStatusCon(String txnId, Long rfiId,ESignStatus status) {
+	    String sql = "UPDATE rfi_data SET txn_id = ?, e_sign_status= ? WHERE id = ?";
+	    int rowsUpdated = jdbcTemplate.update(sql, txnId,status.name(), rfiId);
 	    return rowsUpdated > 0;
 	}
+		
+
+	@Override
+	public void saveESignStatusCon(ESignStatus status, String txnID) {
+	    String sql = "UPDATE rfi_data SET e_sign_status = ?, contractor_submitted_date = CURDATE() " +
+	                 "WHERE txn_id = ?";
+	    jdbcTemplate.update(sql, status.name(), txnID);
+	}
+	
+	@Override
+	public void saveESignStatusEngg(ESignStatus status, String txnID) {
+	    String sql = "UPDATE rfi_data SET e_sign_status = ?, engineer_submitted_date = CURDATE() " +
+	                 "WHERE txn_id = ? ";
+	    jdbcTemplate.update(sql, status.name(), txnID);
+	}
+	
+	
+	@Override
+	public ESignStatus getEsignStatusEngg(Long rfiId) {
+	    String sql = "SELECT e_sign_status FROM rfi_data WHERE id = ?";
+	    try {
+	        String status = jdbcTemplate.queryForObject(sql, new Object[]{rfiId}, String.class);
+	        return status != null ? ESignStatus.valueOf(status) : ESignStatus.CON_PENDING;
+	    } catch (EmptyResultDataAccessException e) {
+	        // No record found → treat as PENDING
+	        return ESignStatus.CON_PENDING;
+	    }
+	}
+
+
  
  
 	@Override
@@ -534,6 +565,14 @@ public class InspectionServiceImpl implements InspectionService {
 	        return null; // no txnId found
 	    }
 	}
+
+
+
+
+
+
+
+
  
  
 

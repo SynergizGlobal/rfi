@@ -14,8 +14,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -111,6 +111,10 @@ public class RFI {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false)
 	private EnumRfiStatus status;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(name = "eSign_status",length = 30)
+	private ESignStatus eStatus;
 	
 	@Column(name = "assigned_person_client")
 	private String assignedPersonClient;
