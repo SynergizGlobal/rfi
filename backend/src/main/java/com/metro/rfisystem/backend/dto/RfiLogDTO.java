@@ -19,6 +19,7 @@ public class RfiLogDTO {
     private String dateResponded;
     private String  enggApproval;
     private String status;
+    private String eStatus;
     private String notes;
     private String project;
     private String work;

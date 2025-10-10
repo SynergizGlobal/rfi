@@ -614,13 +614,13 @@ export default function RfiLogList() {
 				},
 				{
 				  Header: 'Download',
-				  Cell: ({ row }) => (
-				    row.original.txnId ? (
+				  Cell: ({ row }) =>
+				    (row.original.txnId && 
+				     (row.original.estatus === 'CON_SUCCESS' || row.original.estatus === 'ENGG_SUCCESS')) ? (
 				      <button onClick={() => downloadPDF(row.original.rfiId, row.original.txnId, row.index)}>
 				        ⬇️
 				      </button>
 				    ) : null
-				  )
 				}
 			]
 		}
