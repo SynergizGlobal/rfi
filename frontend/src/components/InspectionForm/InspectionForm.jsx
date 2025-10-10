@@ -725,26 +725,29 @@ export default function InspectionForm() {
 //			link.click();
 //			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
-			const pdfFormData = new FormData();
-			pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
-			pdfFormData.append("rfiId", rfiData?.id);
-
-			const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
-				method: "POST",
-				body: pdfFormData,
-				credentials: "include",
-			});
-
-			if (!uploadRes.ok) throw new Error("Failed to upload PDF");
-
-			console.log("✅ PDF uploaded successfully");
+			
 
 
 			if (!isEngineer) {
-			  // ✅ Contractor Submission Flow
-			  const txnId = generateUniqueTxnId();
-			  const signForm = new FormData();
-			  signForm.append("pdfBlob", pdfBlob);
+
+				const pdfFormData = new FormData();
+				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+				pdfFormData.append("rfiId", rfiData?.id);
+
+				const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
+					method: "POST",
+					body: pdfFormData,
+					credentials: "include",
+				});
+
+				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+
+				console.log("✅ PDF uploaded successfully");
+
+				// ✅ Contractor Submission Flow
+				const txnId = generateUniqueTxnId();
+				const signForm = new FormData();
+				signForm.append("pdfBlob", pdfBlob);
 			  signForm.append("sc", "Y");
 			  signForm.append("txnId", txnId);
 			  signForm.append("rfiId", rfiData?.id ?? "");
