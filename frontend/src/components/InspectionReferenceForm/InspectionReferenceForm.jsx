@@ -358,15 +358,21 @@ const {
     previousPage: previousPage1,
     gotoPage: gotoPage1,
     pageOptions: pageOptions1,
+	setPageSize: setPageSize1,
   } = firstTableInstance;
 
-  useEffect(() => { setFirstPageIndex(stateFirst.pageIndex); setFirstGlobalFilter(stateFirst.globalFilter); }, [stateFirst.pageIndex, stateFirst.globalFilter]);
+  /*useEffect(() => { setFirstPageIndex(stateFirst.pageIndex); setFirstGlobalFilter(stateFirst.globalFilter); }, [stateFirst.pageIndex, stateFirst.globalFilter]);*/
+  useEffect(() => {
+    setPageSize1(pageSize); // update table when dropdown changes
+  }, [pageSize, setPageSize1]);
 
+  
   // Second Table
   const secondTableInstance = useTable(
     {
       columns: table2Columns,
       data: checklistItems,
+	  pageSize,
       initialState: { pageIndex: secondPageIndex, pageSize, globalFilter: secondGlobalFilter },
       autoResetPage: false,
     },
@@ -388,10 +394,14 @@ const {
     previousPage: previousPage2,
     gotoPage: gotoPage2,
     pageOptions: pageOptions2,
+	setPageSize: setPageSize2,
   } = secondTableInstance;
 
-  useEffect(() => { setSecondPageIndex(stateSecond.pageIndex); setSecondGlobalFilter(stateSecond.globalFilter); }, [stateSecond.pageIndex, stateSecond.globalFilter]);
-
+  /*useEffect(() => { setSecondPageIndex(stateSecond.pageIndex); setSecondGlobalFilter(stateSecond.globalFilter); }, [stateSecond.pageIndex, stateSecond.globalFilter]);*/
+  useEffect(() => {
+    setPageSize2(pageSize); // update table when dropdown changes
+	gotoPage2(0);
+  }, [pageSize, setPageSize2, gotoPage2, checklistItems]);
 
 	// Select columns and data depending on dropdown choice
 
