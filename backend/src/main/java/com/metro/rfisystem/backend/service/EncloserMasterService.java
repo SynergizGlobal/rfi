@@ -21,4 +21,6 @@ public interface EncloserMasterService {
 
 	    void deleteById(Long id);
 
+		List<RfiEnclosureMaster> getAllEnclosures();
+
 }

@@ -14,6 +14,6 @@ public interface EncloserMasterRepository extends JpaRepository<RfiEnclosureMast
 	@Query("SELECT new com.metro.rfisystem.backend.dto.RfiEnclosureDTO(e.id, e.encloserName) " +
 	           "FROM RfiEnclosureMaster e WHERE e.action = :action")
 	    List<RfiEnclosureDTO> findAllEncloserNameByAction(@Param("action") String action);
-	@Query("SELECT new com.metro.rfisystem.backend.dto.EnclosureNameDto(e.id, e.encloserName) FROM RfiEnclosureMaster e WHERE e.action = :action")
+	@Query("SELECT new com.metro.rfisystem.backend.dto.EnclosureNameDto(e.id, e.encloserName, e.action) FROM RfiEnclosureMaster e WHERE e.action = :action")
 	List<EnclosureNameDto> findEnclosureNamesByAction(@Param("action") String action);
 }

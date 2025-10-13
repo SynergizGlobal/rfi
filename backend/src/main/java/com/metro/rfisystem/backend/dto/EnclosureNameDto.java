@@ -10,4 +10,11 @@ import lombok.NoArgsConstructor;
 public class EnclosureNameDto {
     private Long id;
     private String encloserName;
+    private String action;
+    
+    public EnclosureNameDto(Long id, String encloserName) {
+        this.id = id;
+        this.encloserName = encloserName;
+    }
+
 }

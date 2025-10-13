@@ -88,14 +88,21 @@ public class EncloserMasterController {
             entity = service.findById(dto.getId())
                     .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + dto.getId()));
             entity.setEncloserName(dto.getEncloserName());
+            entity.setAction(dto.getAction()); // <-- handle action for existing
         } else {
             entity = new RfiEnclosureMaster();
             entity.setEncloserName(dto.getEncloserName());
-            entity.setAction("OPEN"); // Optional default
+            // use dto.getAction() if provided, otherwise default to OPEN
+            entity.setAction(dto.getAction() != null ? dto.getAction() : "OPEN");
         }
 
         RfiEnclosureMaster saved = service.saveEnclosure(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+    @GetMapping("/enclosure_list")
+    public ResponseEntity<List<RfiEnclosureMaster>> getAllEnclosures() {
+        List<RfiEnclosureMaster> enclosures = service.getAllEnclosures(); // make sure you have this method in service
+        return ResponseEntity.ok(enclosures);
     }
 
     @PutMapping("/updateEnclosureName/{id}")
@@ -104,6 +111,7 @@ public class EncloserMasterController {
                 .orElseThrow(() -> new EntityNotFoundException("No enclosure found with ID: " + id));
 
         existing.setEncloserName(dto.getEncloserName());
+        existing.setAction(dto.getAction());
         RfiEnclosureMaster updated = service.saveEnclosure(existing);
 
         return ResponseEntity.ok(updated);

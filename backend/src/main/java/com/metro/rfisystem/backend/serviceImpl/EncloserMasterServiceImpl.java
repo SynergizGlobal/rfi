@@ -39,6 +39,10 @@ public class EncloserMasterServiceImpl implements EncloserMasterService {
 	    public RfiEnclosureMaster saveEnclosure(RfiEnclosureMaster enclosure) {
 	        return repository.save(enclosure);
 	    }
+	    public List<RfiEnclosureMaster> getAllEnclosures() {
+	        return repository.findAll();
+	    }
+
 	    
 	    @Override
 	    public void deleteById(Long id) {
