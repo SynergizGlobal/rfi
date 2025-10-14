@@ -275,7 +275,7 @@ public class EsignService {
 	    	PdfContentByte canvas = stamper2.getOverContent(i);
             float pageWidth = reader2.getPageSize(i).getWidth();
             float pageHeight = reader2.getPageSize(i).getHeight();
-            float bottomMargin = 45f; // Safe margin above the physical footer
+            float bottomMargin = 12f; // Safe margin above the physical footer
             float maxWidth = pageWidth - 100f; // left-right padding
  
             Font footerFont = new Font(Font.FontFamily.HELVETICA, 8);

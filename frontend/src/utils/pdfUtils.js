@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import autoTable from "jspdf-autotable";
 
 
@@ -18,19 +18,52 @@ export const toBase64 = async (url) => {
 
 // Merge jsPDF with external PDFs
 export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
-	const mainPdfBytes = jsPDFDoc.output("arraybuffer");
-	const mainPdf = await PDFDocument.load(mainPdfBytes);
+  const mainPdfBytes = jsPDFDoc.output("arraybuffer");
+  const mainPdf = await PDFDocument.load(mainPdfBytes);
+  const mergedPdf = await PDFDocument.create();
 
-	for (const fileBlob of externalPdfBlobs) {
-		const externalPDF = await PDFDocument.load(await fileBlob.arrayBuffer());
-		const pages = await mainPdf.copyPages(externalPDF, externalPDF.getPageIndices());
-		pages.forEach((page) => mainPdf.addPage(page));
-	}
+  // Copy main PDF pages
+  const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
+  mainPages.forEach((page) => mergedPdf.addPage(page));
 
-	const mergedPdfBytes = await mainPdf.save();
-	return new Blob([mergedPdfBytes], { type: "application/pdf" });
+  for (let i = 0; i < externalPdfBlobs.length; i++) {
+    const fileBlob = externalPdfBlobs[i];
+    const fileBytes = await fileBlob.arrayBuffer();
+    const externalPdf = await PDFDocument.load(fileBytes);
+
+    const copiedPages = await mergedPdf.copyPages(externalPdf, externalPdf.getPageIndices());
+    const isEnclosure = i > 0; // first blob is test report
+    const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+
+    for (let j = 0; j < copiedPages.length; j++) {
+      const page = copiedPages[j];
+      const { width, height } = page.getSize();
+
+	  const topGap = isEnclosure && j === 0 ? 60 : 0; 
+	       const bottomGap = isEnclosure && j === 0 ? 20 : 0;
+	       const newPage = mergedPdf.addPage([width, height + topGap + bottomGap]);
+
+	       if (isEnclosure && j === 0) {
+	         newPage.drawText("Enclosure PDF", {
+	           x: 50,
+	           y: height + bottomGap + 10, 
+	           size: 18,
+	           font,
+	           color: rgb(0, 0, 0),
+	         });
+
+	         const embeddedPage = await mergedPdf.embedPage(page);
+	         newPage.drawPage(embeddedPage, { x: 0, y: bottomGap }); // shift content down
+	       } else {
+	         const embeddedPage = await mergedPdf.embedPage(page);
+	         newPage.drawPage(embeddedPage, { x: 0, y: 0 });
+	       }
+	     }
+	   }
+
+  const mergedBytes = await mergedPdf.save();
+  return new Blob([mergedBytes], { type: "application/pdf" });
 }
-
 // ==============================
 // Generate Inspection PDF
 // ==============================
@@ -67,23 +100,23 @@ export async function generateInspectionPdf(rfiData) {
 	// Header Section
 	// ==============================
 	doc.setLineWidth(1);
-	doc.rect(30, 30, 540, 780); // Outer border
+	doc.rect(30, 25, 540, 780); // Outer border
 	try {
-		doc.addImage("/images/mrvc_logo_400x400.jpg", "JPEG", 35, 35, 60, 60);
+		doc.addImage("/images/mrvc_logo_400x400.jpg", "JPEG", 35, 30, 60, 60);
 	} catch (e) {
 		console.warn("Header logo missing, skipping addImage");
 	}
 
 	doc.setFont("helvetica", "bold").setFontSize(16);
-	doc.text("MUMBAI RAILWAY VIKAS CORPORATION LTD.", 320, 60, { align: "center" });
+	doc.text("MUMBAI RAILWAY VIKAS CORPORATION LTD.", 320, 55, { align: "center" });
 	doc.setFont("helvetica", "normal").setFontSize(10);
-	doc.text("(A PSU of Government of India, Ministry of Railways)", 320, 75, { align: "center" });
+	doc.text("(A PSU of Government of India, Ministry of Railways)", 320, 70, { align: "center" });
 
 	// Project Info
 	doc.setFillColor(255, 255, 0);
-	doc.rect(30, 100, 540, 20, "F");
+	doc.rect(31, 90, 538, 30, "F");
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text(`Contract :- ${contract}`, 40, 115);
+	doc.text(`Contract :- ${contract}`, 40, 105, { maxWidth: 500 });
 
 	// Engineer
 	doc.rect(30, 120, 540, 20);
@@ -92,7 +125,7 @@ export async function generateInspectionPdf(rfiData) {
 
 	// Contractor
 	doc.setFillColor(255, 255, 0);
-	doc.rect(30, 140, 540, 20, "F");
+	doc.rect(31, 141, 538, 29, "F");
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text(`Contractor :- ${contractor}`, 40, 160);
 
@@ -116,7 +149,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text(dateOfInspection, 440, 225);
 
 	doc.text("Structure Type/Structure/Component/Element/Activity :", 40, 245);
-	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 40, 260);
+	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 40, 260, { maxWidth: 500 });
 
 	doc.text("Location :", 40, 282);
 	doc.text(locationText, 85, 282, { maxWidth: 400 });
@@ -209,7 +242,7 @@ export async function generateInspectionPdf(rfiData) {
 	// Measurement Record (mandatory)
 	// ==============================
 	doc.addPage();
-	doc.rect(30, 30, 540, 780);
+	doc.rect(30, 30, 540, 810);
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Measurement Record", 40, 48);
 	autoTable(doc, {
@@ -235,6 +268,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Enclosures", 40, 160);
 
 	let encY = 180;
+	let enclosurePdfBlobs = [];
 	for (const [index, enc] of enclosuresData.entries()) {
 		if (encY > 750) { doc.addPage(); encY = 60; }
 
@@ -268,11 +302,13 @@ export async function generateInspectionPdf(rfiData) {
 		} if (enc.uploadedFile) {
 			const file = enc.uploadedFile;
 			if (file.type === "application/pdf") {
-				externalPdfBlobs.push(file);
+				//if (encY > 750) { doc.addPage(); encY = 60; }
+				enclosurePdfBlobs.push(file);
+				//pdfFileNames.push(file.name || "Unnamed PDF");
 			} else if (file.type.startsWith("image/")) {
 				try {
 					const base64 = await toBase64(URL.createObjectURL(file));
-					if (encY > 600) { doc.addPage(); encY = 60; } // new page if overflow
+					if (encY > 600) { doc.addPage(); encY = 60; } 
 					doc.addImage(base64, "JPEG", 40, encY, 500, 300);
 					encY += 310;
 				} catch (err) {
@@ -281,16 +317,19 @@ export async function generateInspectionPdf(rfiData) {
 			}
 		}
 
-
-
 	}
-
-
 
 
 	// ==============================
 	// Site Images (auto-paginated)
 	// ==============================
+
+	// Check available space before adding site images
+	if (encY + 60 > pageHeight - 150) { 
+		doc.addPage();
+		encY = 60;
+	}
+
 	doc.setFont("helvetica", "bold").setFontSize(12);
 	doc.text("Site Images:", 40, encY + 10);
 
@@ -298,64 +337,59 @@ export async function generateInspectionPdf(rfiData) {
 	const imageHeight = 140;
 	const imagesPerRow = 2;
 	const columnSpacing = 250;
-	const rowSpacing = 160;
+	const rowSpacing = 180;
 	const imgStartX = 60;
-	let currentY = encY + 30;
 
-	// Loop through all site images
+	let currentY = encY + 25;
+	let pageIndex = 1;
+
 	images.forEach((img, i) => {
 		const col = i % imagesPerRow;
-		const row = Math.floor(i / imagesPerRow);
-
 		const x = imgStartX + col * columnSpacing;
-		const y = currentY + row * rowSpacing;
 
-		// Check overflow before drawing each image
-		if (y + imageHeight + 40 > pageHeight) {
+		// Add image at proper location
+		if (currentY + imageHeight > pageHeight - 80) {
 			doc.addPage();
-			currentY = 60; // reset Y for new page
+			pageIndex++;
+			currentY = 60;
 			doc.setFont("helvetica", "bold").setFontSize(12);
-			doc.text("Site Images (contd...):", 40, currentY - 20);
+			doc.text(`Site Images (continuation):`, 40, currentY);
+			currentY += 20;
 		}
 
 		try {
-			doc.addImage(img, "JPEG", x, currentY + (row % 2) * rowSpacing, imageWidth, imageHeight);
+			doc.addImage(img, "JPEG", x, currentY, imageWidth, imageHeight);
 		} catch (e) {
 			console.warn("Image failed to add, skipping", e);
 		}
 
-		// If we've just added two images in a row, check if we should move down
-		if ((i + 1) % imagesPerRow === 0) {
-			currentY += rowSpacing;
-		}
+		// Move to next row after two images
+		if (col === imagesPerRow - 1) currentY += rowSpacing;
 	});
 
-	// Update encY to where we finished placing images
-	encY = currentY + 160;
+	// Leave some space after site images section
+	encY = currentY + 40;
+	doc.text("Test Report", 40, encY);
 
-	// Example: after finishing "Site Image Cont..." section
-	currentY += 300; // or however tall the site image section is
+	// ==============================
+	// Test Report Section
+	// ==============================
 
-	// Then start your test report
+	let testReportPdfBlobs = [];
+
 	if (testReportFile) {
-		doc.setFont("helvetica", "bold").setFontSize(12);
-
-		// Add spacing before new section
-		currentY += 30;
-		if (currentY > pageHeight - 150) {
-			// not enough space → new page
-			doc.addPage();
-			currentY = 50;
+		if (encY + 150 > pageHeight - 100) {
+			
+			encY = 60;
 		}
 
-		doc.text("Test Report", 40, currentY);
+		doc.setFont("helvetica", "bold").setFontSize(12);
+		
+		encY += 60;
 
 		if (testReportFile instanceof File && testReportFile.type === "application/pdf") {
-			// store for merging later
-			externalPdfBlobs.push(testReportFile);
-			doc.setFont("helvetica", "italic").setFontSize(10);
-			currentY += 20;
-			doc.text("(Attached PDF test report will be merged)", 40, currentY);
+			testReportPdfBlobs.push(testReportFile);
+			 // externalPdfBlobs.unshift(testReportFile);
 		} else {
 			try {
 				const testReportBase64 =
@@ -363,20 +397,19 @@ export async function generateInspectionPdf(rfiData) {
 						? await toBase64(URL.createObjectURL(testReportFile))
 						: testReportFile;
 
-				const availableHeight = pageHeight - currentY - 100; // reserve footer space
-				currentY += 30;
-				doc.addImage(testReportBase64, "JPEG", 40, currentY, 500, availableHeight);
-				currentY += availableHeight + 20;
+				const availableHeight = pageHeight - encY - 100;
+				doc.addImage(testReportBase64, "JPEG", 40, encY, 500, availableHeight);
+				encY += availableHeight + 20;
 			} catch (err) {
 				console.warn("Failed to add test report file", err);
 			}
 		}
-
-		// Footer
-		doc.setDrawColor(0);
-		doc.line(40, pageHeight - 40, 550, pageHeight - 40);
-		doc.setFont("helvetica", "italic").setFontSize(9);
 	}
 
-	return { doc, externalPdfBlobs };
-}
+	// Append external PDFs after the main doc
+      externalPdfBlobs = [
+	...testReportPdfBlobs,
+	  ...enclosurePdfBlobs
+	];
+	return { doc, externalPdfBlobs};
+	}

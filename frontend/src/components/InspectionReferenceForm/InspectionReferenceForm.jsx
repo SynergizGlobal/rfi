@@ -952,7 +952,7 @@ const InspectionReferenceForm = () => {
 	);
 
 	return (
-		<div className="dashboard create-rfi inspection">
+		<div className="dashboard create-rfi inspection three-table-page">
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
