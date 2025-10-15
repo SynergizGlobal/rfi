@@ -20,6 +20,11 @@ public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspect
 	public List<String> findSiteImagesByIdAndUploader(@Param("id") Long id, @Param("uploadedBy") String uploadedBy);
 
 	Optional<RFIInspectionDetails> findByRfiAndUploadedBy(RFI rfi, String uploadedBy);
+	
+	@Query(value = "select * from rfi_inspection_details where rfi_id_fk = "
+			+ ":rfiId AND uploaded_by = :uploadedBy", nativeQuery = true)
+	Optional<RFIInspectionDetails> findByRfiIdAndUploadedBy(Long rfiId, String uploadedBy);
+
 
 	@Query(value = "SELECT site_image FROM rfi_inspection_details WHERE rfi_id_fk = :id AND uploaded_by='Engg'", nativeQuery = true)
 	public List<String> findSiteImagesByIdAndUploadedByClient(@Param("id") Long id);

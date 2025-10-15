@@ -73,29 +73,9 @@ public class RFIInspectionDetails {
     private String created_by;
     private String rfi_id;
     
-    @Column(name = "measurement_type")
-    private String measurementType;
-
-    @Column(name = "length")
-    private Double length;
-
-    @Column(name = "breadth")
-    private Double breadth;
-
-    @Column(name = "height")
-    private Double height;
-
-    @Column(name = "no_of_items")
-    private Integer noOfItems;
-  
-
-    @Column(name = "total_qty")
-    private Double totalQty;
-    
     @Column(name = "ae_remarks", length = 1000)
     private String engineerRemarks;
 
-    
     @Column(name = "work_status")
     private InspectionWorkFlowStatus workStatus;
     

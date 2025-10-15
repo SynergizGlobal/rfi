@@ -139,7 +139,9 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Override
 	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-	                            List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk) {
+			MultipartFile testDocument, String deptFk) {
+		
+	    String deptFkPar = deptFk.equalsIgnoreCase("Engg") ? "Engg" : "CON";
 
 	    RFI rfi = rfiRepository.findById(dto.getRfiId())
 	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
@@ -150,7 +152,7 @@ public class InspectionServiceImpl implements InspectionService {
 	    }
 
 	    Optional<RFIInspectionDetails> existingInspectionOpt =
-	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk);
+	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar);
 
 	    RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
 	    
@@ -173,14 +175,6 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    if (selfie != null && !selfie.isEmpty()) {
 	        inspection.setSelfiePath(saveFile(selfie));
-	    }
-
-	    if (siteImages != null && !siteImages.isEmpty()) {
-	        String siteImagePaths = siteImages.stream()
-	                .filter(f -> f != null && !f.isEmpty())
-	                .map(this::saveFile)
-	                .collect(Collectors.joining(","));
-	        inspection.setSiteImage(siteImagePaths);
 	    }
 
 	    if (testDocument != null && !testDocument.isEmpty()) {
@@ -218,7 +212,6 @@ public class InspectionServiceImpl implements InspectionService {
 	@Transactional
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto,
 	                                                 MultipartFile selfie,
-	                                                 List<MultipartFile> siteImages,
 	                                                 MultipartFile testDocument,
 	                                                 String deptFk) {
 
@@ -226,9 +219,11 @@ public class InspectionServiceImpl implements InspectionService {
 	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
 	    RFIInspectionDetails inspection;
+	    
+	    String deptFkPar = deptFk.equalsIgnoreCase("Engg") ? "Engg" : "CON";
 
 	    if (dto.getInspectionId() == null) {
-	        inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFk)
+	        inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar)
 	                .orElse(new RFIInspectionDetails());
 	        inspection.setRfi(rfi);
 	    } else {
@@ -263,13 +258,6 @@ public class InspectionServiceImpl implements InspectionService {
 	    if (selfie != null && !selfie.isEmpty()) {
 	        inspection.setSelfiePath(saveFile(selfie));
 	    }
-	    if (siteImages != null && !siteImages.isEmpty()) {
-	        String siteImagePaths = siteImages.stream()
-	                .filter(f -> f != null && !f.isEmpty())
-	                .map(this::saveFile)
-	                .collect(Collectors.joining(","));
-	        inspection.setSiteImage(siteImagePaths);
-	    }
 	    if (testDocument != null && !testDocument.isEmpty()) {
 	        inspection.setTestSiteDocuments(saveFile(testDocument));
 	    }
@@ -293,6 +281,67 @@ public class InspectionServiceImpl implements InspectionService {
 	            ? InspectionSubmitResult.ENGINEER_SUCCESS
 	            : InspectionSubmitResult.CONTRACTOR_SUCCESS;
 	}
+	
+	
+	@Override
+	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk) {
+
+	    if (siteImage == null || siteImage.isEmpty()) {
+	        throw new RuntimeException("No site image provided for upload.");
+	    }
+
+	    String deptFkPar = "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON";
+
+	    RFI rfi = rfiRepository.findById(rfiId)
+	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + rfiId));
+
+	    if ("Engg".equals(deptFkPar)) {
+	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE
+	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
+	            return "Upload Failed, Inspection Already Submitted!";
+	        }
+	    } else { 
+	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_CON
+	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
+	            return "Upload Failed, Inspection Already Submitted!";
+	        }
+	    }
+
+	    RFIInspectionDetails inspection = inspectionRepository
+	            .findByRfiIdAndUploadedBy(rfiId, deptFkPar)
+	            .orElseGet(() -> {
+	                RFIInspectionDetails newInspection = new RFIInspectionDetails();
+	                newInspection.setRfi(rfi);
+	                newInspection.setUploadedBy(deptFkPar);
+	                return newInspection;
+	            });
+	    String newFilePath = saveFile(siteImage);
+	    
+	    
+
+	    if (inspection.getSiteImage() != null && !inspection.getSiteImage().isEmpty()) {
+	    	inspection.setSiteImage(inspection.getSiteImage() + "," + newFilePath);
+	    }
+	    else
+	    {
+	    	inspection.setSiteImage(newFilePath);
+	    }
+
+	    if ("Engg".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.AE_INSP_ONGOING) {
+	        rfi.setStatus(EnumRfiStatus.AE_INSP_ONGOING);
+	    } else if ("CON".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.CON_INSP_ONGOING) {
+	        rfi.setStatus(EnumRfiStatus.CON_INSP_ONGOING);
+	    }
+
+	    inspectionRepository.save(inspection);
+	    rfiRepository.save(rfi);
+
+	    return "✅ Site image uploaded successfully for RFI ID " + rfiId + ".";
+	}
+	
+	
+	
+	
 
 	@Override
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk) {
@@ -343,7 +392,6 @@ public class InspectionServiceImpl implements InspectionService {
 	    dto.setRfiId(inspection.getRfi().getId());
 	    dto.setInspectionId(inspection.getId());
 	    dto.setLocation(inspection.getLocation());
-	    dto.setSiteImage(inspection.getSiteImage());
 	    dto.setChainage(inspection.getChainage());
 
 	    dto.setInspectionStatus(inspection.getInspectionStatus() != null

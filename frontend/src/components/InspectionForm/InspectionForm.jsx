@@ -29,6 +29,8 @@ export default function InspectionForm() {
 
 	const [contractorRep, setContractorRep] = useState('');
 	const [selfieImage, setSelfieImage] = useState(null);
+	const [siteImage, setSiteImage] = useState(null);
+
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
 	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
 
@@ -55,6 +57,8 @@ export default function InspectionForm() {
 	const firstGalleryRef = useRef(null);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [uploading, setUploading] = useState(false);
+
 
 	const contractorSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy !== "ENGG");
 	const engineerSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy === "ENGG");
@@ -515,11 +519,6 @@ export default function InspectionForm() {
 			formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
 		}
 
-		galleryImages.forEach((img, i) => {
-			if (!img) return;
-			formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
-		});
-
 		if (testReportFile) formData.append("testReport", testReportFile);
 
 		try {
@@ -648,13 +647,6 @@ export default function InspectionForm() {
 				if (selfieFile) formData.append("selfie", selfieFile);
 			}
 
-			galleryImages.forEach((img, i) => {
-				if (!img) return;
-				const imageFile =
-					img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`);
-				if (imageFile) formData.append("siteImages", imageFile);
-			});
-
 			if (testReportFile) formData.append("testReport", testReportFile);
 
 
@@ -748,31 +740,31 @@ export default function InspectionForm() {
 				const txnId = generateUniqueTxnId();
 				const signForm = new FormData();
 				signForm.append("pdfBlob", pdfBlob);
-			  signForm.append("sc", "Y");
-			  signForm.append("txnId", txnId);
-			  signForm.append("rfiId", rfiData?.id ?? "");
-			  signForm.append("signerName", "Swathi");
-			  signForm.append("contractorName", "M V");
-			  signForm.append("signY", Math.floor(y));
+				signForm.append("sc", "Y");
+				signForm.append("txnId", txnId);
+				signForm.append("rfiId", rfiData?.id ?? "");
+				signForm.append("signerName", "Swathi");
+				signForm.append("contractorName", "M V");
+				signForm.append("signY", Math.floor(y));
 
-			  const signRes = await fetch(`${API_BASE_URL}rfi/getSignedXmlRequest`, {
-			    method: "POST",
-			    body: signForm,
-			    credentials: "include",
-			  });
-			  const response = await signRes.json();
+				const signRes = await fetch(`${API_BASE_URL}rfi/getSignedXmlRequest`, {
+					method: "POST",
+					body: signForm,
+					credentials: "include",
+				});
+				const response = await signRes.json();
 
-			  // ✅ Open eSign in new window
-			  const targetName = "esignPortal";
-			  const esignWindow = window.open("", targetName, "width=800,height=600");
-			  if (!esignWindow) {
-			    alert("⚠️ Please allow pop-ups for this site to continue eSign.");
-			    setIsSubmitting(false);
-			    return;
-			  }
+				// ✅ Open eSign in new window
+				const targetName = "esignPortal";
+				const esignWindow = window.open("", targetName, "width=800,height=600");
+				if (!esignWindow) {
+					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
+					setIsSubmitting(false);
+					return;
+				}
 
-			  const form = document.createElement("form");
-			  form.method = "POST";
+				const form = document.createElement("form");
+				form.method = "POST";
 			  form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
 			  form.target = targetName;
 			  form.style.display = "none";
@@ -798,7 +790,6 @@ export default function InspectionForm() {
 			  document.body.appendChild(form);
 			  form.submit();
 
-			  // ✅ WebSocket listener + popup-close detection
 			  const esignPromise = new Promise((resolve, reject) => {
 			    let esignCompleted = false;
 
@@ -1064,11 +1055,11 @@ export default function InspectionForm() {
 					}
 
 					setSelfieImage(latestInspection.selfiePath || null);
-					setGalleryImages(
-						latestInspection.siteImage
-							? latestInspection.siteImage.split(",").map(img => img.trim())
-							: []
-					);
+//					setGalleryImages(
+//						latestInspection.siteImage
+//							? latestInspection.siteImage.split(",").map(img => img.trim())
+//							: []
+//					);
 					setTestReportFile(latestInspection.testSiteDocuments || null);
 					setInspectionStatus(latestInspection.inspectionStatus || null);
 					setTestInLab(latestInspection.testInsiteLab || null);
@@ -1183,6 +1174,56 @@ export default function InspectionForm() {
 		return `${timestamp}${randomSuffix}`;
 	};
 
+	
+	const handleSiteImageUpload = async (file, rfiId) => {
+	  if (!file) {
+	    alert("⚠️ Please capture or select an image before uploading.");
+	    return;
+	  }
+
+	  try {
+	    const formData = new FormData();
+	    formData.append("siteImage", file); 
+	    formData.append("RfiId", rfiId);    
+
+	    const response = await fetch(`${API_BASE_URL}rfi/inspection/uploadSiteImage`, {
+	      method: "POST",
+	      body: formData,
+	      credentials: "include",
+	    });
+
+	    const resultText = await response.text();
+
+	    if (!response.ok) throw new Error(resultText || "Upload failed");
+
+	    alert(resultText);
+	    console.log("Upload result:", resultText);
+
+	  } catch (error) {
+	    console.error("Upload error:", error);
+	    alert("❌ Failed to upload image. Please try again.");
+	  }
+	};
+
+	useEffect(() => {
+	   return () => {
+	     if (siteImage) URL.revokeObjectURL(siteImage);
+	   };
+	 }, [siteImage]);
+
+	 const base64ToFile = (base64String, fileName) => {
+	   const arr = base64String.split(',');
+	   const mime = arr[0].match(/:(.*?);/)[1];
+	   const bstr = atob(arr[1]);
+	   let n = bstr.length;
+	   const u8arr = new Uint8Array(n);
+	   while (n--) {
+	     u8arr[n] = bstr.charCodeAt(n);
+	   }
+	   return new File([u8arr], fileName, { type: mime });
+	 };
+
+	
 	if (!rfiData)
 		return <div>Loading RFI details...</div>;
 
@@ -1239,46 +1280,92 @@ export default function InspectionForm() {
 										<label>Contractor's Representative:</label>
 										<input type="text" value={contractorRep} onChange={e => setContractorRep(e.target.value)} readOnly />
 									</div>
-									<div className="upload-grid">
-										{[0, 1, 2, 3].map(i => (
-											<div key={i} className="capture-option">
-												<button
-													onClick={() => {
-														setCameraMode('environment');
-														setShowCamera(`gallery-${i}`);
-													}}
-													disabled={getDisabled()}												>
-													📷 Capture Image {i + 1}
-												</button>
+									<div className="upload-section-site">
+									  <label>
+									    Image <span className="red">*</span>:
+									  </label>
 
-												<input
-													type="file"
-													accept="image/*"
-													onChange={e => {
-														const file = e.target.files[0];
-														if (file) {
-															const updated = [...galleryImages];
-															updated[i] = file;
-															setGalleryImages(updated);
-														}
-													}}
-													disabled={getDisabled()} />
+									  {!siteImage ? (
+									    <>
+									      {/* Capture Image Button */}
+									      <button
+									        onClick={() => {
+									          setCameraMode('environment');
+									          setShowCamera('gallery-0');
+									        }}
+									        disabled={getDisabled()}
+									      >
+									        📷 Capture Image
+									      </button>
 
-												{galleryImages[i] && (
-													<img
-														src={
-															galleryImages[i] instanceof File
-																? URL.createObjectURL(galleryImages[i])
-																: `${API_BASE_URL}uploads/rfi-inspections/${galleryImages[i].split("\\uploads\\")[1]}`
-														}
-														alt={`Site ${i + 1}`}
-														className="gallery-preview"
-													/>
-												)}
-											</div>
-										))}
+									      {/* Choose File Input — moved below */}
+									      <div style={{ marginTop: '15px', marginLeft: '125px' }}
+>
+									        <input
+									          type="file"
+									          name="siteImage"
+									          accept="image/*"
+									          onChange={e => {
+									            const file = e.target.files?.[0];
+									            if (file && file.type.startsWith('image/')) {
+									              const previewUrl = URL.createObjectURL(file);
+									              setGalleryImages([file]);
+									              setSiteImage(previewUrl);
+									            } else {
+									              console.warn('Invalid file selected');
+									            }
+									          }}
+									          disabled={getDisabled()}
+									        />
+									      </div>
+									    </>
+									  ) : (
+									    <>
+									      <img
+									        src={siteImage}
+									        alt="Preview"
+									        className="site-image-preview"
+									      />
 
+									      <div className="action-buttons" style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+									        <button
+									          onClick={() => {
+									            setGalleryImages([]);
+									            setSiteImage(null);
+									          }}
+									          className="cancel-btn red-button-site"
+									          disabled={getDisabled()}
+									        >
+									          ❌ Cancel
+									        </button>
+
+									        <button
+									          onClick={async () => {
+									            try {
+									              setUploading(true);
+									              if (galleryImages[0] && rfiData?.id) {
+									                await handleSiteImageUpload(galleryImages[0], rfiData.id);
+									                console.log('Upload successful');
+									                setGalleryImages([]);
+									                setSiteImage(null);
+									              } else {
+									                console.warn('Missing image or RFI ID');
+									              }
+									            } catch (err) {
+									              console.error('Upload failed:', err);
+									            } finally {
+									              setUploading(false);
+									            }
+									          }}
+									          disabled={getDisabled() || !rfiData?.id || !galleryImages[0]}
+									        >
+									          {uploading ? '⏳ Uploading...' : '⬆️ Upload'}
+									        </button>
+									      </div>
+									    </>
+									  )}
 									</div>
+
 								</div>
 
 								<h3>Enclosures</h3>
@@ -1363,6 +1450,176 @@ export default function InspectionForm() {
 										})}
 									</tbody>
 								</table>
+								
+								
+
+								
+								
+								
+								
+								<hr style={{ margin: "30px 0" }} />
+
+								<div
+								  className="confirm-inspection w-100"
+								  style={{
+								    marginTop: "1rem",
+								    padding: "12px",
+								    border: "1px solid #ddd",
+								    borderRadius: "8px",
+								  }}
+								>
+								  <h3 style={{ marginBottom: "12px" }}>Site Images Uploaded</h3>
+
+								  <table
+								    style={{
+								      width: "100%",
+								      borderCollapse: "collapse",
+								      textAlign: "left",
+								    }}
+								  >
+								    <tbody>
+								      {/* Contractor Images */}
+								      <tr>
+								        <td
+								          style={{
+								            padding: "8px",
+								            borderBottom: "1px solid #eee",
+								            width: "25%",
+								            verticalAlign: "top",
+								          }}
+								        >
+								          Contractor Site Images
+								        </td>
+								        <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+								          {Array.isArray(rfiData?.inspectionDetails) &&
+								          rfiData.inspectionDetails.some(
+								            (d) => d.uploadedBy === "CON" && d.siteImage
+								          ) ? (
+								            <div
+								              style={{
+								                display: "flex",
+								                flexWrap: "wrap",
+								                gap: "10px",
+								                alignItems: "center",
+								              }}
+								            >
+								              {rfiData.inspectionDetails
+								                .filter((d) => d.uploadedBy === "CON" && d.siteImage)
+								                .flatMap((d) => d.siteImage.split(","))
+								                .map((imgPath, index) => {
+								                  const encodedPath = encodeURIComponent(imgPath.trim());
+								                  const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+								                  return (
+								                    <a
+								                      key={index}
+								                      href={imageUrl}
+								                      target="_blank"
+								                      rel="noopener noreferrer"
+								                      style={{
+								                        display: "inline-block",
+								                        border: "1px solid #ccc",
+								                        borderRadius: "6px",
+								                        overflow: "hidden",
+								                        width: "100px",
+								                        height: "100px",
+								                        cursor: "pointer",
+								                      }}
+								                    >
+								                      <img
+								                        src={imageUrl}
+								                        alt={`Contractor Image ${index + 1}`}
+								                        style={{
+								                          width: "100%",
+								                          height: "100%",
+								                          objectFit: "cover",
+								                        }}
+								                      />
+								                    </a>
+								                  );
+								                })}
+								            </div>
+								          ) : (
+								            <span style={{ color: "#888" }}>No images uploaded</span>
+								          )}
+								        </td>
+								      </tr>
+
+								      {/* Engineer Images */}
+								      <tr>
+								        <td
+								          style={{
+								            padding: "8px",
+								            width: "25%",
+								            verticalAlign: "top",
+								          }}
+								        >
+								          Engineer Site Images
+								        </td>
+								        <td style={{ padding: "8px" }}>
+								          {Array.isArray(rfiData?.inspectionDetails) &&
+								          rfiData.inspectionDetails.some(
+								            (d) => d.uploadedBy === "Engg" && d.siteImage
+								          ) ? (
+								            <div
+								              style={{
+								                display: "flex",
+								                flexWrap: "wrap",
+								                gap: "10px",
+								                alignItems: "center",
+								              }}
+								            >
+								              {rfiData.inspectionDetails
+								                .filter((d) => d.uploadedBy === "Engg" && d.siteImage)
+								                .flatMap((d) => d.siteImage.split(","))
+								                .map((imgPath, index) => {
+								                  const encodedPath = encodeURIComponent(imgPath.trim());
+								                  const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+								                  return (
+								                    <a
+								                      key={index}
+								                      href={imageUrl}
+								                      target="_blank"
+								                      rel="noopener noreferrer"
+								                      style={{
+								                        display: "inline-block",
+								                        border: "1px solid #ccc",
+								                        borderRadius: "6px",
+								                        overflow: "hidden",
+								                        width: "100px",
+								                        height: "100px",
+								                        cursor: "pointer",
+								                      }}
+								                    >
+								                      <img
+								                        src={imageUrl}
+								                        alt={`Engineer Image ${index + 1}`}
+								                        style={{
+								                          width: "100%",
+								                          height: "100%",
+								                          objectFit: "cover",
+								                        }}
+								                      />
+								                    </a>
+								                  );
+								                })}
+								            </div>
+								          ) : (
+								            <span style={{ color: "#888" }}>No images uploaded</span>
+								          )}
+								        </td>
+								      </tr>
+								    </tbody>
+								  </table>
+								</div>
+
+						
+								
+								
+								
+								
+								
+								
+								
 
 								<hr style={{ margin: "30px 0" }} />
 								<div className="confirm-inspection w-100" style={{ marginTop: '1rem', padding: '12px', border: '1px solid #ddd', borderRadius: 8 }}  >
@@ -1828,25 +2085,30 @@ export default function InspectionForm() {
 						)}
 
 						{showCamera && (
-							<div className="popup">
-								<CameraCapture
-									facingMode={cameraMode}
-									onCapture={(img) => {
-										if (showCamera === 'selfie') setSelfieImage(img);
-										else {
-											const index = parseInt(showCamera.split('-')[1]);
-											if (!isNaN(index)) {
-												const updated = [...galleryImages];
-												updated[index] = img;
-												setGalleryImages(updated);
-											}
-										}
-										setShowCamera(false);
-									}}
-									onCancel={() => setShowCamera(false)}
-								/>
-							</div>
+						  <div className="popup">
+						    <CameraCapture
+						      facingMode={cameraMode}
+						      onCapture={(img) => {
+						        if (showCamera === 'selfie') {
+						          setSelfieImage(img); // preview for selfie
+						        } else if (showCamera.startsWith('gallery')) {
+						          const index = parseInt(showCamera.split('-')[1]);
+						          if (!isNaN(index)) {
+						            const file = base64ToFile(img, 'site-captured.jpg');
+						            const updated = [...galleryImages];
+						            updated[index] = file;
+						            setGalleryImages(updated); // for upload
+						            setSiteImage(img);         // for preview
+						          }
+						        }
+						        setShowCamera(false);
+						      }}
+						      onCancel={() => setShowCamera(false)}
+						    />
+						  </div>
 						)}
+
+
 					</div>
 				</div>
 			</div>

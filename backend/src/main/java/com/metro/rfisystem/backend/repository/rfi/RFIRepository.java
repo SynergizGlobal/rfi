@@ -196,29 +196,55 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsAssignedBy(String userName);
 
-	@Query(value = "SELECT\r\n" + "  -- RFI base fields\r\n" + "  r.consultant AS consultant,\r\n"
-			+ "  r.contract_short_name AS contract,\r\n" + "  r.created_by AS contractor,\r\n"
-			+ "  r.contract_id AS contractId,\r\n" + "  r.rfi_id AS rfiId,\r\n" + "  r.status AS rfiStatus,\r\n"
-			+ "  DATE_FORMAT(ic.inspection_date, '%Y-%m-%d') AS dateOfInspection,\r\n"
-			+ "  ico.location AS location,\r\n"
-			+ "  TIME_FORMAT(r.time_of_inspection, '%H:%i:%s') AS proposedInspectionTime,\r\n"
-			+ "  TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s') AS actualInspectionTime,\r\n" + "\r\n"
-			+ "  -- Description\r\n" + "  r.rfi_description AS rfiDescription,\r\n"
-			+ "  r.enclosures AS enclosures,\r\n" + "  r.name_of_representative AS contractorRepresentative,\r\n"
-			+ "  r.assigned_person_client AS clientRepresentative,\r\n"
-			+ "  r.description AS descriptionByContractor,\r\n" + "\r\n" + "\r\n" + "  -- Validation\r\n"
-			+ "  v.action AS validationStatus,\r\n" + "  v.remarks AS remarks,\r\n" + "\r\n"
-			+ "  -- Inspection details by role\r\n" + "  ic.selfie_path AS selfieClient,\r\n"
-			+ "  ico.selfie_path AS selfieContractor,\r\n" + "  ic.site_image AS imagesUploadedByClient,\r\n"
-			+ "  ico.site_image AS imagesUploadedByContractor,\r\n" + "  ic.test_insite_lab AS testStatus,\r\n"
-			+ "  ico.test_site_documents AS testSiteDocumentsContractor\r\n" + "\r\n" + "FROM rfi_data r\r\n" + "\r\n"
-			+ "-- Role-based inspection joins\r\n" + "LEFT JOIN rfi_inspection_details ic\r\n"
-			+ "  ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg'\r\n" + "LEFT JOIN rfi_inspection_details ico\r\n"
-			+ "  ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg'\r\n" + "\r\n"
-			+ "-- Checklist and validation joins\r\n" + "LEFT JOIN rfi_validation v\r\n" + "  ON v.rfi_id_fk = r.id\r\n"
-			+ "\r\n" + "-- Enclosures split by uploaded_by\r\n" + "LEFT JOIN rfi_enclosure re\r\n"
-			+ "  ON re.rfi_id_fk = r.id\r\n" + "WHERE r.id = :id\r\n" + "GROUP BY r.id;", nativeQuery = true)
-	List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
+	
+	@Query(value = """
+		    SELECT
+		      -- RFI base fields
+		      ANY_VALUE(r.consultant) AS consultant,
+		      ANY_VALUE(r.contract_short_name) AS contract,
+		      ANY_VALUE(r.created_by) AS contractor,
+		      ANY_VALUE(r.contract_id) AS contractId,
+		      ANY_VALUE(r.rfi_id) AS rfiId,
+		      ANY_VALUE(r.status) AS rfiStatus,
+
+		      ANY_VALUE(DATE_FORMAT(ic.inspection_date, '%Y-%m-%d')) AS dateOfInspection,
+		      ANY_VALUE(ico.location) AS location,
+		      ANY_VALUE(TIME_FORMAT(r.time_of_inspection, '%H:%i:%s')) AS proposedInspectionTime,
+		      ANY_VALUE(TIME_FORMAT(ic.time_of_inspection, '%H:%i:%s')) AS actualInspectionTime,
+
+		      -- Description
+		      ANY_VALUE(r.rfi_description) AS rfiDescription,
+		      ANY_VALUE(r.enclosures) AS enclosures,
+		      ANY_VALUE(r.name_of_representative) AS contractorRepresentative,
+		      ANY_VALUE(r.assigned_person_client) AS clientRepresentative,
+		      ANY_VALUE(r.description) AS descriptionByContractor,
+
+		      -- Validation
+		      ANY_VALUE(v.action) AS validationStatus,
+		      ANY_VALUE(v.remarks) AS remarks,
+
+		      -- Inspection details by role
+		      ANY_VALUE(ic.selfie_path) AS selfieClient,
+		      ANY_VALUE(ico.selfie_path) AS selfieContractor,
+		      ANY_VALUE(ic.site_image) AS imagesUploadedByClient,
+		      ANY_VALUE(ico.site_image) AS imagesUploadedByContractor,
+		      ANY_VALUE(ic.test_insite_lab) AS testStatus,
+		      ANY_VALUE(ico.test_site_documents) AS testSiteDocumentsContractor
+
+		    FROM rfi_data r
+		      LEFT JOIN rfi_inspection_details ic
+		        ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg'
+		      LEFT JOIN rfi_inspection_details ico
+		        ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg'
+		      LEFT JOIN rfi_validation v
+		        ON v.rfi_id_fk = r.id
+		      LEFT JOIN rfi_enclosure re
+		        ON re.rfi_id_fk = r.id
+		    WHERE r.id = :id
+		    GROUP BY r.id;
+		    """, nativeQuery = true)
+		List<RfiReportDTO> getRfiReportDetails(@Param("id") long id);
+
 	
 	@Query(value = """
 	        SELECT 

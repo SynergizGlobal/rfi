@@ -29,13 +29,15 @@ public interface InspectionService {
 
 	public RfiInspectionDTO getById(Long id);
 
-	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, List<MultipartFile> siteImages,
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
 			MultipartFile testDocument, String deptFk);
 
 	ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException;
 
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-			List<MultipartFile> siteImages, MultipartFile testDocument, String deptFk);
+														MultipartFile testDocument, String deptFk);
+	
+	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk);
 
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk);
 

@@ -14,7 +14,6 @@ public class RFIInspectionRequestDTO {
     private String location;
     private String chainage;
     private String selfiePath;
-    private String siteImage;
     private String  testSiteDocuments;
     private String StringRfiId;
     private String project;

@@ -114,11 +114,27 @@ const Inspection = () => {
 			return;
 		}
 		const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
-
+// Engineer Flow
 		if (deptFK === "engg") {
-			const allowedStatuses = ["INSPECTED_BY_CON", "INSPECTED_BY_AE",];
+			if (status === "INSPECTED_BY_AE") {
+				alert("Inspection Submitted . Further inspection not allowed.");
+				return;
+			}	
+			const allowedStatuses = ["INSPECTED_BY_CON", "AE_INSP_ONGOING",	"UPDATED","RESCHEDULED","REASSIGNED"];
 			if (!allowedStatuses.includes(status)) {
 				alert("Inspection not allowed until Contractor completes inspection.");
+				return;
+			}
+		}
+		// Contractor flow
+		else {
+			if (status === "INSPECTED_BY_CON") {
+				alert("Inspection Submitted . Further inspection not allowed.");
+				return;
+			}
+			const allowedStatuses = ["CREATED", "CON_INSP_ONGOING","UPDATED","RESCHEDULED","REASSIGNED"];
+			if (!allowedStatuses.includes(status)) {
+				alert("Inspection Submitted . Further inspection not allowed.");
 				return;
 			}
 		}

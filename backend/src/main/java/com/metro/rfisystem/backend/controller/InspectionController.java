@@ -136,7 +136,6 @@ public class InspectionController {
 	        HttpSession session,
 	        @RequestPart("data") String dataJson,
 	        @RequestPart(value = "selfie", required = false) MultipartFile selfie,
-	        @RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages,
 	        @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 
 	    String deptFk = (String) session.getAttribute("departmentFk");
@@ -145,11 +144,9 @@ public class InspectionController {
 	        ObjectMapper objectMapper = new ObjectMapper();
 	        RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-	        if (siteImages == null) {
-	            siteImages = new ArrayList<>();
-	        }
 
-	        Long inspectionId = inspectionService.startInspection(dto, selfie, siteImages, testDocument, deptFk);
+
+	        Long inspectionId = inspectionService.startInspection(dto, selfie, testDocument, deptFk);
 
 	        return ResponseEntity.ok(inspectionId);
 	    } catch (Exception e) {
@@ -166,7 +163,6 @@ public class InspectionController {
 	        HttpSession session,
 	        @RequestPart("data") String dataJson,
 	        @RequestPart(value = "selfie", required = false) MultipartFile selfie,
-	        @RequestPart(value = "siteImages", required = false) List<MultipartFile> siteImages,
 	        @RequestPart(value = "testReport", required = false) MultipartFile testDocument) {
 
 	    String deptFk = (String) session.getAttribute("departmentFk");
@@ -175,11 +171,7 @@ public class InspectionController {
 	        ObjectMapper objectMapper = new ObjectMapper();
 	        RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-	        if (siteImages == null) {
-	            siteImages = new ArrayList<>();
-	        }
-
-	        InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, siteImages, testDocument, deptFk);
+	        InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, testDocument, deptFk);
 
 	        switch (result) {
 	            case ENGINEER_SUCCESS:
@@ -194,6 +186,33 @@ public class InspectionController {
 	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
 	    }
 	}
+	
+	
+	
+	@PostMapping(value = "/rfi/inspection/uploadSiteImage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> uploadSiteImage(
+	        @RequestPart("siteImage") MultipartFile siteImage,  // ✅ must have @RequestPart
+	        @RequestParam("RfiId") Long rfiId,                // ✅ bind RFI ID
+	        HttpSession session) {
+
+	    // Get department from session
+	    String deptFk = (String) session.getAttribute("departmentFk");
+
+	    if (deptFk == null || deptFk.isEmpty()) {
+	        return ResponseEntity.badRequest().body("❌ Department not found in session.");
+	    }
+
+	    try {
+	        String message = inspectionService.UploadSiteImage(siteImage, rfiId, deptFk);
+	        return ResponseEntity.ok(message);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                             .body("❌ Error uploading site image: " + e.getMessage());
+	    }
+	}
+
+
 
 
 	@GetMapping("/rfi/inspections/{rfiId}")
@@ -232,27 +251,6 @@ public class InspectionController {
 //	    }
 //	}
 
-
-	
-	@GetMapping("/rfi/inspection/measurement-data/{rfiId}")
-	public ResponseEntity<RFIInspectionDetails> getInspectionMeasurementData(@PathVariable Long rfiId) {
-	    Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findLatestByRfiId(rfiId);
-
-	    if (inspectionOpt.isPresent()) {
-	        return ResponseEntity.ok(inspectionOpt.get());
-	    } else {
-	        // Return empty object instead of 204 No Content
-	        RFIInspectionDetails emptyInspection = new RFIInspectionDetails();
-	        emptyInspection.setMeasurementType("");
-	        emptyInspection.setLength(0.0);
-	        emptyInspection.setBreadth(0.0);
-	        emptyInspection.setHeight(0.0);
-	        emptyInspection.setNoOfItems(0);
-	        emptyInspection.setTotalQty(0.0);
-
-	        return ResponseEntity.ok(emptyInspection);
-	    }
-	}
 
 	
 	
@@ -352,33 +350,6 @@ public class InspectionController {
 
 	         .body(resource);}
 	 
-	 
-		/*
-		 * @GetMapping("/description") public List<ChecklistDTO>
-		 * getAllChecklists(@RequestParam String enclosername) { return
-		 * checklistDescriptionService.getChecklists(enclosername); }
-		 */
-	    
-	    
-//	    @GetMapping("/getChecklistDes")
-//	     public ResponseEntity<List<String>> getChecklistDes(
-//	            @RequestParam String rfiDesc,
-//	            @RequestParam String enclosureName) {
-//
-//	        String descriptions = inspectionChecklistRepository.getChecklistDescriptin(rfiDesc, enclosureName);
-//
-//	        if (descriptions == null || descriptions.isEmpty()) {
-//	            return ResponseEntity.noContent().build();
-//	        }
-//
-//	        // Split by comma and keep inner spaces
-//	        List<String> descriptionList = Arrays.stream(descriptions.split(","))
-//	                                             .map(String::trim) 
-//	                                             .collect(Collectors.toList());
-//
-//	        return ResponseEntity.ok(descriptionList);
-//	    }
-//	    
 
 	 
 	 @GetMapping("/rfi/open")

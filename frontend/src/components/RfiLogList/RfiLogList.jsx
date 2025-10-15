@@ -754,7 +754,7 @@ export default function RfiLogList() {
 										setFormState({ project: '', work: '', contract: '' });
 										setWorkOptions([]);
 										setContractOptions([]);
-										axios.get(`${API_BASE_URL}getAllRfiLogDetails`, { withCredentials: true })
+										axios.get(`${API_BASE_URL}api/rfiLog/getAllRfiLogDetails`, { withCredentials: true })
 											.then(response => {
 												if (response.status === 204 || !response.data || response.data.length === 0) {
 													setData([]);
