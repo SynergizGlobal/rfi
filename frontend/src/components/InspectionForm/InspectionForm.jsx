@@ -8,8 +8,9 @@ import './InspectionForm.css';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures } from '../../utils/offlineStorage';
 import { useNavigate } from "react-router-dom";
 import { generateInspectionPdf, mergeWithExternalPdfs, toBase64 } from '../../utils/pdfUtils';
-import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket"; 
-
+import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCamera } from '@fortawesome/free-solid-svg-icons';
 
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
@@ -33,6 +34,7 @@ export default function InspectionForm() {
 
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
 	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
+	const [inspectionStatusUserSelection, setInspectionStatusUserSelection] = useState(""); 
 
 
 	const [enclosureStates, setEnclosureStates] = useState({});
@@ -709,15 +711,15 @@ export default function InspectionForm() {
 				? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 				: doc.output("blob");
 
-//			const mergedUrl = URL.createObjectURL(pdfBlob);
-//			const link = document.createElement("a");
-//			link.href = mergedUrl;
-//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-//			document.body.appendChild(link);
-//			link.click();
-//			document.body.removeChild(link);
+			//			const mergedUrl = URL.createObjectURL(pdfBlob);
+			//			const link = document.createElement("a");
+			//			link.href = mergedUrl;
+			//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+			//			document.body.appendChild(link);
+			//			link.click();
+			//			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
-			
+
 
 
 			if (!isEngineer) {
@@ -755,8 +757,17 @@ export default function InspectionForm() {
 				const response = await signRes.json();
 
 				// ✅ Open eSign in new window
+				const width = 800;
+				const height = 600;
+				const left = window.screenX + (window.outerWidth - width) / 2;
+				const top = window.screenY + (window.outerHeight - height) / 2;
+
 				const targetName = "esignPortal";
-				const esignWindow = window.open("", targetName, "width=800,height=600");
+				const esignWindow = window.open(
+					"",
+					targetName,
+					`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+				);
 				if (!esignWindow) {
 					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
 					setIsSubmitting(false);
@@ -765,245 +776,254 @@ export default function InspectionForm() {
 
 				const form = document.createElement("form");
 				form.method = "POST";
-			  form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-			  form.target = targetName;
-			  form.style.display = "none";
+				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.target = targetName;
+				form.style.display = "none";
 
-			  const signedXmlRequest = document.createElement("input");
-			  signedXmlRequest.type = "hidden";
-			  signedXmlRequest.name = "eSignRequest";
-			  signedXmlRequest.value = response.signedXmlRequest;
-			  form.appendChild(signedXmlRequest);
+				const signedXmlRequest = document.createElement("input");
+				signedXmlRequest.type = "hidden";
+				signedXmlRequest.name = "eSignRequest";
+				signedXmlRequest.value = response.signedXmlRequest;
+				form.appendChild(signedXmlRequest);
 
-			  const aspTxnID = document.createElement("input");
-			  aspTxnID.type = "hidden";
-			  aspTxnID.name = "aspTxnID";
-			  aspTxnID.value = txnId;
-			  form.appendChild(aspTxnID);
+				const aspTxnID = document.createElement("input");
+				aspTxnID.type = "hidden";
+				aspTxnID.name = "aspTxnID";
+				aspTxnID.value = txnId;
+				form.appendChild(aspTxnID);
 
-			  const contentType = document.createElement("input");
-			  contentType.type = "hidden";
-			  contentType.name = "Content-Type";
-			  contentType.value = "application/xml";
-			  form.appendChild(contentType);
+				const contentType = document.createElement("input");
+				contentType.type = "hidden";
+				contentType.name = "Content-Type";
+				contentType.value = "application/xml";
+				form.appendChild(contentType);
 
-			  document.body.appendChild(form);
-			  form.submit();
+				document.body.appendChild(form);
+				form.submit();
 
-			  const esignPromise = new Promise((resolve, reject) => {
-			    let esignCompleted = false;
+				const esignPromise = new Promise((resolve, reject) => {
+					let esignCompleted = false;
 
-			    connectEsignSocket(txnId, (msg) => {
-			      console.log("Contractor WebSocket message:", msg);
-			      if (msg.status === "SUCCESS") {
-			        esignCompleted = true;
-			        resolve(true);
-			      }
-			      if (msg.status === "FAILED") {
-			        esignCompleted = true;
-			        reject(false);
-			      }
-			    });
+					connectEsignSocket(txnId, (msg) => {
+						console.log("Contractor WebSocket message:", msg);
+						if (msg.status === "SUCCESS") {
+							esignCompleted = true;
+							resolve(true);
+						}
+						if (msg.status === "FAILED") {
+							esignCompleted = true;
+							reject(false);
+						}
+					});
 
-			    const popupChecker = setInterval(() => {
-			      try {
-			        if (esignWindow.closed) {
-			          clearInterval(popupChecker);
-			          disconnectEsignSocket();
+					const popupChecker = setInterval(() => {
+						try {
+							if (esignWindow.closed) {
+								clearInterval(popupChecker);
+								disconnectEsignSocket();
 
-			          if (!esignCompleted) {
-			            setIsSubmitting(false);
-			            reject(false);
-			            alert("Submission Process Canceled!");
-			          }
-			        }
-			      } catch (err) {
-			        // Ignore cross-origin errors
-			      }
-			    }, 500);
-			  });
-
-			  try {
-			    const esignConSuccess = await esignPromise;
-			    disconnectEsignSocket();
-
-			    if (!esignConSuccess) throw new Error("Contractor eSign failed or timed out.");
-
-			    // ✅ Continue normal final submit
-			    const resCon = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
-			      method: "POST",
-			      body: formData,
-			      credentials: "include",
-			    });
-
-			    if (!resCon.ok) throw new Error(await resCon.text());
-
-				setInspectionStatusMode("SUBMITTED");
-				localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
-				setIsSubmitting(false);
-				await new Promise((resolve) => {
-				  alert("✅ Contractor eSign completed successfully.");
-				  resolve();
+								if (!esignCompleted) {
+									setIsSubmitting(false);
+									reject(false);
+									alert("Submission Process Canceled!");
+								}
+							}
+						} catch (err) {
+							// Ignore cross-origin errors
+						}
+					}, 500);
 				});
-				navigate("/inspection");
 
-			  } catch (err) {
-			    console.error(err);
-			    disconnectEsignSocket();
-			    alert(`❌ ${err.message}`);
-			    setIsSubmitting(false);
-			  }
+				try {
+					const esignConSuccess = await esignPromise;
+					disconnectEsignSocket();
+
+					if (!esignConSuccess) throw new Error("Contractor eSign failed or timed out.");
+
+					// ✅ Continue normal final submit
+					const resCon = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+					});
+
+					if (!resCon.ok) throw new Error(await resCon.text());
+
+					setInspectionStatusMode("SUBMITTED");
+					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
+					setIsSubmitting(false);
+					await new Promise((resolve) => {
+						alert("✅ Contractor eSign completed successfully.");
+						resolve();
+					});
+					navigate("/inspection");
+
+				} catch (err) {
+					console.error(err);
+					disconnectEsignSocket();
+					alert(`❌ ${err.message}`);
+					setIsSubmitting(false);
+				}
 			} else {
-			  // ✅ Engineer Submission Flow
-			  const engForm = new FormData();
-			  engForm.append("sc", "Y");
-			  engForm.append("rfiId", rfiData?.id ?? "");
-			  engForm.append("signerName", "Pranavi");
-			  engForm.append("engineerName", "PVM");
-			  engForm.append("signY", Math.floor(y));
+				// ✅ Engineer Submission Flow
+				const engForm = new FormData();
+				engForm.append("sc", "Y");
+				engForm.append("rfiId", rfiData?.id ?? "");
+				engForm.append("signerName", "Pranavi");
+				engForm.append("engineerName", "PVM");
+				engForm.append("signY", Math.floor(y));
 
-			  const engRes = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
-			    method: "POST",
-			    body: engForm,
-			    credentials: "include",
-			  });
-
-			  let response = {};
-
-			  try {
-			    const contentType = engRes.headers.get("content-type") || "";
-
-			    if (contentType.includes("application/json")) {
-			      response = await engRes.json();
-			      if (response.error) {
-			        alert(`⚠️ ${response.error}`);
-			        setIsSubmitting(false);
-			        return;
-			      }
-			    } else {
-			      const text = await engRes.text();
-			      if (text) {
-			        alert(`⚠️ ${text}`);
-			        setIsSubmitting(false);
-			        return;
-			      }
-			    }
-			  } catch (err) {
-			    console.error("Failed to parse eSign response:", err);
-			    alert("Error preparing eSign request. Please try again.");
-			    setIsSubmitting(false);
-			    return;
-			  }
-
-			  if (response.error) {
-			    alert(`⚠️ ${response.error}`);
-			    setIsSubmitting(false);
-			    return;
-			  }
-
-			  // ✅ Open eSign window
-			  const targetName = "esignPortal";
-			  const esignWindow = window.open("", targetName, "width=800,height=600");
-			  if (!esignWindow) {
-			    alert("⚠️ Please allow pop-ups for this site to continue eSign.");
-			    setIsSubmitting(false);
-			    return;
-			  }
-
-			  const form = document.createElement("form");
-			  form.method = "POST";
-			  form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-			  form.target = targetName;
-			  form.style.display = "none";
-
-			  const signedXmlRequest = document.createElement("input");
-			  signedXmlRequest.type = "hidden";
-			  signedXmlRequest.name = "eSignRequest";
-			  signedXmlRequest.value = response.signedXmlRequest;
-			  form.appendChild(signedXmlRequest);
-
-			  const aspTxnID = document.createElement("input");
-			  aspTxnID.type = "hidden";
-			  aspTxnID.name = "aspTxnID";
-			  aspTxnID.value = response.txnId;
-			  form.appendChild(aspTxnID);
-
-			  const contentType = document.createElement("input");
-			  contentType.type = "hidden";
-			  contentType.name = "Content-Type";
-			  contentType.value = "application/xml";
-			  form.appendChild(contentType);
-
-			  document.body.appendChild(form);
-			  form.submit();
-
-			  // ✅ WebSocket listener + popup-close detection
-			  const esignPromise = new Promise((resolve, reject) => {
-			    let esignCompleted = false;
-
-			    connectEsignSocket(response.txnId, (msg) => {
-			      console.log("Engineer WebSocket message:", msg);
-			      if (msg.status === "SUCCESS") {
-			        esignCompleted = true;
-			        resolve(true);
-			      }
-			      if (msg.status === "FAILED") {
-			        esignCompleted = true;
-			        reject(false);
-			      }
-			    });
-
-			    const popupChecker = setInterval(() => {
-			      try {
-			        if (esignWindow.closed) {
-			          clearInterval(popupChecker);
-			          disconnectEsignSocket();
-
-			          if (!esignCompleted) {
-			            setIsSubmitting(false);
-			            reject(false);
-			            alert("Submission Process Canceled!");
-			          }
-			        }
-			      } catch (err) {
-			        // Ignore cross-origin errors
-			      }
-			    }, 500);
-			  });
-
-			  try {
-			    const esignEngSuccess = await esignPromise;
-			    disconnectEsignSocket();
-
-			    if (!esignEngSuccess) throw new Error("Engineer eSign failed or timed out.");
-
-			    const resEngg = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
-			      method: "POST",
-			      body: formData,
-			      credentials: "include",
-			    });
-
-			    if (!resEngg.ok) {
-			      const errText = await resEngg.text();
-			      alert(`❌ Submission failed: ${errText}`);
-			      throw new Error(errText);
-			    }
-
-				setInspectionStatusMode("SUBMITTED");
-				setIsSubmitting(false);
-				localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
-				await new Promise((resolve) => {
-				  alert("✅ Engineer eSign completed successfully.");
-				  resolve();
+				const engRes = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
+					method: "POST",
+					body: engForm,
+					credentials: "include",
 				});
-				navigate("/inspection");
 
-			  } catch (err) {
-			    console.error(err);
-			    disconnectEsignSocket();
-			    alert(`❌ ${err.message}`);
-			    setIsSubmitting(false);
-			  }
+				let response = {};
+
+				try {
+					const contentType = engRes.headers.get("content-type") || "";
+
+					if (contentType.includes("application/json")) {
+						response = await engRes.json();
+						if (response.error) {
+							alert(`⚠️ ${response.error}`);
+							setIsSubmitting(false);
+							return;
+						}
+					} else {
+						const text = await engRes.text();
+						if (text) {
+							alert(`⚠️ ${text}`);
+							setIsSubmitting(false);
+							return;
+						}
+					}
+				} catch (err) {
+					console.error("Failed to parse eSign response:", err);
+					alert("Error preparing eSign request. Please try again.");
+					setIsSubmitting(false);
+					return;
+				}
+
+				if (response.error) {
+					alert(`⚠️ ${response.error}`);
+					setIsSubmitting(false);
+					return;
+				}
+
+				// ✅ Open eSign window
+				const width = 800;
+				const height = 600;
+				const left = window.screenX + (window.outerWidth - width) / 2;
+				const top = window.screenY + (window.outerHeight - height) / 2;
+
+				const targetName = "esignPortal";
+				const esignWindow = window.open(
+					"",
+					targetName,
+					`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+				);
+				if (!esignWindow) {
+					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
+					setIsSubmitting(false);
+					return;
+				}
+
+				const form = document.createElement("form");
+				form.method = "POST";
+				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
+				form.target = targetName;
+				form.style.display = "none";
+
+				const signedXmlRequest = document.createElement("input");
+				signedXmlRequest.type = "hidden";
+				signedXmlRequest.name = "eSignRequest";
+				signedXmlRequest.value = response.signedXmlRequest;
+				form.appendChild(signedXmlRequest);
+
+				const aspTxnID = document.createElement("input");
+				aspTxnID.type = "hidden";
+				aspTxnID.name = "aspTxnID";
+				aspTxnID.value = response.txnId;
+				form.appendChild(aspTxnID);
+
+				const contentType = document.createElement("input");
+				contentType.type = "hidden";
+				contentType.name = "Content-Type";
+				contentType.value = "application/xml";
+				form.appendChild(contentType);
+
+				document.body.appendChild(form);
+				form.submit();
+
+				// ✅ WebSocket listener + popup-close detection
+				const esignPromise = new Promise((resolve, reject) => {
+					let esignCompleted = false;
+
+					connectEsignSocket(response.txnId, (msg) => {
+						console.log("Engineer WebSocket message:", msg);
+						if (msg.status === "SUCCESS") {
+							esignCompleted = true;
+							resolve(true);
+						}
+						if (msg.status === "FAILED") {
+							esignCompleted = true;
+							reject(false);
+						}
+					});
+
+					const popupChecker = setInterval(() => {
+						try {
+							if (esignWindow.closed) {
+								clearInterval(popupChecker);
+								disconnectEsignSocket();
+
+								if (!esignCompleted) {
+									setIsSubmitting(false);
+									reject(false);
+									alert("Submission Process Canceled!");
+								}
+							}
+						} catch (err) {
+							// Ignore cross-origin errors
+						}
+					}, 500);
+				});
+
+				try {
+					const esignEngSuccess = await esignPromise;
+					disconnectEsignSocket();
+
+					if (!esignEngSuccess) throw new Error("Engineer eSign failed or timed out.");
+
+					const resEngg = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
+						method: "POST",
+						body: formData,
+						credentials: "include",
+					});
+
+					if (!resEngg.ok) {
+						const errText = await resEngg.text();
+						alert(`❌ Submission failed: ${errText}`);
+						throw new Error(errText);
+					}
+
+					setInspectionStatusMode("SUBMITTED");
+					setIsSubmitting(false);
+					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
+					await new Promise((resolve) => {
+						alert("✅ Engineer eSign completed successfully.");
+						resolve();
+					});
+					navigate("/inspection");
+
+				} catch (err) {
+					console.error(err);
+					disconnectEsignSocket();
+					alert(`❌ ${err.message}`);
+					setIsSubmitting(false);
+				}
 			}
 
 
@@ -1013,7 +1033,7 @@ export default function InspectionForm() {
 			setIsSubmitting(false);
 		}
 	};
-	
+
 	useEffect(() => {
 		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
 			setInspectionStatusMode("SUBMITTED");
@@ -1055,11 +1075,11 @@ export default function InspectionForm() {
 					}
 
 					setSelfieImage(latestInspection.selfiePath || null);
-//					setGalleryImages(
-//						latestInspection.siteImage
-//							? latestInspection.siteImage.split(",").map(img => img.trim())
-//							: []
-//					);
+					//					setGalleryImages(
+					//						latestInspection.siteImage
+					//							? latestInspection.siteImage.split(",").map(img => img.trim())
+					//							: []
+					//					);
 					setTestReportFile(latestInspection.testSiteDocuments || null);
 					setInspectionStatus(latestInspection.inspectionStatus || null);
 					setTestInLab(latestInspection.testInsiteLab || null);
@@ -1173,57 +1193,83 @@ export default function InspectionForm() {
 		const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 		return `${timestamp}${randomSuffix}`;
 	};
-
 	
+	const fetchUpdatedRfiData = async (id) => {
+		try {
+			const res = await fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, {
+				method: "GET",
+				credentials: "include",
+			});
+			if (!res.ok) throw new Error("Failed to fetch updated RFI data");
+			const data = await res.json();
+			setRfiData(data); 
+		} catch (err) {
+			console.error("Error refreshing RFI data:", err);
+		}
+	};
+
+
+
 	const handleSiteImageUpload = async (file, rfiId) => {
-	  if (!file) {
-	    alert("⚠️ Please capture or select an image before uploading.");
-	    return;
-	  }
+		if (!file) {
+			alert("⚠️ Please capture or select an image before uploading.");
+			return;
+		}
 
-	  try {
-	    const formData = new FormData();
-	    formData.append("siteImage", file); 
-	    formData.append("RfiId", rfiId);    
+		try {
+			const formData = new FormData();
+			formData.append("siteImage", file);
+			formData.append("RfiId", rfiId);
 
-	    const response = await fetch(`${API_BASE_URL}rfi/inspection/uploadSiteImage`, {
-	      method: "POST",
-	      body: formData,
-	      credentials: "include",
-	    });
+			const response = await fetch(`${API_BASE_URL}rfi/inspection/uploadSiteImage`, {
+				method: "POST",
+				body: formData,
+				credentials: "include",
+			});
 
-	    const resultText = await response.text();
+			const resultText = await response.text();
 
-	    if (!response.ok) throw new Error(resultText || "Upload failed");
+			if (!response.ok) throw new Error(resultText || "Upload failed");
 
-	    alert(resultText);
-	    console.log("Upload result:", resultText);
+			alert(resultText);
+			console.log("Upload result:", resultText);
 
-	  } catch (error) {
-	    console.error("Upload error:", error);
-	    alert("❌ Failed to upload image. Please try again.");
-	  }
+			// ✅ Re-fetch updated inspection details
+			await fetchUpdatedRfiData(rfiId);
+
+		} catch (error) {
+			console.error("Upload error:", error);
+			alert("❌ Failed to upload image. Please try again.");
+		}
+	};
+
+
+	useEffect(() => {
+		return () => {
+			if (siteImage) URL.revokeObjectURL(siteImage);
+		};
+	}, [siteImage]);
+
+	const base64ToFile = (base64String, fileName) => {
+		const arr = base64String.split(',');
+		const mime = arr[0].match(/:(.*?);/)[1];
+		const bstr = atob(arr[1]);
+		let n = bstr.length;
+		const u8arr = new Uint8Array(n);
+		while (n--) {
+			u8arr[n] = bstr.charCodeAt(n);
+		}
+		return new File([u8arr], fileName, { type: mime });
 	};
 
 	useEffect(() => {
-	   return () => {
-	     if (siteImage) URL.revokeObjectURL(siteImage);
-	   };
-	 }, [siteImage]);
+		if (!measurements || measurements.length === 0) {
+			setMeasurements([{ type: "", L: "", B: "", H: "", No: "", total: "" }]);
+		}
+	}, [measurements]);
 
-	 const base64ToFile = (base64String, fileName) => {
-	   const arr = base64String.split(',');
-	   const mime = arr[0].match(/:(.*?);/)[1];
-	   const bstr = atob(arr[1]);
-	   let n = bstr.length;
-	   const u8arr = new Uint8Array(n);
-	   while (n--) {
-	     u8arr[n] = bstr.charCodeAt(n);
-	   }
-	   return new File([u8arr], fileName, { type: mime });
-	 };
 
-	
+
 	if (!rfiData)
 		return <div>Loading RFI details...</div>;
 
@@ -1281,462 +1327,355 @@ export default function InspectionForm() {
 										<input type="text" value={contractorRep} onChange={e => setContractorRep(e.target.value)} readOnly />
 									</div>
 									<div className="upload-section-site">
-									  <label>
-									    Image <span className="red">*</span>:
-									  </label>
+										<label>
+											Upload Site Image
+										</label>
 
-									  {!siteImage ? (
-									    <>
-									      {/* Capture Image Button */}
-									      <button
-									        onClick={() => {
-									          setCameraMode('environment');
-									          setShowCamera('gallery-0');
-									        }}
-									        disabled={getDisabled()}
-									      >
-									        📷 Capture Image
-									      </button>
+										{!siteImage ? (
+											<>
+												{/* Capture Image Button */}
+												<button
+												  className='upload-section-site-button-cam'
+												  onClick={() => {
+												    setCameraMode('environment');
+												    setShowCamera('gallery-0');
+												  }}
+												  disabled={getDisabled()}
+												>
+												  <FontAwesomeIcon icon={faCamera} />
+												</button>
 
-									      {/* Choose File Input — moved below */}
-									      <div style={{ marginTop: '15px', marginLeft: '125px' }}
->
-									        <input
-									          type="file"
-									          name="siteImage"
-									          accept="image/*"
-									          onChange={e => {
-									            const file = e.target.files?.[0];
-									            if (file && file.type.startsWith('image/')) {
-									              const previewUrl = URL.createObjectURL(file);
-									              setGalleryImages([file]);
-									              setSiteImage(previewUrl);
-									            } else {
-									              console.warn('Invalid file selected');
-									            }
-									          }}
-									          disabled={getDisabled()}
-									        />
-									      </div>
-									    </>
-									  ) : (
-									    <>
-									      <img
-									        src={siteImage}
-									        alt="Preview"
-									        className="site-image-preview"
-									      />
+												{/* Choose File Input — moved below */}
+												<div style={{ marginTop: '15px', marginLeft: '125px' }}
+												>
+													<input
+														type="file"
+														name="siteImage"
+														accept="image/*"
+														onChange={e => {
+															const file = e.target.files?.[0];
+															if (file && file.type.startsWith('image/')) {
+																const previewUrl = URL.createObjectURL(file);
+																setGalleryImages([file]);
+																setSiteImage(previewUrl);
+															} else {
+																console.warn('Invalid file selected');
+															}
+														}}
+														disabled={getDisabled()}
+													/>
+												</div>
+											</>
+										) : (
+											<>
+												<img
+													src={siteImage}
+													alt="Preview"
+													className="site-image-preview"
+												/>
 
-									      <div className="action-buttons" style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-									        <button
-									          onClick={() => {
-									            setGalleryImages([]);
-									            setSiteImage(null);
-									          }}
-									          className="cancel-btn red-button-site"
-									          disabled={getDisabled()}
-									        >
-									          ❌ Cancel
-									        </button>
+												<div className="action-buttons" style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+													<button
+														onClick={() => {
+															setGalleryImages([]);
+															setSiteImage(null);
+														}}
+														className="red-button-site"
+														disabled={getDisabled()}
+													>
+														❌
+													</button>
 
-									        <button
-									          onClick={async () => {
-									            try {
-									              setUploading(true);
-									              if (galleryImages[0] && rfiData?.id) {
-									                await handleSiteImageUpload(galleryImages[0], rfiData.id);
-									                console.log('Upload successful');
-									                setGalleryImages([]);
-									                setSiteImage(null);
-									              } else {
-									                console.warn('Missing image or RFI ID');
-									              }
-									            } catch (err) {
-									              console.error('Upload failed:', err);
-									            } finally {
-									              setUploading(false);
-									            }
-									          }}
-									          disabled={getDisabled() || !rfiData?.id || !galleryImages[0]}
-									        >
-									          {uploading ? '⏳ Uploading...' : '⬆️ Upload'}
-									        </button>
-									      </div>
-									    </>
-									  )}
+													<button
+													className='upload-site'
+														onClick={async () => {
+															try {
+																setUploading(true);
+																if (galleryImages[0] && rfiData?.id) {
+																	await handleSiteImageUpload(galleryImages[0], rfiData.id);
+																	console.log('Upload successful');
+																	setGalleryImages([]);
+																	setSiteImage(null);
+																} else {
+																	console.warn('Missing image or RFI ID');
+																}
+															} catch (err) {
+																console.error('Upload failed:', err);
+															} finally {
+																setUploading(false);
+															}
+														}}
+														disabled={getDisabled() || !rfiData?.id || !galleryImages[0]}
+													>
+														{uploading ? '⏳' : '⬆️ '}
+													</button>
+												</div>
+											</>
+										)}
 									</div>
 
 								</div>
 
-								<h3>Enclosures</h3>
-								<table className="enclosure-table">
-									<thead>
-										<tr>
-											<th>RFI Description</th>
-											<th>Enclosure</th>
-											<th>Action</th>
-											<th>Uploaded</th>
-											<th>Test Report</th>
-										</tr>
-									</thead>
-									<tbody>
-										{enclosuresData.map((e, index) => {
-											const state = enclosureStates[e.id] || {};
-											const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
 
-											const enclosureFile = rfiData.enclosure?.find(enc =>
-												enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-											)?.enclosureUploadFile;
-
-											return (
-												<tr key={e.id}>
-													<td>{e.rfiDescription}</td>
-													<td>{e.enclosure}</td>
-
-													<td>
-														{enclosureActions[e.id] === 'UPLOAD' ? (
-															<button
-																onClick={() => setUploadPopup(e.id)}
-																disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
-															>
-																Upload
-															</button>
-														) : (
-															<button onClick={() => setChecklistPopup(e.id)}>
-																{enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
-															</button>
-														)}
+								<div className="measurements-section">
+									<h3 className="section-title">Site Images Uploaded</h3>
+									<div className="confirm-inspection w-100"
+										style={{
+											marginTop: "1rem",
+											padding: "12px",
+											border: "1px solid #ddd",
+											borderRadius: "8px",
+										}}
+									>
+										<table
+											style={{
+												width: "100%",
+												borderCollapse: "collapse",
+												textAlign: "left",
+											}}
+										>
+											<tbody>
+												{/* Contractor Images */}
+												<tr>
+													<td
+														style={{
+															padding: "8px",
+															borderBottom: "1px solid #eee",
+															width: "25%",
+															verticalAlign: "top",
+														}}
+													>
+														Contractor Site Images
 													</td>
-													<td>
-														{enclosureFile ? (
-															<button
-																onClick={() => {
-																	const link = document.createElement('a');
-																	link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(enclosureFile)}`;
-																	link.download = enclosureFile.split(/[\\/]/).pop();
-																	document.body.appendChild(link);
-																	link.click();
-																	document.body.removeChild(link);
+													<td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+														{Array.isArray(rfiData?.inspectionDetails) &&
+															rfiData.inspectionDetails.some(
+																(d) => d.uploadedBy === "CON" && d.siteImage
+															) ? (
+															<div
+																style={{
+																	display: "flex",
+																	flexWrap: "wrap",
+																	gap: "10px",
+																	alignItems: "center",
 																}}
-																style={{ padding: '4px 10px', cursor: 'pointer' }}
 															>
-																Download Enclosure
-															</button>
+																{rfiData.inspectionDetails
+																	.filter((d) => d.uploadedBy === "CON" && d.siteImage)
+																	.flatMap((d) => d.siteImage.split(","))
+																	.map((imgPath, index) => {
+																		const encodedPath = encodeURIComponent(imgPath.trim());
+																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+																		return (
+																			<a
+																				key={index}
+																				href={imageUrl}
+																				target="_blank"
+																				rel="noopener noreferrer"
+																				style={{
+																					display: "inline-block",
+																					border: "1px solid #ccc",
+																					borderRadius: "6px",
+																					overflow: "hidden",
+																					width: "100px",
+																					height: "100px",
+																					cursor: "pointer",
+																				}}
+																			>
+																				<img
+																					src={imageUrl}
+																					alt={`Contractor Image ${index + 1}`}
+																					style={{
+																						width: "100%",
+																						height: "100%",
+																						objectFit: "cover",
+																					}}
+																				/>
+																			</a>
+																		);
+																	})}
+															</div>
 														) : (
-															'---'
+															<span style={{ color: "#888" }}>No images uploaded</span>
 														)}
 													</td>
+												</tr>
 
-													{index === 0 && (
-														<td rowSpan={enclosuresData.length}>
-															{rfiReportFilepath && (
+												{/* Engineer Images */}
+												<tr>
+													<td
+														style={{
+															padding: "8px",
+															width: "25%",
+															verticalAlign: "top",
+														}}
+													>
+														Engineer Site Images
+													</td>
+													<td style={{ padding: "8px" }}>
+														{Array.isArray(rfiData?.inspectionDetails) &&
+															rfiData.inspectionDetails.some(
+																(d) => d.uploadedBy === "Engg" && d.siteImage
+															) ? (
+															<div
+																style={{
+																	display: "flex",
+																	flexWrap: "wrap",
+																	gap: "10px",
+																	alignItems: "center",
+																}}
+															>
+																{rfiData.inspectionDetails
+																	.filter((d) => d.uploadedBy === "Engg" && d.siteImage)
+																	.flatMap((d) => d.siteImage.split(","))
+																	.map((imgPath, index) => {
+																		const encodedPath = encodeURIComponent(imgPath.trim());
+																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+																		return (
+																			<a
+																				key={index}
+																				href={imageUrl}
+																				target="_blank"
+																				rel="noopener noreferrer"
+																				style={{
+																					display: "inline-block",
+																					border: "1px solid #ccc",
+																					borderRadius: "6px",
+																					overflow: "hidden",
+																					width: "100px",
+																					height: "100px",
+																					cursor: "pointer",
+																				}}
+																			>
+																				<img
+																					src={imageUrl}
+																					alt={`Engineer Image ${index + 1}`}
+																					style={{
+																						width: "100%",
+																						height: "100%",
+																						objectFit: "cover",
+																					}}
+																				/>
+																			</a>
+																		);
+																	})}
+															</div>
+														) : (
+															<span style={{ color: "#888" }}>No images uploaded</span>
+														)}
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+
+
+
+								<div className="measurements-section">
+									<h3 className="section-title">Enclosures</h3>
+									<table className="measurements-table">
+										<thead>
+											<tr>
+												<th>RFI Description</th>
+												<th>Enclosure</th>
+												<th>Action</th>
+												<th>Uploaded</th>
+												<th>Test Report</th>
+											</tr>
+										</thead>
+										<tbody>
+											{enclosuresData.map((e, index) => {
+												const state = enclosureStates[e.id] || {};
+												const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+
+												const enclosureFile = rfiData.enclosure?.find(enc =>
+													enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+												)?.enclosureUploadFile;
+
+												return (
+													<tr key={e.id}>
+														<td>{e.rfiDescription}</td>
+														<td>{e.enclosure}</td>
+
+														<td>
+															{enclosureActions[e.id] === 'UPLOAD' ? (
 																<button
+																className="hover-blue-btn"
+																	onClick={() => setUploadPopup(e.id)}
+																	disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
+																>
+																	Upload
+																</button>
+															) : (
+																<button onClick={() => setChecklistPopup(e.id)}>
+																	{enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
+																</button>
+															)}
+														</td>
+														<td>
+															{enclosureFile ? (
+																<button
+																className="hover-blue-btn"
 																	onClick={() => {
 																		const link = document.createElement('a');
-																		link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
-																		link.download = rfiReportFilepath.split(/[\\/]/).pop();
+																		link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(enclosureFile)}`;
+																		link.download = enclosureFile.split(/[\\/]/).pop();
 																		document.body.appendChild(link);
 																		link.click();
 																		document.body.removeChild(link);
 																	}}
 																>
-																	Download Test Report
+																	Download 
 																</button>
+															) : (
+																'---'
 															)}
 														</td>
-													)}
-												</tr>
-											);
-										})}
-									</tbody>
-								</table>
-								
-								
 
-								
-								
-								
-								
-								<hr style={{ margin: "30px 0" }} />
+														{index === 0 && (
+														  <td rowSpan={enclosuresData.length}>
+														    {rfiReportFilepath ? (
+														      <button
+														        type="button"
+																className="hover-blue-btn"
+														        onClick={() => {
+														          const sanitizedBase = API_BASE_URL.replace(/\/$/, '');
+														          const encodedPath = encodeURIComponent(rfiReportFilepath);
+														          const downloadUrl = `${sanitizedBase}/rfi/DownloadPrev?filepath=${encodedPath}`;
+														          const filename = rfiReportFilepath.split(/[\\/]/).pop();
 
-								<div
-								  className="confirm-inspection w-100"
-								  style={{
-								    marginTop: "1rem",
-								    padding: "12px",
-								    border: "1px solid #ddd",
-								    borderRadius: "8px",
-								  }}
-								>
-								  <h3 style={{ marginBottom: "12px" }}>Site Images Uploaded</h3>
+														          const link = document.createElement('a');
+														          link.href = downloadUrl;
+														          link.download = filename || 'report.pdf';
+														          document.body.appendChild(link);
+														          link.click();
+														          document.body.removeChild(link);
+														        }}
+														      >
+														        Download
+														      </button>
+														    ) : (
+														      '---'
+														    )}
+														  </td>
+														)}
 
-								  <table
-								    style={{
-								      width: "100%",
-								      borderCollapse: "collapse",
-								      textAlign: "left",
-								    }}
-								  >
-								    <tbody>
-								      {/* Contractor Images */}
-								      <tr>
-								        <td
-								          style={{
-								            padding: "8px",
-								            borderBottom: "1px solid #eee",
-								            width: "25%",
-								            verticalAlign: "top",
-								          }}
-								        >
-								          Contractor Site Images
-								        </td>
-								        <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-								          {Array.isArray(rfiData?.inspectionDetails) &&
-								          rfiData.inspectionDetails.some(
-								            (d) => d.uploadedBy === "CON" && d.siteImage
-								          ) ? (
-								            <div
-								              style={{
-								                display: "flex",
-								                flexWrap: "wrap",
-								                gap: "10px",
-								                alignItems: "center",
-								              }}
-								            >
-								              {rfiData.inspectionDetails
-								                .filter((d) => d.uploadedBy === "CON" && d.siteImage)
-								                .flatMap((d) => d.siteImage.split(","))
-								                .map((imgPath, index) => {
-								                  const encodedPath = encodeURIComponent(imgPath.trim());
-								                  const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-								                  return (
-								                    <a
-								                      key={index}
-								                      href={imageUrl}
-								                      target="_blank"
-								                      rel="noopener noreferrer"
-								                      style={{
-								                        display: "inline-block",
-								                        border: "1px solid #ccc",
-								                        borderRadius: "6px",
-								                        overflow: "hidden",
-								                        width: "100px",
-								                        height: "100px",
-								                        cursor: "pointer",
-								                      }}
-								                    >
-								                      <img
-								                        src={imageUrl}
-								                        alt={`Contractor Image ${index + 1}`}
-								                        style={{
-								                          width: "100%",
-								                          height: "100%",
-								                          objectFit: "cover",
-								                        }}
-								                      />
-								                    </a>
-								                  );
-								                })}
-								            </div>
-								          ) : (
-								            <span style={{ color: "#888" }}>No images uploaded</span>
-								          )}
-								        </td>
-								      </tr>
-
-								      {/* Engineer Images */}
-								      <tr>
-								        <td
-								          style={{
-								            padding: "8px",
-								            width: "25%",
-								            verticalAlign: "top",
-								          }}
-								        >
-								          Engineer Site Images
-								        </td>
-								        <td style={{ padding: "8px" }}>
-								          {Array.isArray(rfiData?.inspectionDetails) &&
-								          rfiData.inspectionDetails.some(
-								            (d) => d.uploadedBy === "Engg" && d.siteImage
-								          ) ? (
-								            <div
-								              style={{
-								                display: "flex",
-								                flexWrap: "wrap",
-								                gap: "10px",
-								                alignItems: "center",
-								              }}
-								            >
-								              {rfiData.inspectionDetails
-								                .filter((d) => d.uploadedBy === "Engg" && d.siteImage)
-								                .flatMap((d) => d.siteImage.split(","))
-								                .map((imgPath, index) => {
-								                  const encodedPath = encodeURIComponent(imgPath.trim());
-								                  const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-								                  return (
-								                    <a
-								                      key={index}
-								                      href={imageUrl}
-								                      target="_blank"
-								                      rel="noopener noreferrer"
-								                      style={{
-								                        display: "inline-block",
-								                        border: "1px solid #ccc",
-								                        borderRadius: "6px",
-								                        overflow: "hidden",
-								                        width: "100px",
-								                        height: "100px",
-								                        cursor: "pointer",
-								                      }}
-								                    >
-								                      <img
-								                        src={imageUrl}
-								                        alt={`Engineer Image ${index + 1}`}
-								                        style={{
-								                          width: "100%",
-								                          height: "100%",
-								                          objectFit: "cover",
-								                        }}
-								                      />
-								                    </a>
-								                  );
-								                })}
-								            </div>
-								          ) : (
-								            <span style={{ color: "#888" }}>No images uploaded</span>
-								          )}
-								        </td>
-								      </tr>
-								    </tbody>
-								  </table>
+													</tr>
+												);
+											})}
+										</tbody>
+									</table>
 								</div>
-
-						
-								
-								
-								
-								
-								
-								
-								
-
-								<hr style={{ margin: "30px 0" }} />
-								<div className="confirm-inspection w-100" style={{ marginTop: '1rem', padding: '12px', border: '1px solid #ddd', borderRadius: 8 }}  >
-									<h3>Confirm Inspection</h3>
-									<div className="d-flex align-center gap-20">
-										<div className="form-fields">
-											<label>Tests in Site/Lab</label>
-											{deptFK?.toLowerCase() === "engg" ? (
-												<p style={{ color: "green", border: "2px solid grey", padding: 6 }} disabled={viewMode} >
-													{rfiData?.inspectionDetails
-														?.find(d => d.uploadedBy === "CON")
-														?.inspectionStatus || "Not Uploaded"}
-												</p>
-											) : (
-												<select
-													value={inspectionStatus}
-													onChange={(e) => setInspectionStatus(e.target.value)}
-													disabled={getDisabled()}												>
-													<option value="" disabled hidden>Select</option>
-													<option value="VISUAL">Visual</option>
-													<option value="LAB_TEST">Lab Test</option>
-													<option value="SITE_TEST">Site Test</option>
-												</select>
-
-											)}
-										</div>
-										<div className="form-fields">
-											{deptFK?.toLowerCase() !== 'engg' && inspectionStatus !== 'VISUAL' && (
-												<>
-													<label>Upload Test Report Here</label>
-													<input
-														type="file"
-														onChange={(e) => setTestReportFile(e.target.files[0])}
-														disabled={getDisabled()}
-
-													/>
-												</>
-											)}
-										</div>
-										<div className="form-fields">
-											{deptFK?.toLowerCase() === "engg" && (
-												<>
-													<label>Inspection Status</label>
-													<select
-														value={testInLab || ""}
-														onChange={(e) => {
-															const value = e.target.value;
-															const conflict = Object.values(enclosureStates).some(enc =>
-																enc.checklist?.some(row =>
-																	row.contractorStatus === "YES" && row.engineerStatus === "NO"
-																)
-															);
-															if (conflict) {
-																setTestInLab("Rejected");
-																alert("Checklist mismatch (Contractor=YES, Engineer=NO) → Inspection auto-rejected.");
-																return;
-															}
-															setTestInLab(value);
-														}}
-														disabled={getDisabled()}
-													>
-														<option value="">Select</option>
-														<option value="Accepted">Accepted</option>
-														<option value="Rejected">Rejected</option>
-													</select>
-
-													{testInLab === "Rejected" && (
-														<div style={{ position: "relative", width: "100%" }}>
-															<label>Remarks</label>
-															<textarea
-																value={engineerRemarks}
-																onChange={(e) => {
-																	if (e.target.value.length <= 1000) {
-																		setEngineerRemarks(e.target.value);
-																	}
-																}}
-																placeholder="Enter remarks"
-																style={{
-																	width: "100%",
-																	minHeight: "100px",
-																	padding: "10px",
-																	boxSizing: "border-box",
-																	resize: "vertical"
-																}}
-																disabled={getDisabled()} />
-															<div
-																style={{
-																	position: "absolute",
-																	top: "8px",
-																	right: "12px",
-																	fontSize: "12px",
-																	color: engineerRemarks.length >= 1000 ? "red" : "#888",
-																	pointerEvents: "none",
-																	backgroundColor: "white",
-																	padding: "0 4px",
-																	borderRadius: "4px",
-																	marginTop: 0,
-																	marginBottom: 0
-																}}
-
-															>
-																{1000 - (engineerRemarks?.length || 0)} {'limit'}
-															</div>
-														</div>
-													)}
-												</>
-											)}
-										</div>
-
-									</div>
-								</div>
-
 
 								{/* ✅ Measurements Section */}
 								<hr className="section-divider" />
+
 								<div className="measurements-section">
-									<h3 className="section-title">Measurements <span className='red'>*</span></h3>
+									<h3 className="section-title">
+										Measurements <span className="red">*</span>
+									</h3>
+
 									{errors.measurements && <p className="error-text">{errors.measurements}</p>}
 
 									<table className="measurements-table">
@@ -1750,99 +1689,251 @@ export default function InspectionForm() {
 												<th>Total Qty</th>
 											</tr>
 										</thead>
+
 										<tbody>
-											{measurements.map((row, index) => (
-												<tr key={index}>
-													{/* Type of Measurement */}
-													<td>
-														<select
-															className="measurement-input"
-															value={row.type}
-															onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
-															disabled={getDisabled()}														>
-															<option value="">Select</option>
-															<option value="Area">Area</option>
-															<option value="Length">Length</option>
-															<option value="Volume">Volume</option>
-															<option value="Number">Number</option>
-														</select>
+											{Array.isArray(measurements) && measurements.length > 0 ? (
+												measurements.map((row, index) => (
+													<tr key={index}>
+														{/* Type */}
+														<td>
+															<select
+																className="measurement-input"
+																value={row.type || ""}
+																onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
+																disabled={getDisabled()}
+															>
+																<option value="">Select</option>
+																<option value="Area">Area</option>
+																<option value="Length">Length</option>
+																<option value="Volume">Volume</option>
+																<option value="Number">Number</option>
+															</select>
+														</td>
+
+														{/* L */}
+														<td>
+															<input
+																type="number"
+																className="measurement-input"
+																value={row.L ?? ""}
+																onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
+																disabled={getDisabled() || row.type === "Number"}
+															/>
+														</td>
+
+														{/* B */}
+														<td>
+															<input
+																type="number"
+																className="measurement-input"
+																value={row.B ?? ""}
+																onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
+																disabled={
+																	getDisabled() || row.type === "Length" || row.type === "Number"
+																}
+															/>
+														</td>
+
+														{/* H */}
+														<td>
+															<input
+																type="number"
+																className="measurement-input"
+																value={row.H ?? ""}
+																onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
+																disabled={
+																	getDisabled() ||
+																	row.type === "Area" ||
+																	row.type === "Length" ||
+																	row.type === "Number"
+																}
+															/>
+														</td>
+
+														{/* No */}
+														<td>
+															<input
+																type="number"
+																className="measurement-input"
+																value={row.No ?? ""}
+																onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
+																disabled={getDisabled()}
+															/>
+														</td>
+
+														{/* Total */}
+														<td>
+															<input
+																type="number"
+																className="measurement-input readonly-input"
+																value={row.total ?? ""}
+																readOnly
+															/>
+														</td>
+													</tr>
+												))
+											) : (
+												<tr>
+													<td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+														No measurements added yet.
 													</td>
-
-													{/* L */}
-													<td>
-														<input
-															type="number"
-															className="measurement-input"
-															value={row.L}
-															onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
-															disabled={getDisabled() || row.type === "Number"}
-														/>
-													</td>
-
-													{/* B */}
-													<td>
-														<input
-															type="number"
-															className="measurement-input"
-															value={row.B}
-															onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
-															disabled={getDisabled() || row.type === "Length" || row.type === "Number"} // ✅
-														/>
-													</td>
-
-													{/* H */}
-													<td>
-														<input
-															type="number"
-															className="measurement-input"
-															value={row.H}
-															onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
-															disabled={getDisabled() || row.type === "Area" || row.type === "Length" || row.type === "Number"} // ✅
-														/>
-													</td>
-
-
-													{/* No */}
-													<td>
-														<input
-															type="number"
-															className="measurement-input"
-															value={row.No}
-															onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
-															disabled={getDisabled()}
-
-														/>
-													</td>
-
-													{/* Total Qty */}
-													<td>
-														<input
-															type="number"
-															className="measurement-input readonly-input"
-															value={row.total}
-															readOnly
-														/>
-													</td>
-
-													{	/*	{ Delete Button }
-													<td>
-														<button
-															className="delete-btn"
-															onClick={() => handleDeleteMeasurement(index)}
-														>
-															Delete
-														</button>
-													</td>*/}
 												</tr>
-											))}
+											)}
 										</tbody>
 									</table>
-
-									{/*<button className="add-btn" onClick={handleAddMeasurement}>
-										+ Add Measurement
-									</button>       
-                      */}
 								</div>
+
+								<div className="measurements-section">
+									<h3 className="section-title">Confirm Inspection <spam class = "red">*</spam></h3>
+									<div
+										className="confirm-inspection w-100"
+										style={{
+											marginTop: "1rem",
+											padding: "12px",
+											border: "1px solid #ddd",
+											borderRadius: 8,
+										}}
+									>
+
+
+										<div className="d-flex align-center gap-20">
+											{/* ✅ Tests in Site/Lab */}
+											<div className="form-fields">
+												<label>Tests in Site/Lab</label>
+												{deptFK?.toLowerCase() === "engg" ? (
+													(() => {
+														const contractorInspection = rfiData?.inspectionDetails?.find(
+															(d) => d.uploadedBy === "CON"
+														);
+														const contractorStatus = contractorInspection?.inspectionStatus;
+
+														return (
+															<p
+																style={{
+																	color: contractorStatus ? "green" : "red",
+																	border: "2px solid grey",
+																	padding: 6,
+																	borderRadius: 4,
+																	width: "fit-content",
+																	margin: 0,
+																}}
+																disabled={viewMode}
+															>
+																{contractorStatus && contractorStatus.trim() !== ""
+																	? contractorStatus
+																	: "Not Uploaded"}
+															</p>
+														);
+													})()
+												) : (
+													<select
+													  value={inspectionStatusUserSelection || inspectionStatus || ""}
+													  onChange={(e) => setInspectionStatusUserSelection(e.target.value)}
+													  disabled={getDisabled()}
+													>
+													  <option value="" disabled hidden>Select</option>
+													  <option value="VISUAL">Visual</option>
+													  <option value="LAB_TEST">Lab Test</option>
+													  <option value="SITE_TEST">Site Test</option>
+													</select>
+
+
+												)}
+											</div>
+
+											{/* ✅ Test Report Upload (for Contractor) */}
+											<div className="form-fields">
+											  {deptFK?.toLowerCase() !== "engg" && 
+											   (inspectionStatusUserSelection === "LAB_TEST" || inspectionStatusUserSelection === "SITE_TEST") && (
+											    <>
+											      <label>Upload Test Report Here</label>
+											      <input
+											        type="file"
+											        onChange={(e) => setTestReportFile(e.target.files[0])}
+											        disabled={getDisabled()}
+											      />
+											    </>
+											  )}
+											</div>
+
+
+											{/* ✅ Engineer Section */}
+											<div className="form-fields">
+												{deptFK?.toLowerCase() === "engg" && (
+													<>
+														<label>Inspection Status</label>
+														<select
+															value={testInLab || ""}
+															onChange={(e) => {
+																const value = e.target.value;
+																const conflict = Object.values(enclosureStates).some((enc) =>
+																	enc.checklist?.some(
+																		(row) =>
+																			row.contractorStatus === "YES" &&
+																			row.engineerStatus === "NO"
+																	)
+																);
+																if (conflict) {
+																	setTestInLab("Rejected");
+																	alert(
+																		"Checklist mismatch (Contractor=YES, Engineer=NO) → Inspection auto-rejected."
+																	);
+																	return;
+																}
+																setTestInLab(value);
+															}}
+															disabled={getDisabled()}
+														>
+															<option value="">Select</option>
+															<option value="Accepted">Accepted</option>
+															<option value="Rejected">Rejected</option>
+														</select>
+
+														{testInLab === "Rejected" && (
+															<div style={{ position: "relative", width: "100%" }}>
+																<label>Remarks <spam className = "red">*</spam></label>
+																<textarea
+																	value={engineerRemarks}
+																	onChange={(e) => {
+																		if (e.target.value.length <= 1000) {
+																			setEngineerRemarks(e.target.value);
+																		}
+																	}}
+																	placeholder="Enter remarks"
+																	style={{
+																		width: "100%",
+																		minHeight: "100px",
+																		padding: "10px",
+																		boxSizing: "border-box",
+																		resize: "vertical",
+																	}}
+																	disabled={getDisabled()}
+																/>
+																<div
+																	style={{
+																		position: "absolute",
+																		top: "8px",
+																		right: "12px",
+																		fontSize: "12px",
+																		color:
+																			engineerRemarks.length >= 1000 ? "red" : "#888",
+																		pointerEvents: "none",
+																		backgroundColor: "white",
+																		padding: "0 4px",
+																		borderRadius: "4px",
+																	}}
+																>
+																	{1000 - (engineerRemarks?.length || 0)} limit
+																</div>
+															</div>
+														)}
+													</>
+												)}
+											</div>
+										</div>
+									</div>
+								</div>
+
 
 								<div className="btn-row" style={{ marginTop: 12 }}>
 									<button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
@@ -2085,27 +2176,27 @@ export default function InspectionForm() {
 						)}
 
 						{showCamera && (
-						  <div className="popup">
-						    <CameraCapture
-						      facingMode={cameraMode}
-						      onCapture={(img) => {
-						        if (showCamera === 'selfie') {
-						          setSelfieImage(img); // preview for selfie
-						        } else if (showCamera.startsWith('gallery')) {
-						          const index = parseInt(showCamera.split('-')[1]);
-						          if (!isNaN(index)) {
-						            const file = base64ToFile(img, 'site-captured.jpg');
-						            const updated = [...galleryImages];
-						            updated[index] = file;
-						            setGalleryImages(updated); // for upload
-						            setSiteImage(img);         // for preview
-						          }
-						        }
-						        setShowCamera(false);
-						      }}
-						      onCancel={() => setShowCamera(false)}
-						    />
-						  </div>
+							<div className="popup">
+								<CameraCapture
+									facingMode={cameraMode}
+									onCapture={(img) => {
+										if (showCamera === 'selfie') {
+											setSelfieImage(img); // preview for selfie
+										} else if (showCamera.startsWith('gallery')) {
+											const index = parseInt(showCamera.split('-')[1]);
+											if (!isNaN(index)) {
+												const file = base64ToFile(img, 'site-captured.jpg');
+												const updated = [...galleryImages];
+												updated[index] = file;
+												setGalleryImages(updated); // for upload
+												setSiteImage(img);         // for preview
+											}
+										}
+										setShowCamera(false);
+									}}
+									onCancel={() => setShowCamera(false)}
+								/>
+							</div>
 						)}
 
 

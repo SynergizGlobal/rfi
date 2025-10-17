@@ -519,10 +519,10 @@ label{
 }
 
 .red-button-site {
-  background-color: #e53935;
+  background-color:white;
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 3px 6px;
   border-radius: 4px;
   cursor: pointer;
 }
@@ -530,6 +530,21 @@ label{
 .red-button-site:hover {
   background-color: #c62828;
 }
+.upload-site {
+ /*  background-color: #43a047; */ /* pleasant green tone matching red intensity */
+ background-color:white;
+  color: white;
+  border: none;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.upload-site:hover {
+  background-color: #2e7d32; /* darker green on hover */
+}
+
 
 .upload-section-site {
   flex: 1 1 300px;
@@ -538,7 +553,7 @@ label{
   align-items: center;
   margin-top: 30px;
 }
-.upload-section-site button {
+.upload-section-site-button-cam {
   padding: 10px 20px;
   background-color: #009688;
   color: white;
@@ -547,6 +562,10 @@ label{
   margin-top: 10px;
   cursor: pointer;
 }
+upload-section-site-button-cam:hover {
+	background-color: blue; 
+}
+
 
 .upload-section-site .site-image-preview {
   width: 150px;
@@ -556,4 +575,18 @@ label{
   margin-top: 10px;
   border: 2px solid #ddd;
 }
-	
+.hover-blue-btn {
+  background-color: lightgray; 
+  color: black;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.hover-blue-btn:hover {
+  background-color: blue;  
+  color: white;            
+}
+

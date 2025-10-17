@@ -318,7 +318,7 @@ public class InspectionServiceImpl implements InspectionService {
 	    String newFilePath = saveFile(siteImage);
 	    
 	    
-
+	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
 	    if (inspection.getSiteImage() != null && !inspection.getSiteImage().isEmpty()) {
 	    	inspection.setSiteImage(inspection.getSiteImage() + "," + newFilePath);
 	    }
@@ -396,7 +396,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    dto.setInspectionStatus(inspection.getInspectionStatus() != null
 	            ? inspection.getInspectionStatus()
-	            : InspectionStatus.VISUAL);
+	            : null);
 
 	    dto.setUploadedBy(inspection.getUploadedBy());
 	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
