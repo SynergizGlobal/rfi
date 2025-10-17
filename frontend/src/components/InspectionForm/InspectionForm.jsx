@@ -9,9 +9,6 @@ import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, g
 import { useNavigate } from "react-router-dom";
 import { generateInspectionPdf, mergeWithExternalPdfs, toBase64 } from '../../utils/pdfUtils';
 import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera } from '@fortawesome/free-solid-svg-icons';
-
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 const isEngineer = deptFK === "engg";
@@ -1335,36 +1332,53 @@ export default function InspectionForm() {
 											<>
 												{/* Capture Image Button */}
 												<button
-												  className='upload-section-site-button-cam'
+												  className="upload-section-site-button-cam"
 												  onClick={() => {
 												    setCameraMode('environment');
 												    setShowCamera('gallery-0');
 												  }}
 												  disabled={getDisabled()}
 												>
-												  <FontAwesomeIcon icon={faCamera} />
+												  <img src="/images/camera_icon.png" alt="Camera" className="camera-icon" />
 												</button>
 
-												{/* Choose File Input — moved below */}
-												<div style={{ marginTop: '15px', marginLeft: '125px' }}
-												>
-													<input
-														type="file"
-														name="siteImage"
-														accept="image/*"
-														onChange={e => {
-															const file = e.target.files?.[0];
-															if (file && file.type.startsWith('image/')) {
-																const previewUrl = URL.createObjectURL(file);
-																setGalleryImages([file]);
-																setSiteImage(previewUrl);
-															} else {
-																console.warn('Invalid file selected');
-															}
-														}}
-														disabled={getDisabled()}
-													/>
+
+												<div style={{ marginTop: '-20px', marginLeft: '25px' }}>
+												  <label
+												    style={{
+												      display: 'inline-flex',
+												      alignItems: 'center',
+												      gap: '6px',
+												      cursor: 'pointer',
+												    }}
+												  >
+												    <img
+												      src="/images/folder-icon.png"
+												      alt="Folder"
+												      className="folder-icon"
+												    />
+												    <span>Choose File</span>
+												    <input
+												      type="file"
+												      name="siteImage"
+												      accept="image/*"
+												      onChange={e => {
+												        const file = e.target.files?.[0];
+												        if (file && file.type.startsWith('image/')) {
+												          const previewUrl = URL.createObjectURL(file);
+												          setGalleryImages([file]);
+												          setSiteImage(previewUrl);
+												        } else {
+												          console.warn('Invalid file selected');
+												        }
+												      }}
+												      disabled={getDisabled()}
+												      style={{ display: 'none' }}
+												    />
+												  </label>
 												</div>
+
+												
 											</>
 										) : (
 											<>

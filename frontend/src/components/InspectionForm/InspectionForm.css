@@ -247,6 +247,8 @@ label{
   color: #000;
 }
 
+
+
 .capture-option label.file-upload:hover {
   background-color: #e9e9e9;
 }
@@ -531,7 +533,6 @@ label{
   background-color: #c62828;
 }
 .upload-site {
- /*  background-color: #43a047; */ /* pleasant green tone matching red intensity */
  background-color:white;
   color: white;
   border: none;
@@ -542,7 +543,24 @@ label{
 }
 
 .upload-site:hover {
-  background-color: #2e7d32; /* darker green on hover */
+  background-color:blue; 
+}
+
+.upload-section-site-button-cam-selfie {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
+  cursor: pointer;
+  background-color: transparent; /* only the icon visible */
+}
+
+/* ✅ Selfie Camera Icon Style (navy blue look & hover effect) */
+.upload-section-site-button-cam-selfie .camera-icon-selfie {
+  width: 60px;
+  height: 60px;
+  filter: brightness(0) saturate(100%) invert(15%) sepia(98%) saturate(500%) hue-rotate(190deg) brightness(85%) contrast(90%);
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 
@@ -554,17 +572,57 @@ label{
   margin-top: 30px;
 }
 .upload-section-site-button-cam {
-  padding: 10px 20px;
-  background-color: #009688;
-  color: white;
+  padding: 8px 12px;              /* slightly compact padding */
   border: none;
   border-radius: 5px;
   margin-top: 10px;
   cursor: pointer;
+  background-color: transparent;
+  margin-top: -20px;
 }
-upload-section-site-button-cam:hover {
-	background-color: blue; 
+
+.upload-section-site-button-cam {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
+  cursor: pointer;
+  background-color: transparent;
 }
+
+/* Camera icon */
+.upload-section-site-button-cam .camera-icon {
+  width: 60px; /* adjusted to medium size */
+  height: 60px;
+  filter: brightness(0) saturate(100%) invert(15%) sepia(98%) saturate(500%) hue-rotate(190deg) brightness(85%) contrast(90%);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.upload-section-site-button-cam:hover .camera-icon {
+  transform: scale(1.1);
+  filter: brightness(0) saturate(100%) invert(18%) sepia(60%) saturate(700%) hue-rotate(190deg) brightness(95%) contrast(92%);
+}
+
+/* Folder icon (matches camera behavior) */
+.folder-icon {
+  width: 40px; /* same size as camera icon */
+  height: 40px;
+  filter: brightness(0) saturate(100%) invert(15%) sepia(98%) saturate(500%) hue-rotate(190deg) brightness(85%) contrast(90%);
+  transition: transform 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+}
+
+.folder-icon:hover {
+  transform: scale(1.1);
+  filter: brightness(0) saturate(100%) invert(18%) sepia(60%) saturate(700%) hue-rotate(190deg) brightness(95%) contrast(92%);
+}
+
+/* Label text */
+label span {
+  font-weight: 500;
+  color: navy;
+}
+
 
 
 .upload-section-site .site-image-preview {
