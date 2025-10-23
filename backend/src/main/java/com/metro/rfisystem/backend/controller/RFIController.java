@@ -330,7 +330,6 @@ public class RFIController {
 	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI not found");
 	    }
 	}
-
 	
 	@GetMapping("/status-counts")
 	public ResponseEntity<Map<String, Long>> getRfiStatusCounts(HttpSession session) {
@@ -350,24 +349,30 @@ public class RFIController {
 
 	    if (isAdmin || isDyHOD) {
 	        // Show total counts for Admin or DyHOD
-	        counts.put("Closed", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
+	        //counts.put("Closed", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
+	        counts.put("ACCEPTED", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_AE));
+	        counts.put("REJECTED", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.CON_INSP_ONGOING
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatuses(pendingStatuses));
 	    } 
 	    else if (userRole.equalsIgnoreCase("Contractor")) {
-	        counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
+	       // counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.RESCHEDULED, userName));
+	        counts.put("ACCEPTED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_AE, userName));
+	        counts.put("REJECTED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.CON_INSP_ONGOING
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndCreatedBy(pendingStatuses, userName));
 	    } 
@@ -375,17 +380,22 @@ public class RFIController {
 	       // counts.put("Closed", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.RESCHEDULED, userName));
+	        counts.put("ACCEPTED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_AE, userName));
+	        counts.put("REJECTED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTION_DONE, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
-	            EnumRfiStatus.REASSIGNED
+	            EnumRfiStatus.REASSIGNED,
+	            EnumRfiStatus.CON_INSP_ONGOING
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesByRegularUser(pendingStatuses, userName));
 	    } 
 	    else if (userDepartment.equalsIgnoreCase("Engg")) {
-	        counts.put("Closed", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
+	        //counts.put("Closed", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
+	        counts.put("ACCEPTED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_AE, userName));
+	        counts.put("REJECTED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
@@ -393,6 +403,8 @@ public class RFIController {
 	        );
 	        counts.put("PENDING", rfiRepository.countByStatusesAndAssignedPersonClient(pendingStatuses, userName));
 	    }
+	    
+	    System.out.println("RFI status counts for user '" + userName + "': " + counts);
 
 	    return ResponseEntity.ok(counts);
 	}

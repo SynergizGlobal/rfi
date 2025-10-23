@@ -11,15 +11,16 @@
 			display: flex;
 			flex-wrap: wrap;
 			justify-content: center;
-			gap: 45px 20px;
-			width: 100%;
+			gap: 45px 0px;
+		    margin: 0 auto;
 		}
 		.cards{
-			
-			flex: 0 0 33%;
 			justify-content: center;
 			color: #fff;
 			font-weight: 700;
+			min-width: 200px;
+			transition: all 0.3s e ase;
+			box-sizing: border-box;
 		}
 		.cards a{
 			display: flex;
