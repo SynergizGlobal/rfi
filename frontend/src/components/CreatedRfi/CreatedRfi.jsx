@@ -101,6 +101,8 @@ const CreatedRfi = () => {
 				.catch((err) => console.error('Error deleting RFI:', err));
 		}
 	};
+		
+		const userDepartment = localStorage.getItem("departmentFk");
 
 
 	const columns = useMemo(() => [
@@ -115,19 +117,33 @@ const CreatedRfi = () => {
 		{
 			Header: 'Actions',
 			id: 'actions',
-			Cell: ({ row }) => (
+			    Cell: ({ row }) => {
+			      const isEngineer = userDepartment?.toLowerCase() === "engg";
+
+			      return (
 				<div className="action-buttons">
-					<button className="edit-btn" onClick={() => handleEdit(row.original)}>
+			          <button
+			            className="edit-btn"
+			            onClick={() => handleEdit(row.original)}
+			            disabled={isEngineer} 
+			            style={isEngineer ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+			          >
 						Edit
 					</button>
-					<button className="delete-btn" onClick={() => handleDelete(row.original)}>
+			          <button
+			            className="delete-btn"
+			            onClick={() => handleDelete(row.original)}
+			            disabled={isEngineer} 
+			            style={isEngineer ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+			          >
 						Delete
 					</button>
 				</div>
-			)
-		}
-	], []);
-
+			      );
+			    },
+			  },
+			], [userDepartment]);
+	
 	const {
 		getTableProps,
 		getTableBodyProps,

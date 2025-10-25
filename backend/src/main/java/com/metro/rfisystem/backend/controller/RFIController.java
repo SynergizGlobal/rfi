@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -228,7 +230,7 @@ public class RFIController {
 		}
 		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
- 
+		
 		if (isAdmin || isDyHOD ) {
 			return ResponseEntity.ok(rfiService.getAllRFIs());
 		}
@@ -353,7 +355,7 @@ public class RFIController {
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
 	        counts.put("ACCEPTED", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_AE));
-	        counts.put("REJECTED", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
+	        counts.put("REJECTED", rfiRepository.countRejectedInspections());
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
@@ -367,7 +369,7 @@ public class RFIController {
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.RESCHEDULED, userName));
 	        counts.put("ACCEPTED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTED_BY_AE, userName));
-	        counts.put("REJECTED", rfiRepository.countByStatusAndCreatedBy(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("REJECTED", rfiRepository.countRejectedInspectionsByCreatedBy(userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
@@ -381,7 +383,7 @@ public class RFIController {
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.RESCHEDULED, userName));
 	        counts.put("ACCEPTED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_AE, userName));
-	        counts.put("REJECTED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("REJECTED", rfiRepository.countRejectedInspectionsByRegularUser(userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
@@ -395,7 +397,7 @@ public class RFIController {
 	        counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_CON, userName));
 	        counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
 	        counts.put("ACCEPTED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_AE, userName));
-	        counts.put("REJECTED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTION_DONE, userName));
+	        counts.put("REJECTED", rfiRepository.countRejectedInspectionsByAssignedTo(userName));
 	        List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 	            EnumRfiStatus.CREATED,
 	            EnumRfiStatus.UPDATED,
@@ -408,5 +410,6 @@ public class RFIController {
 
 	    return ResponseEntity.ok(counts);
 	}
+	
 
 }

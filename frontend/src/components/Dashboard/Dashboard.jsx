@@ -230,7 +230,7 @@ const Dashboard = () => {
 								{/* Card 6: Rescheduled */}
 								<div
 									className="cards"
-									onClick={() => navigate("/Inspection", { state: { filterStatus: ["INSPECTION_DONE"] } })}
+									onClick={() => navigate("/Inspection", { state: { filterStatus: ["REJECTED"] } })}
 									style={{ cursor: 'pointer' }}
 								>
 									<div className="card-inner">

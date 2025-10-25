@@ -432,6 +432,25 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	@Query("SELECT COUNT(r) FROM RFI r WHERE r.status IN :statuses AND r.createdBy = :createdBy")
 	long countByStatusesAndCreatedBy(@Param("statuses") List<EnumRfiStatus> statuses,
 			@Param("createdBy") String createdBy);
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i " +
+		       "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected' " +
+		       "AND r.createdBy = :createdBy")
+		long countRejectedInspectionsByCreatedBy(@Param("createdBy") String createdBy);
+	
+	@Query("SELECT COUNT(r) FROM RFI r JOIN r.inspectionDetails i " +
+		       "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected'")
+		long countRejectedInspections();
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i " +
+		       "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected' " +
+		       "AND r.assignedPersonClient = :assignedTo")
+		long countRejectedInspectionsByAssignedTo(@Param("assignedTo") String assignedTo);
+
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i " +
+		       "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected' " +
+		       "AND (r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+		long countRejectedInspectionsByRegularUser(@Param("userName") String userName);
 
 	// For Engineer
 	long countByStatusAndAssignedPersonClient(EnumRfiStatus status, String assignedTo);
@@ -472,6 +491,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
 			    ico.inspection_status AS inspectionStatus,
 			    r.status AS status,
+			    ic.test_insite_lab as approvalStatus,
 			    r.action AS action,
 			    m.measurement_type AS measurementType,
 			    m.total_qty AS totalQty,
@@ -490,7 +510,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			      )
 			) AS ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN (
-			    SELECT r3.rfi_id_fk, r3.site_image
+			    SELECT r3.rfi_id_fk, r3.site_image, r3.test_insite_lab
 			    FROM rfi_inspection_details r3
 			    WHERE r3.uploaded_by = 'Engg'
 			      AND r3.id = (

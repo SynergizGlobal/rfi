@@ -64,10 +64,14 @@ const Inspection = () => {
 
 				// ✅ Apply status filter from Created RFI (via Dashboard navigation)
 				if (filterStatus && filterStatus.length > 0) {
-					filteredData = data.filter((rfi) =>
-						filterStatus.includes(rfi.status)
-					);
-				}
+			         if (filterStatus.includes("REJECTED")) {
+			           // Filter by approvalStatus for rejected card
+			           filteredData = data.filter((rfi) => rfi.approvalStatus === "Rejected"  && rfi.status === "INSPECTION_DONE");
+			         } else {
+			           // Default filter by status for other cards
+			           filteredData = data.filter((rfi) => filterStatus.includes(rfi.status));
+			         }
+			       }
 
 				setData(filteredData);
 				setLoading(false);
