@@ -216,7 +216,7 @@ const Dashboard = () => {
 												<span className="card-number">{statusCounts.ACCEPTED}</span>
 											</div>
 											<div className="cards-icon">
-												<img src="/images/calender.png" alt="tick symbol" width="25" height="25" />
+												<img src="/images/accepted.png" alt="tick symbol" width="28" height="28" />
 											</div>
 										</div>
 										<div className="card-bottom">
@@ -239,7 +239,7 @@ const Dashboard = () => {
 												<span className="card-number">{statusCounts.REJECTED}</span>
 											</div>
 											<div className="cards-icon">
-												<img src="/images/calender.png" alt="tick symbol" width="25" height="25" />
+												<img src="/images/rejected.png" alt="tick symbol" width="27" height="27" />
 											</div>
 										</div>
 										<div className="card-bottom">
