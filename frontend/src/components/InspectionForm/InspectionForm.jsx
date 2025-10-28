@@ -506,7 +506,7 @@ export default function InspectionForm() {
 			height: parseFloat(measurements[0]?.H) || null,
 			noOfItems: parseInt(measurements[0]?.No) || null,
 			totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
-			inspectionStatus: inspectionStatus || null,
+			inspectionStatus: inspectionStatusUserSelection || null,
 			testInsiteLab: testInLab || null,
 			engineerRemarks: engineerRemarks || null
 		};
@@ -631,7 +631,7 @@ export default function InspectionForm() {
 				totalQty:
 					measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) ||
 					null,
-				inspectionStatus: inspectionStatus || null,
+				inspectionStatus: inspectionStatusUserSelection || null,
 				testInsiteLab: testInLab || null,
 				engineerRemarks: engineerRemarks || null,
 			};
