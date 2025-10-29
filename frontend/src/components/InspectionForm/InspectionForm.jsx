@@ -1613,43 +1613,70 @@ export default function InspectionForm() {
 														<td>{e.enclosure}</td>
 
 														<td>
-															{enclosureActions[e.id] === 'UPLOAD' ? (
-																<button
-																className="hover-blue-btn"
-																	onClick={() => setUploadPopup(e.id)}
-																	disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
-																>
-																	Upload
-																</button>
-															) : (
-																<button onClick={() => setChecklistPopup(e.id)}>
-																	{enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
-																</button>
-															)}
+														  {enclosureActions[e.id] === 'UPLOAD' ? (
+														    <button
+														      className="hover-blue-btn"
+														      onClick={() => setUploadPopup(e.id)}
+														      disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
+														    >
+														      Upload
+														    </button>
+														  ) : (
+														    <button
+														      className="hover-blue-btn"
+														      onClick={() => setChecklistPopup(e.id)}
+														    >
+														      {enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
+														    </button>
+														  )}
 														</td>
+
 														<td>
 															{enclosureFile ? (
 																<button
-																className="hover-blue-btn"
+																	className="hover-blue-btn"
 																	onClick={() => {
-																		const link = document.createElement('a');
-																		link.href = `${API_BASE_URL.replace(/\/$/, '')}/rfi/DownloadPrev?filepath=${encodeURIComponent(enclosureFile)}`;
-																		link.download = enclosureFile.split(/[\\/]/).pop();
-																		document.body.appendChild(link);
-																		link.click();
-																		document.body.removeChild(link);
+																		const url = `${API_BASE_URL.replace(/\/$/, '')}/api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`;
+
+																		fetch(url, {
+																			method: 'GET',
+																			headers: {
+																				'Content-Type': 'application/pdf',
+																			},
+																		})
+																			.then((response) => {
+																				if (!response.ok) {
+																					throw new Error('Download failed');
+																				}
+																				return response.blob();
+																			})
+																			.then((blob) => {
+																				const blobUrl = window.URL.createObjectURL(blob);
+																				const link = document.createElement('a');
+																				link.href = blobUrl;
+																				link.download = `{${rfiData.rfi_Id}}-{${e.rfiDescription}}-{${e.enclosure}}_enclosure.pdf`;
+																				document.body.appendChild(link);
+																				link.click();
+																				link.remove();
+																				window.URL.revokeObjectURL(blobUrl);
+																			})
+																			.catch((err) => {
+																				console.error('Error downloading file:', err);
+																				alert('❌ Unable to download file. Please try again.');
+																			});
 																	}}
 																>
-																	Download 
+																	Download
 																</button>
 															) : (
 																'---'
 															)}
 														</td>
 
+
 														{index === 0 && (
-														  <td rowSpan={enclosuresData.length}>
-														    {rfiReportFilepath ? (
+															<td rowSpan={enclosuresData.length}>
+																{rfiReportFilepath ? (
 														      <button
 														        type="button"
 																className="hover-blue-btn"

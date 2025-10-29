@@ -19,5 +19,9 @@ public interface RFIEnclosureRepository extends JpaRepository<RFIEnclosure, Long
 	            "WHERE rfi_id_fk = :rfiId",
 	            nativeQuery = true)
 	    List<EnclosureDTO> findEnclosuresByRfiId(@Param("rfiId") Long rfiId);
+	 
+	 
+	 List<RFIEnclosure> findAllByRfi_IdAndEnclosureName(Long rfiId, String enclosureName);
+
 
 }

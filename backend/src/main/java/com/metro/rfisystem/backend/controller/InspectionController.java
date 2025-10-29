@@ -319,36 +319,31 @@ public class InspectionController {
 	    }
 	 
 	 @GetMapping("/rfi/DownloadPrev")
-
 	 public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
-
 	     String decodedPath = URLDecoder.decode(filepath, StandardCharsets.UTF_8);
-
 	     Path file = Paths.get(decodedPath.replace("\\", File.separator).replace("/", File.separator));
-	  
+
 	     if (!Files.exists(file) || !Files.isReadable(file)) {
-
 	         return ResponseEntity.notFound().build();
-
 	     }
-	  
+
 	     Resource resource = new UrlResource(file.toUri());
-
 	     String contentType = Files.probeContentType(file);
-
 	     if (contentType == null) {
-
 	         contentType = "application/octet-stream";
-
 	     }
-	  
+
+	     String originalFilename = file.getFileName().toString();
+	     String cleanFilename = originalFilename.contains("_")
+	             ? originalFilename.substring(originalFilename.indexOf("_") + 1)
+	             : originalFilename;
+
 	     return ResponseEntity.ok()
+	             .contentType(MediaType.parseMediaType(contentType))
+	             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanFilename + "\"")
+	             .body(resource);
+	 }
 
-	         .contentType(MediaType.parseMediaType(contentType))
-
-	         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName().toString() + "\"") // <-- FORCE DOWNLOAD
-
-	         .body(resource);}
 	 
 
 	 
