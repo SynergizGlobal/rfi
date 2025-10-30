@@ -24,7 +24,6 @@ export default function InspectionForm() {
 	const [step, setStep] = useState(skipSelfie ? 2 : 1);
 	const [rfiData, setRfiData] = useState(null);
 	const [locationText, setLocationText] = useState('');
-
 	const [contractorRep, setContractorRep] = useState('');
 	const [selfieImage, setSelfieImage] = useState(null);
 	const [siteImage, setSiteImage] = useState(null);
@@ -660,53 +659,117 @@ export default function InspectionForm() {
 					uploadedFile: state.uploadedFile || null
 				};
 			});
+			
 
 			// 3️⃣ Generate PDF (same for both roles)
-			// 3️⃣ Generate PDF (same for both roles)
+
+			// ✅ Build image data separately first
+						const images = {
+							contractor: await Promise.all(
+								(rfiData?.inspectionDetails || [])
+									.filter((d) => d.uploadedBy === "CON" && d.siteImage)
+									.flatMap((d) => d.siteImage.split(","))
+									.map(async (imgPath) => {
+										const encodedPath = encodeURIComponent(imgPath.trim());
+										const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+										const base64 = await toBase64(imageUrl);
+										return base64; // "data:image/jpeg;base64,..."
+									})
+							),
+							engineer: await Promise.all(
+								(rfiData?.inspectionDetails || [])
+									.filter((d) => d.uploadedBy === "Engg" && d.siteImage)
+									.flatMap((d) => d.siteImage.split(","))
+									.map(async (imgPath) => {
+										const encodedPath = encodeURIComponent(imgPath.trim());
+										const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+										const base64 = await toBase64(imageUrl);
+										return base64;
+									})
+							),
+						};
+
+						// ✅ Debugging output before PDF generation
+						console.log("📸 PDF Images Prepared:", {
+							contractorCount: images.contractor?.length || 0,
+							engineerCount: images.engineer?.length || 0,
+							contractorSamples: images.contractor?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
+							engineerSamples: images.engineer?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
+						});
+						
+						console.log("Prepared contractor images:", images.contractor);
+						console.log("Prepared engineer images:", images.engineer);
+			
+			
+			
+			
+			
+			
+			
+			
+			let testReportFileData = null;
+			try {
+			  const contractorInspection = (rfiData.inspectionDetails || [])
+			    .filter((det) => det.uploadedBy === "CON")
+			    .sort((a, b) => b.id - a.id)[0];
+
+			  if (testReportFile instanceof File) {
+			    testReportFileData = testReportFile; 
+			  }
+			  else if (contractorInspection?.testSiteDocuments) {
+			    const encodedPath = encodeURIComponent(contractorInspection.testSiteDocuments.trim());
+			    const fileUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+			    testReportFileData = fileUrl; 
+			  }
+			  else {
+			    testReportFileData = null;
+			  }
+			} catch (err) {
+			  console.warn("⚠️ Unable to normalize test report file:", err);
+			  testReportFileData = null;
+			}
+
+			// ✅ 2. Generate the inspection PDF
 			const { doc, externalPdfBlobs } = await generateInspectionPdf({
-				rfi_Id: rfiData.rfi_Id,
-				contract: rfiData.contract,
-				contractor: rfiData.createdBy,
-				contractorRep,
-				location: locationText,
-				chainage,
-				submissionDate: new Date().toLocaleDateString(),
-				dateOfInspection,
-				timeOfInspection,
-				rfiDescription: rfiData.rfiDescription,
-				StructureType: rfiData.structureType,
-				Structure: rfiData.structure,
-				Component: rfiData.component,
-				Element: rfiData.element,
-				activity: rfiData.activity,
-				inspectionStatus: (testInLab || "").trim(),
-				enclosures: checklistsByEnclosure,
-				measurements: measurements.map((m) => ({
-					type: m.type,
-					l: m.L,
-					b: m.B,
-					h: m.H,
-					no: m.No,
-					total: m.total,
-				})),
-				engineerRemarks: engineerRemarks || "",
-				testReportFile,
-				contractorRemarks: rfiData.contractorRemarks,
-				images: await Promise.all(
-					galleryImages.map(async (img) =>
-						img instanceof File
-							? await toBase64(URL.createObjectURL(img))
-							: img
-					)
-				),
+			  rfi_Id: rfiData.rfi_Id,
+			  contract: rfiData.contract,
+			  contractor: rfiData.createdBy,
+			  contractorRep,
+			  location: locationText,
+			  chainage,
+			  submissionDate: new Date().toLocaleDateString(),
+			  dateOfInspection,
+			  timeOfInspection,
+			  rfiDescription: rfiData.rfiDescription,
+			  StructureType: rfiData.structureType,
+			  Structure: rfiData.structure,
+			  Component: rfiData.component,
+			  Element: rfiData.element,
+			  activity: rfiData.activity,
+			  inspectionStatus: (testInLab || "").trim(),
+			  enclosures: checklistsByEnclosure,
+			  measurements: measurements.map((m) => ({
+			    type: m.type,
+			    l: m.L,
+			    b: m.B,
+			    h: m.H,
+			    no: m.No,
+			    total: m.total,
+			  })),
+			  engineerRemarks: engineerRemarks || "",
+			  testReportFile: testReportFileData, 
+			  contractorRemarks: rfiData.contractorRemarks,
+			  images,
 			});
 
+			// ✅ 3. Merge with external PDFs if any
 			const y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 50;
 
+			const pdfBlob =
+			  externalPdfBlobs.length > 0
+			    ? await mergeWithExternalPdfs(doc, externalPdfBlobs)
+			    : doc.output("blob");
 
-			const pdfBlob = externalPdfBlobs.length > 0
-				? await mergeWithExternalPdfs(doc, externalPdfBlobs)
-				: doc.output("blob");
 
 			//			const mergedUrl = URL.createObjectURL(pdfBlob);
 			//			const link = document.createElement("a");
@@ -716,24 +779,27 @@ export default function InspectionForm() {
 			//			link.click();
 			//			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
+			
+			
+			const pdfFormData = new FormData();
+			pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+			pdfFormData.append("rfiId", rfiData?.id);
+
+			const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
+				method: "POST",
+				body: pdfFormData,
+				credentials: "include",
+			});
+
+			if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+
+			console.log("✅ PDF uploaded successfully");
 
 
 
 			if (!isEngineer) {
 
-				const pdfFormData = new FormData();
-				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
-				pdfFormData.append("rfiId", rfiData?.id);
 
-				const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
-					method: "POST",
-					body: pdfFormData,
-					credentials: "include",
-				});
-
-				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
-
-				console.log("✅ PDF uploaded successfully");
 
 				// ✅ Contractor Submission Flow
 				const txnId = generateUniqueTxnId();

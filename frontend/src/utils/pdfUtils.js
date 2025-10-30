@@ -16,54 +16,74 @@ export const toBase64 = async (url) => {
 	});
 };
 
-// Merge jsPDF with external PDFs
+
+
 export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
   const mainPdfBytes = jsPDFDoc.output("arraybuffer");
   const mainPdf = await PDFDocument.load(mainPdfBytes);
   const mergedPdf = await PDFDocument.create();
 
-  // Copy main PDF pages
+  // Copy main PDF pages first
   const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
   mainPages.forEach((page) => mergedPdf.addPage(page));
 
+  // 🔧 Iterate and normalize each external PDF
   for (let i = 0; i < externalPdfBlobs.length; i++) {
-    const fileBlob = externalPdfBlobs[i];
+    let fileBlob = externalPdfBlobs[i];
+
+    // 🧩 Normalize: ensure it's a Blob
+    if (typeof fileBlob === "string") {
+      if (fileBlob.startsWith("data:application/pdf")) {
+        // Base64 → Blob
+        const byteString = atob(fileBlob.split(",")[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+        fileBlob = new Blob([ab], { type: "application/pdf" });
+      } else {
+        // URL → fetch → Blob
+        const response = await fetch(fileBlob);
+        fileBlob = await response.blob();
+      }
+    }
+
+    // 🧠 Now definitely a Blob or File
     const fileBytes = await fileBlob.arrayBuffer();
     const externalPdf = await PDFDocument.load(fileBytes);
 
     const copiedPages = await mergedPdf.copyPages(externalPdf, externalPdf.getPageIndices());
-    const isEnclosure = i > 0; // first blob is test report
+    const isEnclosure = i > 0;
     const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
 
     for (let j = 0; j < copiedPages.length; j++) {
       const page = copiedPages[j];
       const { width, height } = page.getSize();
 
-	  const topGap = isEnclosure && j === 0 ? 60 : 0; 
-	       const bottomGap = isEnclosure && j === 0 ? 20 : 0;
-	       const newPage = mergedPdf.addPage([width, height + topGap + bottomGap]);
+      const topGap = isEnclosure && j === 0 ? 60 : 0;
+      const bottomGap = isEnclosure && j === 0 ? 20 : 0;
+      const newPage = mergedPdf.addPage([width, height + topGap + bottomGap]);
 
-	       if (isEnclosure && j === 0) {
-	         newPage.drawText("Enclosure PDF", {
-	           x: 50,
-	           y: height + bottomGap + 10, 
-	           size: 18,
-	           font,
-	           color: rgb(0, 0, 0),
-	         });
-
-	         const embeddedPage = await mergedPdf.embedPage(page);
-	         newPage.drawPage(embeddedPage, { x: 0, y: bottomGap }); // shift content down
-	       } else {
-	         const embeddedPage = await mergedPdf.embedPage(page);
-	         newPage.drawPage(embeddedPage, { x: 0, y: 0 });
-	       }
-	     }
-	   }
+      if (isEnclosure && j === 0) {
+        newPage.drawText("Enclosure PDF", {
+          x: 50,
+          y: height + bottomGap + 10,
+          size: 18,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        const embeddedPage = await mergedPdf.embedPage(page);
+        newPage.drawPage(embeddedPage, { x: 0, y: bottomGap });
+      } else {
+        const embeddedPage = await mergedPdf.embedPage(page);
+        newPage.drawPage(embeddedPage, { x: 0, y: 0 });
+      }
+    }
+  }
 
   const mergedBytes = await mergedPdf.save();
   return new Blob([mergedBytes], { type: "application/pdf" });
 }
+
 // ==============================
 // Generate Inspection PDF
 // ==============================
@@ -91,7 +111,7 @@ export async function generateInspectionPdf(rfiData) {
 	const inspectionStatus = (rfiData.inspectionStatus || "").trim();
 	const engineerRemarks = rfiData.engineerRemarks || "";
 	const enclosuresData = Array.isArray(rfiData.enclosures) ? rfiData.enclosures : [];
-	const images = Array.isArray(rfiData.images) ? rfiData.images : [];
+	const images = rfiData.images || { contractor: [], engineer: [] };
 	const testReportFile = rfiData.testReportFile || null;
 
 
@@ -323,52 +343,70 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Site Images (auto-paginated)
 	// ==============================
+	const renderSiteImages = (sectionTitle, imageArray) => {
+		if (!imageArray || imageArray.length === 0) return;
 
-	// Check available space before adding site images
-	if (encY + 60 > pageHeight - 150) { 
-		doc.addPage();
-		encY = 60;
-	}
+		const pageHeight = doc.internal.pageSize.getHeight();
+		const imageWidth = 220;
+		const imageHeight = 140;
+		const imagesPerRow = 2;
+		const columnSpacing = 250;
+		const rowSpacing = 180;
+		const imgStartX = 60;
 
-	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.text("Site Images:", 40, encY + 10);
-
-	const imageWidth = 220;
-	const imageHeight = 140;
-	const imagesPerRow = 2;
-	const columnSpacing = 250;
-	const rowSpacing = 180;
-	const imgStartX = 60;
-
-	let currentY = encY + 25;
-	let pageIndex = 1;
-
-	images.forEach((img, i) => {
-		const col = i % imagesPerRow;
-		const x = imgStartX + col * columnSpacing;
-
-		// Add image at proper location
-		if (currentY + imageHeight > pageHeight - 80) {
+		// Check available space before adding section title
+		if (encY + 60 > pageHeight - 150) {
 			doc.addPage();
-			pageIndex++;
-			currentY = 60;
-			doc.setFont("helvetica", "bold").setFontSize(12);
-			doc.text(`Site Images (continuation):`, 40, currentY);
-			currentY += 20;
+			encY = 60;
 		}
 
-		try {
-			doc.addImage(img, "JPEG", x, currentY, imageWidth, imageHeight);
-		} catch (e) {
-			console.warn("Image failed to add, skipping", e);
-		}
+		doc.setFont("helvetica", "bold").setFontSize(12);
+		doc.text(sectionTitle, 40, encY + 10);
 
-		// Move to next row after two images
-		if (col === imagesPerRow - 1) currentY += rowSpacing;
-	});
+		let currentY = encY + 25;
+		let pageIndex = 1;
 
-	// Leave some space after site images section
-	encY = currentY + 40;
+		imageArray.forEach((img, i) => {
+			if (!img?.startsWith("data:image")) {
+				console.warn(`${sectionTitle} → Skipping invalid image`, img);
+				return;
+			}
+
+			const col = i % imagesPerRow;
+			const x = imgStartX + col * columnSpacing;
+
+			// If image exceeds page height, add new page
+			if (currentY + imageHeight > pageHeight - 80) {
+				doc.addPage();
+				pageIndex++;
+				currentY = 60;
+				doc.setFont("helvetica", "bold").setFontSize(12);
+				doc.text(`${sectionTitle} (continuation):`, 40, currentY);
+				currentY += 20;
+			}
+
+			try {
+				doc.addImage(img, "JPEG", x, currentY, imageWidth, imageHeight);
+			} catch (e) {
+				console.warn(`${sectionTitle} → Failed to add image`, e);
+			}
+
+			// Move down after filling one row
+			if (col === imagesPerRow - 1) currentY += rowSpacing;
+		});
+
+		// Leave space after section
+		encY = currentY + 40;
+	};
+
+	renderSiteImages("Site Images:", images.contractor);
+	renderSiteImages("Site Images:", images.engineer);
+
+	// ==============================
+	// Continue with next section
+	// ==============================
+	doc.setFont("helvetica", "bold").setFontSize(12);
+
 	doc.text("Test Report", 40, encY);
 
 	// ==============================
@@ -377,36 +415,67 @@ export async function generateInspectionPdf(rfiData) {
 
 	let testReportPdfBlobs = [];
 
-	if (testReportFile) {
-		if (encY + 150 > pageHeight - 100) {
-			
-			encY = 60;
-		}
-
-		doc.setFont("helvetica", "bold").setFontSize(12);
-		
-		encY += 60;
-
-		if (testReportFile instanceof File && testReportFile.type === "application/pdf") {
-			testReportPdfBlobs.push(testReportFile);
-			 // externalPdfBlobs.unshift(testReportFile);
-		} else {
-			try {
-				const testReportBase64 =
-					testReportFile instanceof File
-						? await toBase64(URL.createObjectURL(testReportFile))
-						: testReportFile;
-
-				const availableHeight = pageHeight - encY - 100;
-				doc.addImage(testReportBase64, "JPEG", 40, encY, 500, availableHeight);
-				encY += availableHeight + 20;
-			} catch (err) {
-				console.warn("Failed to add test report file", err);
-			}
-		}
+	function toBase64(file) {
+	  return new Promise((resolve, reject) => {
+	    const reader = new FileReader();
+	    reader.onload = () => resolve(reader.result);
+	    reader.onerror = reject;
+	    reader.readAsDataURL(file);
+	  });
 	}
 
-	// Append external PDFs after the main doc
+	if (testReportFile) {
+	  if (encY + 150 > pageHeight - 100) {
+	    encY = 60;
+	  }
+
+	  doc.setFont("helvetica", "bold").setFontSize(12);
+	  encY += 60;
+
+	  try {
+	    if (testReportFile instanceof File) {
+	      if (testReportFile.type === "application/pdf") {
+	        testReportPdfBlobs.push(testReportFile);
+	      } else if (testReportFile.type.startsWith("image/")) {
+	        const base64 = await toBase64(testReportFile);
+	        const availableHeight = pageHeight - encY - 100;
+	        doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+	        encY += availableHeight + 20;
+	      }
+	    }
+
+	    else if (typeof testReportFile === "string") {
+	      if (
+	        testReportFile.startsWith("data:application/pdf") ||
+	        testReportFile.toLowerCase().endsWith(".pdf")
+	      ) {
+	        if (testReportFile.startsWith("data:application/pdf")) {
+	          testReportPdfBlobs.push(testReportFile);
+	        } else {
+	          const response = await fetch(testReportFile);
+	          const blob = await response.blob();
+	          testReportPdfBlobs.push(blob);
+	        }
+	      }
+	      else if (
+	        testReportFile.startsWith("data:image") ||
+	        /\.(jpg|jpeg|png)$/i.test(testReportFile)
+	      ) {
+	        const base64 =
+	          testReportFile.startsWith("data:image")
+	            ? testReportFile
+	            : await toBase64(await (await fetch(testReportFile)).blob());
+
+	        const availableHeight = pageHeight - encY - 100;
+	        doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+	        encY += availableHeight + 20;
+	      }
+	    }
+	  } catch (err) {
+	    console.warn("⚠️ Failed to add test report file:", err);
+	  }
+	}
+
       externalPdfBlobs = [
 	...testReportPdfBlobs,
 	  ...enclosurePdfBlobs
