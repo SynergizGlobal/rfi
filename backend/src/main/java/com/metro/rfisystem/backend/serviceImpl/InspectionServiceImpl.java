@@ -294,13 +294,21 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    RFI rfi = rfiRepository.findById(rfiId)
 	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + rfiId));
+	    
+	    if((EnumRfiStatus.INSPECTION_DONE).equals(rfi.getStatus())) {
+	    	return "Upload Failed, Inspection Closed!";
+	    }
+	    
+	    if((EnumRfiStatus.VALIDATION_PENDING).equals(rfi.getStatus())) {
+	    	return "Upload Failed, Inspection under validation process!";
+	    }
 
 	    if ("Engg".equals(deptFkPar)) {
 	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE
 	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
 	            return "Upload Failed, Inspection Already Submitted!";
 	        }
-	    } else { 
+	    } else {
 	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_CON
 	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
 	            return "Upload Failed, Inspection Already Submitted!";
