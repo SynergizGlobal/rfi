@@ -410,6 +410,8 @@ export default function InspectionForm() {
 				...prev,
 				[id]: { ...prev[id], uploadedFile: file }
 			}));
+			await fetchUpdatedRfiData(rfiData.id);
+			alert("✅ Enclosure File uploaded successfully.");
 
 			setUploadPopup(null);
 		} catch (err) {
