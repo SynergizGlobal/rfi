@@ -117,6 +117,10 @@ const Inspection = () => {
 			alert("Inspection is already closed. Further inspection not allowed.");
 			return;
 		}
+		if (status === "VALIDATION_PENDING") {
+			alert("Inspection is under validation process. Further inspection not allowed");
+			return;
+		}
 		const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 // Engineer Flow
 		if (deptFK === "engg") {
