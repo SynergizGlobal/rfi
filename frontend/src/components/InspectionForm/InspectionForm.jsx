@@ -70,6 +70,8 @@ export default function InspectionForm() {
 			return contractorSubmitted; // non-engg locked once they submit
 		}
 	};
+	
+	
 	useEffect(() => {
 		if (id) {
 			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
@@ -102,13 +104,32 @@ export default function InspectionForm() {
 										let hasData = false;
 
 										if (Array.isArray(result.checklist)) {
-											hasData = result.checklist.some(
-												(chk) =>
-													(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-													(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
-													(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-													(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-											);
+											const dept = deptFK?.toLowerCase();
+
+											if (dept === "engg") {
+												// ✅ Engineer: only if engineer fields are filled
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+												);
+											} else if (dept && dept !== "engg") {
+												// ✅ Contractor: only if contractor fields are filled
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
+												);
+											} else {
+												// ✅ Default: consider any data
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
+														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+												);
+											}
 										}
 
 										const action = hasData ? "EDIT" : "OPEN";
