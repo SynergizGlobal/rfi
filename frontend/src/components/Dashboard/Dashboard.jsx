@@ -92,7 +92,7 @@ const Dashboard = () => {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="home-body">
-						<h1>Welcome to RFI System</h1>
+						<h1>WELCOME TO RFI SYSTEM</h1>
 						<div className="body-content">
 							<div className="cards-section" ref={containerRef}>
 								{/* Card 1: Role-based navigation */}
