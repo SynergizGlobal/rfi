@@ -59,7 +59,7 @@ export default function InspectionForm() {
 
 
 	const contractorSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy !== "ENGG");
-	const engineerSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy === "ENGG");
+	const engineerSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy === "Engg");
 
 	const getDisabled = () => {
 		if (inspectionStatusMode === "DRAFT") return false;

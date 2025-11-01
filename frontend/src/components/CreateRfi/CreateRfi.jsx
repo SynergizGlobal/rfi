@@ -874,7 +874,7 @@ const CreateRfi = () => {
 			<div className="right">
 				<div className="dashboard-main no-overflow">
 					<h2 className="text-xl font-bold mb-4 page-heading">
-						{mode === 'edit' ? 'Edit RFI Details' : 'Add RFI Details'}
+						{mode === 'edit' ? 'EDIT RFI DETAILS' : 'ADD RFI DETAILS'}
 					</h2>
 
 					{message && (

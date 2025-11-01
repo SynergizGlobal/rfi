@@ -173,7 +173,7 @@ const CreatedRfi = () => {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="rfi-table-container">
-						<h2 className="section-heading">Created RFI List</h2>
+						<h2 className="section-heading">CREATED RFI LIST</h2>
 
 						<div className="table-top-bar d-flex justify-content-between align-items-center">
 							<div className="left-controls">

@@ -957,7 +957,7 @@ const InspectionReferenceForm = () => {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="irf-rfi-table-container">
-						<h2 className="irf-section-heading">Reference Form</h2>
+						<h2 className="irf-section-heading">REFERENCE FORM</h2>
 
 						{/* Dropdowns */}
 						<div className="irf-form-row">

@@ -122,7 +122,6 @@ const Inspection = () => {
 			return;
 		}
 		const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
-// Engineer Flow
 		if (deptFK === "engg") {
 			if (status === "INSPECTED_BY_AE") {
 				alert("Inspection Submitted . Further inspection not allowed.");
@@ -134,7 +133,6 @@ const Inspection = () => {
 				return;
 			}
 		}
-		// Contractor flow
 		else {
 			if (status === "INSPECTED_BY_CON") {
 				alert("Inspection Submitted . Further inspection not allowed.");
@@ -151,8 +149,12 @@ const Inspection = () => {
 
 
 	const [downloadingId, setDownloadingId] = useState(null);
-	const handleDownloadImagesPdf = async (id, uploadedBy) => {
-		const uniqueId = uploadedBy === "Con" ? id : `client-${id}`;
+	
+	
+	const handleDownloadSiteImagesPdf = async (id, uploadedBy,rfiId) => {
+		const isContractor = uploadedBy?.toLowerCase() === "contractor";
+		const uniqueId = isContractor ? id : `client-${id}`;
+		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
 		try {
 			setDownloadingId(uniqueId);
 
@@ -164,12 +166,11 @@ const Inspection = () => {
 				alert("No images found or failed to generate PDF.");
 				return;
 			}
-
 			const blob = await response.blob();
 			const url = window.URL.createObjectURL(blob);
 			const link = document.createElement("a");
 			link.href = url;
-			const filename = `Images_Uploaded_by_the_${uploadedBy === "Con" ? "Con" : "Client"}.pdf`;
+			const filename = fileNameGenerated;
 			link.setAttribute("download", filename);
 			document.body.appendChild(link);
 			link.click();
@@ -207,8 +208,6 @@ const Inspection = () => {
 		}
 	}
 
-
-
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfi_Id' },
 		{ Header: 'Project', accessor: 'project' },
@@ -231,7 +230,7 @@ const Inspection = () => {
 
 				return hasContractorImage ? (
 					<button
-						onClick={() => handleDownloadImagesPdf(row.original.id, 'Contractor')}
+						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor',row.original.rfi_Id)}
 						className="btn-download"
 						disabled={isDownloading}
 					>
@@ -250,7 +249,7 @@ const Inspection = () => {
 
 				return hasClientImage ? (
 					<button
-						onClick={() => handleDownloadImagesPdf(row.original.id, 'Regular User')}
+						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User',row.original.rfi_Id)}
 						className="btn-download"
 						disabled={isDownloading}
 					>
@@ -510,7 +509,7 @@ const Inspection = () => {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="rfi-table-container">
-						<h2 className="section-heading">Inspection List</h2>
+						<h2 className="section-heading">INSPECTION LIST</h2>
 
 						<div className="table-top-bar d-flex justify-content-between align-items-center">
 							<div className="left-controls">
