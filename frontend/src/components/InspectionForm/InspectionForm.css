@@ -108,6 +108,7 @@ label{
   gap: 10px;
 }
 
+
 .next-btn,
 .back-btn,
 .save-btn,
@@ -648,3 +649,23 @@ label span {
   color: white;            
 }
 
+.checklist-popup-btn {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 3px;
+}
+
+.checklist-popup-btn button {
+	background-color: rgb(19, 35, 74);
+	color: #fff;
+	padding: 3px 10px;
+	border: 0;
+	border-radius: 3px;
+}
+
+.checklist-popup-btn button:hover {
+	background-color: rgb(25, 50, 100);
+	box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+	transition: all 0.2s ease;
+}

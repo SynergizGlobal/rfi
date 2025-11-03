@@ -215,7 +215,17 @@ const Inspection = () => {
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
-		{ Header: "Assigned Employer's Engineer" , accessor: 'assignedPersonClient' },
+		{
+		  Header: "Assigned Employer's Engineer",
+		  Cell: ({ row }) => {
+		    const assignedEngineerValue = row.original.assignedPersonClient;
+		    return assignedEngineerValue ? (
+		      assignedEngineerValue
+		    ) : (
+		      <span style={{ color: '#888' }}>---</span>
+		    );
+		  }
+	    },
 		{ Header: 'Measurement Type', accessor: 'measurementType' },
 		{ Header: 'Total Qty', accessor: 'totalQty' },
 		{
@@ -312,7 +322,7 @@ const Inspection = () => {
 									Start Inspection Offline
 								</button>
 
-								{deptFK.toLowerCase() === 'engg' &&
+								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
 									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
 										<button
@@ -349,17 +359,56 @@ const Inspection = () => {
 										</button>
 									)}
 
-								<button
-									onClick={() => {
-										navigate('/InspectionForm', {
-											state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
-										});
-										setOpenDropdownRow(null);
-										setDropdownInfo({ rowId: null, targetRef: null });
-									}}
-								>
-									View
-								</button>
+									{userRole === 'it admin' ? (
+									  // ✅ Show only this button for IT Admin
+									  <button
+									    onClick={() => {
+									      navigate('/InspectionForm', {
+									        state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+									      });
+									      setOpenDropdownRow(null);
+									      setDropdownInfo({ rowId: null, targetRef: null });
+									    }}
+									  >
+									    View
+									  </button>
+									) : (
+									  <>
+									    {deptFK === 'engg' &&
+									      (row.original.status === 'INSPECTED_BY_AE' ||
+									        row.original.status === 'AE_INSP_ONGOING' || 
+										row.original.status === 'VALIDATION_PENDING' ||
+									 row.original.status === 'INSPECTION_DONE') && (
+									        <button
+									          onClick={() => {
+									            navigate('/InspectionForm', {
+									              state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+									            });
+									            setOpenDropdownRow(null);
+									            setDropdownInfo({ rowId: null, targetRef: null });
+									          }}
+									        >
+									          View
+									        </button>
+									      )}
+
+									    {deptFK !== 'engg' && row.original.status !== 'CREATED' && (
+									      <button
+									        onClick={() => {
+									          navigate('/InspectionForm', {
+									            state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+									          });
+									          setOpenDropdownRow(null);
+									          setDropdownInfo({ rowId: null, targetRef: null });
+									        }}
+									      >
+									        View
+									      </button>
+									    )}
+									  </>
+									)}
+
+									
 								{userRole !== 'engg' && (
 									<button
 										disabled={!completedOfflineInspections[row.original.id]}
@@ -596,10 +645,12 @@ const Inspection = () => {
 						<h3>Send for Validation</h3>
 						<p>{confirmPopupData.message}</p>
 						<div className="popup-actions">
-							<button onClick={() => confirmPopupData.onConfirm(confirmPopupData.rfiId)}>
-								Yes
-							</button>
-							<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
+							<div className='sendForValidation-popup-btn'>
+								<button onClick={() => setConfirmPopupData(null)}>Cancel</button>
+								<button onClick={() => confirmPopupData.onConfirm(confirmPopupData.rfiId)}>
+									Yes
+								</button>
+							</div>
 						</div>
 					</div>
 				)}

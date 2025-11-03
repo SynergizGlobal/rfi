@@ -12,6 +12,8 @@ import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSock
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 const isEngineer = deptFK === "engg";
+let globalVarConSubmited = null;
+let globalVarEnggSubmited = null;
 
 
 export default function InspectionForm() {
@@ -27,12 +29,9 @@ export default function InspectionForm() {
 	const [contractorRep, setContractorRep] = useState('');
 	const [selfieImage, setSelfieImage] = useState(null);
 	const [siteImage, setSiteImage] = useState(null);
-
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
 	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
 	const [inspectionStatusUserSelection, setInspectionStatusUserSelection] = useState(""); 
-
-
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
 	const [uploadPopup, setUploadPopup] = useState(null);
@@ -56,91 +55,105 @@ export default function InspectionForm() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const contractorSubmitted = rfiData?.inspectionDetails?.some(
+	  d => d.uploadedBy === "CON" && d.workStatus?.toUpperCase() === "SUBMITTED"
+	);
+	globalVarConSubmited = contractorSubmitted;
 
-
-	const contractorSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy !== "ENGG");
-	const engineerSubmitted = rfiData?.inspectionDetails?.some(d => d.uploadedBy === "Engg");
+	const engineerSubmitted = rfiData?.inspectionDetails?.some(
+	  d => d.uploadedBy === "Engg" && d.workStatus?.toUpperCase() === "SUBMITTED"
+	);
+	globalVarEnggSubmited = engineerSubmitted;
 
 	const getDisabled = () => {
 		if (inspectionStatusMode === "DRAFT") return false;
 
 		if (isEngineer) {
-			return engineerSubmitted; // engg locked only after engg submits
+			return engineerSubmitted; 
 		} else {
-			return contractorSubmitted; // non-engg locked once they submit
+			return contractorSubmitted; 
 		}
 	};
 	
 	
 	useEffect(() => {
-		if (id) {
-			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
-				.then((res) => res.json())
-				.then((data) => {
-					setRfiData(data);
-					setContractorRep(data.nameOfRepresentative || "");
+			if (id) {
+				fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
+					.then((res) => res.json())
+					.then((data) => {
+						setRfiData(data);
+						setContractorRep(data.nameOfRepresentative || "");
 
-					if (data.enclosures) {
-						const enclosuresArr = Array.isArray(data.enclosures)
-							? data.enclosures
-							: data.enclosures.split(",").map((enc) => enc.trim());
+						if (data.enclosures) {
+							const enclosuresArr = Array.isArray(data.enclosures)
+								? data.enclosures
+								: data.enclosures.split(",").map((enc) => enc.trim());
 
-						const formatted = enclosuresArr.map((enc, index) => ({
-							id: `${data.id}-${index}`,
-							rfiDescription: data.rfiDescription,
-							enclosure: enc,
-						}));
+							const formatted = enclosuresArr.map((enc, index) => ({
+								id: `${data.id}-${index}`,
+								rfiDescription: data.rfiDescription,
+								enclosure: enc,
+							}));
 
-						setEnclosuresData(formatted);
-						const fetchEnclosureActions = async () => {
-							const actionsState = {};
-							const checklistState = {};
+							setEnclosuresData(formatted);
+							const fetchEnclosureActions = async () => {
+								const actionsState = {};
+								const checklistState = {};
 
-							for (const item of formatted) {
-								try {
-									const result = await fetchChecklistDataFromApi(id, item.enclosure);
+								for (const item of formatted) {
+									try {
+										const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
-									if (result) {
-										let hasData = false;
+										if (result) {
+											let hasData = false;
 
-										if (Array.isArray(result.checklist)) {
-											const dept = deptFK?.toLowerCase();
+											if (Array.isArray(result.checklist)) {
+												const dept = deptFK?.toLowerCase();
 
-											if (dept === "engg") {
-												// ✅ Engineer: only if engineer fields are filled
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-												);
-											} else if (dept && dept !== "engg") {
-												// ✅ Contractor: only if contractor fields are filled
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
-												);
-											} else {
-												// ✅ Default: consider any data
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
-														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-												);
+												if (dept === "engg") {
+													// ✅ Engineer: only if engineer fields are filled
+													hasData = result.checklist.some(
+														(chk) =>
+															(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+															(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+													);
+												} else if (dept && dept !== "engg") {
+													// ✅ Contractor: only if contractor fields are filled
+													hasData = result.checklist.some(
+														(chk) =>
+															(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+															(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
+													);
+												} else {
+													// ✅ Default: consider any data
+													hasData = result.checklist.some(
+														(chk) =>
+															(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+															(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
+															(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+															(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+													);
+												}
 											}
+
+											const action = hasData ? "EDIT" : "OPEN";
+
+											actionsState[item.id] = action;
+											checklistState[item.id] = {
+												checklist: result.checklist || [],
+												gradeOfConcrete: result.gradeOfConcrete || "",
+												checklistDone: hasData,
+											};
+										} else {
+											actionsState[item.id] = "UPLOAD";
+											checklistState[item.id] = {
+												checklist: [],
+												gradeOfConcrete: "",
+												checklistDone: false,
+											};
 										}
-
-										const action = hasData ? "EDIT" : "OPEN";
-
-										actionsState[item.id] = action;
-										checklistState[item.id] = {
-											checklist: result.checklist || [],
-											gradeOfConcrete: result.gradeOfConcrete || "",
-											checklistDone: hasData,
-										};
-									} else {
+									} catch (err) {
+										console.log("Error fetching checklist for enclosure:", item.enclosure, err);
 										actionsState[item.id] = "UPLOAD";
 										checklistState[item.id] = {
 											checklist: [],
@@ -148,48 +161,39 @@ export default function InspectionForm() {
 											checklistDone: false,
 										};
 									}
-								} catch (err) {
-									console.log("Error fetching checklist for enclosure:", item.enclosure, err);
-									actionsState[item.id] = "UPLOAD";
-									checklistState[item.id] = {
-										checklist: [],
-										gradeOfConcrete: "",
-										checklistDone: false,
-									};
 								}
+
+								setEnclosureActions(actionsState);
+								setEnclosureStates(checklistState);
+							};
+
+							fetchEnclosureActions();
+						}
+
+						if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+							const contractorInspection = data.inspectionDetails
+								.filter((det) => det.uploadedBy === "CON")
+								.sort((a, b) => b.id - a.id)[0]; // latest contractor row
+
+							const engineerInspection = data.inspectionDetails
+								.filter((det) => det.uploadedBy === "Engg")
+								.sort((a, b) => b.id - a.id)[0]; // latest engineer row
+
+							if (deptFK.toLowerCase() === "con" && contractorInspection) {
+								setInspectionId(contractorInspection.id);
+							} else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
+								setInspectionId(engineerInspection.id);
 							}
-
-							setEnclosureActions(actionsState);
-							setEnclosureStates(checklistState);
-						};
-
-						fetchEnclosureActions();
-					}
-
-					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
-						const contractorInspection = data.inspectionDetails
-							.filter((det) => det.uploadedBy === "CON")
-							.sort((a, b) => b.id - a.id)[0]; // latest contractor row
-
-						const engineerInspection = data.inspectionDetails
-							.filter((det) => det.uploadedBy === "Engg")
-							.sort((a, b) => b.id - a.id)[0]; // latest engineer row
-
-						if (deptFK.toLowerCase() === "con" && contractorInspection) {
-							setInspectionId(contractorInspection.id);
-						} else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
-							setInspectionId(engineerInspection.id);
+						} else {
+							const savedId = localStorage.getItem("latestInspectionId");
+							if (savedId) {
+								setInspectionId(parseInt(savedId));
+							}
 						}
-					} else {
-						const savedId = localStorage.getItem("latestInspectionId");
-						if (savedId) {
-							setInspectionId(parseInt(savedId));
-						}
-					}
-				})
-				.catch((err) => console.error("Error fetching RFI details:", err));
-		}
-	}, [id, API_BASE_URL]);
+					})
+					.catch((err) => console.error("Error fetching RFI details:", err));
+			}
+		}, [id, API_BASE_URL]);
 
 
 	const fetchChecklistDataFromApi = async (rfiId, enclosureName) => {
@@ -1706,20 +1710,34 @@ export default function InspectionForm() {
 														    <button
 														      className="hover-blue-btn"
 														      onClick={() => setUploadPopup(e.id)}
-														      disabled={localStorage.getItem("departmentFk")?.toLowerCase() === "engg"}
+														      disabled={deptFK?.toLowerCase() === "engg" || contractorSubmitted === true}
 														    >
 														      Upload
 														    </button>
 														  ) : (
-														    <button
-														      className="hover-blue-btn"
-														      onClick={() => setChecklistPopup(e.id)}
-														    >
-														      {enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open'}
-														    </button>
+														    <>
+														      {deptFK?.toLowerCase() === "engg" ? (
+														        <button
+														          className="hover-blue-btn"
+														          onClick={() => setChecklistPopup(e.id)}
+														        >
+														          {engineerSubmitted
+														            ? 'View'
+														            : (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+														        </button>
+														      ) : (
+														        <button
+														          className="hover-blue-btn"
+														          onClick={() => setChecklistPopup(e.id)}
+														        >
+														          {contractorSubmitted
+														            ? 'View'
+														            : (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+														        </button>
+														      )}
+														    </>
 														  )}
 														</td>
-
 														<td>
 															{enclosureFile ? (
 																<button
@@ -2633,17 +2651,37 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 					</div>
 				)}
 
-				<div className="popup-actions" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-					<button onClick={handleDone} disabled={checklistData.length === 0}>
-						Done
-					</button>
-					<button onClick={onClose}>Cancel</button>
+				<div
+				  className="popup-actions"
+				  style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
+				>
+				  <div className="checklist-popup-btn">
+				    <button onClick={onClose}>Cancel</button>
+
+				    {deptFK === 'engg' ? (
+				      <button
+				        onClick={handleDone}
+				        disabled={checklistData.length === 0  }
+						hidden = {globalVarEnggSubmited === true}
+				      >
+				        Done
+				      </button>
+				    ) : (
+				      <button
+				        onClick={handleDone}
+				        disabled={checklistData.length === 0}
+						hidden={globalVarConSubmited === true}
+				      >
+				        Done
+				      </button>
+				    )}
+				  </div>
 				</div>
+
 			</div>
 		</div>
 	);
 }
-
 function UploadPopup({ onSubmit, onClose }) {
 	const [file, setFile] = useState(null);
 
@@ -2653,8 +2691,10 @@ function UploadPopup({ onSubmit, onClose }) {
 				<h3>Upload File</h3>
 				<input type="file" onChange={e => setFile(e.target.files[0])} />
 				<div className="popup-actions">
-					<button disabled={!file} onClick={() => onSubmit(file)}>Upload</button>
+				<div className='checklist-popup-btn'>
 					<button onClick={onClose}>Cancel</button>
+					<button hidden = {!file} onClick={() => onSubmit(file)}>Upload</button>
+				</div>
 				</div>
 			</div>
 		</div>

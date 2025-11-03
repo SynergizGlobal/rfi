@@ -76,7 +76,16 @@ table {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: 3px;
 }
+
+.rfilog-popup-btn button:hover {
+  background-color: rgb(25, 50, 100);
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+
 .rfilog-popup-btn button{
   background-color: rgb(19, 35, 74);
   color: #fff;
@@ -84,6 +93,7 @@ table {
   border: 0;
   border-radius: 3px;
 }
+
 .rfi-table-container {
   position: relative;
   overflow: visible !important;
@@ -129,4 +139,6 @@ table {
 .responsive-table tbody tr:nth-child(odd) {
     background-color: #fff;
 }
+
+
 

@@ -227,10 +227,6 @@ const RfiLog = () => {
 										setSelectedContractId(contractId);
 										setShowPopup(true);
 										setOpenDropdownRow(null);
-
-										console.log("🧩 contractId from row.values:", row.values.contractId);
-										console.log("🧩 contractId from row.original:", row.original.contractId);
-
 										if (contractId) {
 											fetchEngineersForContract(contractId);
 										} else {
@@ -296,7 +292,7 @@ const RfiLog = () => {
 			<div className="right">
 				<div className="dashboard-main">
 					<div className="rfi-table-container">
-						<h2 className="section-heading">Rfi Created</h2>
+						<h2 className="section-heading">RFI CREATED</h2>
 
 						<div className="table-top-bar d-flex justify-content-between align-items-center">
 							<div className="left-controls">
@@ -378,10 +374,9 @@ const RfiLog = () => {
 										{engineerOptions.map((username, idx) => (
 											<option key={idx} value={username}>{username}</option>
 										))}
-
 									</select>
-
-									<div className="rfilog-popup-btn">
+									<div className='rfilog-popup-btn'>
+										<button onClick={() => setShowPopup(false)}>Cancel</button>
 										<button onClick={handleAssignSubmit}>Done</button>
 									</div>
 								</div>
