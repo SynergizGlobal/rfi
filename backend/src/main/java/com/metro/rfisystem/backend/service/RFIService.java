@@ -78,6 +78,8 @@ public interface RFIService {
 	List<Map<String, Object>> getAllRepresentativesReportingToContractor();
 	
 	String closeRfi(long rfiId);
+	
+	void autoCancelRFIs();
 
 
 	

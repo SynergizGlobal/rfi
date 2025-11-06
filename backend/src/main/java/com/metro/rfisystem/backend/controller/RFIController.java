@@ -426,5 +426,10 @@ public class RFIController {
 	    }
 	}
 
+	@GetMapping("/auto-cancel")
+    public ResponseEntity<String> autoCancelExpiredRfis() {
+        rfiService.autoCancelRFIs();
+        return ResponseEntity.ok("Auto-cancellation completed successfully");
+    }
 
 }

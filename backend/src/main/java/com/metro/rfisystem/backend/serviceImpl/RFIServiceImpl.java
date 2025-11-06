@@ -2,6 +2,7 @@ package com.metro.rfisystem.backend.serviceImpl;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -442,5 +443,36 @@ public class RFIServiceImpl implements RFIService {
 
 	    return "RFI closed successfully";
 	}
+	
+	@Override
+    public void autoCancelRFIs() {
+        List<RFI> rfiList = rfiRepository.findAll();
+
+        LocalDate today = LocalDate.now();
+
+        for (RFI rfi : rfiList) {
+            if (rfi.getDateOfInspection() != null) {
+                LocalDate inspectionDate = rfi.getDateOfInspection();
+                if (inspectionDate == null) continue;
+
+                long daysBetween = ChronoUnit.DAYS.between(inspectionDate, today);
+
+                // ✅ Cancel if more than 7 days have passed and not already in progress
+                if (daysBetween > 7 && !isInProgress(rfi.getStatus())) {
+                    rfi.setStatus(EnumRfiStatus.CANCELLED);
+                    rfiRepository.save(rfi);
+                }
+            }
+        }
+    }
+
+    private boolean isInProgress(EnumRfiStatus status) {
+        return status == EnumRfiStatus.CON_INSP_ONGOING
+                || status == EnumRfiStatus.AE_INSP_ONGOING
+                || status == EnumRfiStatus.INSPECTED_BY_CON
+                || status == EnumRfiStatus.INSPECTED_BY_AE
+                || status == EnumRfiStatus.VALIDATION_PENDING
+                || status == EnumRfiStatus.INSPECTION_DONE;
+    }
 
 }

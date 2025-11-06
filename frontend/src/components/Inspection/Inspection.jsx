@@ -39,6 +39,10 @@ const Inspection = () => {
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
 
+	const [showUploadPopup, setShowUploadPopup] = useState(false);
+	const [selectedTestType, setSelectedTestType] = useState('');
+	const [uploadedFile, setUploadedFile] = useState(null);
+
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
 
@@ -354,20 +358,30 @@ const Inspection = () => {
 									setDropdownInfo({ rowId: null, targetRef: null });
 								}}
 							>
-								<button onClick={() => handleInspectionComplete(row.original.id, row.original.status)}>Start Inspection Online</button>
+							<button
+							  onClick={() => handleInspectionComplete(row.original.id, row.original.status)}
+							  disabled={row.original.status === "CANCELLED"}
+							  style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+							>
+							  Start Inspection Online
+							</button>
 								<button
 									onClick={() => {
+							    if (row.original.status !== "CANCELLED") {
 										navigate('/InspectionForm', {
 											state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
 										});
 										setOpenDropdownRow(null);
 										setDropdownInfo({ rowId: null, targetRef: null });
+							    }
 									}}
+							  disabled={row.original.status === "CANCELLED"}
+							  style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
 								>
 									Start Inspection Offline
 								</button>
 
-								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
+								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
 									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
 										<button
@@ -596,6 +610,7 @@ const Inspection = () => {
 
 
 								)}
+								<button onClick={() => setShowUploadPopup(true)}>Upload Test Results</button>
 							</DropdownPortal>
 						)}
 					</div>
@@ -737,6 +752,48 @@ const Inspection = () => {
 						</div>
 					</div>
 				)}
+				
+				{showUploadPopup && (
+				  <div className="inspection popup-overlay" onClick={() => setShowUploadPopup(false)}>
+				    <div className="upload-popup" onClick={(e) => e.stopPropagation()}>
+				      <button className="close-btn" onClick={() => setShowUploadPopup(false)}>✖</button>
+				      <h3>Upload Test Results</h3>
+
+				      <div className="form-group">
+				        <label>Tests in Site/Lab:</label>
+				        <select 
+				          value={selectedTestType} 
+				          onChange={(e) => setSelectedTestType(e.target.value)}
+				        >
+				          <option value="">-- Select --</option>
+				          <option value="Site">Site</option>
+				          <option value="Lab">Lab</option>
+				        </select>
+				      </div>
+
+				      <div className="form-group">
+				        <label>Tests in Lab/Site:</label>
+				        <a 
+				          href="#" 
+				          className="upload-link"
+				          onClick={(e) => { e.preventDefault(); document.getElementById("uploadInput").click(); }}
+				        >
+				          Upload Documents 📄
+				        </a>
+				        <input 
+				          type="file" 
+				          id="uploadInput" 
+				          style={{ display: "none" }}
+				          onChange={(e) => setUploadedFile(e.target.files[0])}
+				        />
+				        {uploadedFile && <p>Uploaded: {uploadedFile.name}</p>}
+				      </div>
+
+				      <button className="done-btn" onClick={() => setShowUploadPopup(false)}>Done</button>
+				    </div>
+				  </div>
+				)}
+
 			</div>
 		</div>
 	);
