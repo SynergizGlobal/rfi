@@ -82,6 +82,51 @@ const Inspection = () => {
 				setLoading(false);
 			});
 	}, [filterStatus, API_BASE_URL]);
+	
+	const fetchUpdatedRfiData = async () => {
+	  try {
+	    setLoading(true);
+
+	    const res = await fetch(`${API_BASE_URL}rfi/rfi-details`, {
+	      method: "GET",
+	      headers: { "Content-Type": "application/json" },
+	      credentials: "include",
+	    });
+
+	    if (!res.ok) {
+	      throw new Error("Network error");
+	    }
+
+	    const data = await res.json();
+	    let filteredData = data;
+
+	    // ✅ Apply same filtering logic as useEffect
+	    if (filterStatus && filterStatus.length > 0) {
+	      if (filterStatus.includes("REJECTED")) {
+	        // Filter by approvalStatus for rejected card
+	        filteredData = data.filter(
+	          (rfi) =>
+	            rfi.approvalStatus === "Rejected" &&
+	            rfi.status === "INSPECTION_DONE"
+	        );
+	      } else {
+	        // Default filter by status for other cards
+	        filteredData = data.filter((rfi) =>
+	          filterStatus.includes(rfi.status)
+	        );
+	      }
+	    }
+
+	    setData(filteredData);
+	    setLoading(false);
+	  } catch (err) {
+	    console.error("❌ Error fetching updated RFI data:", err);
+	    setError("Failed to load RFI data");
+	    setLoading(false);
+	  }
+	};
+
+	
 
 	useEffect(() => {
 		const stored = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");
@@ -322,7 +367,7 @@ const Inspection = () => {
 									Start Inspection Offline
 								</button>
 
-								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin') &&
+								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
 									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
 										<button
@@ -343,6 +388,7 @@ const Inspection = () => {
 																	alert("❌ " + text);
 																} else {
 																	alert("✅ " + text);
+																	await fetchUpdatedRfiData();
 																}
 																setConfirmPopupData(null);
 															})
@@ -358,6 +404,43 @@ const Inspection = () => {
 											Send for Validation
 										</button>
 									)}
+									{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
+									    row.original.status === 'INSPECTED_BY_AE' &&
+									    row.original.approvalStatus?.toLowerCase() === 'accepted' && (
+									        <button
+									            onClick={() => {
+									                setConfirmPopupData({
+									                    message: "Are you sure you want to close RFI?",
+									                    rfiId: row.original.id,
+									                    onConfirm: (id) => {
+									                        fetch(`${API_BASE_URL}rfi/close/rfi/${id}`, {
+									                            method: "POST",
+									                            headers: { "Content-Type": "application/json" },
+									                        })
+									                            .then(async (res) => {
+									                                const text = await res.text();
+									                                console.log("📌 API response status:", res.status, "body:", text);
+
+									                                if (!res.ok) {
+									                                    alert("❌ " + text);
+									                                } else {
+									                                    alert("✅ " + text);
+																		await fetchUpdatedRfiData();
+									                                }
+									                                setConfirmPopupData(null);
+									                            })
+									                            .catch((err) => {
+									                                console.error("❌ API error:", err);
+									                                alert("⚠️ Something went wrong while closing the RFI.");
+									                                setConfirmPopupData(null);
+									                            });
+									                    },
+									                });
+									            }}
+									        >
+									            Close RFI
+									        </button>
+									    )}
 
 									{userRole === 'it admin' ? (
 									  // ✅ Show only this button for IT Admin

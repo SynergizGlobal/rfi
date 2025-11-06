@@ -33,10 +33,9 @@ public class AssignExecutiveController {
     
 	@GetMapping("/getExecutivesList")
 	public ResponseEntity<List<ExecutiveDTO>> getExcecutives(
-			@RequestParam(name = "structureType", required = true) String structureType,
-			@RequestParam(name = "structure", required = true) String structure) {
+			@RequestParam(name = "contractId", required = true) String contractId) {
 
-		List<ExecutiveDTO> list = activityRepository.getExcecutives(structureType, structure);
+		List<ExecutiveDTO> list = activityRepository.getExcecutives(contractId);
 		if (list.isEmpty()) {
 			return ResponseEntity.ok(Collections.emptyList());
 		}

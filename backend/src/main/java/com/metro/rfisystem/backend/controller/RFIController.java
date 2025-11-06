@@ -411,5 +411,20 @@ public class RFIController {
 	    return ResponseEntity.ok(counts);
 	}
 	
+	@PostMapping("/close/rfi/{rfiId}")
+	public ResponseEntity<String> closeRfi(@PathVariable Long rfiId) {
+	    try {
+	        String result = rfiService.closeRfi(rfiId);
+
+	        if ("RFI closed successfully".equals(result)) {
+	            return ResponseEntity.ok(result);
+	        } else {
+	            return ResponseEntity.badRequest().body(result);
+	        }
+	    } catch (Exception ex) {
+	        return ResponseEntity.badRequest().body("Failed to close RFI. Please try again.");
+	    }
+	}
+
 
 }

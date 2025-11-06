@@ -91,10 +91,10 @@ const AssignExecutive = () => {
       });
   }, [API_BASE_URL]);
 
-  const fetchExecutives = async ( structureType, structure) => {
+  const fetchExecutives = async (contractId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}rfi/getExecutivesList`, {
-        params: { structureType, structure }
+        params: { contractId}
       });
 
       setExecutives(
@@ -340,6 +340,10 @@ const AssignExecutive = () => {
                           setStructureTypeOptions(res.data.map((t) => ({ value: t, label: t })))
                         );
                     }
+					if (id) {
+					  fetchExecutives(id);
+					}
+					
                   }}
                   isDisabled={!isEditable}
                 />
@@ -365,7 +369,6 @@ const AssignExecutive = () => {
                     });
 					setErrors((prev) => ({ ...prev, structureType: "" }));
                     setStructureOptions([]);
-                    setExecutives([]);
                     setRfiIds?.([]);
 
                     if (formState.contractId && type) {
@@ -394,8 +397,6 @@ const AssignExecutive = () => {
                   value={formState.structure ? structureOptions.find((s) => s.value === formState.structure) : null}
                   onChange={(selected) => {
                     const newStructure = selected?.value || "";
-                    const { contractId, structureType } = formState;
-
                     setFormState({
                       ...formState,
                       structure: newStructure,
@@ -403,12 +404,7 @@ const AssignExecutive = () => {
                       executive: "",
                     });
 					setErrors((prev) => ({ ...prev, structure: "" }));
-                    setExecutives([]);
-                    setRfiIds?.([]);
 
-                    if (contractId && structureType && newStructure) {
-                      fetchExecutives( structureType, newStructure);
-                    }
                   }}
                   isDisabled={!isEditable}
                 />

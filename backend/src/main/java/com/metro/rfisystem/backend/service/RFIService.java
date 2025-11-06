@@ -76,6 +76,8 @@ public interface RFIService {
 	List<Map<String, Object>> getRegularUsers(String userId);
 
 	List<Map<String, Object>> getAllRepresentativesReportingToContractor();
+	
+	String closeRfi(long rfiId);
 
 
 	

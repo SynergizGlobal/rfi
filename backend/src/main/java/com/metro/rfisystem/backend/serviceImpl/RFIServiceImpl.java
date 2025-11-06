@@ -415,4 +415,33 @@ public class RFIServiceImpl implements RFIService {
 	    );
 	}
 
+	@Override
+	public String closeRfi(long rfiId) {
+	    Optional<RFI> rfiOpt = rfiRepository.findById(rfiId);
+
+	    if (rfiOpt.isEmpty()) {
+	        return "RFI not found";
+	    }
+
+	    RFI rfi = rfiOpt.get();
+	    EnumRfiStatus currentStatus = rfi.getStatus();
+
+	    if (currentStatus == EnumRfiStatus.INSPECTION_DONE) {
+	        return "RFI is already closed!";
+	    }
+
+	    if (currentStatus == EnumRfiStatus.VALIDATION_PENDING) {
+	        return "RFI is under validation process";
+	    }
+
+	    if (currentStatus != EnumRfiStatus.INSPECTED_BY_AE) {
+	        return "Engineer inspection is pending";
+	    }
+
+	    rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
+	    rfiRepository.save(rfi);
+
+	    return "RFI closed successfully";
+	}
+
 }
