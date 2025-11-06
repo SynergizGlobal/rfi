@@ -612,6 +612,10 @@ export default function InspectionForm() {
 			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
+		
+		if (!validateEnclosures()) {
+    return; // block submission if enclosures incomplete
+  }
 
 		if (isSubmitting) return;
 
@@ -1332,6 +1336,30 @@ export default function InspectionForm() {
 			alert("❌ Failed to upload image. Please try again.");
 		}
 	};
+
+const validateEnclosures = () => {
+  if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
+    alert("⚠️ No enclosures found — please contact admin.");
+    return false;
+  }
+
+  for (const e of enclosuresData) {
+    const enclosureFile = rfiData.enclosure?.find(
+      enc =>
+        enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+    )?.enclosureUploadFile;
+
+    const checklistDone = enclosureStates[e.id]?.checklistDone;
+
+    if (!enclosureFile && !checklistDone) {
+      alert(`⚠️ Please complete enclosure "${e.enclosure}" — upload file or finish checklist.`);
+      return false;
+    }
+  }
+
+  return true;
+};
+
 
 
 	useEffect(() => {
@@ -2411,6 +2439,17 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 		));
 	};
 
+
+const handleSelectAll = (field, value) => {
+    if (!value) return;
+
+    setChecklistData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        [field]: value === "CLEAR" ? "" : value,
+      }))
+    );
+  };
 	const handleDone = () => {
 		// If logged-in is Engineer → validate engineerStatus
 		if (isEngineer) {
@@ -2615,6 +2654,53 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 					{enclosureName ? enclosureName.toUpperCase() : ''}
 				</h3>
 
+ {/* ✅ Select All Dropdowns */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "20px",
+            marginBottom: "10px",
+            alignItems: "center",
+          }}
+        >
+          {deptFK !== "engg" && (
+            <div>
+              <label style={{ marginRight: "5px", fontWeight: "bold" }}>
+                Contractor Select All:
+              </label>
+              <select
+                onChange={(e) => handleSelectAll("contractorStatus", e.target.value)}
+                disabled={isReadOnly}
+                defaultValue=""
+              >
+                <option value="">--Select--</option>
+                <option value="YES">YES</option>
+                <option value="NO">NO</option>
+                <option value="NA">N/A</option>
+                <option value="CLEAR">Clear All</option>
+              </select>
+            </div>
+          )}
+
+          {isEngineer && !engineerSubmitted && (
+            <div>
+              <label style={{ marginRight: "5px", fontWeight: "bold" }}>
+                Engineer Select All:
+              </label>
+              <select
+                onChange={(e) => handleSelectAll("engineerStatus", e.target.value)}
+                defaultValue=""
+              >
+                <option value="">--Select--</option>
+                <option value="YES">YES</option>
+                <option value="NO">NO</option>
+                <option value="NA">N/A</option>
+                <option value="CLEAR">Clear All</option>
+              </select>
+            </div>
+          )}
+        </div>
 				{checklistData.length > 0 ? (
 					<DataTable
 						columns={columns}

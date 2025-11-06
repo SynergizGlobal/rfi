@@ -57,14 +57,25 @@ public interface LoginRepository extends JpaRepository<User, String> {
 	@Query("SELECT u FROM User u WHERE u.userId = :userId")
 	List<User> findByUserId(@Param("userId") String userId);
 
-	@Query(value = "SELECT u.user_id, u.user_name " +
-            "FROM [user] u " +
-            "LEFT JOIN department d ON u.department_fk = d.department " +
-            "LEFT JOIN [user] usr ON u.reporting_to_id_srfk = usr.user_id " +
-            "WHERE u.user_role_name_fk = 'Regular User' " +   // ✅ Only Regular Users
-            "AND u.reporting_to_id_srfk = :reportingToId",     // ✅ Must report to logged-in user
-    nativeQuery = true)
-List<Map<String, Object>> findRegularUsersByReporting(@Param("reportingToId") String reportingToId);
+//	@Query(value = "SELECT u.user_id, u.user_name " +
+//            "FROM [user] u " +
+//            "LEFT JOIN department d ON u.department_fk = d.department " +
+//            "LEFT JOIN [user] usr ON u.reporting_to_id_srfk = usr.user_id " +
+//            "WHERE u.user_role_name_fk = 'Regular User' " +   // ✅ Only Regular Users
+//            "OR u.reporting_to_id_srfk = :reportingToId",     // ✅ Must report to logged-in user
+//    nativeQuery = true)
+//List<Map<String, Object>> findRegularUsersByReporting(@Param("reportingToId") String reportingToId);
+
+	
+	@Query(value = """
+		    SELECT DISTINCT u.user_id, u.user_name
+		    FROM [user] u
+		    LEFT JOIN [user] u1 ON u1.user_id = u.reporting_to_id_srfk
+		    LEFT JOIN contractor c ON c.contractor_name = u1.user_name
+		    WHERE u.user_role_name_fk = 'Regular User'
+		      AND u.user_type_fk = 'Contractor Rep'
+		""", nativeQuery = true)
+		List<Map<String, Object>> findRegularContractorReps();
 
     @Query(value = """
             SELECT u.user_name

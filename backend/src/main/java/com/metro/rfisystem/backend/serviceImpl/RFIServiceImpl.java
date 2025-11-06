@@ -249,9 +249,8 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	public List<Map<String, Object>> getRegularUsers(String userId) {
 		System.out.println("Fetching regular users (representatives) for manager userId: " + userId);
-		return loginRepo.findRegularUsersByReporting(userId);
+	    return loginRepo.findRegularContractorReps(); // Use the new query method
 	}
-
 	@Override
 	public List<String> getContractorUserNamesWithReportingId(String loggedInUserName) {
 

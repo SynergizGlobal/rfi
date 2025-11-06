@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import './HeaderRight.css';
 
 const HeaderRight = () => {
-    // Fetch user info from localStorage
     const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
     const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
     const loginDepartment = localStorage.getItem("loginDepartment")?.toLowerCase();
@@ -11,7 +10,9 @@ const HeaderRight = () => {
     // ----------------- Role Checks -----------------
     const isSuperUser = userRole === "super user";
     const isITAdmin = userRole === "it admin";
+    const isDataAdmin = userRole === "data admin";
     const isDyHOD = userType === "dyhod";
+
     const isEnggDept = loginDepartment === "engg";
     const isEngineerOnly = isEnggDept && !isDyHOD;
 
@@ -22,11 +23,12 @@ const HeaderRight = () => {
     // ----------------- Exclusive Role Flags -----------------
     const showSuperUser = isSuperUser;
     const showITAdmin = isITAdmin && !showSuperUser;
-    const showDyHOD = isDyHOD && !showSuperUser && !showITAdmin;
-    const showContractor = isContractor && !showSuperUser && !showITAdmin && !showDyHOD;
-    const showContractorRep = isContractorRep && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor;
-    const showEngineerOnly = isEngineerOnly && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor && !showContractorRep;
-    const showRegularUser = isRegularUser && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor && !showContractorRep && !showEngineerOnly;
+    const showDataAdmin = isDataAdmin && !showSuperUser && !showITAdmin; // ✅ Separate Data Admin flag
+    const showDyHOD = isDyHOD && !showSuperUser && !showITAdmin && !showDataAdmin;
+    const showContractor = isContractor && !showSuperUser && !showITAdmin && !showDyHOD && !showDataAdmin;
+    const showContractorRep = isContractorRep && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor && !showDataAdmin;
+    const showEngineerOnly = isEngineerOnly && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor && !showContractorRep && !showDataAdmin;
+    const showRegularUser = isRegularUser && !showSuperUser && !showITAdmin && !showDyHOD && !showContractor && !showContractorRep && !showEngineerOnly && !showDataAdmin;
 
     // ----------------- Sidebar Menu -----------------
     useEffect(() => {
@@ -61,7 +63,7 @@ const HeaderRight = () => {
                         </Link>
                     </li>
 
-                    {/* Super User Menu */}
+                    {/* Super User */}
                     {showSuperUser && (
                         <li>
                             <Link to="/RfiLogList">
@@ -72,7 +74,7 @@ const HeaderRight = () => {
                         </li>
                     )}
 
-                    {/* IT Admin Menu */}
+                    {/* IT Admin */}
                     {showITAdmin && (
                         <>
                             <li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
@@ -86,8 +88,8 @@ const HeaderRight = () => {
                         </>
                     )}
 
-                    {/* DyHOD Menu */}
-                    {showDyHOD && (
+                    {/* ✅ Data Admin Menu (can access Assign Executive) */}
+                    {showDataAdmin && (
                         <>
                             <li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
                             <li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
@@ -96,7 +98,16 @@ const HeaderRight = () => {
                         </>
                     )}
 
-                    {/* Contractor Menu */}
+                    {/* DyHOD (no Assign Executive anymore) */}
+                    {showDyHOD && (
+                        <>
+                            <li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
+                            <li><Link to="/Validation"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Validation</span></div></Link></li>
+                            <li><Link to="/RfiLogList"><div className="menu-text"><i className="fa-solid fa-file-invoice"></i> <span>RFI Log</span></div></Link></li>
+                        </>
+                    )}
+
+                    {/* Contractor */}
                     {showContractor && (
                         <>
                             <li><Link to="/CreateRfi"><div className="menu-text"><i className="fa-solid fa-print"></i> <span>Create RFI</span></div></Link></li>
@@ -107,7 +118,7 @@ const HeaderRight = () => {
                         </>
                     )}
 
-                    {/* Contractor Rep Menu */}
+                    {/* Contractor Rep */}
                     {showContractorRep && (
                         <>
                             <li><Link to="/Inspection"><div className="menu-text"><i className="fa-solid fa-folder-tree"></i> <span>Inspection</span></div></Link></li>
