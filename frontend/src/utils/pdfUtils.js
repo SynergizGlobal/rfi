@@ -6,8 +6,12 @@ import autoTable from "jspdf-autotable";
 let externalPdfBlobs = [];
 
 // Convert image/File to Base64
-export const toBase64 = async (url) => {
-	const response = await fetch(url);
+
+export const toBase64 = async (input) => {
+	if (typeof input === "string" && input.startsWith("data:")) {
+		return input; // Already base64
+	}
+	const response = await fetch(input);
 	const blob = await response.blob();
 	return new Promise((resolve) => {
 		const reader = new FileReader();
@@ -17,71 +21,73 @@ export const toBase64 = async (url) => {
 };
 
 
-
 export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
-  const mainPdfBytes = jsPDFDoc.output("arraybuffer");
-  const mainPdf = await PDFDocument.load(mainPdfBytes);
-  const mergedPdf = await PDFDocument.create();
+	const mainPdfBytes = jsPDFDoc.output("arraybuffer");
+	const mainPdf = await PDFDocument.load(mainPdfBytes);
+	const mergedPdf = await PDFDocument.create();
 
-  // Copy main PDF pages first
-  const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
-  mainPages.forEach((page) => mergedPdf.addPage(page));
+	// Add main PDF pages first
+	const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
+	mainPages.forEach((p) => mergedPdf.addPage(p));
 
-  // 🔧 Iterate and normalize each external PDF
-  for (let i = 0; i < externalPdfBlobs.length; i++) {
-    let fileBlob = externalPdfBlobs[i];
+	if (!externalPdfBlobs || externalPdfBlobs.length === 0) {
+		const mergedBytes = await mergedPdf.save();
+		return new Blob([mergedBytes], { type: "application/pdf" });
+	}
 
-    // 🧩 Normalize: ensure it's a Blob
-    if (typeof fileBlob === "string") {
-      if (fileBlob.startsWith("data:application/pdf")) {
-        // Base64 → Blob
-        const byteString = atob(fileBlob.split(",")[1]);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
-        fileBlob = new Blob([ab], { type: "application/pdf" });
-      } else {
-        // URL → fetch → Blob
-        const response = await fetch(fileBlob);
-        fileBlob = await response.blob();
-      }
-    }
+	// Separate test report and enclosures logically
+	// 👇 Assuming first group is test reports, rest are enclosures
+	const testReportCount = 1; // adjust if multiple test reports are expected
 
-    // 🧠 Now definitely a Blob or File
-    const fileBytes = await fileBlob.arrayBuffer();
-    const externalPdf = await PDFDocument.load(fileBytes);
+	for (let i = 0; i < externalPdfBlobs.length; i++) {
+		let fileBlob = externalPdfBlobs[i];
+		let labelText = i < testReportCount ? "Test Report PDF" : "Enclosure PDF";
 
-    const copiedPages = await mergedPdf.copyPages(externalPdf, externalPdf.getPageIndices());
-    const isEnclosure = i > 0;
-    const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+		// Normalize Blob
+		if (typeof fileBlob === "string") {
+			if (fileBlob.startsWith("data:application/pdf")) {
+				// Base64 → Blob
+				const byteString = atob(fileBlob.split(",")[1]);
+				const ab = new ArrayBuffer(byteString.length);
+				const ia = new Uint8Array(ab);
+				for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+				fileBlob = new Blob([ab], { type: "application/pdf" });
+			} else {
+				// URL → fetch
+				const res = await fetch(fileBlob);
+				fileBlob = await res.blob();
+			}
+		}
 
-    for (let j = 0; j < copiedPages.length; j++) {
-      const page = copiedPages[j];
-      const { width, height } = page.getSize();
+		const fileBytes = await fileBlob.arrayBuffer();
+		const externalPdf = await PDFDocument.load(fileBytes);
+		const copiedPages = await mergedPdf.copyPages(externalPdf, externalPdf.getPageIndices());
+		const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
 
-      const topGap = isEnclosure && j === 0 ? 60 : 0;
-      const bottomGap = isEnclosure && j === 0 ? 20 : 0;
-      const newPage = mergedPdf.addPage([width, height + topGap + bottomGap]);
+		for (let j = 0; j < copiedPages.length; j++) {
+			const page = copiedPages[j];
+			const { width, height } = page.getSize();
 
-      if (isEnclosure && j === 0) {
-        newPage.drawText("Enclosure PDF", {
-          x: 50,
-          y: height + bottomGap + 10,
-          size: 18,
-          font,
-          color: rgb(0, 0, 0),
-        });
-        const embeddedPage = await mergedPdf.embedPage(page);
-        newPage.drawPage(embeddedPage, { x: 0, y: bottomGap });
-      } else {
-        const embeddedPage = await mergedPdf.embedPage(page);
-        newPage.drawPage(embeddedPage, { x: 0, y: 0 });
-      }
-    }
-  }
+			// Add new page with label only on the first page of each PDF
+			const newPage = mergedPdf.addPage([width, height]);
+			const embeddedPage = await mergedPdf.embedPage(page);
+			newPage.drawPage(embeddedPage, { x: 0, y: 0 });
 
-  const mergedBytes = await mergedPdf.save();
-  return new Blob([mergedBytes], { type: "application/pdf" });
+			if (j === 0) {
+				newPage.drawText(labelText, {
+					x: width - 80, 
+					y: height - 8,
+					size: 10,
+					font,
+					color: rgb(0, 0, 0),
+				});
+			}
+
+		}
+	}
+
+	const mergedBytes = await mergedPdf.save();
+	return new Blob([mergedBytes], { type: "application/pdf" });
 }
 
 // ==============================
@@ -248,7 +254,7 @@ export async function generateInspectionPdf(rfiData) {
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 	const remarksY = 550;
-	const remarkText = inspectionStatus === "Rejected" ? engineerRemarks || "________________________________________" : "________________________________________";
+	const remarkText = inspectionStatus === "Rejected" ? engineerRemarks || "" : "";
 	doc.text(remarkText, 50, remarksY);
 
 	// Signature placeholders
@@ -399,15 +405,9 @@ export async function generateInspectionPdf(rfiData) {
 		encY = currentY + 40;
 	};
 
-	renderSiteImages("Site Images:", images.contractor);
-	renderSiteImages("Site Images:", images.engineer);
+	renderSiteImages("Contractor Site Images:", images.contractor);
+	renderSiteImages("Engineer Site Images:", images.engineer);
 
-	// ==============================
-	// Continue with next section
-	// ==============================
-	doc.setFont("helvetica", "bold").setFontSize(12);
-
-	doc.text("Test Report", 40, encY);
 
 	// ==============================
 	// Test Report Section
@@ -475,6 +475,62 @@ export async function generateInspectionPdf(rfiData) {
 	    console.warn("⚠️ Failed to add test report file:", err);
 	  }
 	}
+	
+	
+	// --- Enclosure PDF/image handling ---
+
+	if (Array.isArray(enclosuresData) && enclosuresData.length > 0) {
+	  for (const enclosure of enclosuresData) {
+	    const encFile = enclosure.filePath;
+	    if (!encFile) continue;
+
+	    if (encY + 150 > pageHeight - 100) {
+	      doc.addPage();
+	      encY = 60;
+	    }
+
+	    try {
+	      if (encFile instanceof File) {
+	        if (encFile.type === "application/pdf") {
+	          enclosurePdfBlobs.push(encFile);
+	        } else if (encFile.type.startsWith("image/")) {
+	          const base64 = await toBase64(encFile);
+	          const availableHeight = pageHeight - encY - 100;
+	          doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+	          encY += availableHeight + 20;
+	        }
+	      } else if (typeof encFile === "string") {
+	        if (
+	          encFile.startsWith("data:application/pdf") ||
+	          encFile.toLowerCase().endsWith(".pdf")
+	        ) {
+	          if (encFile.startsWith("data:application/pdf")) {
+	            enclosurePdfBlobs.push(encFile);
+	          } else {
+	            const response = await fetch(encFile);
+	            const blob = await response.blob();
+	            enclosurePdfBlobs.push(blob);
+	          }
+	        } else if (
+	          encFile.startsWith("data:image") ||
+	          /\.(jpg|jpeg|png)$/i.test(encFile)
+	        ) {
+	          const base64 =
+	            encFile.startsWith("data:image")
+	              ? encFile
+	              : await toBase64(await (await fetch(encFile)).blob());
+
+	          const availableHeight = pageHeight - encY - 100;
+	          doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+	          encY += availableHeight + 20;
+	        }
+	      }
+	    } catch (err) {
+	      console.warn("⚠️ Failed to add enclosure file:", enclosure.enclosure, err);
+	    }
+	  }
+	}
+
 
       externalPdfBlobs = [
 	...testReportPdfBlobs,

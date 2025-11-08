@@ -233,27 +233,7 @@ public class InspectionController {
 	    }
 	}
 
-	
-	
-//	@GetMapping("/inspections/{rfiId}")
-//	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId) {
-//	    try {
-//	        List<RFIInspectionDetails> inspections = inspectionRepository.findInspectionsByRfiId(rfiId);
-//
-//	        if (inspections.isEmpty()) {
-//	            return ResponseEntity.ok(Collections.emptyList());
-//	        }
-//	        return ResponseEntity.ok(inspections);
-//	    } catch (Exception e) {
-//	        e.printStackTrace();
-//	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//	                .body("Failed to fetch inspection: " + e.getMessage());
-//	    }
-//	}
 
-
-	
-	
 	@PostMapping("/rfi/upload")
 	public ResponseEntity<String> uploadEnclosure(@RequestParam("rfiId") Long rfiId,
 
@@ -424,7 +404,7 @@ public class InspectionController {
 
 
 			        // Load signed contractor PDF
-			        Path signedPdfPath = Paths.get(pdfStoragePath, "signed_" + contractorTxnId + ".pdf");
+			        Path signedPdfPath = Paths.get(pdfStoragePath, "signed_" + contractorTxnId + "_temp.pdf");
 			        if (!Files.exists(signedPdfPath)) {
 			            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 			        }

@@ -208,7 +208,7 @@ public class EsignService {
 	    File pdfDir = new File(pdfStoragePath);
 	    if (!pdfDir.exists()) pdfDir.mkdirs();
 
-	    String inputPdfPath = pdfDir + "/signed_" + txnId + ".pdf";               // Contractor signed
+	    String inputPdfPath = pdfDir + "/signed_" + txnId + "_temp.pdf";               // Contractor signed
 	    String engineerSignedPdfPath = pdfDir + "/signed_engineer_" + txnId + ".pdf"; 
 	    String finalPdfPath = pdfDir + "/signed_engineer_" + txnId + "_final.pdf";    
 

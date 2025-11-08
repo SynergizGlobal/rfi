@@ -77,83 +77,99 @@ export default function InspectionForm() {
 	
 	
 	useEffect(() => {
-			if (id) {
-				fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
-					.then((res) => res.json())
-					.then((data) => {
-						setRfiData(data);
-						setContractorRep(data.nameOfRepresentative || "");
+		if (id) {
+			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
+				.then((res) => res.json())
+				.then((data) => {
+					setRfiData(data);
+					setContractorRep(data.nameOfRepresentative || "");
 
-						if (data.enclosures) {
-							const enclosuresArr = Array.isArray(data.enclosures)
-								? data.enclosures
-								: data.enclosures.split(",").map((enc) => enc.trim());
+					// ✅ Handle Enclosures
+					if (data.enclosures) {
+						const enclosuresArr = Array.isArray(data.enclosures)
+							? data.enclosures
+							: data.enclosures.split(",").map((enc) => enc.trim());
 
-							const formatted = enclosuresArr.map((enc, index) => ({
+						// 🔹 Prepare file mapping if backend has uploaded enclosure files
+						// 🔹 Handle uploaded enclosure files from backend
+						const uploadedEnclosures = Array.isArray(data.enclosure)
+							? data.enclosure.map((e) => ({
+									name: e.enclosureName?.trim(),
+									filePath: e.enclosureUploadFile || e.filePath || null,
+									fileId: e.id || null,
+							  }))
+							: Array.isArray(data.enclosures)
+							? data.enclosures
+									.filter((e) => typeof e === "object")
+									.map((e) => ({
+										name: e.enclosureName?.trim(),
+										filePath: e.enclosureUploadFile || e.filePath || null,
+										fileId: e.id || null,
+									}))
+							: [];
+
+
+						const formatted = enclosuresArr.map((enc, index) => {
+							const uploadedFile = uploadedEnclosures.find(
+								(e) => e.name?.trim().toLowerCase() === enc.trim().toLowerCase()
+							);
+
+							return {
 								id: `${data.id}-${index}`,
 								rfiDescription: data.rfiDescription,
 								enclosure: enc,
-							}));
+								filePath: uploadedFile?.filePath || null, // ✅ for PDF generation
+								fileId: uploadedFile?.fileId || null,
+							};
+						});
 
-							setEnclosuresData(formatted);
-							const fetchEnclosureActions = async () => {
-								const actionsState = {};
-								const checklistState = {};
+						setEnclosuresData(formatted);
 
-								for (const item of formatted) {
-									try {
-										const result = await fetchChecklistDataFromApi(id, item.enclosure);
+						// ✅ Existing logic - unchanged
+						const fetchEnclosureActions = async () => {
+							const actionsState = {};
+							const checklistState = {};
 
-										if (result) {
-											let hasData = false;
+							for (const item of formatted) {
+								try {
+									const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
-											if (Array.isArray(result.checklist)) {
-												const dept = deptFK?.toLowerCase();
+									if (result) {
+										let hasData = false;
+										if (Array.isArray(result.checklist)) {
+											const dept = deptFK?.toLowerCase();
 
-												if (dept === "engg") {
-													// ✅ Engineer: only if engineer fields are filled
-													hasData = result.checklist.some(
-														(chk) =>
-															(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-															(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-													);
-												} else if (dept && dept !== "engg") {
-													// ✅ Contractor: only if contractor fields are filled
-													hasData = result.checklist.some(
-														(chk) =>
-															(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-															(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
-													);
-												} else {
-													// ✅ Default: consider any data
-													hasData = result.checklist.some(
-														(chk) =>
-															(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-															(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
-															(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-															(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-													);
-												}
+											if (dept === "engg") {
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+												);
+											} else if (dept && dept !== "engg") {
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
+												);
+											} else {
+												hasData = result.checklist.some(
+													(chk) =>
+														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
+														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
+														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
+														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
+												);
 											}
-
-											const action = hasData ? "EDIT" : "OPEN";
-
-											actionsState[item.id] = action;
-											checklistState[item.id] = {
-												checklist: result.checklist || [],
-												gradeOfConcrete: result.gradeOfConcrete || "",
-												checklistDone: hasData,
-											};
-										} else {
-											actionsState[item.id] = "UPLOAD";
-											checklistState[item.id] = {
-												checklist: [],
-												gradeOfConcrete: "",
-												checklistDone: false,
-											};
 										}
-									} catch (err) {
-										console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+
+										const action = hasData ? "EDIT" : "OPEN";
+										actionsState[item.id] = action;
+										checklistState[item.id] = {
+											checklist: result.checklist || [],
+											gradeOfConcrete: result.gradeOfConcrete || "",
+											checklistDone: hasData,
+										};
+									} else {
 										actionsState[item.id] = "UPLOAD";
 										checklistState[item.id] = {
 											checklist: [],
@@ -161,39 +177,50 @@ export default function InspectionForm() {
 											checklistDone: false,
 										};
 									}
+								} catch (err) {
+									console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+									actionsState[item.id] = "UPLOAD";
+									checklistState[item.id] = {
+										checklist: [],
+										gradeOfConcrete: "",
+										checklistDone: false,
+									};
 								}
-
-								setEnclosureActions(actionsState);
-								setEnclosureStates(checklistState);
-							};
-
-							fetchEnclosureActions();
-						}
-
-						if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
-							const contractorInspection = data.inspectionDetails
-								.filter((det) => det.uploadedBy === "CON")
-								.sort((a, b) => b.id - a.id)[0]; // latest contractor row
-
-							const engineerInspection = data.inspectionDetails
-								.filter((det) => det.uploadedBy === "Engg")
-								.sort((a, b) => b.id - a.id)[0]; // latest engineer row
-
-							if (deptFK.toLowerCase() === "con" && contractorInspection) {
-								setInspectionId(contractorInspection.id);
-							} else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
-								setInspectionId(engineerInspection.id);
 							}
-						} else {
-							const savedId = localStorage.getItem("latestInspectionId");
-							if (savedId) {
-								setInspectionId(parseInt(savedId));
-							}
+
+							setEnclosureActions(actionsState);
+							setEnclosureStates(checklistState);
+						};
+
+						fetchEnclosureActions();
+					}
+
+					// ✅ Existing inspection logic - untouched
+					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+						const contractorInspection = data.inspectionDetails
+							.filter((det) => det.uploadedBy === "CON")
+							.sort((a, b) => b.id - a.id)[0];
+
+						const engineerInspection = data.inspectionDetails
+							.filter((det) => det.uploadedBy === "Engg")
+							.sort((a, b) => b.id - a.id)[0];
+
+						if (deptFK.toLowerCase() === "con" && contractorInspection) {
+							setInspectionId(contractorInspection.id);
+						} else if (deptFK.toLowerCase() === "engg" && engineerInspection) {
+							setInspectionId(engineerInspection.id);
 						}
-					})
-					.catch((err) => console.error("Error fetching RFI details:", err));
-			}
-		}, [id, API_BASE_URL]);
+					} else {
+						const savedId = localStorage.getItem("latestInspectionId");
+						if (savedId) {
+							setInspectionId(parseInt(savedId));
+						}
+					}
+				})
+				.catch((err) => console.error("Error fetching RFI details:", err));
+		}
+	}, [id, API_BASE_URL]);
+
 
 
 	const fetchChecklistDataFromApi = async (rfiId, enclosureName) => {
@@ -680,16 +707,33 @@ export default function InspectionForm() {
 
 
 			// 2️⃣ Prepare enclosures for PDF
+			// 2️⃣ Prepare enclosures for PDF
 			const checklistsByEnclosure = enclosuresData.map((e) => {
 				const state = enclosureStates[e.id] || {};
+
+				// ✅ Prefer live uploaded file from checklist state if any
+				let finalFilePath = null;
+
+				if (state.uploadedFile instanceof File) {
+					finalFilePath = URL.createObjectURL(state.uploadedFile); // local preview file
+				} else if (state.uploadedFile) {
+					finalFilePath = state.uploadedFile; // direct URL string
+				} else if (e.filePath) {
+					// ✅ Use backend-stored enclosure file if exists (supports after reload)
+					const encodedPath = encodeURIComponent(e.filePath.trim());
+					finalFilePath = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+				}
+
 				return {
 					id: e.id,
 					enclosure: e.enclosure,
 					description: e.rfiDescription,
 					checklist: state.checklist || [],
-					uploadedFile: state.uploadedFile || null
+					filePath: finalFilePath || null, // ✅ PDF generator can use this
+					fileId: e.fileId || null,
 				};
 			});
+
 			
 
 			// 3️⃣ Generate PDF (same for both roles)
@@ -812,23 +856,30 @@ export default function InspectionForm() {
 			// 4️⃣ Upload PDF to backend
 			
 			
-			const pdfFormData = new FormData();
-			pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
-			pdfFormData.append("rfiId", rfiData?.id);
-
-			const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
-				method: "POST",
-				body: pdfFormData,
-				credentials: "include",
-			});
-
-			if (!uploadRes.ok) throw new Error("Failed to upload PDF");
-
-			console.log("✅ PDF uploaded successfully");
-
 
 
 			if (!isEngineer) {
+				
+				
+				
+				
+				const pdfFormData = new FormData();
+				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+				pdfFormData.append("rfiId", rfiData?.id);
+
+				const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdfContractor`, {
+					method: "POST",
+					body: pdfFormData,
+					credentials: "include",
+				});
+
+				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+
+				console.log("✅ PDF uploaded successfully");
+
+
+				
+				
 
 
 
@@ -959,6 +1010,33 @@ export default function InspectionForm() {
 					setIsSubmitting(false);
 				}
 			} else {
+				
+				
+				
+
+				const pdfFormData = new FormData();
+				pdfFormData.append("inspectionStatus", (testInLab || "").trim(),);
+				pdfFormData.append("engineerRemarks", engineerRemarks || "",)
+				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+				pdfFormData.append("rfiId", rfiData?.id);
+
+				const uploadRes = await fetch(`${API_BASE_URL}rfi/rfi/uploadPdf/Engg`, {
+					method: "POST",
+					body: pdfFormData,
+					credentials: "include",
+				});
+
+				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+
+				console.log("✅ PDF uploaded successfully");
+
+
+				
+				
+				
+				
+				
+				
 				// ✅ Engineer Submission Flow
 				const engForm = new FormData();
 				engForm.append("sc", "Y");
