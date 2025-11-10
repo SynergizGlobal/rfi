@@ -46,6 +46,7 @@ const Inspection = () => {
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
 
+
 	const location = useLocation();
 	const { filterStatus } = location.state || {};
 
@@ -68,14 +69,14 @@ const Inspection = () => {
 
 				// ✅ Apply status filter from Created RFI (via Dashboard navigation)
 				if (filterStatus && filterStatus.length > 0) {
-			         if (filterStatus.includes("REJECTED")) {
-			           // Filter by approvalStatus for rejected card
-			           filteredData = data.filter((rfi) => rfi.approvalStatus === "Rejected"  && rfi.status === "INSPECTION_DONE");
-			         } else {
-			           // Default filter by status for other cards
-			           filteredData = data.filter((rfi) => filterStatus.includes(rfi.status));
-			         }
-			       }
+					if (filterStatus.includes("REJECTED")) {
+						// Filter by approvalStatus for rejected card
+						filteredData = data.filter((rfi) => rfi.approvalStatus === "Rejected" && rfi.status === "INSPECTION_DONE");
+					} else {
+						// Default filter by status for other cards
+						filteredData = data.filter((rfi) => filterStatus.includes(rfi.status));
+					}
+				}
 
 				setData(filteredData);
 				setLoading(false);
@@ -86,51 +87,51 @@ const Inspection = () => {
 				setLoading(false);
 			});
 	}, [filterStatus, API_BASE_URL]);
-	
+
 	const fetchUpdatedRfiData = async () => {
-	  try {
-	    setLoading(true);
+		try {
+			setLoading(true);
 
-	    const res = await fetch(`${API_BASE_URL}rfi/rfi-details`, {
-	      method: "GET",
-	      headers: { "Content-Type": "application/json" },
-	      credentials: "include",
-	    });
+			const res = await fetch(`${API_BASE_URL}rfi/rfi-details`, {
+				method: "GET",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+			});
 
-	    if (!res.ok) {
-	      throw new Error("Network error");
-	    }
+			if (!res.ok) {
+				throw new Error("Network error");
+			}
 
-	    const data = await res.json();
-	    let filteredData = data;
+			const data = await res.json();
+			let filteredData = data;
 
-	    // ✅ Apply same filtering logic as useEffect
-	    if (filterStatus && filterStatus.length > 0) {
-	      if (filterStatus.includes("REJECTED")) {
-	        // Filter by approvalStatus for rejected card
-	        filteredData = data.filter(
-	          (rfi) =>
-	            rfi.approvalStatus === "Rejected" &&
-	            rfi.status === "INSPECTION_DONE"
-	        );
-	      } else {
-	        // Default filter by status for other cards
-	        filteredData = data.filter((rfi) =>
-	          filterStatus.includes(rfi.status)
-	        );
-	      }
-	    }
+			// ✅ Apply same filtering logic as useEffect
+			if (filterStatus && filterStatus.length > 0) {
+				if (filterStatus.includes("REJECTED")) {
+					// Filter by approvalStatus for rejected card
+					filteredData = data.filter(
+						(rfi) =>
+							rfi.approvalStatus === "Rejected" &&
+							rfi.status === "INSPECTION_DONE"
+					);
+				} else {
+					// Default filter by status for other cards
+					filteredData = data.filter((rfi) =>
+						filterStatus.includes(rfi.status)
+					);
+				}
+			}
 
-	    setData(filteredData);
-	    setLoading(false);
-	  } catch (err) {
-	    console.error("❌ Error fetching updated RFI data:", err);
-	    setError("Failed to load RFI data");
-	    setLoading(false);
-	  }
+			setData(filteredData);
+			setLoading(false);
+		} catch (err) {
+			console.error("❌ Error fetching updated RFI data:", err);
+			setError("Failed to load RFI data");
+			setLoading(false);
+		}
 	};
 
-	
+
 
 	useEffect(() => {
 		const stored = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");
@@ -159,6 +160,58 @@ const Inspection = () => {
 		return `${timestamp}${randomSuffix}`;
 	};
 
+	const handleUploadTestReport = async () => {
+		if (!selectedRfi) {
+			alert("⚠️ No RFI selected.");
+			return;
+		}
+
+		if (!selectedTestType) {
+			alert("⚠️ Please select a test type (Site/Lab).");
+			return;
+		}
+
+		if (!uploadedFile) {
+			alert("⚠️ Please choose a file to upload.");
+			return;
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append("rfiId", selectedRfi.id);
+			formData.append("testType", selectedTestType);
+			formData.append("file", uploadedFile);
+
+			console.log("Uploading test report for RFI:", selectedRfi.id);
+
+			const response = await fetch(`${API_BASE_URL}rfi/uploadPostTestReport`, {
+				method: "POST",
+				body: formData,
+				credentials: "include",
+			});
+
+			const text = await response.text();
+			if (!response.ok) {
+				alert("❌ Upload failed: " + text);
+				return;
+			}
+
+			alert("✅ " + text);
+
+			// Reset states after success
+			setShowUploadPopup(false);
+			setSelectedTestType("");
+			setUploadedFile(null);
+
+			// Refresh table data (if provided)
+			if (typeof fetchUpdatedRfiData === "function") {
+				fetchUpdatedRfiData();
+			}
+		} catch (err) {
+			console.error("Upload error:", err);
+			alert("❌ Failed to upload: " + err.message);
+		}
+	};
 
 	const handleInspectionComplete = (rfi, status) => {
 
@@ -175,8 +228,8 @@ const Inspection = () => {
 			if (status === "INSPECTED_BY_AE") {
 				alert("Inspection Submitted . Further inspection not allowed.");
 				return;
-			}	
-			const allowedStatuses = ["INSPECTED_BY_CON", "AE_INSP_ONGOING",	"UPDATED","RESCHEDULED","REASSIGNED"];
+			}
+			const allowedStatuses = ["INSPECTED_BY_CON", "AE_INSP_ONGOING", "UPDATED", "RESCHEDULED", "REASSIGNED"];
 			if (!allowedStatuses.includes(status)) {
 				alert("Inspection not allowed until Contractor completes inspection.");
 				return;
@@ -187,20 +240,20 @@ const Inspection = () => {
 				alert("Inspection Submitted . Further inspection not allowed.");
 				return;
 			}
-			const allowedStatuses = ["CREATED", "CON_INSP_ONGOING","UPDATED","RESCHEDULED","REASSIGNED"];
+			const allowedStatuses = ["CREATED", "CON_INSP_ONGOING", "UPDATED", "RESCHEDULED", "REASSIGNED"];
 			if (!allowedStatuses.includes(status)) {
 				alert("Inspection Submitted . Further inspection not allowed.");
 				return;
 			}
 		}
-			navigate(`/InspectionForm`, { state: { rfi } });
-		};
+		navigate(`/InspectionForm`, { state: { rfi } });
+	};
 
 
 	const [downloadingId, setDownloadingId] = useState(null);
-	
-	
-	const handleDownloadSiteImagesPdf = async (id, uploadedBy,rfiId) => {
+
+
+	const handleDownloadSiteImagesPdf = async (id, uploadedBy, rfiId) => {
 		const isContractor = uploadedBy?.toLowerCase() === "contractor";
 		const uniqueId = isContractor ? id : `client-${id}`;
 		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
@@ -265,21 +318,21 @@ const Inspection = () => {
 		{ Header: 'Activity', accessor: 'activity' },
 		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
 		{
-		  Header: "Assigned Employer's Engineer",
-		  Cell: ({ row }) => {
-		    const assignedEngineerValue = row.original.assignedPersonClient;
-		    return assignedEngineerValue ? (
-		      assignedEngineerValue
-		    ) : (
-		      <span style={{ color: '#888' }}>---</span>
-		    );
-		  }
-	    },
+			Header: "Assigned Employer's Engineer",
+			Cell: ({ row }) => {
+				const assignedEngineerValue = row.original.assignedPersonClient;
+				return assignedEngineerValue ? (
+					assignedEngineerValue
+				) : (
+					<span style={{ color: '#888' }}>---</span>
+				);
+			}
+		},
 		{ Header: 'Measurement Type', accessor: 'measurementType' },
 		{ Header: 'Total Qty', accessor: 'totalQty' },
 		{
 			Header: 'Inspection Status',
-			accessor: 'inspectionStatus'
+			accessor: 'status'
 		},
 		{
 			Header: 'Download Contractor Images',
@@ -289,7 +342,7 @@ const Inspection = () => {
 
 				return hasContractorImage ? (
 					<button
-						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor',row.original.rfi_Id)}
+						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor', row.original.rfi_Id)}
 						className="btn-download"
 						disabled={isDownloading}
 					>
@@ -308,7 +361,7 @@ const Inspection = () => {
 
 				return hasClientImage ? (
 					<button
-						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User',row.original.rfi_Id)}
+						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User', row.original.rfi_Id)}
 						className="btn-download"
 						disabled={isDownloading}
 					>
@@ -358,25 +411,25 @@ const Inspection = () => {
 									setDropdownInfo({ rowId: null, targetRef: null });
 								}}
 							>
-							<button
-							  onClick={() => handleInspectionComplete(row.original.id, row.original.status)}
-							  disabled={row.original.status === "CANCELLED"}
-							  style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-							>
-							  Start Inspection Online
-							</button>
+								<button
+									onClick={() => handleInspectionComplete(row.original.id, row.original.status)}
+									disabled={row.original.status === "CANCELLED"}
+									style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+								>
+									Start Inspection Online
+								</button>
 								<button
 									onClick={() => {
-							    if (row.original.status !== "CANCELLED") {
-										navigate('/InspectionForm', {
-											state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
-										});
-										setOpenDropdownRow(null);
-										setDropdownInfo({ rowId: null, targetRef: null });
-							    }
+										if (row.original.status !== "CANCELLED") {
+											navigate('/InspectionForm', {
+												state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
+											});
+											setOpenDropdownRow(null);
+											setDropdownInfo({ rowId: null, targetRef: null });
+										}
 									}}
-							  disabled={row.original.status === "CANCELLED"}
-							  style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+									disabled={row.original.status === "CANCELLED"}
+									style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
 								>
 									Start Inspection Offline
 								</button>
@@ -418,94 +471,94 @@ const Inspection = () => {
 											Send for Validation
 										</button>
 									)}
-									{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
-									    row.original.status === 'INSPECTED_BY_AE' &&
-									    row.original.approvalStatus?.toLowerCase() === 'accepted' && (
-									        <button
-									            onClick={() => {
-									                setConfirmPopupData({
-									                    message: "Are you sure you want to close RFI?",
-									                    rfiId: row.original.id,
-									                    onConfirm: (id) => {
-									                        fetch(`${API_BASE_URL}rfi/close/rfi/${id}`, {
-									                            method: "POST",
-									                            headers: { "Content-Type": "application/json" },
-									                        })
-									                            .then(async (res) => {
-									                                const text = await res.text();
-									                                console.log("📌 API response status:", res.status, "body:", text);
+								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
+									row.original.status === 'INSPECTED_BY_AE' &&
+									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
+										<button
+											onClick={() => {
+												setConfirmPopupData({
+													message: "Are you sure you want to close RFI?",
+													rfiId: row.original.id,
+													onConfirm: (id) => {
+														fetch(`${API_BASE_URL}rfi/close/rfi/${id}`, {
+															method: "POST",
+															headers: { "Content-Type": "application/json" },
+														})
+															.then(async (res) => {
+																const text = await res.text();
+																console.log("📌 API response status:", res.status, "body:", text);
 
-									                                if (!res.ok) {
-									                                    alert("❌ " + text);
-									                                } else {
-									                                    alert("✅ " + text);
-																		await fetchUpdatedRfiData();
-									                                }
-									                                setConfirmPopupData(null);
-									                            })
-									                            .catch((err) => {
-									                                console.error("❌ API error:", err);
-									                                alert("⚠️ Something went wrong while closing the RFI.");
-									                                setConfirmPopupData(null);
-									                            });
-									                    },
-									                });
-									            }}
-									        >
-									            Close RFI
-									        </button>
-									    )}
-
-									{userRole === 'it admin' ? (
-									  // ✅ Show only this button for IT Admin
-									  <button
-									    onClick={() => {
-									      navigate('/InspectionForm', {
-									        state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
-									      });
-									      setOpenDropdownRow(null);
-									      setDropdownInfo({ rowId: null, targetRef: null });
-									    }}
-									  >
-									    View
-									  </button>
-									) : (
-									  <>
-									    {deptFK === 'engg' &&
-									      (row.original.status === 'INSPECTED_BY_AE' ||
-									        row.original.status === 'AE_INSP_ONGOING' || 
-										row.original.status === 'VALIDATION_PENDING' ||
-									 row.original.status === 'INSPECTION_DONE') && (
-									        <button
-									          onClick={() => {
-									            navigate('/InspectionForm', {
-									              state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
-									            });
-									            setOpenDropdownRow(null);
-									            setDropdownInfo({ rowId: null, targetRef: null });
-									          }}
-									        >
-									          View
-									        </button>
-									      )}
-
-									    {deptFK !== 'engg' && row.original.status !== 'CREATED' && (
-									      <button
-									        onClick={() => {
-									          navigate('/InspectionForm', {
-									            state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
-									          });
-									          setOpenDropdownRow(null);
-									          setDropdownInfo({ rowId: null, targetRef: null });
-									        }}
-									      >
-									        View
-									      </button>
-									    )}
-									  </>
+																if (!res.ok) {
+																	alert("❌ " + text);
+																} else {
+																	alert("✅ " + text);
+																	await fetchUpdatedRfiData();
+																}
+																setConfirmPopupData(null);
+															})
+															.catch((err) => {
+																console.error("❌ API error:", err);
+																alert("⚠️ Something went wrong while closing the RFI.");
+																setConfirmPopupData(null);
+															});
+													},
+												});
+											}}
+										>
+											Close RFI
+										</button>
 									)}
 
-									
+								{userRole === 'it admin' ? (
+									// ✅ Show only this button for IT Admin
+									<button
+										onClick={() => {
+											navigate('/InspectionForm', {
+												state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+											});
+											setOpenDropdownRow(null);
+											setDropdownInfo({ rowId: null, targetRef: null });
+										}}
+									>
+										View
+									</button>
+								) : (
+									<>
+										{deptFK === 'engg' &&
+											(row.original.status === 'INSPECTED_BY_AE' ||
+												row.original.status === 'AE_INSP_ONGOING' ||
+												row.original.status === 'VALIDATION_PENDING' ||
+												row.original.status === 'INSPECTION_DONE') && (
+												<button
+													onClick={() => {
+														navigate('/InspectionForm', {
+															state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+														});
+														setOpenDropdownRow(null);
+														setDropdownInfo({ rowId: null, targetRef: null });
+													}}
+												>
+													View
+												</button>
+											)}
+
+										{deptFK !== 'engg' && row.original.status !== 'CREATED' && (
+											<button
+												onClick={() => {
+													navigate('/InspectionForm', {
+														state: { rfi: row.original.id, skipSelfie: true, viewMode: true },
+													});
+													setOpenDropdownRow(null);
+													setDropdownInfo({ rowId: null, targetRef: null });
+												}}
+											>
+												View
+											</button>
+										)}
+									</>
+								)}
+
+
 								{userRole !== 'engg' && (
 									<button
 										disabled={!completedOfflineInspections[row.original.id]}
@@ -610,7 +663,16 @@ const Inspection = () => {
 
 
 								)}
-								<button onClick={() => setShowUploadPopup(true)}>Upload Test Results</button>
+								{row.original.status === "INSPECTION_DONE" && (
+									<button
+										onClick={() => {
+											setSelectedRfi(row.original);
+											setShowUploadPopup(true);
+										}}
+									>
+										Upload Test Results
+									</button>
+								)}
 							</DropdownPortal>
 						)}
 					</div>
@@ -752,47 +814,53 @@ const Inspection = () => {
 						</div>
 					</div>
 				)}
-				
+
 				{showUploadPopup && (
-				  <div className="inspection popup-overlay" onClick={() => setShowUploadPopup(false)}>
-				    <div className="upload-popup" onClick={(e) => e.stopPropagation()}>
-				      <button className="close-btn" onClick={() => setShowUploadPopup(false)}>✖</button>
-				      <h3>Upload Test Results</h3>
+					<div className="inspection popup-overlay" onClick={() => setShowUploadPopup(false)}>
+						<div className="upload-popup" onClick={(e) => e.stopPropagation()}>
+							<button className="close-btn" onClick={() => setShowUploadPopup(false)}>✖</button>
+							<h3>Upload Test Results</h3>
 
-				      <div className="form-group">
-				        <label>Tests in Site/Lab:</label>
-				        <select 
-				          value={selectedTestType} 
-				          onChange={(e) => setSelectedTestType(e.target.value)}
-				        >
-				          <option value="">-- Select --</option>
-				          <option value="Site">Site</option>
-				          <option value="Lab">Lab</option>
-				        </select>
-				      </div>
+							<div className="form-group">
+								<label>Tests in Site/Lab:</label>
+								<select
+									value={selectedTestType}
+									onChange={(e) => setSelectedTestType(e.target.value)}
+								>
+									<option value="">-- Select --</option>
+									<option value="Site">Site</option>
+									<option value="Lab">Lab</option>
+								</select>
+							</div>
 
-				      <div className="form-group">
-				        <label>Tests in Lab/Site:</label>
-				        <a 
-				          href="#" 
-				          className="upload-link"
-				          onClick={(e) => { e.preventDefault(); document.getElementById("uploadInput").click(); }}
-				        >
-				          Upload Documents 📄
-				        </a>
-				        <input 
-				          type="file" 
-				          id="uploadInput" 
-				          style={{ display: "none" }}
-				          onChange={(e) => setUploadedFile(e.target.files[0])}
-				        />
-				        {uploadedFile && <p>Uploaded: {uploadedFile.name}</p>}
-				      </div>
+							<div className="form-group">
+								<label>Tests in Lab/Site:</label>
+								<a
+									href="#"
+									className="upload-link"
+									onClick={(e) => {
+										e.preventDefault();
+										document.getElementById("uploadInput").click();
+									}}
+								>
+									Upload Documents 📄
+								</a>
+								<input
+									type="file"
+									id="uploadInput"
+									style={{ display: "none" }}
+									onChange={(e) => setUploadedFile(e.target.files[0])}
+								/>
+								{uploadedFile && <p>Uploaded: {uploadedFile.name}</p>}
+							</div>
 
-				      <button className="done-btn" onClick={() => setShowUploadPopup(false)}>Done</button>
-				    </div>
-				  </div>
+							<button className="done-btn" onClick={handleUploadTestReport}>
+								Upload
+							</button>
+						</div>
+					</div>
 				)}
+
 
 			</div>
 		</div>

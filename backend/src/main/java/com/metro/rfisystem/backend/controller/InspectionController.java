@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
 import com.metro.rfisystem.backend.constants.ESignStatus;
+import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.ChecklistDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
@@ -42,6 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -86,6 +88,7 @@ import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.SignedXmlResponse;
 import com.metro.rfisystem.backend.service.EsignService;
 import com.metro.rfisystem.backend.service.EsignWebSocketService;
+import com.metro.rfisystem.backend.service.FileStorageService;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
@@ -96,6 +99,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 
@@ -123,6 +127,9 @@ public class InspectionController {
 
 	@Value("${rfi.pdf.storage-path}")
 	private String pdfStoragePath;
+	
+	@Autowired
+	private FileStorageService fileStorageService;
 
 	
 	@GetMapping("/rfi/inspection/{id}")
@@ -233,7 +240,27 @@ public class InspectionController {
 	    }
 	}
 
+	
+	
+//	@GetMapping("/inspections/{rfiId}")
+//	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId) {
+//	    try {
+//	        List<RFIInspectionDetails> inspections = inspectionRepository.findInspectionsByRfiId(rfiId);
+//
+//	        if (inspections.isEmpty()) {
+//	            return ResponseEntity.ok(Collections.emptyList());
+//	        }
+//	        return ResponseEntity.ok(inspections);
+//	    } catch (Exception e) {
+//	        e.printStackTrace();
+//	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//	                .body("Failed to fetch inspection: " + e.getMessage());
+//	    }
+//	}
 
+
+	
+	
 	@PostMapping("/rfi/upload")
 	public ResponseEntity<String> uploadEnclosure(@RequestParam("rfiId") Long rfiId,
 
@@ -336,6 +363,51 @@ public class InspectionController {
 	 public List<String> getChecklistDescription(@RequestParam(name = "enclosureName") String enclosureName){
 		 return checklistDescriptionService.getChecklistDescription(enclosureName);
 	 }
+	 
+	 @PostMapping("/rfi/uploadPostTestReport")
+	 public ResponseEntity<String> uploadPostTestReport(
+	         @RequestParam("rfiId") Long rfiId,
+	         @RequestParam("testType") String testType,
+	         @RequestParam("file") MultipartFile file) {
+
+	     // ✅ 1. Get latest inspection record for given RFI
+	     Optional<RFIInspectionDetails> latest = inspectionRepository
+	             .findTopByRfi_IdOrderByIdDesc(rfiId);
+
+	     if (latest.isEmpty()) {
+	         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+	                 .body("RFI Inspection not found.");
+	     }
+
+	     RFIInspectionDetails inspection = latest.get();
+
+	     // ✅ 2. Check that RFI status is INSPECTION_DONE
+	     if (inspection.getRfi().getStatus() != EnumRfiStatus.INSPECTION_DONE) {
+	         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+	                 .body("RFI not closed yet. Upload only allowed after closure.");
+	     }
+
+	     // ✅ 3. Determine closure date (use your chosen logic)
+	     LocalDate closedDate = inspection.getRfi().getClosedDate();
+
+
+
+	     if (closedDate != null && closedDate.plusDays(15).isBefore(LocalDate.now())) {
+	         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+	                 .body("Upload window expired. Allowed only within 15 days of closure.");
+	     }
+
+	     // ✅ 4. Save the uploaded file
+	     String savedPath = fileStorageService.saveFile(file, "postTestReports/" + rfiId);
+
+	     inspection.setPostTestType(testType);
+	     inspection.setPostTestReportPath(savedPath);
+
+	     inspectionRepository.save(inspection);
+
+	     return ResponseEntity.ok("✅ Test result uploaded successfully!");
+	 }
+
 	
 	 
 		@PostMapping(
@@ -343,7 +415,7 @@ public class InspectionController {
 			    consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
 			    produces = MediaType.APPLICATION_JSON_VALUE
 			)
-			@CrossOrigin(origins = "https://localhost:3000")
+			@CrossOrigin(origins = "https://syntrackpro.com")
 			public ResponseEntity<SignedXmlResponse> getSignedXmlRequest(
 			        @RequestPart("pdfBlob") MultipartFile pdfBlob,
 			        @RequestParam("sc") String sc,
@@ -376,49 +448,49 @@ public class InspectionController {
 			    consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
 			    produces = MediaType.APPLICATION_JSON_VALUE
 			)
-			@CrossOrigin(origins = "https://localhost:3000")
+			@CrossOrigin(origins = "https://syntrackpro.com")
 			public ResponseEntity<SignedXmlResponse> getEngSignedXmlRequest(
 			        @RequestParam("sc") String sc,
 			        @RequestParam("rfiId") Long rfiId,
 			        @RequestParam("signerName") String signerName,
 			        @RequestParam("engineerName") String engineerName,
 			        @RequestParam("signY") int signY) {
-
+ 
 			    try {
 			        // Get last contractor txnId
 			        String contractorTxnId = inspectionService.getLastTxnIdForRfi(rfiId);
-
+ 
 			        if (contractorTxnId == null) {
 			            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
 			        }
-
+ 
 			        // Check contractor eSign status
 			        ESignStatus eStatus = inspectionService.getEsignStatusEngg(rfiId);
-
+ 
 			        if (eStatus != ESignStatus.CON_SUCCESS) {
 			            // Return a response with an error message instead of a plain string
 			            SignedXmlResponse errorResponse = new SignedXmlResponse();
 			            errorResponse.setError("Contractor not yet submitted");
 			            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 			        }
-
-
+ 
+ 
 			        // Load signed contractor PDF
 			        Path signedPdfPath = Paths.get(pdfStoragePath, "signed_" + contractorTxnId + "_temp.pdf");
 			        if (!Files.exists(signedPdfPath)) {
 			            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 			        }
-
+ 
 			        byte[] pdfData = Files.readAllBytes(signedPdfPath);
-
+ 
 			        // Generate eSign XML request
 			        SignedXmlResponse signedXmlResponse = esignService.getEngSignedXmlRequestFromDocument(
 			            pdfData, sc, contractorTxnId, signerName, engineerName, signY
 			        );
 			        signedXmlResponse.setTxnId(contractorTxnId);
-
+ 
 			        return ResponseEntity.ok(signedXmlResponse);
-
+ 
 			    } catch (Exception e) {
 			        e.printStackTrace();
 			        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -448,7 +520,7 @@ public class InspectionController {
 		        // 4️⃣ Update DB eSign status to SUCCESS
 
 		        // 5️⃣ Redirect frontend with success message
-		        String redirectUrl = "https://localhost:3000/rfiSystem/InspectionForm";
+		        String redirectUrl = "https://syntrackpro.com/rfiSystem/InspectionForm";
 		        
 		        esignWebSocketService.sendStatusUpdate(
 		        	    espTxnID,
@@ -475,7 +547,7 @@ public class InspectionController {
 		        }
 
 		        // Redirect frontend with failure message
-		        String redirectUrl = "https://localhost:3000/rfiSystem/InspectionForm?txnId=" + espTxnID;
+		        String redirectUrl = "https://syntrackpro.com/rfiSystem/InspectionForm?txnId=" + espTxnID;
 		        return buildHtmlRedirect( "Contractor eSign Failed!", false);
 		    }
 		}

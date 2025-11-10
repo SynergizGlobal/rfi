@@ -625,6 +625,9 @@ public class InspectionServiceImpl implements InspectionService {
 
 
 
+	public RFIInspectionDetails getLatestInspectionByRfiId(Long rfiId) {
+	    return inspectionRepository.findTopByRfi_IdOrderByIdDesc(rfiId).orElse(null);
+	}
 
 
 

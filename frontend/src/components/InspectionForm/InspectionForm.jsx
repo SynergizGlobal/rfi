@@ -1816,7 +1816,7 @@ const validateEnclosures = () => {
 														    <button
 														      className="hover-blue-btn"
 														      onClick={() => setUploadPopup(e.id)}
-														      disabled={deptFK?.toLowerCase() === "engg" || contractorSubmitted === true}
+																	disabled={getDisabled()}
 														    >
 														      Upload
 														    </button>

@@ -44,5 +44,7 @@ public interface InspectionService {
 
 	public RFI getRFIIdTxnId(String espTxnID, String user);
 
+	public RFIInspectionDetails getLatestInspectionByRfiId(Long id);
+
 
 }

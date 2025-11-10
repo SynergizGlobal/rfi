@@ -93,4 +93,11 @@ public class RFIInspectionDetails {
     @Column(name = "engineer_esign_done")
     private Boolean engineerEsignDone = false;
     
+    @Column(name = "post_test_type")
+    private String postTestType;
+
+    @Column(name = "post_test_report_path")
+    private String postTestReportPath; // File path of uploaded test result
+    
+    
 }

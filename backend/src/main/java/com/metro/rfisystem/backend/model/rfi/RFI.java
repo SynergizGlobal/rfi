@@ -185,5 +185,10 @@ public class RFI {
                 ? String.join(",", enclosuresList)
                 : null;
     }
+    
+    @Column(name = "closed_date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate closedDate;
+
 
 }
