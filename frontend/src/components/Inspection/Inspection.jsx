@@ -663,16 +663,30 @@ const Inspection = () => {
 
 
 								)}
-								{row.original.status === "INSPECTION_DONE" && (
-									<button
-										onClick={() => {
-											setSelectedRfi(row.original);
-											setShowUploadPopup(true);
-										}}
-									>
-										Upload Test Results
-									</button>
+								{deptFK === 'engg' ? (
+								  row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
+								    <button
+								      onClick={() => {
+								        setSelectedRfi(row.original);
+								        setShowUploadPopup(true);
+								      }}
+								    >
+								      Upload Test Results
+								    </button>
+								  )
+								) : (
+								  row.original.status === "INSPECTION_DONE" && row.testResCon === null && (
+								    <button
+								      onClick={() => {
+								        setSelectedRfi(row.original);
+								        setShowUploadPopup(true);
+								      }}
+								    >
+								      Upload Test Results
+								    </button>
+								  )
 								)}
+
 							</DropdownPortal>
 						)}
 					</div>

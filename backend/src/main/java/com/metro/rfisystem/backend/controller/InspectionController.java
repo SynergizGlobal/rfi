@@ -1,7 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
 import java.io.File;
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import org.springframework.http.HttpStatus;
@@ -30,6 +29,7 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
+import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
@@ -43,6 +43,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.pdfbox.io.MemoryUsageSetting;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -50,65 +53,23 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpSession;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
-
 import java.io.ByteArrayInputStream;
-import java.io.File;
-
-import java.io.IOException;
-import java.net.URLDecoder;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.result.view.RedirectView;
 import org.springframework.web.servlet.ModelAndView;
 import org.w3c.dom.NodeList;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.w3c.dom.Document;      // Correct for XML parsing
+import org.w3c.dom.Document;     
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import com.itextpdf.text.DocumentException;
-import com.metro.rfisystem.backend.dto.ChecklistDTO;
-import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
-import com.metro.rfisystem.backend.dto.RFIInspectionChecklistDTO;
-import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
-import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
-import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.SignedXmlResponse;
 import com.metro.rfisystem.backend.service.EsignService;
 import com.metro.rfisystem.backend.service.EsignWebSocketService;
 import com.metro.rfisystem.backend.service.FileStorageService;
-import com.metro.rfisystem.backend.service.InspectionService;
-import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
-import com.metro.rfisystem.backend.service.RFIEnclosureService;
-import com.metro.rfisystem.backend.service.RFIInspectionChecklistService;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.util.Base64;
-import java.util.List;
-
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
@@ -120,6 +81,7 @@ public class InspectionController {
 	private final RFIInspectionChecklistService checklistService;
 	private final RFIChecklistDescriptionService checklistDescriptionService;
 	private final RFIInspectionDetailsRepository inspectionRepository;
+	private final RFIRepository rfiRepository;
 
 	private final EsignWebSocketService esignWebSocketService;
 	
@@ -364,49 +326,98 @@ public class InspectionController {
 		 return checklistDescriptionService.getChecklistDescription(enclosureName);
 	 }
 	 
+	 
+	 @Transactional
 	 @PostMapping("/rfi/uploadPostTestReport")
 	 public ResponseEntity<String> uploadPostTestReport(
 	         @RequestParam("rfiId") Long rfiId,
 	         @RequestParam("testType") String testType,
-	         @RequestParam("file") MultipartFile file) {
+	         @RequestParam("file") MultipartFile file,
+	         HttpSession session) {
 
-	     // ✅ 1. Get latest inspection record for given RFI
-	     Optional<RFIInspectionDetails> latest = inspectionRepository
-	             .findTopByRfi_IdOrderByIdDesc(rfiId);
+	     try {
+	         Optional<RFI> rfiOpt = rfiRepository.findById(rfiId);
+	         if (rfiOpt.isEmpty()) {
+	             return ResponseEntity.badRequest().body("RFI NOT FOUND!");
+	         }
 
-	     if (latest.isEmpty()) {
-	         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-	                 .body("RFI Inspection not found.");
+	         RFI rfi = rfiOpt.get();
+	         String txnId = rfi.getTxn_id();
+	         if (txnId == null) {
+	             return ResponseEntity.badRequest().body("Txn Id not found! to Fetch Signed PDF!");
+	         }
+
+	         String department = (String) session.getAttribute("departmentFk");
+
+	         String serverPdfPath = Paths.get(pdfStoragePath, "signed_engineer_" + txnId + "_final.pdf").toString();
+	         File conEngSignedPdf = new File(serverPdfPath);
+	         if (!conEngSignedPdf.exists()) {
+	             return ResponseEntity.badRequest().body("Server PDF not found at: " + conEngSignedPdf.getAbsolutePath());
+	         }
+
+	         Optional<RFIInspectionDetails> latest = inspectionRepository.findTopByRfi_IdOrderByIdDesc(rfiId);
+	         if (latest.isEmpty()) {
+	             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("RFI Inspection not found.");
+	         }
+
+	         RFIInspectionDetails inspection = latest.get();
+
+	         Optional<RFIInspectionDetails> inspectionDetails =
+	                 (department != null && department.equalsIgnoreCase("engg"))
+	                         ? inspectionRepository.findByRfiIdAndUploadedBy(rfiId, "Engg")
+	                         : inspectionRepository.findByRfiIdAndUploadedBy(rfiId, "Con");
+
+	         if (inspectionDetails.isEmpty()) {
+	             return ResponseEntity.status(HttpStatus.NOT_FOUND)
+	                     .body("No inspection details found for department: " + department);
+	         }
+
+	         RFIInspectionDetails inspDet = inspectionDetails.get();
+
+	         if (inspection.getRfi().getStatus() != EnumRfiStatus.INSPECTION_DONE) {
+	             return ResponseEntity.badRequest().body("RFI not closed yet. Upload only allowed after closure.");
+	         }
+
+	         LocalDate closedDate = inspection.getRfi().getClosedDate();
+	         if (closedDate != null && closedDate.plusDays(15).isBefore(LocalDate.now())) {
+	             return ResponseEntity.status(HttpStatus.FORBIDDEN)
+	                     .body("Upload time expired. Allowed only within 15 days of closure.");
+	         }
+
+	         String testResultFilePath = fileStorageService.saveFile(file);
+
+	         File uploadedFile = new File(testResultFilePath);
+
+	         if (!uploadedFile.exists()) {
+	             return ResponseEntity.badRequest().body("Uploaded file not found after saving: " + uploadedFile.getAbsolutePath());
+	         }
+
+	         Path tempMerged = Files.createTempFile("merged_", ".pdf");
+	         PDFMergerUtility merger = new PDFMergerUtility();
+	         merger.addSource(conEngSignedPdf);
+	         merger.addSource(uploadedFile);
+	         merger.setDestinationFileName(tempMerged.toString());
+	         merger.mergeDocuments(MemoryUsageSetting.setupMainMemoryOnly());
+
+
+	         inspDet.setPostTestType(testType);
+	         inspDet.setPostTestReportPath(testResultFilePath);
+	         inspectionRepository.save(inspDet);
+	         
+	         Files.move(tempMerged, conEngSignedPdf.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+
+	         return ResponseEntity.ok("Test Result Uploaded Successfully.");
+
+	     } catch (Exception e) {
+	         e.printStackTrace();
+	         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                 .body("❌ Error merging PDFs: " + e.getMessage());
 	     }
-
-	     RFIInspectionDetails inspection = latest.get();
-
-	     // ✅ 2. Check that RFI status is INSPECTION_DONE
-	     if (inspection.getRfi().getStatus() != EnumRfiStatus.INSPECTION_DONE) {
-	         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                 .body("RFI not closed yet. Upload only allowed after closure.");
-	     }
-
-	     // ✅ 3. Determine closure date (use your chosen logic)
-	     LocalDate closedDate = inspection.getRfi().getClosedDate();
-
-
-
-	     if (closedDate != null && closedDate.plusDays(15).isBefore(LocalDate.now())) {
-	         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-	                 .body("Upload window expired. Allowed only within 15 days of closure.");
-	     }
-
-	     // ✅ 4. Save the uploaded file
-	     String savedPath = fileStorageService.saveFile(file, "postTestReports/" + rfiId);
-
-	     inspection.setPostTestType(testType);
-	     inspection.setPostTestReportPath(savedPath);
-
-	     inspectionRepository.save(inspection);
-
-	     return ResponseEntity.ok("✅ Test result uploaded successfully!");
 	 }
+
+	 
+
 
 	
 	 

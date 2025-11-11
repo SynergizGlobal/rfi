@@ -40,17 +40,20 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.measurement_type AS measurementType,
 			    m.total_qty AS totalQty,
 			    ic.site_image AS imgClient,
-			    ico.site_image AS imgContractor
+			    ico.site_image AS imgContractor,
+			    ic.post_test_report_path As testResCon,
+			    ico.post_test_report_path As testResEngg
+			    
 			FROM rfi_data r
 			LEFT JOIN (
-			    SELECT rfi_id_fk, site_image, test_insite_lab
+			    SELECT rfi_id_fk, site_image, test_insite_lab,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by = 'Engg' AND work_status = 1
+			    WHERE uploaded_by = 'Engg' 
 			) ic ON r.id = ic.rfi_id_fk
 			LEFT JOIN (
-			    SELECT rfi_id_fk, inspection_status, site_image
+			    SELECT rfi_id_fk, inspection_status, site_image,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by != 'Engg' AND work_status = 1
+			    WHERE uploaded_by != 'Engg'
 			) ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN measurements m ON r.id = m.rfi_id_fk
 			ORDER BY r.created_at DESC
@@ -114,17 +117,19 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.total_qty AS totalQty,
 			    ico.site_image as imgContractor,
 			    ic.site_image as imgClient,
-			    ic.test_insite_lab as approvalStatus
+			    ic.test_insite_lab as approvalStatus,
+			    ic.post_test_report_path As testResCon,
+			    ico.post_test_report_path As testResEngg
 			FROM rfi_data r
 			LEFT JOIN (
-			    SELECT rfi_id_fk, site_image, inspection_status
+			    SELECT rfi_id_fk, site_image, inspection_status,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by != 'Engg' AND work_status = 1
+			    WHERE uploaded_by != 'Engg'
 			) ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN (
-			    SELECT rfi_id_fk, site_image,test_insite_lab
+			    SELECT rfi_id_fk, site_image,test_insite_lab,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by = 'Engg' AND work_status = 1
+			    WHERE uploaded_by = 'Engg'
 			) ic ON r.id = ic.rfi_id_fk
 			LEFT JOIN measurements m ON r.id = m.rfi_id_fk
 			WHERE r.created_by = :createdBy
@@ -150,20 +155,23 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.measurement_type AS measurementType,
 			    m.total_qty AS totalQty,
 			    ico.site_image as imgContractor,
-			    ic.site_image as imgClient
+			    ic.site_image as imgClient,
+			    ic.post_test_report_path As testResCon,
+			    ico.post_test_report_path As testResEngg
+			    
 			FROM rfi_data r
 			LEFT JOIN (
-			    SELECT rfi_id_fk, site_image, inspection_status
+			    SELECT rfi_id_fk, site_image, inspection_status,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by != 'Engg' AND work_status = 1
+			    WHERE uploaded_by != 'Engg'
 			) ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN (
-			    SELECT rfi_id_fk, site_image, test_insite_lab
+			    SELECT rfi_id_fk, site_image, test_insite_lab,post_test_report_path
 			    FROM rfi_inspection_details
-			    WHERE uploaded_by = 'Engg' AND work_status = 1
+			    WHERE uploaded_by = 'Engg'
 			) ic ON r.id = ic.rfi_id_fk
 			LEFT JOIN measurements m ON r.id = m.rfi_id_fk
-			WHERE r.assigned_person_client = :assignedPersonClient
+			WHERE r.assigned_person_userid = :assignedPersonClient
 			ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);
@@ -289,6 +297,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	            ANY_VALUE(ic.test_insite_lab) AS testStatus,
 	            ANY_VALUE(ic.ae_remarks) AS engineerRemarks,
 	            ANY_VALUE(ico.test_site_documents) AS testSiteDocumentsContractor,
+	            ANY_VALUE(ico.post_test_report_path) As testResultContractor,
+	            ANY_VALUE(ic.post_test_report_path) As testResultEngineer,
 	            ANY_VALUE(NULL) AS dyHodUserName
 	        FROM rfi_data r
 	        LEFT JOIN rfi_inspection_details ic 
@@ -496,10 +506,12 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.measurement_type AS measurementType,
 			    m.total_qty AS totalQty,
 			    ico.site_image AS imgContractor,
-			    ic.site_image AS imgClient
+			    ic.site_image AS imgClient,
+			    ic.post_test_report_path As testResCon,
+			    ico.post_test_report_path As testResEngg
 			FROM rfi_data r
 			LEFT JOIN (
-			    SELECT r1.rfi_id_fk, r1.site_image, r1.inspection_status
+			    SELECT r1.rfi_id_fk, r1.site_image, r1.inspection_status, r1.post_test_report_path
 			    FROM rfi_inspection_details r1
 			    WHERE r1.uploaded_by != 'Engg'
 			      AND r1.id = (
@@ -510,7 +522,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			      )
 			) AS ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN (
-			    SELECT r3.rfi_id_fk, r3.site_image, r3.test_insite_lab
+			    SELECT r3.rfi_id_fk, r3.site_image, r3.test_insite_lab, r3.post_test_report_path
 			    FROM rfi_inspection_details r3
 			    WHERE r3.uploaded_by = 'Engg'
 			      AND r3.id = (

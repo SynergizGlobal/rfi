@@ -21,7 +21,8 @@ public interface RfiListDTO {
     String getMeasurementType();
     Double getTotalQty();
     String getContractId();
+    String getTestResCon();
+    String getTestResEngg();
     
-
 }
 

@@ -219,6 +219,7 @@ public class RFIController {
 		String userRole = (String) session.getAttribute("userRoleNameFk");
 		String userType = (String) session.getAttribute("userTypeFk");
 		String userDepartment =(String) session.getAttribute("departmentFk");
+		String userId = (String) session.getAttribute("userId");
  
 		System.out.println("Session userName: " + userName);
 		System.out.println("Session userRoleNameFk: " + userRole);
@@ -245,7 +246,7 @@ public class RFIController {
 		    }
 		 
 		 if ("Engg".equalsIgnoreCase(userDepartment)) {
-		        List<RfiListDTO> assigned = rfiService.getRFIsAssignedTo(userName);
+		        List<RfiListDTO> assigned = rfiService.getRFIsAssignedTo(userId);
 		        return ResponseEntity.ok(assigned); 
 		    }
 		 

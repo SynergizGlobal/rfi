@@ -1,37 +1,37 @@
 package com.metro.rfisystem.backend.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 @Service
 public class FileStorageService {
-	
-	   private final String baseDirectory = System.getProperty("user.dir") + File.separator + "uploads";
 
-	    public String saveFile(MultipartFile file, String subFolder) {
-	        try {
-	            // Create target directory
-	            Path uploadDir = Paths.get(baseDirectory, subFolder);
-	            Files.createDirectories(uploadDir);
+    @Value("${rfi.pdf.storage-path}")
+    private String pdfStoragePath;
 
-	            // Define unique filename
-	            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-	            Path filePath = uploadDir.resolve(fileName);
+    public String saveFile(MultipartFile file) {
+        try {
+            Path uploadDir = Paths.get(pdfStoragePath).toAbsolutePath().normalize();
+            Files.createDirectories(uploadDir);
 
-	            // Save the file
-	            file.transferTo(filePath.toFile());
+            String originalName = file.getOriginalFilename();
+            String safeFileName = (originalName != null ? originalName.replaceAll("[\\\\/:*?\"<>|]", "_") : "uploaded.pdf");
 
-	            // Return relative path for database storage
-	            return "uploads/" + subFolder + "/" + fileName;
+            String fileName = System.currentTimeMillis() + "_" + safeFileName;
 
-	        } catch (IOException e) {
-	            throw new RuntimeException("Failed to store file: " + e.getMessage(), e);
-	        }
-	    }
+            Path filePath = uploadDir.resolve(fileName).normalize();
 
+            file.transferTo(filePath.toFile());
+
+            return filePath.toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException("❌ Failed to store file: " + e.getMessage(), e);
+        }
+    }
 }

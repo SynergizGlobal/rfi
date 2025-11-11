@@ -48,6 +48,8 @@ public class RfiDetailsLogDTO {
     private String testStatus;
     private String engineerRemarks;
     private String testSiteDocumentsContractor;
+    private String testResultContractor;
+    private String testResultEngineer;
     private String dyHodUserName;
 
     // Full constructor for native query mapping
@@ -93,6 +95,8 @@ public class RfiDetailsLogDTO {
             String testStatus,
             String engineerRemarks,
             String testSiteDocumentsContractor,
+            String testResultContractor,
+            String testResultEngineer,
             String dyHodUserName
     ) {
         this.project = project;
@@ -136,6 +140,8 @@ public class RfiDetailsLogDTO {
         this.testStatus = testStatus;
         this.engineerRemarks = engineerRemarks;
         this.testSiteDocumentsContractor = testSiteDocumentsContractor;
+        this.testResultContractor = testResultContractor;
+        this.testResultEngineer = testResultEngineer;
         this.dyHodUserName = dyHodUserName;
     }
 }
