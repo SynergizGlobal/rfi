@@ -75,8 +75,8 @@ export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 
 			if (j === 0) {
 				newPage.drawText(labelText, {
-					x: width - 80, 
-					y: height - 8,
+					x: 40, 
+					y: height - 30,
 					size: 10,
 					font,
 					color: rgb(0, 0, 0),

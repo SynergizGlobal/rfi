@@ -669,3 +669,9 @@ label span {
 	box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 	transition: all 0.2s ease;
 }
+.enclouse-open-upload{
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	justify-content: center;
+}

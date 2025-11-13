@@ -573,6 +573,37 @@ const InspectionReferenceForm = () => {
 			});
 
 			console.log(rowData?.isNew ? "Row submitted successfully" : "Row updated successfully");
+			// 👇 Automatically create "Upload" row after saving an "Open" enclosure
+			if (updatedAction.toLowerCase() === "open") {
+			     const existingUpload = openEnclosers.some(
+			       (item) =>
+			         item.encloserName === inputVal &&
+			         item.action?.toLowerCase() === "upload"
+			     );
+
+			     if (!existingUpload) {
+			       const newUploadPayload = {
+			         encloserName: inputVal,
+			         action: "Upload",
+			       };
+
+			       // ✅ Save "Upload" row to backend immediately
+			       const uploadRes = await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, newUploadPayload);
+			       const uploadRow = uploadRes.data;
+
+			       setOpenEnclosers((prev) => [
+			         ...prev,
+			         {
+			           id: uploadRow.id,
+			           encloserName: uploadRow.encloserName,
+			           action: uploadRow.action,
+			           isNew: false,
+			         },
+			       ]);
+			     }
+			   }
+
+			   console.log("Row saved successfully");
 		} catch (error) {
 			console.error("Error saving row:", error);
 			alert("Failed to save row. Please try again.");

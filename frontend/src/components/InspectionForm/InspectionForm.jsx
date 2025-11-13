@@ -1811,38 +1811,52 @@ const validateEnclosures = () => {
 														<td>{e.rfiDescription}</td>
 														<td>{e.enclosure}</td>
 
-														<td>
-														  {enclosureActions[e.id] === 'UPLOAD' ? (
+													<td className='enclouse-open-upload'>														  {enclosureActions[e.id] === 'UPLOAD' ? (
 														    <button
 														      className="hover-blue-btn"
 														      onClick={() => setUploadPopup(e.id)}
-																	disabled={getDisabled()}
-														    >
-														      Upload
-														    </button>
-														  ) : (
-														    <>
-														      {deptFK?.toLowerCase() === "engg" ? (
-														        <button
-														          className="hover-blue-btn"
-														          onClick={() => setChecklistPopup(e.id)}
-														        >
-														          {engineerSubmitted
-														            ? 'View'
-														            : (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-														        </button>
-														      ) : (
-														        <button
-														          className="hover-blue-btn"
-														          onClick={() => setChecklistPopup(e.id)}
-														        >
-														          {contractorSubmitted
-														            ? 'View'
-														            : (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-														        </button>
-														      )}
-														    </>
-														  )}
+																	disabled={getDisabled() || deptFK?.toLowerCase() === "engg"}
+																>
+																	Upload
+																</button>
+															) : (
+																<>
+																	{deptFK?.toLowerCase() === "engg" ? (
+																		<>
+ 
+																			<button
+																				className="hover-blue-btn"
+																				onClick={() => setChecklistPopup(e.id)}
+																			>
+																				{engineerSubmitted
+																					? 'View'
+																						: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+																				</button>
+ 
+																			</>
+																		) : (
+																			<>
+																			<div className='check-list-btn'>
+																				<button
+																					className="hover-blue-btn"
+																					onClick={() => setChecklistPopup(e.id)}
+																				>
+																					{contractorSubmitted
+																						? 'View'
+																						: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+																				</button>
+																				<button
+																					className="hover-blue-btn"
+																					onClick={() => setUploadPopup(e.id)}
+																					disabled={getDisabled() || deptFK?.toLowerCase() === "engg"}
+																				>
+																					Upload
+																				</button>
+																				</div>
+																			</>
+																	)}
+																</>
+															)}
 														</td>
 														<td>
 															{enclosureFile ? (
