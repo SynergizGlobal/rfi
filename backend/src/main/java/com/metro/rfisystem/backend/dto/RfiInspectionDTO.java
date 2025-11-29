@@ -29,6 +29,7 @@ public class RfiInspectionDTO {
     private Double breadth;
     private Double height;
     private Integer noOfItems;
+    private String descriptionEnclosure;
 
     
 }

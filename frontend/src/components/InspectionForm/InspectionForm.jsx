@@ -31,7 +31,7 @@ export default function InspectionForm() {
 	const [siteImage, setSiteImage] = useState(null);
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
 	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
-	const [inspectionStatusUserSelection, setInspectionStatusUserSelection] = useState(""); 
+	const [inspectionStatusUserSelection, setInspectionStatusUserSelection] = useState("");
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
 	const [uploadPopup, setUploadPopup] = useState(null);
@@ -48,6 +48,7 @@ export default function InspectionForm() {
 	const [enclosuresData, setEnclosuresData] = useState([]);
 	const [checklistData, setChecklistData] = useState([]);
 	const [enclosureActions, setEnclosureActions] = useState({});
+	const [overallComments, setOverallComments] = useState('');
 	const [engineerRemarks, setEngineerRemarks] = useState("");
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const selfieRef = useRef(null);
@@ -56,12 +57,12 @@ export default function InspectionForm() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const contractorSubmitted = rfiData?.inspectionDetails?.some(
-	  d => d.uploadedBy === "CON" && d.workStatus?.toUpperCase() === "SUBMITTED"
+		d => d.uploadedBy === "CON" && d.workStatus?.toUpperCase() === "SUBMITTED"
 	);
 	globalVarConSubmited = contractorSubmitted;
 
 	const engineerSubmitted = rfiData?.inspectionDetails?.some(
-	  d => d.uploadedBy === "Engg" && d.workStatus?.toUpperCase() === "SUBMITTED"
+		d => d.uploadedBy === "Engg" && d.workStatus?.toUpperCase() === "SUBMITTED"
 	);
 	globalVarEnggSubmited = engineerSubmitted;
 
@@ -69,13 +70,13 @@ export default function InspectionForm() {
 		if (inspectionStatusMode === "DRAFT") return false;
 
 		if (isEngineer) {
-			return engineerSubmitted; 
+			return engineerSubmitted;
 		} else {
-			return contractorSubmitted; 
+			return contractorSubmitted;
 		}
 	};
-	
-	
+
+
 	useEffect(() => {
 		if (id) {
 			fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, { credentials: "include" })
@@ -94,19 +95,19 @@ export default function InspectionForm() {
 						// 🔹 Handle uploaded enclosure files from backend
 						const uploadedEnclosures = Array.isArray(data.enclosure)
 							? data.enclosure.map((e) => ({
-									name: e.enclosureName?.trim(),
-									filePath: e.enclosureUploadFile || e.filePath || null,
-									fileId: e.id || null,
-							  }))
+								name: e.enclosureName?.trim(),
+								filePath: e.enclosureUploadFile || e.filePath || null,
+								fileId: e.id || null,
+							}))
 							: Array.isArray(data.enclosures)
-							? data.enclosures
+								? data.enclosures
 									.filter((e) => typeof e === "object")
 									.map((e) => ({
 										name: e.enclosureName?.trim(),
 										filePath: e.enclosureUploadFile || e.filePath || null,
 										fileId: e.id || null,
 									}))
-							: [];
+								: [];
 
 
 						const formatted = enclosuresArr.map((enc, index) => {
@@ -418,11 +419,46 @@ export default function InspectionForm() {
 		}
 	};
 
+	async function checkPdfEncrypted(file) {
+		const arrayBuffer = await file.arrayBuffer();
+		const uint8 = new Uint8Array(arrayBuffer);
+
+		// Simple check for Encryption Dictionary in header
+		const text = new TextDecoder().decode(uint8.slice(0, 2048));
+
+		return text.includes("/Encrypt") || text.includes("/ENCRYPT");
+	}
 
 
 
 	const handleUploadSubmit = async (id, file) => {
 		const enclosureName = enclosuresData.find(e => e.id === id)?.enclosure || '';
+
+		const maxSize = 100 * 1024 * 1024;
+		if (file.size > maxSize) {
+			alert("❌ File is too large. Maximum allowed size is 100 MB.");
+			return;
+		}
+
+		// 2️⃣ Reject Excel files
+		const ext = file.name.split('.').pop().toLowerCase();
+		const blockedExt = ["xlsx", "xls", "csv", "doc", "docx"];
+
+		if (blockedExt.includes(ext)) {
+			alert("❌ Excel & Word files are not allowed. Please upload PDF files only.");
+			return;
+		}
+
+
+		// 3️⃣ Detect encrypted PDFs (optional but recommended)
+		if (ext === "pdf") {
+			const isEncrypted = await checkPdfEncrypted(file);
+			if (isEncrypted) {
+				alert("❌ Encrypted PDF is not allowed. Please upload a normal PDF.");
+				return;
+			}
+		}
+
 
 		if (!navigator.onLine) {
 			const offlineEnclosure = {
@@ -444,6 +480,7 @@ export default function InspectionForm() {
 		formData.append('file', file);
 		formData.append('enclosureName', enclosureName);
 
+
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/upload`, {
 				method: 'POST',
@@ -460,8 +497,19 @@ export default function InspectionForm() {
 
 			setEnclosureStates(prev => ({
 				...prev,
-				[id]: { ...prev[id], uploadedFile: file }
+				[id]: {
+					...prev[id],
+					uploadedFile: prev[id]?.uploadedFile
+						? [
+							...(Array.isArray(prev[id].uploadedFile)
+								? prev[id].uploadedFile
+								: [prev[id].uploadedFile]),
+							file
+						]
+						: [file]
+				}
 			}));
+
 			await fetchUpdatedRfiData(rfiData.id);
 			alert("✅ Enclosure File uploaded successfully.");
 
@@ -471,6 +519,33 @@ export default function InspectionForm() {
 			alert("Upload failed: " + err.message);
 		}
 	};
+
+
+	const fetchEnclosuresData = async (rfiId, setEnclosuresData) => {
+		try {
+			const res = await fetch(`${API_BASE_URL}rfi/enclosures/${rfiId}`, {
+				method: "GET",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+			});
+
+			if (!res.ok) {
+				const txt = await res.text().catch(() => "");
+				throw new Error(`Failed: ${txt || res.status}`);
+			}
+
+			const data = await res.json();
+
+			// 💥 Fix UI not updating / stale state
+			setEnclosuresData([]);
+			setTimeout(() => setEnclosuresData(data), 0);
+
+		} catch (err) {
+			console.error("Fetch error:", err);
+			setEnclosuresData([]);
+		}
+	};
+
 
 
 
@@ -561,7 +636,9 @@ export default function InspectionForm() {
 			totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
 			inspectionStatus: inspectionStatusUserSelection || null,
 			testInsiteLab: testInLab || null,
-			engineerRemarks: engineerRemarks || null
+			engineerRemarks: engineerRemarks || null,
+			descriptionEnclosure: overallComments || '' // ✅ add description here
+
 		};
 
 
@@ -633,16 +710,98 @@ export default function InspectionForm() {
 
 
 
+	const getEnclosuresForRfi = async (rfiId) => {
+		const res = await fetch(`${API_BASE_URL}rfi/enclosures/${rfiId}`, {
+			method: "GET",
+			credentials: "include",
+			headers: { "Content-Type": "application/json" },
+		});
+		if (!res.ok) {
+			const txt = await res.text().catch(() => "");
+			throw new Error(`Failed to fetch enclosures: ${txt || res.status}`);
+		}
+		return res.json(); // expected: [{ enclosureName: "...", files: [...] }, ...]
+	};
+
+	// Helper: convert backend path to preview URL (or keep File/base64/absolute URLs)
+	const convertToPreviewUrl = (f) => {
+		if (!f && f !== 0) return null;
+		if (f instanceof File) return f;
+		if (typeof f !== "string") return f;
+		const s = f.trim();
+		if (!s) return null;
+		if (s.startsWith("data:")) return s;
+		if (/^https?:\/\//i.test(s)) return s;
+		if (s.includes("/api/validation/previewFiles")) return s;
+		return `${API_BASE_URL}api/validation/previewFiles?filepath=${encodeURIComponent(s)}`;
+	};
+
+	// Helper: normalize backend + local uploaded files into a list of enclosures
+	const normalizeAndMergeEnclosures = (backendEnclosures = [], enclosureStates = {}) => {
+		// map name -> { enclosure: name, description, files: [], _ids: [] }
+		const map = {};
+
+		(backendEnclosures || []).forEach(row => {
+			const name = row.enclosureName || row.enclosure || `Unknown-${row.id || Math.random()}`;
+			if (!map[name]) map[name] = { enclosure: name, description: row.description || row.rfiDescription || "", files: [], _ids: [] };
+			// backend uses "files" array
+			if (Array.isArray(row.files)) {
+				row.files.forEach(f => {
+					if (f) map[name].files.push(f);
+				});
+			} else if (row.files) {
+				// single value
+				String(row.files).split(",").map(x => x.trim()).filter(Boolean).forEach(x => map[name].files.push(x));
+			}
+			// record id if present (helps match enclosureStates keyed by row id)
+			if (row.id !== undefined && row.id !== null) map[name]._ids.push(String(row.id));
+		});
+
+		// Merge local uploadedFiles from enclosureStates
+		Object.entries(enclosureStates || {}).forEach(([key, st]) => {
+			if (!st) return;
+			// find a name: prefer st.enclosureName else try to match id -> name via map._ids
+			let name = st.enclosureName;
+			if (!name) {
+				// find map entry that has this key in _ids
+				for (const nm of Object.keys(map)) {
+					if (map[nm]._ids.includes(String(key))) {
+						name = nm;
+						break;
+					}
+				}
+			}
+			// final fallback: if single map key, use it
+			if (!name && Object.keys(map).length === 1) name = Object.keys(map)[0];
+			if (!name) return;
+
+			const uploaded = st.uploadedFile;
+			if (!uploaded) return;
+			if (!map[name]) map[name] = { enclosure: name, description: st.description || "", files: [], _ids: [] };
+
+			if (Array.isArray(uploaded)) map[name].files.push(...uploaded);
+			else map[name].files.push(uploaded);
+		});
+
+		// Convert to array
+		return Object.values(map).map(item => ({
+			enclosure: item.enclosure,
+			description: item.description,
+			files: item.files,
+			_ids: item._ids || []
+		}));
+	};
+
 
 	const handleSubmitInspection = async () => {
 		if (!validateStep()) {
 			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
-		
+
 		if (!validateEnclosures()) {
-    return; // block submission if enclosures incomplete
-  }
+			return; // block submission if enclosures incomplete
+		}
 
 		if (isSubmitting) return;
 
@@ -691,6 +850,8 @@ export default function InspectionForm() {
 				inspectionStatus: inspectionStatusUserSelection || null,
 				testInsiteLab: testInLab || null,
 				engineerRemarks: engineerRemarks || null,
+				descriptionEnclosure: overallComments || '' // ✅ add description here
+
 			};
 
 			formData.append("data", JSON.stringify(inspectionPayload));
@@ -705,164 +866,166 @@ export default function InspectionForm() {
 
 			if (testReportFile) formData.append("testReport", testReportFile);
 
+			// Ensure latest enclosures are loaded from backend
+			// (call API that returns grouped files: files: [] )
+			let backendEnclosures = [];
+			try {
+				backendEnclosures = await getEnclosuresForRfi(rfiData.id);
+				// ensure shape: [{ enclosureName, files: [...] }, ...]
+				console.log("📦 backendEnclosures", backendEnclosures);
+			} catch (err) {
+				console.warn("Could not fetch enclosures from backend, proceeding with local state only:", err);
+				// fallback: use existing enclosuresData if present
+				backendEnclosures = enclosuresData || [];
+			}
 
-			// 2️⃣ Prepare enclosures for PDF
-			// 2️⃣ Prepare enclosures for PDF
-			const checklistsByEnclosure = enclosuresData.map((e) => {
-				const state = enclosureStates[e.id] || {};
+			// Normalize + merge backend + UI uploaded files
+			const merged = normalizeAndMergeEnclosures(backendEnclosures, enclosureStates);
+			console.log("🔥 Normalized & merged enclosures:", merged);
 
-				// ✅ Prefer live uploaded file from checklist state if any
-				let finalFilePath = null;
-
-				if (state.uploadedFile instanceof File) {
-					finalFilePath = URL.createObjectURL(state.uploadedFile); // local preview file
-				} else if (state.uploadedFile) {
-					finalFilePath = state.uploadedFile; // direct URL string
-				} else if (e.filePath) {
-					// ✅ Use backend-stored enclosure file if exists (supports after reload)
-					const encodedPath = encodeURIComponent(e.filePath.trim());
-					finalFilePath = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-				}
-
+			// Build checklistsByEnclosure - convert backend paths -> preview URLs but keep File objects
+			const checklistsByEnclosure = merged.map(e => {
+				const allFiles = Array.isArray(e.files) ? e.files : (e.files ? [e.files] : []);
+				const converted = allFiles
+					.map(f => convertToPreviewUrl(f))
+					.filter(Boolean);
 				return {
-					id: e.id,
 					enclosure: e.enclosure,
-					description: e.rfiDescription,
-					checklist: state.checklist || [],
-					filePath: finalFilePath || null, // ✅ PDF generator can use this
-					fileId: e.fileId || null,
+					description: e.description || "",
+					checklist: [],
+					filePath: converted,
+					_ids: e._ids || []
 				};
 			});
-
+			
 			
 
-			// 3️⃣ Generate PDF (same for both roles)
+			console.log("📄 Checklists by enclosure prepared for PDF:", checklistsByEnclosure);
+
+
+
 
 			// ✅ Build image data separately first
-						const images = {
-							contractor: await Promise.all(
-								(rfiData?.inspectionDetails || [])
-									.filter((d) => d.uploadedBy === "CON" && d.siteImage)
-									.flatMap((d) => d.siteImage.split(","))
-									.map(async (imgPath) => {
-										const encodedPath = encodeURIComponent(imgPath.trim());
-										const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-										const base64 = await toBase64(imageUrl);
-										return base64; // "data:image/jpeg;base64,..."
-									})
-							),
-							engineer: await Promise.all(
-								(rfiData?.inspectionDetails || [])
-									.filter((d) => d.uploadedBy === "Engg" && d.siteImage)
-									.flatMap((d) => d.siteImage.split(","))
-									.map(async (imgPath) => {
-										const encodedPath = encodeURIComponent(imgPath.trim());
-										const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-										const base64 = await toBase64(imageUrl);
-										return base64;
-									})
-							),
-						};
+			const images = {
+				contractor: await Promise.all(
+					(rfiData?.inspectionDetails || [])
+						.filter((d) => d.uploadedBy === "CON" && d.siteImage)
+						.flatMap((d) => d.siteImage.split(","))
+						.map(async (imgPath) => {
+							const encodedPath = encodeURIComponent(imgPath.trim());
+							const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+							const base64 = await toBase64(imageUrl);
+							return base64; // "data:image/jpeg;base64,..."
+						})
+				),
+				engineer: await Promise.all(
+					(rfiData?.inspectionDetails || [])
+						.filter((d) => d.uploadedBy === "Engg" && d.siteImage)
+						.flatMap((d) => d.siteImage.split(","))
+						.map(async (imgPath) => {
+							const encodedPath = encodeURIComponent(imgPath.trim());
+							const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+							const base64 = await toBase64(imageUrl);
+							return base64;
+						})
+				),
+			};
 
-						// ✅ Debugging output before PDF generation
-						console.log("📸 PDF Images Prepared:", {
-							contractorCount: images.contractor?.length || 0,
-							engineerCount: images.engineer?.length || 0,
-							contractorSamples: images.contractor?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
-							engineerSamples: images.engineer?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
-						});
-						
-						console.log("Prepared contractor images:", images.contractor);
-						console.log("Prepared engineer images:", images.engineer);
-			
-			
-			
-			
-			
-			
-			
-			
+			// ✅ Debugging output before PDF generation
+			console.log("📸 PDF Images Prepared:", {
+				contractorCount: images.contractor?.length || 0,
+				engineerCount: images.engineer?.length || 0,
+				contractorSamples: images.contractor?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
+				engineerSamples: images.engineer?.slice(0, 2).map(i => i?.substring(0, 100) + "..."),
+			});
+
+			console.log("Prepared contractor images:", images.contractor);
+			console.log("Prepared engineer images:", images.engineer);
+
+
+
+
+
+
+
+
 			let testReportFileData = null;
 			try {
-			  const contractorInspection = (rfiData.inspectionDetails || [])
-			    .filter((det) => det.uploadedBy === "CON")
-			    .sort((a, b) => b.id - a.id)[0];
+				const contractorInspection = (rfiData.inspectionDetails || [])
+					.filter((det) => det.uploadedBy === "CON")
+					.sort((a, b) => b.id - a.id)[0];
 
-			  if (testReportFile instanceof File) {
-			    testReportFileData = testReportFile; 
-			  }
-			  else if (contractorInspection?.testSiteDocuments) {
-			    const encodedPath = encodeURIComponent(contractorInspection.testSiteDocuments.trim());
-			    const fileUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-			    testReportFileData = fileUrl; 
-			  }
-			  else {
-			    testReportFileData = null;
-			  }
+				if (testReportFile instanceof File) {
+					testReportFileData = testReportFile;
+				}
+				else if (contractorInspection?.testSiteDocuments) {
+					const encodedPath = encodeURIComponent(contractorInspection.testSiteDocuments.trim());
+					const fileUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+					testReportFileData = fileUrl;
+				}
+				else {
+					testReportFileData = null;
+				}
 			} catch (err) {
-			  console.warn("⚠️ Unable to normalize test report file:", err);
-			  testReportFileData = null;
+				console.warn("⚠️ Unable to normalize test report file:", err);
+				testReportFileData = null;
 			}
 
 			// ✅ 2. Generate the inspection PDF
 			const { doc, externalPdfBlobs } = await generateInspectionPdf({
-			  rfi_Id: rfiData.rfi_Id,
-			  contract: rfiData.contract,
-			  contractor: rfiData.createdBy,
-			  contractorRep,
-			  location: locationText,
-			  chainage,
-			  submissionDate: new Date().toLocaleDateString(),
-			  dateOfInspection,
-			  timeOfInspection,
-			  rfiDescription: rfiData.rfiDescription,
-			  StructureType: rfiData.structureType,
-			  Structure: rfiData.structure,
-			  Component: rfiData.component,
-			  Element: rfiData.element,
-			  activity: rfiData.activity,
-			  inspectionStatus: (testInLab || "").trim(),
-			  enclosures: checklistsByEnclosure,
-			  measurements: measurements.map((m) => ({
-			    type: m.type,
-			    l: m.L,
-			    b: m.B,
-			    h: m.H,
-			    no: m.No,
-			    total: m.total,
-			  })),
-			  engineerRemarks: engineerRemarks || "",
-			  testReportFile: testReportFileData, 
-			  contractorRemarks: rfiData.contractorRemarks,
-			  images,
+				rfi_Id: rfiData.rfi_Id,
+				contract: rfiData.contract,
+				contractor: rfiData.createdBy,
+				contractorRep,
+				location: locationText,
+				chainage,
+				submissionDate: new Date().toLocaleDateString(),
+				dateOfInspection,
+				timeOfInspection,
+				rfiDescription: rfiData.rfiDescription,
+				StructureType: rfiData.structureType,
+				Structure: rfiData.structure,
+				Component: rfiData.component,
+				Element: rfiData.element,
+				activity: rfiData.activity,
+				inspectionStatus: (testInLab || "").trim(),
+				enclosures: checklistsByEnclosure,
+				measurements: measurements.map((m) => ({
+					type: m.type,
+					l: m.L,
+					b: m.B,
+					h: m.H,
+					no: m.No,
+					total: m.total,
+				})),
+				engineerRemarks: engineerRemarks || "",
+				testReportFile: testReportFileData,
+				contractorRemarks: rfiData.contractorRemarks,
+				images,
 			});
 
 			// ✅ 3. Merge with external PDFs if any
 			const y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 50;
 
 			const pdfBlob =
-			  externalPdfBlobs.length > 0
-			    ? await mergeWithExternalPdfs(doc, externalPdfBlobs)
-			    : doc.output("blob");
+				externalPdfBlobs.length > 0
+					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
+					: doc.output("blob");
 
-
-			//			const mergedUrl = URL.createObjectURL(pdfBlob);
-			//			const link = document.createElement("a");
-			//			link.href = mergedUrl;
-			//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-			//			document.body.appendChild(link);
-			//			link.click();
-			//			document.body.removeChild(link);
+			const mergedUrl = URL.createObjectURL(pdfBlob);
+			const link = document.createElement("a");
+			link.href = mergedUrl;
+			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
-			
-			
+
+
 
 
 			if (!isEngineer) {
-				
-				
-				
-				
+
 				const pdfFormData = new FormData();
 				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
 				pdfFormData.append("rfiId", rfiData?.id);
@@ -878,8 +1041,8 @@ export default function InspectionForm() {
 				console.log("✅ PDF uploaded successfully");
 
 
-				
-				
+
+
 
 
 
@@ -1010,9 +1173,9 @@ export default function InspectionForm() {
 					setIsSubmitting(false);
 				}
 			} else {
-				
-				
-				
+
+
+
 
 				const pdfFormData = new FormData();
 				pdfFormData.append("inspectionStatus", (testInLab || "").trim(),);
@@ -1030,13 +1193,6 @@ export default function InspectionForm() {
 
 				console.log("✅ PDF uploaded successfully");
 
-
-				
-				
-				
-				
-				
-				
 				// ✅ Engineer Submission Flow
 				const engForm = new FormData();
 				engForm.append("sc", "Y");
@@ -1256,6 +1412,9 @@ export default function InspectionForm() {
 					setInspectionStatus(latestInspection.inspectionStatus || null);
 					setTestInLab(latestInspection.testInsiteLab || null);
 					setEngineerRemarks(latestInspection.engineerRemarks || "");
+					setOverallComments(latestInspection.descriptionEnclosure || "");
+
+
 				}
 			} catch (err) {
 				console.error("Failed to fetch inspections:", err);
@@ -1365,7 +1524,7 @@ export default function InspectionForm() {
 		const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 		return `${timestamp}${randomSuffix}`;
 	};
-	
+
 	const fetchUpdatedRfiData = async (id) => {
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, {
@@ -1374,7 +1533,7 @@ export default function InspectionForm() {
 			});
 			if (!res.ok) throw new Error("Failed to fetch updated RFI data");
 			const data = await res.json();
-			setRfiData(data); 
+			setRfiData(data);
 		} catch (err) {
 			console.error("Error refreshing RFI data:", err);
 		}
@@ -1415,28 +1574,28 @@ export default function InspectionForm() {
 		}
 	};
 
-const validateEnclosures = () => {
-  if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
-    alert("⚠️ No enclosures found — please contact admin.");
-    return false;
-  }
+	const validateEnclosures = () => {
+		if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
+			alert("⚠️ No enclosures found — please contact admin.");
+			return false;
+		}
 
-  for (const e of enclosuresData) {
-    const enclosureFile = rfiData.enclosure?.find(
-      enc =>
-        enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-    )?.enclosureUploadFile;
+		for (const e of enclosuresData) {
+			const enclosureFile = rfiData.enclosure?.find(
+				enc =>
+					enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+			)?.enclosureUploadFile;
 
-    const checklistDone = enclosureStates[e.id]?.checklistDone;
+			const checklistDone = enclosureStates[e.id]?.checklistDone;
 
-    if (!enclosureFile && !checklistDone) {
-      alert(`⚠️ Please complete enclosure "${e.enclosure}" — upload file or finish checklist.`);
-      return false;
-    }
-  }
+			if (!enclosureFile && !checklistDone) {
+				alert(`⚠️ Please complete enclosure "${e.enclosure}" — upload file or finish checklist.`);
+				return false;
+			}
+		}
 
-  return true;
-};
+		return true;
+	};
 
 
 
@@ -1531,53 +1690,53 @@ const validateEnclosures = () => {
 											<>
 												{/* Capture Image Button */}
 												<button
-												  className="upload-section-site-button-cam"
-												  onClick={() => {
-												    setCameraMode('environment');
-												    setShowCamera('gallery-0');
-												  }}
-												  disabled={getDisabled()}
+													className="upload-section-site-button-cam"
+													onClick={() => {
+														setCameraMode('environment');
+														setShowCamera('gallery-0');
+													}}
+													disabled={getDisabled()}
 												>
-												  <img src="/images/camera_icon.png" alt="Camera" className="camera-icon" />
+													<img src="/images/camera_icon.png" alt="Camera" className="camera-icon" />
 												</button>
 
 
 												<div style={{ marginTop: '-20px', marginLeft: '25px' }}>
-												  <label
-												    style={{
-												      display: 'inline-flex',
-												      alignItems: 'center',
-												      gap: '6px',
-												      cursor: 'pointer',
-												    }}
-												  >
-												    <img
-												      src="/images/folder-icon.png"
-												      alt="Folder"
-												      className="folder-icon"
-												    />
-												    <span>Choose File</span>
-												    <input
-												      type="file"
-												      name="siteImage"
-												      accept="image/*"
-												      onChange={e => {
-												        const file = e.target.files?.[0];
-												        if (file && file.type.startsWith('image/')) {
-												          const previewUrl = URL.createObjectURL(file);
-												          setGalleryImages([file]);
-												          setSiteImage(previewUrl);
-												        } else {
-												          console.warn('Invalid file selected');
-												        }
-												      }}
-												      disabled={getDisabled()}
-												      style={{ display: 'none' }}
-												    />
-												  </label>
+													<label
+														style={{
+															display: 'inline-flex',
+															alignItems: 'center',
+															gap: '6px',
+															cursor: 'pointer',
+														}}
+													>
+														<img
+															src="/images/folder-icon.png"
+															alt="Folder"
+															className="folder-icon"
+														/>
+														<span>Choose File</span>
+														<input
+															type="file"
+															name="siteImage"
+															accept="image/*"
+															onChange={e => {
+																const file = e.target.files?.[0];
+																if (file && file.type.startsWith('image/')) {
+																	const previewUrl = URL.createObjectURL(file);
+																	setGalleryImages([file]);
+																	setSiteImage(previewUrl);
+																} else {
+																	console.warn('Invalid file selected');
+																}
+															}}
+															disabled={getDisabled()}
+															style={{ display: 'none' }}
+														/>
+													</label>
 												</div>
 
-												
+
 											</>
 										) : (
 											<>
@@ -1600,7 +1759,7 @@ const validateEnclosures = () => {
 													</button>
 
 													<button
-													className='upload-site'
+														className='upload-site'
 														onClick={async () => {
 															try {
 																setUploading(true);
@@ -1786,7 +1945,7 @@ const validateEnclosures = () => {
 
 
 								<div className="measurements-section">
-									<h3 className="section-title">Enclosures</h3>
+									<h3 className="section-title">Enclosures <span class="red">*</span></h3>
 									<table className="measurements-table">
 										<thead>
 											<tr>
@@ -1811,11 +1970,12 @@ const validateEnclosures = () => {
 														<td>{e.rfiDescription}</td>
 														<td>{e.enclosure}</td>
 
-													<td className='enclouse-open-upload'>														  {enclosureActions[e.id] === 'UPLOAD' ? (
-														    <button
-														      className="hover-blue-btn"
-														      onClick={() => setUploadPopup(e.id)}
-																	disabled={getDisabled() || deptFK?.toLowerCase() === "engg"}
+														<td className='enclouse-open-upload'>
+															{enclosureActions[e.id] === 'UPLOAD' ? (
+																<button
+																	className="hover-blue-btn"
+																	onClick={() => setUploadPopup(e.id)}
+																	disabled={getDisabled()}
 																>
 																	Upload
 																</button>
@@ -1823,110 +1983,148 @@ const validateEnclosures = () => {
 																<>
 																	{deptFK?.toLowerCase() === "engg" ? (
 																		<>
- 
 																			<button
 																				className="hover-blue-btn"
 																				onClick={() => setChecklistPopup(e.id)}
 																			>
 																				{engineerSubmitted
 																					? 'View'
-																						: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-																				</button>
- 
-																			</>
-																		) : (
-																			<>
-																			<div className='check-list-btn'>
-																				<button
-																					className="hover-blue-btn"
-																					onClick={() => setChecklistPopup(e.id)}
-																				>
-																					{contractorSubmitted
-																						? 'View'
-																						: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-																				</button>
-																				<button
-																					className="hover-blue-btn"
-																					onClick={() => setUploadPopup(e.id)}
-																					disabled={getDisabled() || deptFK?.toLowerCase() === "engg"}
-																				>
-																					Upload
-																				</button>
-																				</div>
-																			</>
+																					: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+																			</button>
+																			<button
+																				className="hover-blue-btn"
+																				onClick={() => setUploadPopup(e.id)}
+																				disabled={getDisabled()}
+																			>
+																				Upload
+																			</button>
+																		</>
+																	) : (
+																		<>
+																			<button
+																				className="hover-blue-btn"
+																				onClick={() => setChecklistPopup(e.id)}
+																			>
+																				{contractorSubmitted
+																					? 'View'
+																					: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
+																			</button>
+																			<button
+																				className="hover-blue-btn"
+																				onClick={() => setUploadPopup(e.id)}
+																				disabled={getDisabled()}
+																			>
+																				Upload
+																			</button>
+																		</>
 																	)}
 																</>
 															)}
 														</td>
 														<td>
 															{enclosureFile ? (
-																<button
-																	className="hover-blue-btn"
-																	onClick={() => {
-																		const url = `${API_BASE_URL.replace(/\/$/, '')}/api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`;
+																<>
+																	{/* DOWNLOAD BUTTON */}
+																	<button
+																		className="hover-blue-btn"
+																		onClick={() => {
+																			const url = `${API_BASE_URL.replace(/\/$/, '')}/api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`;
 
-																		fetch(url, {
-																			method: 'GET',
-																			headers: {
-																				'Content-Type': 'application/pdf',
-																			},
-																		})
-																			.then((response) => {
-																				if (!response.ok) {
-																					throw new Error('Download failed');
+																			fetch(url)
+																				.then((response) => {
+																					if (!response.ok) throw new Error('Download failed');
+																					return response.blob();
+																				})
+																				.then((blob) => {
+																					const blobUrl = window.URL.createObjectURL(blob);
+																					const link = document.createElement('a');
+																					link.href = blobUrl;
+																					link.download = `{${rfiData.rfi_Id}}-{${e.rfiDescription}}-{${e.enclosure}}.pdf`;
+																					document.body.appendChild(link);
+																					link.click();
+																					link.remove();
+																					window.URL.revokeObjectURL(blobUrl);
+																				})
+																				.catch(() => alert('❌ Unable to download file.'));
+																		}}
+																	>
+																		Download
+																	</button>
+
+																	{/* DELETE BUTTON */}
+																	<button
+																		className="hover-red-btn"
+																		disabled={getDisabled()}
+																		onClick={async () => {
+																			if (!window.confirm(`Delete all uploaded files under ${e.enclosure}?`)) return;
+
+																			try {
+																				const res = await fetch(
+																					`${API_BASE_URL}rfi/enclosure/files?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`,
+																					{ method: "DELETE", credentials: "include" }
+																				);
+
+																				if (!res.ok) {
+																					const txt = await res.text().catch(() => "");
+																					throw new Error(txt || "Delete failed");
 																				}
-																				return response.blob();
-																			})
-																			.then((blob) => {
-																				const blobUrl = window.URL.createObjectURL(blob);
-																				const link = document.createElement('a');
-																				link.href = blobUrl;
-																				link.download = `{${rfiData.rfi_Id}}-{${e.rfiDescription}}-{${e.enclosure}}_enclosure.pdf`;
-																				document.body.appendChild(link);
-																				link.click();
-																				link.remove();
-																				window.URL.revokeObjectURL(blobUrl);
-																			})
-																			.catch((err) => {
-																				console.error('Error downloading file:', err);
-																				alert('❌ Unable to download file. Please try again.');
-																			});
-																	}}
-																>
-																	Download
-																</button>
+
+																				alert("Files deleted successfully");
+
+																				// ⭐ UPDATE FRONTEND IMMEDIATELY — NO PAGE REFRESH ⭐
+																				setRfiData(prev => ({
+																					...prev,
+																					enclosure: prev.enclosure?.map(enc =>
+																						enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+																							? { ...enc, enclosureUploadFile: null }
+																							: enc
+																					)
+																				}));
+
+																			} catch (err) {
+																				console.error(err);
+																				alert("Error deleting files");
+																			}
+																		}}
+																		style={{ marginLeft: "8px" }}
+																	>
+																		Remove
+																	</button>
+
+																</>
 															) : (
 																'---'
 															)}
+
 														</td>
 
 
 														{index === 0 && (
 															<td rowSpan={enclosuresData.length}>
 																{rfiReportFilepath ? (
-														      <button
-														        type="button"
-																className="hover-blue-btn"
-														        onClick={() => {
-														          const sanitizedBase = API_BASE_URL.replace(/\/$/, '');
-														          const encodedPath = encodeURIComponent(rfiReportFilepath);
-														          const downloadUrl = `${sanitizedBase}/rfi/DownloadPrev?filepath=${encodedPath}`;
-														          const filename = rfiReportFilepath.split(/[\\/]/).pop();
+																	<button
+																		type="button"
+																		className="hover-blue-btn"
+																		onClick={() => {
+																			const sanitizedBase = API_BASE_URL.replace(/\/$/, '');
+																			const encodedPath = encodeURIComponent(rfiReportFilepath);
+																			const downloadUrl = `${sanitizedBase}/rfi/DownloadPrev?filepath=${encodedPath}`;
+																			const filename = rfiReportFilepath.split(/[\\/]/).pop();
 
-														          const link = document.createElement('a');
-														          link.href = downloadUrl;
-														          link.download = filename || 'report.pdf';
-														          document.body.appendChild(link);
-														          link.click();
-														          document.body.removeChild(link);
-														        }}
-														      >
-														        Download
-														      </button>
-														    ) : (
-														      '---'
-														    )}
-														  </td>
+																			const link = document.createElement('a');
+																			link.href = downloadUrl;
+																			link.download = filename || 'report.pdf';
+																			document.body.appendChild(link);
+																			link.click();
+																			document.body.removeChild(link);
+																		}}
+																	>
+																		Download
+																	</button>
+																) : (
+																	'---'
+																)}
+															</td>
 														)}
 
 													</tr>
@@ -1934,6 +2132,21 @@ const validateEnclosures = () => {
 											})}
 										</tbody>
 									</table>
+
+									{/* ✅ Description box below the table */}
+									<div className="enclosure-comments">
+										<label htmlFor="enclosureComments">Description</label>
+										<textarea
+											id="enclosureComments"
+											placeholder="Enter your comments here"
+											value={overallComments}
+											onChange={(e) => setOverallComments(e.target.value)}
+											className="comments-textarea"
+											rows={4}
+											disabled={getDisabled()}
+										></textarea>
+									</div>
+
 								</div>
 
 								{/* ✅ Measurements Section */}
@@ -2052,7 +2265,7 @@ const validateEnclosures = () => {
 								</div>
 
 								<div className="measurements-section">
-									<h3 className="section-title">Confirm Inspection <spam class = "red">*</spam></h3>
+									<h3 className="section-title">Confirm Inspection <spam class="red">*</spam></h3>
 									<div
 										className="confirm-inspection w-100"
 										style={{
@@ -2095,14 +2308,14 @@ const validateEnclosures = () => {
 													})()
 												) : (
 													<select
-													  value={inspectionStatusUserSelection || inspectionStatus || ""}
-													  onChange={(e) => setInspectionStatusUserSelection(e.target.value)}
-													  disabled={getDisabled()}
+														value={inspectionStatusUserSelection || inspectionStatus || ""}
+														onChange={(e) => setInspectionStatusUserSelection(e.target.value)}
+														disabled={getDisabled()}
 													>
-													  <option value="" disabled hidden>Select</option>
-													  <option value="VISUAL">Visual</option>
-													  <option value="LAB_TEST">Lab Test</option>
-													  <option value="SITE_TEST">Site Test</option>
+														<option value="" disabled hidden>Select</option>
+														<option value="VISUAL">Visual</option>
+														<option value="LAB_TEST">Lab Test</option>
+														<option value="SITE_TEST">Site Test</option>
 													</select>
 
 
@@ -2111,17 +2324,17 @@ const validateEnclosures = () => {
 
 											{/* ✅ Test Report Upload (for Contractor) */}
 											<div className="form-fields">
-											  {deptFK?.toLowerCase() !== "engg" && 
-											   (inspectionStatusUserSelection === "LAB_TEST" || inspectionStatusUserSelection === "SITE_TEST") && (
-											    <>
-											      <label>Upload Test Report Here</label>
-											      <input
-											        type="file"
-											        onChange={(e) => setTestReportFile(e.target.files[0])}
-											        disabled={getDisabled()}
-											      />
-											    </>
-											  )}
+												{deptFK?.toLowerCase() !== "engg" &&
+													(inspectionStatusUserSelection === "LAB_TEST" || inspectionStatusUserSelection === "SITE_TEST") && (
+														<>
+															<label>Upload Test Report Here</label>
+															<input
+																type="file"
+																onChange={(e) => setTestReportFile(e.target.files[0])}
+																disabled={getDisabled()}
+															/>
+														</>
+													)}
 											</div>
 
 
@@ -2159,7 +2372,7 @@ const validateEnclosures = () => {
 
 														{testInLab === "Rejected" && (
 															<div style={{ position: "relative", width: "100%" }}>
-																<label>Remarks <spam className = "red">*</spam></label>
+																<label>Remarks <spam className="red">*</spam></label>
 																<textarea
 																	value={engineerRemarks}
 																	onChange={(e) => {
@@ -2532,16 +2745,16 @@ function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDo
 	};
 
 
-const handleSelectAll = (field, value) => {
-    if (!value) return;
+	const handleSelectAll = (field, value) => {
+		if (!value) return;
 
-    setChecklistData((prev) =>
-      prev.map((row) => ({
-        ...row,
-        [field]: value === "CLEAR" ? "" : value,
-      }))
-    );
-  };
+		setChecklistData((prev) =>
+			prev.map((row) => ({
+				...row,
+				[field]: value === "CLEAR" ? "" : value,
+			}))
+		);
+	};
 	const handleDone = () => {
 		// If logged-in is Engineer → validate engineerStatus
 		if (isEngineer) {
@@ -2746,53 +2959,53 @@ const handleSelectAll = (field, value) => {
 					{enclosureName ? enclosureName.toUpperCase() : ''}
 				</h3>
 
- {/* ✅ Select All Dropdowns */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "20px",
-            marginBottom: "10px",
-            alignItems: "center",
-          }}
-        >
-          {deptFK !== "engg" && (
-            <div>
-              <label style={{ marginRight: "5px", fontWeight: "bold" }}>
-                Contractor Select All:
-              </label>
-              <select
-                onChange={(e) => handleSelectAll("contractorStatus", e.target.value)}
-                disabled={isReadOnly}
-                defaultValue=""
-              >
-                <option value="">--Select--</option>
-                <option value="YES">YES</option>
-                <option value="NO">NO</option>
-                <option value="NA">N/A</option>
-                <option value="CLEAR">Clear All</option>
-              </select>
-            </div>
-          )}
+				{/* ✅ Select All Dropdowns */}
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "flex-end",
+						gap: "20px",
+						marginBottom: "10px",
+						alignItems: "center",
+					}}
+				>
+					{deptFK !== "engg" && (
+						<div>
+							<label style={{ marginRight: "5px", fontWeight: "bold" }}>
+								Contractor Select All:
+							</label>
+							<select
+								onChange={(e) => handleSelectAll("contractorStatus", e.target.value)}
+								disabled={isReadOnly}
+								defaultValue=""
+							>
+								<option value="">--Select--</option>
+								<option value="YES">YES</option>
+								<option value="NO">NO</option>
+								<option value="NA">N/A</option>
+								<option value="CLEAR">Clear All</option>
+							</select>
+						</div>
+					)}
 
-          {isEngineer && !engineerSubmitted && (
-            <div>
-              <label style={{ marginRight: "5px", fontWeight: "bold" }}>
-                Engineer Select All:
-              </label>
-              <select
-                onChange={(e) => handleSelectAll("engineerStatus", e.target.value)}
-                defaultValue=""
-              >
-                <option value="">--Select--</option>
-                <option value="YES">YES</option>
-                <option value="NO">NO</option>
-                <option value="NA">N/A</option>
-                <option value="CLEAR">Clear All</option>
-              </select>
-            </div>
-          )}
-        </div>
+					{isEngineer && !engineerSubmitted && (
+						<div>
+							<label style={{ marginRight: "5px", fontWeight: "bold" }}>
+								Engineer Select All:
+							</label>
+							<select
+								onChange={(e) => handleSelectAll("engineerStatus", e.target.value)}
+								defaultValue=""
+							>
+								<option value="">--Select--</option>
+								<option value="YES">YES</option>
+								<option value="NO">NO</option>
+								<option value="NA">N/A</option>
+								<option value="CLEAR">Clear All</option>
+							</select>
+						</div>
+					)}
+				</div>
 				{checklistData.length > 0 ? (
 					<DataTable
 						columns={columns}
@@ -2830,30 +3043,30 @@ const handleSelectAll = (field, value) => {
 				)}
 
 				<div
-				  className="popup-actions"
-				  style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
+					className="popup-actions"
+					style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
 				>
-				  <div className="checklist-popup-btn">
-				    <button onClick={onClose}>Cancel</button>
+					<div className="checklist-popup-btn">
+						<button onClick={onClose}>Cancel</button>
 
-				    {deptFK === 'engg' ? (
-				      <button
-				        onClick={handleDone}
-				        disabled={checklistData.length === 0  }
-						hidden = {globalVarEnggSubmited === true}
-				      >
-				        Done
-				      </button>
-				    ) : (
-				      <button
-				        onClick={handleDone}
-				        disabled={checklistData.length === 0}
-						hidden={globalVarConSubmited === true}
-				      >
-				        Done
-				      </button>
-				    )}
-				  </div>
+						{deptFK === 'engg' ? (
+							<button
+								onClick={handleDone}
+								disabled={checklistData.length === 0}
+								hidden={globalVarEnggSubmited === true}
+							>
+								Done
+							</button>
+						) : (
+							<button
+								onClick={handleDone}
+								disabled={checklistData.length === 0}
+								hidden={globalVarConSubmited === true}
+							>
+								Done
+							</button>
+						)}
+					</div>
 				</div>
 
 			</div>
@@ -2869,10 +3082,10 @@ function UploadPopup({ onSubmit, onClose }) {
 				<h3>Upload File</h3>
 				<input type="file" onChange={e => setFile(e.target.files[0])} />
 				<div className="popup-actions">
-				<div className='checklist-popup-btn'>
-					<button onClick={onClose}>Cancel</button>
-					<button hidden = {!file} onClick={() => onSubmit(file)}>Upload</button>
-				</div>
+					<div className='checklist-popup-btn'>
+						<button onClick={onClose}>Cancel</button>
+						<button hidden={!file} onClick={() => onSubmit(file)}>Upload</button>
+					</div>
 				</div>
 			</div>
 		</div>

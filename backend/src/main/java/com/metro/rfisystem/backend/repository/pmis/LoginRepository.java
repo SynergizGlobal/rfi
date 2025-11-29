@@ -88,4 +88,6 @@ public interface LoginRepository extends JpaRepository<User, String> {
         List<Map<String, Object>> getAllRepresentativesReportingToContractor();
 
 	Optional<User> findByUserName(String contractor);
+
+	List<User> findByUserIdIn(List<String> ids);
 }

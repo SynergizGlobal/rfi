@@ -213,7 +213,33 @@ const Inspection = () => {
 		}
 	};
 
-	const handleInspectionComplete = (rfi, status) => {
+	const isInspectionTimeValid = (rowDate, rowTime) => {
+		if (!rowDate || !rowTime) return false;
+
+		// Row Date is in DD-MM-YY format → convert it
+		const [dd, mm, yy] = rowDate.split("-");
+		const fullYear = "20" + yy;
+
+		// Convert to JS-friendly format
+		const formatted = `${fullYear}-${mm}-${dd}T${rowTime}`;
+
+		const scheduled = new Date(formatted);
+		const now = new Date();
+
+		console.log("Scheduled DateTime:", scheduled);
+		console.log("Current DateTime:", now);
+
+		return now >= scheduled;
+	};
+
+
+	const handleInspectionComplete = (rfi, status, dateOfInspection, timeOfInspection) => {
+
+		if (!isInspectionTimeValid(dateOfInspection, timeOfInspection)) {
+			alert("❌ Inspection cannot be started before the scheduled date and time.");
+			return;
+		}
+
 
 		if (status === "INSPECTION_DONE") {
 			alert("Inspection is already closed. Further inspection not allowed.");
@@ -316,7 +342,7 @@ const Inspection = () => {
 		{ Header: 'Structure', accessor: 'structure' },
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
-		{ Header: 'Assigned Contractor', accessor: 'createdBy' },
+		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{
 			Header: "Assigned Employer's Engineer",
 			Cell: ({ row }) => {
@@ -412,14 +438,35 @@ const Inspection = () => {
 								}}
 							>
 								<button
-									onClick={() => handleInspectionComplete(row.original.id, row.original.status)}
-									disabled={row.original.status === "CANCELLED"}
-									style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+									onClick={() => {
+
+
+										console.log("Full Row Data:", row.original);
+
+										console.log("Row Date:", row.original.dateOfInspection);
+										console.log("Row Time:", row.original.timeOfInspection);
+
+										if (!isInspectionTimeValid(row.original.dateOfInspection, row.original.timeOfInspection)) {
+											alert("Inspection cannot be started before the scheduled date and time.");
+											return;
+										}
+										handleInspectionComplete(
+											row.original.id,
+											row.original.status,
+											row.original.dateOfInspection,
+											row.original.timeOfInspection
+										);
+									}}
 								>
 									Start Inspection Online
 								</button>
+
 								<button
 									onClick={() => {
+										if (!isInspectionTimeValid(row.original.dateOfInspection, row.original.timeOfInspection)) {
+											alert("Inspection cannot be started before the scheduled date and time.");
+											return;
+										}
 										if (row.original.status !== "CANCELLED") {
 											navigate('/InspectionForm', {
 												state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
@@ -664,27 +711,27 @@ const Inspection = () => {
 
 								)}
 								{deptFK === 'engg' ? (
-								  row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
-								    <button
-								      onClick={() => {
-								        setSelectedRfi(row.original);
-								        setShowUploadPopup(true);
-								      }}
-								    >
-								      Upload Test Results
-								    </button>
-								  )
+									row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
+										<button
+											onClick={() => {
+												setSelectedRfi(row.original);
+												setShowUploadPopup(true);
+											}}
+										>
+											Upload Test Results
+										</button>
+									)
 								) : (
-								  row.original.status === "INSPECTION_DONE" && row.testResCon === null && (
-								    <button
-								      onClick={() => {
-								        setSelectedRfi(row.original);
-								        setShowUploadPopup(true);
-								      }}
-								    >
-								      Upload Test Results
-								    </button>
-								  )
+									row.original.status === "INSPECTION_DONE" && row.testResCon === null && (
+										<button
+											onClick={() => {
+												setSelectedRfi(row.original);
+												setShowUploadPopup(true);
+											}}
+										>
+											Upload Test Results
+										</button>
+									)
 								)}
 
 							</DropdownPortal>

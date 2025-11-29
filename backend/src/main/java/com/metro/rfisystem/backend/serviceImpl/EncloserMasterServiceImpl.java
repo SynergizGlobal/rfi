@@ -39,6 +39,12 @@ public class EncloserMasterServiceImpl implements EncloserMasterService {
 	    public RfiEnclosureMaster saveEnclosure(RfiEnclosureMaster enclosure) {
 	        return repository.save(enclosure);
 	    }
+	    
+	    @Override
+	    public boolean existsByNameAndAction(String name, String action) {
+	        return repository.existsByEncloserNameIgnoreCaseAndActionIgnoreCase(name, action);
+	    }
+
 	    public List<RfiEnclosureMaster> getAllEnclosures() {
 	        return repository.findAll();
 	    }

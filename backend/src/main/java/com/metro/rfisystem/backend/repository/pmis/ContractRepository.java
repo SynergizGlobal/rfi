@@ -124,5 +124,16 @@ public interface ContractRepository extends JpaRepository<Contract, String> {
 	@Query("SELECT c.dyHodUserIdFk FROM Contract c WHERE c.contractId = :contractId")
 	Optional<String> findDyHodUserIdByContractId(@Param("contractId") String contractId);
 
+	@Query(value = """
+		    SELECT DISTINCT 
+		        c.contract_id AS contractId,
+		        us.designation AS designation
+		    FROM contract c
+		    LEFT JOIN [user] us ON c.dy_hod_user_id_fk = us.user_id
+		    WHERE us.designation IS NOT NULL
+		""", nativeQuery = true)
+		List<Map<String, Object>> findAllDyhodContracts();
+
+
 
 }

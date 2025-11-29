@@ -62,9 +62,9 @@ public class RFIServiceImpl implements RFIService {
 	private final LoginRepository loginRepo;
 
 	private final RfiDescriptionRepository rfiDescriptionRepository;
-	
-    @Autowired
-    private AssignExecutiveLogRepository assignExecutiveRepository;
+
+	@Autowired
+	private AssignExecutiveLogRepository assignExecutiveRepository;
 
 	@Override
 	@Transactional
@@ -73,7 +73,7 @@ public class RFIServiceImpl implements RFIService {
 		String contractShortName = dto.getContract();
 
 		String contractId = dto.getContractId();
-		
+
 		String rfiId;
 		if (contractId == null) {
 			throw new RuntimeException("No contract ID found for short name: " + contractShortName);
@@ -82,8 +82,7 @@ public class RFIServiceImpl implements RFIService {
 		long totalCount = rfiRepository.count() + 1;
 		String rfiNumber = String.format("RFI%04d", totalCount);
 		String revision = "R0";
-		
-		
+
 		TaskCodeRequestDto taskReqDto = new TaskCodeRequestDto();
 		taskReqDto.setContractId(dto.getContractId());
 		taskReqDto.setStructureType(dto.getStructureType());
@@ -93,9 +92,9 @@ public class RFIServiceImpl implements RFIService {
 		taskReqDto.setActivityName(dto.getActivity());
 		Optional<String> taskCode = p6ActivityRepository.getTaskCodeforSelectedDetails(taskReqDto);
 		if (taskCode.isPresent()) {
-		    rfiId = String.format("%s_%s_%s", taskCode.get(), rfiNumber, revision);
+			rfiId = String.format("%s_%s_%s", taskCode.get(), rfiNumber, revision);
 		} else {
-		    rfiId = String.format("%s_%s_%s_%s",contractId,dto.getActivity(), rfiNumber, revision);
+			rfiId = String.format("%s_%s_%s_%s", contractId, dto.getActivity(), rfiNumber, revision);
 		}
 		RFI rfi = new RFI();
 		rfi.setRfi_Id(rfiId);
@@ -147,24 +146,50 @@ public class RFIServiceImpl implements RFIService {
 //				rfi.setClientDepartment(null);
 //			}
 //		}
-		
-		  AssignExecutiveLog latestExecutive = assignExecutiveRepository
-		            .findTopByContractIdAndStructureTypeAndStructureOrderByAssignedAtDesc(
-		                    contractId,
-		                    dto.getStructureType(),
-		                    dto.getStructure()
-		            );
 
-		    if (latestExecutive != null) {
-		        rfi.setAssignedPersonClient(latestExecutive.getAssignedPersonClient());
-		        rfi.setClientDepartment(latestExecutive.getAssignedPersonDepartment());
-		        rfi.setAssignedPersonUserId(latestExecutive.getAssignedPersonUserId());
+		AssignExecutiveLog latestExecutive = assignExecutiveRepository
+				.findTopByContractIdAndStructureTypeAndStructureOrderByAssignedAtDesc(contractId,
+						dto.getStructureType(), dto.getStructure());
+
+		if (latestExecutive != null) {
+			rfi.setAssignedPersonClient(latestExecutive.getAssignedPersonClient());
+			rfi.setClientDepartment(latestExecutive.getAssignedPersonDepartment());
+			rfi.setAssignedPersonUserId(latestExecutive.getAssignedPersonUserId());
+		} else {
+
+		    // Fetch default users PMIS_DA_003 & PMIS_RU_001
+		    List<User> defaultUsers = loginRepo.findByUserIdIn(
+		            Arrays.asList("PMIS_DA_003", "PMIS_RU_001")
+		    );
+
+		    if (defaultUsers != null && !defaultUsers.isEmpty()) {
+
+		        // Collect usernames
+		        String assignedNames = defaultUsers.stream()
+		                .map(User::getUserName)
+		                .collect(Collectors.joining(","));
+
+		        // Collect departments (comma-separated)
+		        String assignedDepartments = defaultUsers.stream()
+		                .map(User::getDepartmentFk)
+		                .collect(Collectors.joining(","));
+
+		        // Collect user IDs
+		        String assignedUserIds = defaultUsers.stream()
+		                .map(User::getUserId)
+		                .collect(Collectors.joining(","));
+
+		        rfi.setAssignedPersonClient(assignedNames);
+		        rfi.setClientDepartment(assignedDepartments);
+		        rfi.setAssignedPersonUserId(assignedUserIds);
+
 		    } else {
-		        // ✅ If no match found → leave blank
 		        rfi.setAssignedPersonClient(null);
 		        rfi.setClientDepartment(null);
 		        rfi.setAssignedPersonUserId(null);
 		    }
+		}
+
 
 		return rfiRepository.save(rfi);
 	}
@@ -250,8 +275,9 @@ public class RFIServiceImpl implements RFIService {
 	@Override
 	public List<Map<String, Object>> getRegularUsers(String userId) {
 		System.out.println("Fetching regular users (representatives) for manager userId: " + userId);
-	    return loginRepo.findRegularContractorReps(); // Use the new query method
+		return loginRepo.findRegularContractorReps(); // Use the new query method
 	}
+
 	@Override
 	public List<String> getContractorUserNamesWithReportingId(String loggedInUserName) {
 
@@ -407,72 +433,68 @@ public class RFIServiceImpl implements RFIService {
 	public int countByCreatedBy(String createdBy) {
 		return rfiRepository.countByCreatedBy(createdBy);
 	}
-	
+
 	@Override
 	public int countByRegularUser(String userName) {
-	    return (int) rfiRepository.countByStatusesByRegularUser(
-	            Arrays.asList(EnumRfiStatus.values()), userName
-	    );
+		return (int) rfiRepository.countByStatusesByRegularUser(Arrays.asList(EnumRfiStatus.values()), userName);
 	}
 
 	@Override
 	public String closeRfi(long rfiId) {
-	    Optional<RFI> rfiOpt = rfiRepository.findById(rfiId);
+		Optional<RFI> rfiOpt = rfiRepository.findById(rfiId);
 
-	    if (rfiOpt.isEmpty()) {
-	        return "RFI not found";
-	    }
+		if (rfiOpt.isEmpty()) {
+			return "RFI not found";
+		}
 
-	    RFI rfi = rfiOpt.get();
-	    EnumRfiStatus currentStatus = rfi.getStatus();
+		RFI rfi = rfiOpt.get();
+		EnumRfiStatus currentStatus = rfi.getStatus();
 
-	    if (currentStatus == EnumRfiStatus.INSPECTION_DONE) {
-	        return "RFI is already closed!";
-	    }
+		if (currentStatus == EnumRfiStatus.INSPECTION_DONE) {
+			return "RFI is already closed!";
+		}
 
-	    if (currentStatus == EnumRfiStatus.VALIDATION_PENDING) {
-	        return "RFI is under validation process";
-	    }
+		if (currentStatus == EnumRfiStatus.VALIDATION_PENDING) {
+			return "RFI is under validation process";
+		}
 
-	    if (currentStatus != EnumRfiStatus.INSPECTED_BY_AE) {
-	        return "Engineer inspection is pending";
-	    }
+		if (currentStatus != EnumRfiStatus.INSPECTED_BY_AE) {
+			return "Engineer inspection is pending";
+		}
 
-	    rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
-	    rfiRepository.save(rfi);
+		rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
+		rfiRepository.save(rfi);
 
-	    return "RFI closed successfully";
+		return "RFI closed successfully";
 	}
-	
+
 	@Override
-    public void autoCancelRFIs() {
-        List<RFI> rfiList = rfiRepository.findAll();
+	public void autoCancelRFIs() {
+		List<RFI> rfiList = rfiRepository.findAll();
 
-        LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now();
 
-        for (RFI rfi : rfiList) {
-            if (rfi.getDateOfInspection() != null) {
-                LocalDate inspectionDate = rfi.getDateOfInspection();
-                if (inspectionDate == null) continue;
+		for (RFI rfi : rfiList) {
+			if (rfi.getDateOfInspection() != null) {
+				LocalDate inspectionDate = rfi.getDateOfInspection();
+				if (inspectionDate == null)
+					continue;
 
-                long daysBetween = ChronoUnit.DAYS.between(inspectionDate, today);
+				long daysBetween = ChronoUnit.DAYS.between(inspectionDate, today);
 
-                // ✅ Cancel if more than 7 days have passed and not already in progress
-                if (daysBetween > 7 && !isInProgress(rfi.getStatus())) {
-                    rfi.setStatus(EnumRfiStatus.CANCELLED);
-                    rfiRepository.save(rfi);
-                }
-            }
-        }
-    }
+				// ✅ Cancel if more than 7 days have passed and not already in progress
+				if (daysBetween > 7 && !isInProgress(rfi.getStatus())) {
+					rfi.setStatus(EnumRfiStatus.CANCELLED);
+					rfiRepository.save(rfi);
+				}
+			}
+		}
+	}
 
-    private boolean isInProgress(EnumRfiStatus status) {
-        return status == EnumRfiStatus.CON_INSP_ONGOING
-                || status == EnumRfiStatus.AE_INSP_ONGOING
-                || status == EnumRfiStatus.INSPECTED_BY_CON
-                || status == EnumRfiStatus.INSPECTED_BY_AE
-                || status == EnumRfiStatus.VALIDATION_PENDING
-                || status == EnumRfiStatus.INSPECTION_DONE;
-    }
+	private boolean isInProgress(EnumRfiStatus status) {
+		return status == EnumRfiStatus.CON_INSP_ONGOING || status == EnumRfiStatus.AE_INSP_ONGOING
+				|| status == EnumRfiStatus.INSPECTED_BY_CON || status == EnumRfiStatus.INSPECTED_BY_AE
+				|| status == EnumRfiStatus.VALIDATION_PENDING || status == EnumRfiStatus.INSPECTION_DONE;
+	}
 
 }

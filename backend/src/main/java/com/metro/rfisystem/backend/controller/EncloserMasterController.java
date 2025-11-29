@@ -1,5 +1,6 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.metro.rfisystem.backend.dto.*;
@@ -99,6 +100,10 @@ public class EncloserMasterController {
         RfiEnclosureMaster saved = service.saveEnclosure(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
+    
+   
+
+    
     @GetMapping("/enclosure_list")
     public ResponseEntity<List<RfiEnclosureMaster>> getAllEnclosures() {
         List<RfiEnclosureMaster> enclosures = service.getAllEnclosures(); // make sure you have this method in service

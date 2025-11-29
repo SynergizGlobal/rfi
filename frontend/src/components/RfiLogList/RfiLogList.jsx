@@ -86,29 +86,29 @@ export default function RfiLogList() {
 
 
 	const processedData = useMemo(
-	  () =>
-	    data.map(row => {
-	      let displayStatus = '';
-	      let color = '';
+		() =>
+			data.map(row => {
+				let displayStatus = '';
+				let color = '';
 
-	      if (row.enggApproval === 'Rejected') {
-	        displayStatus = 'Rejected';
-	        color = 'red';
-	      } else if (row.status === 'INSPECTION_DONE') {
-	        displayStatus = 'Closed';
-	        color = 'blue';
-	      } else {
-	        displayStatus = 'Open';
-	        color = 'green';
-	      }
+				if (row.enggApproval === 'Rejected') {
+					displayStatus = 'Rejected';
+					color = 'red';
+				} else if (row.status === 'INSPECTION_DONE') {
+					displayStatus = 'Closed';
+					color = 'blue';
+				} else {
+					displayStatus = 'Open';
+					color = 'green';
+				}
 
-	      return {
-	        ...row,
-	        displayStatus,
-	        displayColor: color, // optional: for styling in table cell
-	      };
-	    }),
-	  [data]
+				return {
+					...row,
+					displayStatus,
+					displayColor: color, // optional: for styling in table cell
+				};
+			}),
+		[data]
 	);
 
 
@@ -524,49 +524,49 @@ export default function RfiLogList() {
 			.catch((err) => console.error(err));
 	};
 
-/*	const downloadPDFWithDetails = async (rfiId, idx) => {
-		try {
-			const res = await axios.get(`${API_BASE_URL}api/rfiLog/getRfiReportDetails/${rfiId}`);
-
-			if (res.data?.reportDetails) {
-				const inspection = res.data.reportDetails;
-
-				inspection.remarks = remarksList[idx] || '';
-				inspection.status = statusList[idx] || '';
-
-				await generatePDF(
-					[inspection],
-					res.data.checklistItems || [],
-					res.data.enclosures || [],
-					res.data.measurementDetails ? [res.data.measurementDetails] : []
-				);
-
-			} else {
-				alert("No inspection details found.");
+	/*	const downloadPDFWithDetails = async (rfiId, idx) => {
+			try {
+				const res = await axios.get(`${API_BASE_URL}api/rfiLog/getRfiReportDetails/${rfiId}`);
+	
+				if (res.data?.reportDetails) {
+					const inspection = res.data.reportDetails;
+	
+					inspection.remarks = remarksList[idx] || '';
+					inspection.status = statusList[idx] || '';
+	
+					await generatePDF(
+						[inspection],
+						res.data.checklistItems || [],
+						res.data.enclosures || [],
+						res.data.measurementDetails ? [res.data.measurementDetails] : []
+					);
+	
+				} else {
+					alert("No inspection details found.");
+				}
+			} catch (err) {
+				console.error("Error fetching details for PDF:", err);
+				alert("Failed to generate PDF. Please try again.");
 			}
+		};*/
+
+
+	const downloadPDF = async (rfiId, txnId) => {
+		try {
+			const response = await fetch(`${API_BASE_URL}api/rfiLog/pdf/download/${rfiId}/${txnId}`);
+			if (!response.ok) throw new Error("File not found");
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `${rfiId}_Details_Pdf.pdf`;
+			a.click();
+			window.URL.revokeObjectURL(url);
 		} catch (err) {
-			console.error("Error fetching details for PDF:", err);
-			alert("Failed to generate PDF. Please try again.");
+			alert(err.message);
 		}
-	};*/
-	
-	
-	const downloadPDF = async (rfiId,txnId) => {
-	    try {
-	        const response = await fetch(`${API_BASE_URL}api/rfiLog/pdf/download/${rfiId}/${txnId}`);
-	        if (!response.ok) throw new Error("File not found");
-
-	        const blob = await response.blob();
-	        const url = window.URL.createObjectURL(blob);
-
-	        const a = document.createElement("a");
-	        a.href = url;
-	        a.download = `${rfiId}_Details_Pdf.pdf`; 
-	        a.click();
-	        window.URL.revokeObjectURL(url);
-	    } catch (err) {
-	        alert(err.message);
-	    }
 	};
 
 
@@ -577,6 +577,7 @@ export default function RfiLogList() {
 		{ Header: 'RFI ID', accessor: 'rfiId' },
 		{ Header: 'RFI Date', accessor: 'dateOfSubmission' },
 		{ Header: 'RFI Description', accessor: 'rfiDescription' },
+		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{ Header: 'RFI Requested By', accessor: 'rfiRequestedBy' },
 		{
 			Header: 'RFI Sent To',
@@ -588,13 +589,13 @@ export default function RfiLogList() {
 		{ Header: 'Date Raised', accessor: 'dateRaised' },
 		{ Header: 'Date Responded', accessor: 'dateResponded' },
 		{
-		  Header: 'Status',
-		  accessor: 'displayStatus',
-		  Cell: ({ row }) => (
-		    <span style={{ color: row.original.displayColor }}>
-		      {row.original.displayStatus}
-		    </span>
-		  ),
+			Header: 'Status',
+			accessor: 'displayStatus',
+			Cell: ({ row }) => (
+				<span style={{ color: row.original.displayColor }}>
+					{row.original.displayStatus}
+				</span>
+			),
 		},
 		{
 			Header: "Notes",
@@ -613,14 +614,14 @@ export default function RfiLogList() {
 					)
 				},
 				{
-				  Header: 'Download',
-				  Cell: ({ row }) =>
-				    (row.original.txnId && 
-				     (row.original.estatus === 'CON_SUCCESS' || row.original.estatus === 'ENGG_SUCCESS')) ? (
-				      <button onClick={() => downloadPDF(row.original.rfiId, row.original.txnId, row.index)}>
-				        ⬇️
-				      </button>
-				    ) : null
+					Header: 'Download',
+					Cell: ({ row }) =>
+						(row.original.txnId &&
+							(row.original.estatus === 'CON_SUCCESS' || row.original.estatus === 'ENGG_SUCCESS')) ? (
+							<button onClick={() => downloadPDF(row.original.rfiId, row.original.txnId, row.index)}>
+								⬇️
+							</button>
+						) : null
 				}
 			]
 		}
@@ -820,21 +821,21 @@ export default function RfiLogList() {
 											<p>Mumbai Rail Vikas Corporation</p>
 										</div>
 										<div style={{ textAlign: 'right' }}>
-										  <label style={{ color: '#636363' }}>RFI Status:</label>
-										  <p style={{
-										    color: selectedInspection.testStatus === "Rejected" 
-										            ? "red" 
-										            : selectedInspection.rfiStatus === "INSPECTION_DONE" 
-										              ? "blue" 
-										              : "green",
-										    fontWeight: "bold",
-										  }}>
-										    {selectedInspection.testStatus === "Rejected" 
-										      ? "Rejected" 
-										      : selectedInspection.rfiStatus === "INSPECTION_DONE" 
-										        ? "Closed" 
-										        : "Active"}
-										  </p>
+											<label style={{ color: '#636363' }}>RFI Status:</label>
+											<p style={{
+												color: selectedInspection.testStatus === "Rejected"
+													? "red"
+													: selectedInspection.rfiStatus === "INSPECTION_DONE"
+														? "blue"
+														: "green",
+												fontWeight: "bold",
+											}}>
+												{selectedInspection.testStatus === "Rejected"
+													? "Rejected"
+													: selectedInspection.rfiStatus === "INSPECTION_DONE"
+														? "Closed"
+														: "Active"}
+											</p>
 										</div>
 									</div>
 

@@ -17,10 +17,11 @@ const Dashboard = () => {
 	const isContractor = userRole === "contractor";
 	const isRegularUser = userRole === "regular user";
 	const isITAdmin = userRole === "it admin";
-	const isDyHOD = userType === "dyhod";
-	const isEngg = userDepartment === "engg";
+	const isDataAdmin = userRole === "data admin"
+/*	const isDyHOD = userType === "dyhod";
+*/	const isEngg = userDepartment === "engg";
 
-	const hasFullAccess = isITAdmin || isDyHOD;
+	const hasFullAccess = isITAdmin || isDataAdmin;
 
 	// Inside Dashboard component
 	const navigateWithStatus = (status) => {
@@ -127,7 +128,7 @@ const Dashboard = () => {
 
 
 							{/* Card 2: Pending */}
-							{!(isEngg || isDyHOD) && (
+							{!(isEngg  || isDataAdmin) && (
 							   <>
 							     {/* RFI Scheduled */}
 							     <div

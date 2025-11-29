@@ -155,42 +155,91 @@ public class LoginController {
 	}
 	
 
-	@GetMapping("/engineer-names")
-	public ResponseEntity<List<String>> getEngineerNamesForContract(@RequestParam String userId,
-			@RequestParam String contractId) {
-
-		List<User> users = loginRepo.findByUserId(userId);
-		if (users.isEmpty()) {
-			return ResponseEntity.badRequest().body(Collections.emptyList());
-		}
-
-		System.out.println("➡ userName: " + userId);
-		System.out.println("➡ contractId: " + contractId);
-
-		Optional<String> dyHodUserIdOptional = contractRepo.findDyHodUserIdByContractId(contractId);
-		if (!dyHodUserIdOptional.isPresent()) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
-		}
-
-		String dyHodUserId = dyHodUserIdOptional.get();
+//	@GetMapping("/engineer-names")
+//	public ResponseEntity<List<String>> getEngineerNamesForContract(@RequestParam String userId,
+//			@RequestParam String contractId) {
+//
+//		List<User> users = loginRepo.findByUserId(userId);
+//		if (users.isEmpty()) {
+//			return ResponseEntity.badRequest().body(Collections.emptyList());
+//		}
+//
+//		System.out.println("➡ userName: " + userId);
+//		System.out.println("➡ contractId: " + contractId);
+//
+//		Optional<String> dyHodUserIdOptional = contractRepo.findDyHodUserIdByContractId(contractId);
+//		if (!dyHodUserIdOptional.isPresent()) {
+//			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+//		}
+//
+//		String dyHodUserId = dyHodUserIdOptional.get();
+//
+//	
+//		User matchedUser = users.stream().filter(u -> u.getUserId().equals(dyHodUserId)).findFirst().orElse(null);
+//
+//		if (matchedUser == null) {
+//			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+//		}
+//
+//		List<AllowedContractDTO> allowedContracts = loginService.getAllowedContractsWithDesignation(matchedUser);
+//
+//		boolean isAllowed = allowedContracts.stream().anyMatch(c -> c.getContractId().equals(contractId));
+//
+//		if (!isAllowed) {
+//			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+//		}
+//
+//		List<String> engineers = contractExecutiveRepo.findEngineeringUsernamesByContractId(contractId);
+//		return ResponseEntity.ok(engineers);
+//	}
 
 	
-		User matchedUser = users.stream().filter(u -> u.getUserId().equals(dyHodUserId)).findFirst().orElse(null);
+	
+	@GetMapping("/engineer-names")
+	public ResponseEntity<List<String>> getEngineerNamesForContract(
+	        @RequestParam String userId,
+	        @RequestParam String contractId) {
 
-		if (matchedUser == null) {
-			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
-		}
+	    List<User> users = loginRepo.findByUserId(userId);
+	    if (users.isEmpty()) {
+	        return ResponseEntity.badRequest().body(Collections.emptyList());
+	    }
 
-		List<AllowedContractDTO> allowedContracts = loginService.getAllowedContractsWithDesignation(matchedUser);
+	    User loggedInUser = users.get(0);
+	    String role = loggedInUser.getUserRoleNameFk();
 
-		boolean isAllowed = allowedContracts.stream().anyMatch(c -> c.getContractId().equals(contractId));
+	    // ✅ Allow Data Admin or IT Admin full access
+	    if ("Data Admin".equalsIgnoreCase(role) || "IT Admin".equalsIgnoreCase(role)) {
+	        List<String> engineers = contractExecutiveRepo.findEngineeringUsernamesByContractId(contractId);
+	        return ResponseEntity.ok(engineers);
+	    }
 
-		if (!isAllowed) {
-			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
-		}
+	    // ⬇️ For other users: continue DyHOD-based validation
+	    Optional<String> dyHodUserIdOptional = contractRepo.findDyHodUserIdByContractId(contractId);
+	    if (!dyHodUserIdOptional.isPresent()) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+	    }
 
-		List<String> engineers = contractExecutiveRepo.findEngineeringUsernamesByContractId(contractId);
-		return ResponseEntity.ok(engineers);
+	    String dyHodUserId = dyHodUserIdOptional.get();
+	    User matchedUser = users.stream()
+	            .filter(u -> u.getUserId().equals(dyHodUserId))
+	            .findFirst()
+	            .orElse(null);
+
+	    if (matchedUser == null) {
+	        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+	    }
+
+	    List<AllowedContractDTO> allowedContracts = loginService.getAllowedContractsWithDesignation(matchedUser);
+	    boolean isAllowed = allowedContracts.stream().anyMatch(c -> c.getContractId().equals(contractId));
+
+	    if (!isAllowed) {
+	        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+	    }
+
+	    List<String> engineers = contractExecutiveRepo.findEngineeringUsernamesByContractId(contractId);
+	    return ResponseEntity.ok(engineers);
 	}
+
 
 }

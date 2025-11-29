@@ -188,6 +188,10 @@ public class InspectionServiceImpl implements InspectionService {
 	        inspection.setDateOfInspection(LocalDate.now());
 	        inspection.setTimeOfInspection(LocalTime.now());
 	    }
+	    if (dto.getDescriptionEnclosure() != null) {
+	        inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
+	    }
+
 
 	    if (dto.getMeasurementType() != null) measurements.setMeasurementType(dto.getMeasurementType());
 	    if (dto.getLength() != null) measurements.setLength(dto.getLength());
@@ -220,7 +224,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	    RFIInspectionDetails inspection;
 	    
-	    String deptFkPar = deptFk.equalsIgnoreCase("Engg") ? "Engg" : "CON";
+	    String deptFkPar = (deptFk != null && deptFk.equalsIgnoreCase("Engg")) ? "Engg" : "CON";
 
 	    if (dto.getInspectionId() == null) {
 	        inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar)
@@ -254,6 +258,9 @@ public class InspectionServiceImpl implements InspectionService {
 	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
 	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
 	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
+	    if (dto.getDescriptionEnclosure() != null) {
+	        inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
+	    }
 
 	    if (selfie != null && !selfie.isEmpty()) {
 	        inspection.setSelfiePath(saveFile(selfie));
@@ -409,6 +416,7 @@ public class InspectionServiceImpl implements InspectionService {
 	    dto.setUploadedBy(inspection.getUploadedBy());
 	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
 	    dto.setTestInsiteLab(inspection.getTestInsiteLab());
+	    dto.setDescriptionEnclosure(inspection.getDescriptionEnclosure());
 
 	    // Fetch measurements if available
 	    measurementsRepository.findByRfiId(inspection.getRfi().getId())

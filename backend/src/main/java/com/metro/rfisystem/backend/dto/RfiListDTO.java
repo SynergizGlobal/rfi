@@ -23,6 +23,9 @@ public interface RfiListDTO {
     String getContractId();
     String getTestResCon();
     String getTestResEngg();
+    String getDateOfInspection();
+    String getTimeOfInspection();
+    
     
 }
 

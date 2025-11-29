@@ -6,13 +6,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.metro.rfisystem.backend.dto.EnclosureDTO;
+import com.metro.rfisystem.backend.dto.EnclosureFileDto;
 import com.metro.rfisystem.backend.dto.EnclosureNameDto;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
@@ -34,120 +42,201 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 	private final RFIEnclosureRepository enclosureRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
 	private final RFIRepository rfiRepository;
-	    
+
+	@Value("${rfi.enclosures.upload-dir}")
+	private String uploadDir;
+
 	
-    @Value("${rfi.enclosures.upload-dir}")
-    private String uploadDir;
-    
-    @Override
-    public String uploadEnclosureFile( Long rfiId, String enclosureName, MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("No file provided.");
-        }
+	@Override
+	public String uploadEnclosureFile(Long rfiId, String enclosureName, MultipartFile file, String description) {
+		if (file == null || file.isEmpty()) {
+			throw new IllegalArgumentException("No file provided.");
+		}
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null) {
-            throw new IllegalArgumentException("Invalid file name.");
-        }
+		// 2️⃣ Reject large files > 100 MB
+		long maxSize = 100 * 1024 * 1024; // 100MB
+		if (file.getSize() > maxSize) {
+			throw new IllegalArgumentException("File size exceeds 100MB limit.");
+		}
+
+		String originalFilename = file.getOriginalFilename();
+		if (originalFilename == null) {
+			throw new IllegalArgumentException("Invalid file name.");
+		}
+
+		String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+		if (ext.equals("xlsx") || ext.equals("xls") || ext.equals("csv")) {
+			throw new IllegalArgumentException("Excel files are not allowed.");
+		}
+
+		// 4️⃣ Detect encrypted PDF (optional)
+		if (ext.equals("pdf") && isEncryptedPdf(file)) {
+			throw new IllegalArgumentException("Encrypted PDF is not allowed.");
+		}
+
+		String fileName = rfiId + "_" + originalFilename;
+		Path uploadPath = Paths.get(uploadDir);
+		try {
+			if (!Files.exists(uploadPath)) {
+				Files.createDirectories(uploadPath);
+			}
+
+			Path filePath = uploadPath.resolve(fileName);
+			file.transferTo(filePath.toFile());
+
+			RFI rfi = rfiRepository.findById(rfiId).orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
+
+			RFIEnclosure enclosure = new RFIEnclosure();
+			enclosure.setRfi(rfi);
+			enclosure.setEnclosureName(enclosureName);
+			enclosure.setEnclosureUploadFile(filePath.toString());
+			enclosure.setDescription(description);
+
+			enclosureRepository.save(enclosure);
+
+			return fileName;
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to save file: " + e.getMessage(), e);
+		}
+	}
+
+	private boolean isEncryptedPdf(MultipartFile file) {
+		try (InputStream is = file.getInputStream()) {
+			PDDocument document = PDDocument.load(is);
+			boolean encrypted = document.isEncrypted();
+			document.close();
+			return encrypted;
+		} catch (Exception e) {
+			// If PDFBox fails to read, assume encrypted or corrupted
+			return true;
+		}
+	}
+	
+	public List<EnclosureFileDto> getEnclosures(Long rfiId) {
+
+	    List<Object[]> rows = enclosureRepository.findByRfiId(rfiId);
+
+	    Map<String, List<String>> grouped = new LinkedHashMap<>();
+
+	    for (Object[] row : rows) {
+	        String enclosure = (String) row[0];
+	        String file = (String) row[1];
+
+	        grouped.computeIfAbsent(enclosure, k -> new ArrayList<>()).add(file);
+	    }
+
+	    List<EnclosureFileDto> result = new ArrayList<>();
+
+	    for (Map.Entry<String, List<String>> entry : grouped.entrySet()) {
+	    	EnclosureFileDto dto = new EnclosureFileDto();
+	        dto.setEnclosureName(entry.getKey());
+	        dto.setFiles(entry.getValue());
+	        result.add(dto);
+	    }
+
+	    return result;
+	}
+	
+	@Override
+	public int deleteFilesForEnclosure(Long rfiId, String enclosureName) {
+
+	    List<RFIEnclosure> files =
+	            enclosureRepository.findByRfiIdAndEnclosureName(rfiId, enclosureName);
+
+	    if (files.isEmpty()) {
+	        return 0;
+	    }
+
+	    int deletedCount = 0;
+
+	    for (RFIEnclosure file : files) {
+
+	        // Delete physical file
+	        try {
+	            String path = file.getEnclosureUploadFile();
+	            if (path != null) {
+	                Files.deleteIfExists(Paths.get(path));
+	            }
+	        } catch (IOException e) {
+	            throw new RuntimeException("File delete error: " + e.getMessage());
+	        }
+
+	        // Delete only FILE record (not the master enclosure)
+	        enclosureRepository.delete(file);
+
+	        deletedCount++;
+	    }
+
+	    return deletedCount;
+	}
 
 
-        String fileName =  rfiId+ "_" + originalFilename;
-        Path uploadPath = Paths.get(uploadDir);
-        try {
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            Path filePath = uploadPath.resolve(fileName);
-            file.transferTo(filePath.toFile());
-
-            RFI rfi = rfiRepository.findById(rfiId)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
-
-            
-    
-            RFIEnclosure enclosure = new RFIEnclosure();
-            enclosure.setRfi(rfi);
-            enclosure.setEnclosureName(enclosureName);
-            enclosure.setEnclosureUploadFile(filePath.toString());
-            
-            enclosureRepository.save(enclosure);
-
-            return fileName;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save file: " + e.getMessage(), e);
-        }
-}
 
 	@Override
 	public RFIInspectionAutofillDTO getAutofillData(Long rfiId) {
-		
-		 RFI rfi = rfiRepository.findById(rfiId)
-	                .orElseThrow(() -> new RuntimeException("RFI not found"));
 
-	        Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findByRfiId(rfiId);
+		RFI rfi = rfiRepository.findById(rfiId).orElseThrow(() -> new RuntimeException("RFI not found"));
 
-	        RFIInspectionAutofillDTO dto = new RFIInspectionAutofillDTO();
-	        dto.setNameOfWork(rfi.getWork());
-	        dto.setStructureType(rfi.getStructureType());
-	        dto.setComponent(rfi.getComponent());
-	        dto.setRfiNo(rfi.getRfi_Id());
-	        
-	        dto.setDate(rfi.getDateOfInspection() != null ? rfi.getDateOfInspection().toString() : "");
+		Optional<RFIInspectionDetails> inspectionOpt = inspectionRepository.findByRfiId(rfiId);
 
-	        if (inspectionOpt.isPresent()) {
-	            RFIInspectionDetails insp = inspectionOpt.get();
-	            dto.setLocation(insp.getLocation() != null ? insp.getLocation() : rfi.getLocation());
-	        } else {
-	            dto.setLocation(rfi.getLocation());
-	        }
+		RFIInspectionAutofillDTO dto = new RFIInspectionAutofillDTO();
+		dto.setNameOfWork(rfi.getWork());
+		dto.setStructureType(rfi.getStructureType());
+		dto.setComponent(rfi.getComponent());
+		dto.setRfiNo(rfi.getRfi_Id());
 
-	        return dto;
-	    }
+		dto.setDate(rfi.getDateOfInspection() != null ? rfi.getDateOfInspection().toString() : "");
 
-	
-	 @Value("${file.site.test.dir}")
-	 private String uploadDirTest;
-	@Override
-	public void processConfirmation(InspectionStatus status, TestType testType,
-			List<MultipartFile> files) {
-		
+		if (inspectionOpt.isPresent()) {
+			RFIInspectionDetails insp = inspectionOpt.get();
+			dto.setLocation(insp.getLocation() != null ? insp.getLocation() : rfi.getLocation());
+		} else {
+			dto.setLocation(rfi.getLocation());
+		}
 
-	        if (files != null) {
-	            files.forEach(file -> {
-					try {
-						saveFile(file);
-					} catch (Exception e) {
-						
-						e.printStackTrace();
-					}
-				});
-	        }
-
-	        // Optional: persist to DB
-	       // System.out.println("Saved: status=" + status + ", test=" + testType);
-	    }
-
-	    private void saveFile(MultipartFile file) throws Exception {
-	        if (file.isEmpty()) return;
-
-	        try {
-	            Files.createDirectories(Paths.get(uploadDirTest));
-	            Path dest = Paths.get(uploadDirTest).resolve(Paths.get(file.getOriginalFilename())).normalize().toAbsolutePath();
-
-	            if (!dest.getParent().equals(Paths.get(uploadDirTest).toAbsolutePath())) {
-	                throw new Exception("Cannot write file outside designated directory");
-	            }
-
-	            try (InputStream is = file.getInputStream()) {
-	                Files.copy(is, dest, StandardCopyOption.REPLACE_EXISTING);
-	            }
-	        } catch (IOException e) {
-	            throw new Exception("Failed to store " + file.getOriginalFilename(), e);
-	        }
-	    }
-
-	
-		
-	
+		return dto;
 	}
+
+	@Value("${file.site.test.dir}")
+	private String uploadDirTest;
+
+	@Override
+	public void processConfirmation(InspectionStatus status, TestType testType, List<MultipartFile> files) {
+
+		if (files != null) {
+			files.forEach(file -> {
+				try {
+					saveFile(file);
+				} catch (Exception e) {
+
+					e.printStackTrace();
+				}
+			});
+		}
+
+		// Optional: persist to DB
+		// System.out.println("Saved: status=" + status + ", test=" + testType);
+	}
+
+	private void saveFile(MultipartFile file) throws Exception {
+		if (file.isEmpty())
+			return;
+
+		try {
+			Files.createDirectories(Paths.get(uploadDirTest));
+			Path dest = Paths.get(uploadDirTest).resolve(Paths.get(file.getOriginalFilename())).normalize()
+					.toAbsolutePath();
+
+			if (!dest.getParent().equals(Paths.get(uploadDirTest).toAbsolutePath())) {
+				throw new Exception("Cannot write file outside designated directory");
+			}
+
+			try (InputStream is = file.getInputStream()) {
+				Files.copy(is, dest, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			throw new Exception("Failed to store " + file.getOriginalFilename(), e);
+		}
+	}
+
+}

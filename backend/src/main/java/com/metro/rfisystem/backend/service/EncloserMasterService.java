@@ -23,4 +23,6 @@ public interface EncloserMasterService {
 
 		List<RfiEnclosureMaster> getAllEnclosures();
 
+		boolean existsByNameAndAction(String encloserName, String action);
+
 }

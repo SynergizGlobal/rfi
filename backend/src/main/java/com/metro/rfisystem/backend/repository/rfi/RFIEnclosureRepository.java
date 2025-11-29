@@ -23,5 +23,8 @@ public interface RFIEnclosureRepository extends JpaRepository<RFIEnclosure, Long
 	 
 	 List<RFIEnclosure> findAllByRfi_IdAndEnclosureName(Long rfiId, String enclosureName);
 
+	 @Query("SELECT e.enclosureName, e.enclosureUploadFile  FROM RFIEnclosure e WHERE e.rfi.id = :rfiId")
+	 List<Object[]> findByRfiId(@Param("rfiId") Long rfiId);
+
 
 }

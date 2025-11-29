@@ -29,6 +29,8 @@ public class RFIEnclosure {
     private RFI rfi;
 
     
+    private String description;
+    
     private String enclosureName;
  
     

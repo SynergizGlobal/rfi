@@ -75,7 +75,7 @@ export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 
 			if (j === 0) {
 				newPage.drawText(labelText, {
-					x: 40, 
+					x: 40,
 					y: height - 30,
 					size: 10,
 					font,
@@ -196,11 +196,11 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Enclosures:", 40, 390);
 
 	const dynamicEnclosures = [
-	  ...new Set(
-	    (enclosuresData || [])
-	      .map(e => (e && e.enclosure ? String(e.enclosure).trim() : ""))
-	      .filter(name => name.length > 0)
-	  )
+		...new Set(
+			(enclosuresData || [])
+				.map(e => (e && e.enclosure ? String(e.enclosure).trim() : ""))
+				.filter(name => name.length > 0)
+		)
 	];
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
@@ -214,17 +214,17 @@ export async function generateInspectionPdf(rfiData) {
 
 	// Draw checkboxes and labels
 	dynamicEnclosures.forEach((item, i) => {
-	  const col = i % columns;
-	  const row = Math.floor(i / columns);
-	  const x = startX + col * colWidth;
-	  const y = startY + row * rowHeight;
+		const col = i % columns;
+		const row = Math.floor(i / columns);
+		const x = startX + col * colWidth;
+		const y = startY + row * rowHeight;
 
-	  // Checkbox
-	  doc.rect(x, y - 8, 8, 8);
-	  doc.text("✔", x + 1.8, y - 1.5);
+		// Checkbox
+		doc.rect(x, y - 8, 8, 8);
+		doc.text("✔", x + 1.8, y - 1.5);
 
-	  // Label
-	  doc.text(`${i + 1}) ${item}`, x + 12, y - 1.5, { maxWidth: colWidth - 20 });
+		// Label
+		doc.text(`${i + 1}) ${item}`, x + 12, y - 1.5, { maxWidth: colWidth - 20 });
 	});
 
 
@@ -302,7 +302,7 @@ export async function generateInspectionPdf(rfiData) {
 		doc.text(`Enclosure ${index + 1}: ${enc.enclosure || ""}`, 40, encY);
 
 		if (enc.description) {
-				doc.setFont("helvetica", "normal").setFontSize(10);
+			doc.setFont("helvetica", "normal").setFontSize(10);
 			doc.text(`Description: ${enc.description}`, 60, encY + 15, { maxWidth: 480 });
 			encY += 30;
 		} else {
@@ -325,7 +325,8 @@ export async function generateInspectionPdf(rfiData) {
 				headStyles: { fillColor: [220, 220, 220] }
 			});
 			encY = doc.lastAutoTable.finalY + 20;
-		} if (enc.uploadedFile) {
+		}
+		 /*if (enc.uploadedFile) {
 			const file = enc.uploadedFile;
 			if (file.type === "application/pdf") {
 				//if (encY > 750) { doc.addPage(); encY = 60; }
@@ -334,7 +335,7 @@ export async function generateInspectionPdf(rfiData) {
 			} else if (file.type.startsWith("image/")) {
 				try {
 					const base64 = await toBase64(URL.createObjectURL(file));
-					if (encY > 600) { doc.addPage(); encY = 60; } 
+					if (encY > 600) { doc.addPage(); encY = 60; }
 					doc.addImage(base64, "JPEG", 40, encY, 500, 300);
 					encY += 310;
 				} catch (err) {
@@ -342,7 +343,7 @@ export async function generateInspectionPdf(rfiData) {
 				}
 			}
 		}
-
+*/
 	}
 
 
@@ -416,125 +417,117 @@ export async function generateInspectionPdf(rfiData) {
 	let testReportPdfBlobs = [];
 
 	function toBase64(file) {
-	  return new Promise((resolve, reject) => {
-	    const reader = new FileReader();
-	    reader.onload = () => resolve(reader.result);
-	    reader.onerror = reject;
-	    reader.readAsDataURL(file);
-	  });
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = reject;
+			reader.readAsDataURL(file);
+		});
 	}
 
 	if (testReportFile) {
-	  if (encY + 150 > pageHeight - 100) {
-	    encY = 60;
-	  }
+		if (encY + 150 > pageHeight - 100) {
+			encY = 60;
+		}
 
-	  doc.setFont("helvetica", "bold").setFontSize(12);
-	  encY += 60;
+		doc.setFont("helvetica", "bold").setFontSize(12);
+		encY += 60;
 
-	  try {
-	    if (testReportFile instanceof File) {
-	      if (testReportFile.type === "application/pdf") {
-	        testReportPdfBlobs.push(testReportFile);
-	      } else if (testReportFile.type.startsWith("image/")) {
-	        const base64 = await toBase64(testReportFile);
-	        const availableHeight = pageHeight - encY - 100;
-	        doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
-	        encY += availableHeight + 20;
-	      }
-	    }
+		try {
+			if (testReportFile instanceof File) {
+				if (testReportFile.type === "application/pdf") {
+					testReportPdfBlobs.push(testReportFile);
+				} else if (testReportFile.type.startsWith("image/")) {
+					const base64 = await toBase64(testReportFile);
+					const availableHeight = pageHeight - encY - 100;
+					doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+					encY += availableHeight + 20;
+				}
+			}
 
-	    else if (typeof testReportFile === "string") {
-	      if (
-	        testReportFile.startsWith("data:application/pdf") ||
-	        testReportFile.toLowerCase().endsWith(".pdf")
-	      ) {
-	        if (testReportFile.startsWith("data:application/pdf")) {
-	          testReportPdfBlobs.push(testReportFile);
-	        } else {
-	          const response = await fetch(testReportFile);
-	          const blob = await response.blob();
-	          testReportPdfBlobs.push(blob);
-	        }
-	      }
-	      else if (
-	        testReportFile.startsWith("data:image") ||
-	        /\.(jpg|jpeg|png)$/i.test(testReportFile)
-	      ) {
-	        const base64 =
-	          testReportFile.startsWith("data:image")
-	            ? testReportFile
-	            : await toBase64(await (await fetch(testReportFile)).blob());
+			else if (typeof testReportFile === "string") {
+				if (
+					testReportFile.startsWith("data:application/pdf") ||
+					testReportFile.toLowerCase().endsWith(".pdf")
+				) {
+					if (testReportFile.startsWith("data:application/pdf")) {
+						testReportPdfBlobs.push(testReportFile);
+					} else {
+						const response = await fetch(testReportFile);
+						const blob = await response.blob();
+						testReportPdfBlobs.push(blob);
+					}
+				}
+				else if (
+					testReportFile.startsWith("data:image") ||
+					/\.(jpg|jpeg|png)$/i.test(testReportFile)
+				) {
+					const base64 =
+						testReportFile.startsWith("data:image")
+							? testReportFile
+							: await toBase64(await (await fetch(testReportFile)).blob());
 
-	        const availableHeight = pageHeight - encY - 100;
-	        doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
-	        encY += availableHeight + 20;
-	      }
-	    }
-	  } catch (err) {
-	    console.warn("⚠️ Failed to add test report file:", err);
-	  }
-	}
-	
-	
-	// --- Enclosure PDF/image handling ---
-
-	if (Array.isArray(enclosuresData) && enclosuresData.length > 0) {
-	  for (const enclosure of enclosuresData) {
-	    const encFile = enclosure.filePath;
-	    if (!encFile) continue;
-
-	    if (encY + 150 > pageHeight - 100) {
-	      doc.addPage();
-	      encY = 60;
-	    }
-
-	    try {
-	      if (encFile instanceof File) {
-	        if (encFile.type === "application/pdf") {
-	          enclosurePdfBlobs.push(encFile);
-	        } else if (encFile.type.startsWith("image/")) {
-	          const base64 = await toBase64(encFile);
-	          const availableHeight = pageHeight - encY - 100;
-	          doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
-	          encY += availableHeight + 20;
-	        }
-	      } else if (typeof encFile === "string") {
-	        if (
-	          encFile.startsWith("data:application/pdf") ||
-	          encFile.toLowerCase().endsWith(".pdf")
-	        ) {
-	          if (encFile.startsWith("data:application/pdf")) {
-	            enclosurePdfBlobs.push(encFile);
-	          } else {
-	            const response = await fetch(encFile);
-	            const blob = await response.blob();
-	            enclosurePdfBlobs.push(blob);
-	          }
-	        } else if (
-	          encFile.startsWith("data:image") ||
-	          /\.(jpg|jpeg|png)$/i.test(encFile)
-	        ) {
-	          const base64 =
-	            encFile.startsWith("data:image")
-	              ? encFile
-	              : await toBase64(await (await fetch(encFile)).blob());
-
-	          const availableHeight = pageHeight - encY - 100;
-	          doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
-	          encY += availableHeight + 20;
-	        }
-	      }
-	    } catch (err) {
-	      console.warn("⚠️ Failed to add enclosure file:", enclosure.enclosure, err);
-	    }
-	  }
+					const availableHeight = pageHeight - encY - 100;
+					doc.addImage(base64, "JPEG", 40, encY, 500, availableHeight);
+					encY += availableHeight + 20;
+				}
+			}
+		} catch (err) {
+			console.warn("⚠️ Failed to add test report file:", err);
+		}
 	}
 
 
-      externalPdfBlobs = [
-	...testReportPdfBlobs,
-	  ...enclosurePdfBlobs
+	// --- Enclosure PDF/image handling (fixed for multiple PDFs per enclosure) ---
+	const addedPdfFingerprints = new Set();
+
+	async function getFileFingerprint(fileOrString) {
+		if (typeof fileOrString === "string") return fileOrString;
+		const buffer = await fileOrString.arrayBuffer();
+		const view = new Uint8Array(buffer);
+		let hash = 0;
+		const len = Math.min(view.length, 100);
+		for (let i = 0; i < len; i++) hash += view[i] * (i + 1);
+		return hash + "-" + view.length;
+	}
+
+	// UploadedFile PDFs
+	for (const enc of enclosuresData) {
+		if (enc.uploadedFile) {
+			const files = Array.isArray(enc.uploadedFile) ? enc.uploadedFile : [enc.uploadedFile];
+			for (const file of files) {
+				if (file.type === "application/pdf") {
+					const fingerprint = await getFileFingerprint(file);
+					if (!addedPdfFingerprints.has(fingerprint)) {
+						enclosurePdfBlobs.push(file);
+						addedPdfFingerprints.add(fingerprint);
+					}
+				}
+			}
+		}
+	}
+
+	// filePath PDFs
+	for (const enclosure of enclosuresData) {
+		const encFiles = Array.isArray(enclosure.filePath) ? enclosure.filePath : enclosure.filePath ? enclosure.filePath.split(",") : [];
+		for (const encFile of encFiles) {
+			if (!encFile) continue;
+			if (typeof encFile === "string" && (encFile.startsWith("data:application/pdf") || encFile.toLowerCase().endsWith(".pdf"))) {
+				const fingerprint = encFile;
+				if (!addedPdfFingerprints.has(fingerprint)) {
+					let blob;
+					if (encFile.startsWith("data:application/pdf")) blob = encFile;
+					else blob = await (await fetch(encFile)).blob();
+					enclosurePdfBlobs.push(blob);
+					addedPdfFingerprints.add(fingerprint);
+				}
+			}
+		}
+	}
+
+	externalPdfBlobs = [
+		...testReportPdfBlobs,
+		...enclosurePdfBlobs
 	];
-	return { doc, externalPdfBlobs};
-	}
+	return { doc, externalPdfBlobs };
+}

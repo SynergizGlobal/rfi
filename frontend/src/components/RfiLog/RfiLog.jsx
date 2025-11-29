@@ -35,7 +35,6 @@ const RfiLog = () => {
 	const [selectedRfi, setSelectedRfi] = useState(null);
 	const [assignedPersons, setAssignedPersons] = useState({});
 	const [showPopup, setShowPopup] = useState(false);
-	const [pageSize, setPageSize] = useState(5);
 	const [openDropdownRow, setOpenDropdownRow] = useState(null);
 	const buttonRefs = useRef({});
 	const [personOptions, setPersonOptions] = useState([]);
@@ -128,7 +127,7 @@ const RfiLog = () => {
 			}
 
 			console.log("✅ Engineers:", body);
-			setEngineerOptions(body); // assuming it's an array
+			setEngineerOptions(Array.isArray(body) ? body : []); // ensure array
 		} catch (err) {
 			console.error("🔥 Fetch error:", err);
 		}
@@ -234,8 +233,8 @@ const RfiLog = () => {
 										}
 									}}
 								>
-									{assignedPerson && assignedPerson !== '—' 
-										? "Change Executive" 
+									{assignedPerson && assignedPerson !== '—'
+										? "Change Executive"
 										: "Assign Executive"}
 								</button>
 								<button>Close RFI</button>
@@ -262,20 +261,15 @@ const RfiLog = () => {
 		canNextPage,
 		canPreviousPage,
 		pageOptions,
+		setPageSize,
 		gotoPage
 	} = useTable(
-		{
-			columns,
-			data,
-			initialState: { pageSize },
-			getRowId: row => row.rfiId,
-			autoResetPage: false,
-		},
+		{ columns, data, getRowId: row => row.rfiId, initialState: { pageSize: 5 } },
 		useGlobalFilter,
 		usePagination
 	);
 
-	const { pageIndex, globalFilter } = state;
+	const { pageIndex, globalFilter, pageSize } = state;
 
 	const handleAssign = (e) => {
 		setAssignedPersons(prev => ({ ...prev, [selectedRfi]: e.target.value }));
@@ -298,9 +292,14 @@ const RfiLog = () => {
 							<div className="left-controls">
 								<label>
 									Show{' '}
-									<select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
+									<select
+										value={pageSize}
+										onChange={e => setPageSize(Number(e.target.value))}
+									>
 										{[5, 10, 20, 50].map(size => (
-											<option key={size} value={size}>{size}</option>
+											<option key={size} value={size}>
+												{size}
+											</option>
 										))}
 									</select>{' '}
 									entries

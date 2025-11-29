@@ -190,5 +190,9 @@ public class RFI {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate closedDate;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+    @Column(name = "deleted_at")
+    private LocalDate deletedAt;
 
 }

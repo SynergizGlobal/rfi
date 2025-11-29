@@ -99,5 +99,8 @@ public class RFIInspectionDetails {
     @Column(name = "post_test_report_path")
     private String postTestReportPath; // File path of uploaded test result
     
+    @Column(name = "description_enclosure", length = 2000)
+    private String descriptionEnclosure;
+
     
 }

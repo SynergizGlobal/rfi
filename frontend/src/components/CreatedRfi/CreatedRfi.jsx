@@ -9,13 +9,13 @@ const CreatedRfi = () => {
 	const [rfiData, setRfiData] = useState([]);
 	const navigate = useNavigate();
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
-	
-		const location = useLocation();
-		const filterStatus = location.state?.filterStatus || [];
 
-		const [allRfis, setAllRfis] = useState([]);
+	const location = useLocation();
+	const filterStatus = location.state?.filterStatus || [];
 
-		
+	const [allRfis, setAllRfis] = useState([]);
+
+
 	useEffect(() => {
 		fetch(`${API_BASE_URL}rfi/rfi-details`, {
 			method: 'GET',
@@ -42,6 +42,7 @@ const CreatedRfi = () => {
 					assignedPerson: item.createdBy,
 					submissionDate: item.dateOfSubmission || '',
 					status: item.status,
+					nameOfRepresentative: item.nameOfRepresentative,
 				}));
 				if (filterStatus.length > 0) {
 					const filtered = transformed.filter(item => filterStatus.includes(item.status));
@@ -55,25 +56,25 @@ const CreatedRfi = () => {
 				alert('Failed to fetch RFI data. Please check if you are logged in.');
 			});
 	}, []);
-	
-	
-	const filteredRfis = allRfis.filter((rfi) =>
-			filterStatus.includes(rfi.status)
-		);
 
-		
-		const handleEdit = (rfi) => {
-		  console.log("🟢 rfi object:", rfi);
-		  navigate('/CreateRfi', { 
-		    state: { 
-		      id: rfi.id, 
-		      status: rfi.status, 
-		      mode: 'edit' 
-		    } 
-		  });
-		  console.log("Navigating to edit with:", { rfiId: rfi.rfiId, status: rfi.status, mode: 'edit' });
-		};
-				
+
+	const filteredRfis = allRfis.filter((rfi) =>
+		filterStatus.includes(rfi.status)
+	);
+
+
+	const handleEdit = (rfi) => {
+		console.log("🟢 rfi object:", rfi);
+		navigate('/CreateRfi', {
+			state: {
+				id: rfi.id,
+				status: rfi.status,
+				mode: 'edit'
+			}
+		});
+		console.log("Navigating to edit with:", { rfiId: rfi.rfiId, status: rfi.status, mode: 'edit' });
+	};
+
 	const handleDelete = (rfi) => {
 		if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
 			console.log("🟡 RFI Object to delete:", rfi);
@@ -101,8 +102,10 @@ const CreatedRfi = () => {
 				.catch((err) => console.error('Error deleting RFI:', err));
 		}
 	};
-		
-		const userDepartment = localStorage.getItem("departmentFk");
+
+	const userDepartment = localStorage.getItem("departmentFk");
+	const userRole = localStorage.getItem("userRoleNameFk");
+	const userType = localStorage.getItem("userTypeFk");
 
 
 	const columns = useMemo(() => [
@@ -111,39 +114,44 @@ const CreatedRfi = () => {
 		{ Header: 'Structure', accessor: 'structure' },
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
+		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{ Header: 'Assigned Person', accessor: 'assignedPerson' },
 		{ Header: 'Submission Date', accessor: 'submissionDate' },
 		{ Header: 'Status', accessor: 'status' },
 		{
 			Header: 'Actions',
 			id: 'actions',
-			    Cell: ({ row }) => {
-			      const isEngineer = userDepartment?.toLowerCase() === "engg";
+			Cell: ({ row }) => {
+				const isEngineer = userDepartment?.toLowerCase() === "engg";
+				const isContractorRep =
+	userType?.toLowerCase().trim() === "contractor rep";
 
-			      return (
-				<div className="action-buttons">
-			          <button
-			            className="edit-btn"
-			            onClick={() => handleEdit(row.original)}
-			            disabled={isEngineer} 
-			            style={isEngineer ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-			          >
-						Edit
-					</button>
-			          <button
-			            className="delete-btn"
-			            onClick={() => handleDelete(row.original)}
-			            disabled={isEngineer} 
-			            style={isEngineer ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-			          >
-						Delete
-					</button>
-				</div>
-			      );
-			    },
-			  },
-			], [userDepartment]);
-	
+const disableActions = isEngineer || isContractorRep;
+
+				return (
+					<div className="action-buttons">
+						<button
+							className="edit-btn"
+							onClick={() => handleEdit(row.original)}
+							disabled={disableActions}
+							style={disableActions ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+						>
+							Edit
+						</button>
+						<button
+							className="delete-btn"
+							onClick={() => handleDelete(row.original)}
+							disabled={disableActions}
+							style={disableActions ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+						>
+							Delete
+						</button>
+					</div>
+				);
+			},
+		},
+	], [userDepartment]);
+
 	const {
 		getTableProps,
 		getTableBodyProps,

@@ -102,22 +102,67 @@ public class LoginServiceImpl implements LoginService {
 	}
 
 	
-@Override
-	public List<AllowedContractDTO> getAllowedContractsWithDesignation(User user) {
-		String userId = user.getUserId();
-		String role = user.getUserRoleNameFk();
-		String type = user.getUserTypeFk();
-	    String userDesignation = user.getDesignation();
-	    
+//@Override
+//	public List<AllowedContractDTO> getAllowedContractsWithDesignation(User user) {
+//		String userId = user.getUserId();
+//		String role = user.getUserRoleNameFk();
+//		String type = user.getUserTypeFk();
+//	    String userDesignation = user.getDesignation();
+//	    
+//
+//		
+//	    List<AllowedContractDTO> result = new ArrayList<>();
+//
+//
+//		if ("IT Admin".equalsIgnoreCase(role)) {
+//			// Fetch all contracts
+//			return contractRepo.findAllContractIds();
+//	    } else if ("Contractor".equalsIgnoreCase(role)) {
+//	        String contractorId = contractorRepo.findContractorIdByContractorName(user.getUserName());
+//	        List<Map<String, Object>> rows = contractRepo.findContractsAndDyhodDesignationsByContractor(contractorId);
+//
+//	        for (Map<String, Object> row : rows) {
+//	            String contractId = (String) row.get("contractId");
+//	            String designation = (String) row.get("designation");
+//	            result.add(new AllowedContractDTO(contractId, designation));
+//	        }
+//
+//		} else if ("DyHOD".equalsIgnoreCase(type)) {
+//	        // Fetch contracts where this designation is assigned
+//	        List<Map<String, Object>> contracts = contractRepo.findContractsByDyhodDesignation(userDesignation);
+//	        for (Map<String, Object> row : contracts) {
+//	            String contractId = (String) row.get("contractId");
+//	          result.add(new AllowedContractDTO(contractId, userDesignation));
+//	        }
+//
+//	        } else if ("Regular User".equalsIgnoreCase(role)) {
+//	            List<String> contractIds = contractExecutiveRepo.findContractIdsByExecutiveUserId(userId);
+//	            for (String contractId : contractIds) {
+//	                result.add(new AllowedContractDTO(contractId, null));
+//	            } 
+//	        }else {
+//			return Collections.emptyList();
+//		}
+//		return result;
+//	}
+//	
 
-		
+	@Override
+	public List<AllowedContractDTO> getAllowedContractsWithDesignation(User user) {
+	    String userId = user.getUserId();
+	    String role = user.getUserRoleNameFk();
+	    String type = user.getUserTypeFk();
+	    String userDesignation = user.getDesignation();
+
 	    List<AllowedContractDTO> result = new ArrayList<>();
 
+	    // ✅ IT Admin: full access
+	    if ("IT Admin".equalsIgnoreCase(role)) {
+	        return contractRepo.findAllContractIds();
+	    }
 
-		if ("IT Admin".equalsIgnoreCase(role)) {
-			// Fetch all contracts
-			return contractRepo.findAllContractIds();
-	    } else if ("Contractor".equalsIgnoreCase(role)) {
+	    // ✅ Contractor
+	    else if ("Contractor".equalsIgnoreCase(role)) {
 	        String contractorId = contractorRepo.findContractorIdByContractorName(user.getUserName());
 	        List<Map<String, Object>> rows = contractRepo.findContractsAndDyhodDesignationsByContractor(contractorId);
 
@@ -126,26 +171,41 @@ public class LoginServiceImpl implements LoginService {
 	            String designation = (String) row.get("designation");
 	            result.add(new AllowedContractDTO(contractId, designation));
 	        }
+	    }
 
-		} else if ("DyHOD".equalsIgnoreCase(type)) {
-	        // Fetch contracts where this designation is assigned
+	    // ✅ Data Admin: same as DyHOD — get all contracts with DyHOD mapping
+	    else if ("Data Admin".equalsIgnoreCase(role)) {
+	        List<Map<String, Object>> contracts = contractRepo.findAllDyhodContracts();
+	        for (Map<String, Object> row : contracts) {
+	            String contractId = (String) row.get("contractId");
+	            String designation = (String) row.get("designation");
+	            result.add(new AllowedContractDTO(contractId, designation));
+	        }
+	    }
+
+	    // ✅ DyHOD: based on their designation (existing behavior)
+	    else if ("DyHOD".equalsIgnoreCase(role) || "Officer (Jr./Sr. Scale)".equalsIgnoreCase(type)) {
 	        List<Map<String, Object>> contracts = contractRepo.findContractsByDyhodDesignation(userDesignation);
 	        for (Map<String, Object> row : contracts) {
 	            String contractId = (String) row.get("contractId");
-	          result.add(new AllowedContractDTO(contractId, userDesignation));
+	            result.add(new AllowedContractDTO(contractId, userDesignation));
 	        }
+	    }
 
-	        } else if ("Regular User".equalsIgnoreCase(role)) {
-	            List<String> contractIds = contractExecutiveRepo.findContractIdsByExecutiveUserId(userId);
-	            for (String contractId : contractIds) {
-	                result.add(new AllowedContractDTO(contractId, null));
-	            } 
-	        }else {
-			return Collections.emptyList();
-		}
-		return result;
+	    // ✅ Regular User
+	    else if ("Regular User".equalsIgnoreCase(role)) {
+	        List<String> contractIds = contractExecutiveRepo.findContractIdsByExecutiveUserId(userId);
+	        for (String contractId : contractIds) {
+	            result.add(new AllowedContractDTO(contractId, null));
+	        }
+	    }
+
+	    else {
+	        return Collections.emptyList();
+	    }
+
+	    return result;
 	}
-	
 
 
 

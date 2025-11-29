@@ -14,5 +14,6 @@ public enum EnumRfiStatus {
 	    VALIDATION_PENDING,
 	    INSPECTION_DONE,
 	    CANCELLED,
+	    DELETED,
 
 }

@@ -47,7 +47,18 @@ public class RfiLogServiceImpl implements RfiLogService {
 			System.out.println("IDyHOD......");
 
 			return rfiRepository.listAllRfiLogByDyHod(userId);
-		} else if ("Engg".equalsIgnoreCase(deparmentFK)) {
+		}
+	    else if ("Data Admin".equalsIgnoreCase(userRole)) {
+	        System.out.println("Data Admin (all RFI log list)......");
+	        // ✅ New method that returns all RFIs
+	        return rfiRepository.listAllRfiLogByDataAdmin();
+	    }
+	    else if ("Contractor".equalsIgnoreCase(userRole)) {
+	        System.out.println("Contractor (all RFI log list)......");
+	        return rfiRepository.listAllRfiLogItAdmin(); 
+	        // or you can call: listAllRfiLogByDataAdmin() if same query
+	    }
+		else if ("Engg".equalsIgnoreCase(deparmentFK)) {
 			System.out.println("Engineer......");
 			return rfiRepository.listAllRfiLogByAssignedBy(userName);
 		} else if ("Regular User".equalsIgnoreCase(userRole)) { 

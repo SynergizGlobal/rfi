@@ -675,3 +675,49 @@ label span {
 	align-items: center;
 	justify-content: center;
 }
+
+.enclosure-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* space between label and textarea */
+  margin-bottom: 1rem;
+  font-family: Arial, sans-serif;
+}
+
+.enclosure-comments label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.comments-textarea {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  resize: vertical; /* allows vertical resizing only */
+  font-size: 0.95rem;
+  font-family: inherit;
+  background-color: #f9f9f9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.comments-textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+  background-color: #fff;
+}
+
+.hover-red-btn {
+    background-color: #e74c3c;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.hover-red-btn:hover {
+    background-color: #c0392b;
+}
+
