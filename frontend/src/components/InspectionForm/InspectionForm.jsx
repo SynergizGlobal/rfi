@@ -897,8 +897,6 @@ export default function InspectionForm() {
 					_ids: e._ids || []
 				};
 			});
-			
-			
 
 			console.log("📄 Checklists by enclosure prepared for PDF:", checklistsByEnclosure);
 
@@ -1012,13 +1010,13 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			const mergedUrl = URL.createObjectURL(pdfBlob);
+			/*const mergedUrl = URL.createObjectURL(pdfBlob);
 			const link = document.createElement("a");
 			link.href = mergedUrl;
 			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link);
+			document.body.removeChild(link);*/
 			// 4️⃣ Upload PDF to backend
 
 
