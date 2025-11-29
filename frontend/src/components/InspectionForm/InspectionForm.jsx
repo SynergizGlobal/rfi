@@ -244,7 +244,8 @@ export default function InspectionForm() {
 						contractorStatus: item.contractorStatus || '',
 						engineerStatus: item.engineerStatus,
 						contractorRemark: item.contractorRemarks || '',
-						aeRemark: item.engineerRemark || ''
+						aeRemark: item.engineerRemark || '',
+						enclosureName: enclosureName
 					}));
 
 					return {
@@ -273,7 +274,8 @@ export default function InspectionForm() {
 								description: desc.trim(),
 								status: '',
 								contractorRemark: '',
-								aeRemark: ''
+								aeRemark: '',
+								enclosureName
 							});
 						});
 					}
@@ -737,60 +739,83 @@ export default function InspectionForm() {
 	};
 
 	// Helper: normalize backend + local uploaded files into a list of enclosures
+	// Normalize backend enclosures and merge local uploaded files + checklist
 	const normalizeAndMergeEnclosures = (backendEnclosures = [], enclosureStates = {}) => {
-		// map name -> { enclosure: name, description, files: [], _ids: [] }
 		const map = {};
 
+		// ✅ helper to validate name
+		const sanitizeName = (name) => {
+			if (!name) return null;
+			if (typeof name !== "string") return null;
+			const v = name.trim();
+			return v.length ? v : null;
+		};
+
+		// 1️⃣ Backend enclosures
 		(backendEnclosures || []).forEach(row => {
-			const name = row.enclosureName || row.enclosure || `Unknown-${row.id || Math.random()}`;
-			if (!map[name]) map[name] = { enclosure: name, description: row.description || row.rfiDescription || "", files: [], _ids: [] };
-			// backend uses "files" array
-			if (Array.isArray(row.files)) {
-				row.files.forEach(f => {
-					if (f) map[name].files.push(f);
-				});
-			} else if (row.files) {
-				// single value
-				String(row.files).split(",").map(x => x.trim()).filter(Boolean).forEach(x => map[name].files.push(x));
+			const name = sanitizeName(row.enclosureName || row.enclosure);
+			if (!name) return;   // ✅ skip invalid
+
+			if (!map[name]) {
+				map[name] = { enclosure: name, description: row.description || "", files: [], checklist: [], _ids: [] };
 			}
-			// record id if present (helps match enclosureStates keyed by row id)
-			if (row.id !== undefined && row.id !== null) map[name]._ids.push(String(row.id));
+
+			if (Array.isArray(row.files)) {
+				row.files.forEach(f => f && map[name].files.push(f));
+			}
+
+			if (row.id != null) map[name]._ids.push(String(row.id));
+
+			if (Array.isArray(row.checklist)) {
+				row.checklist.forEach(item => {
+					item.enclosureName = name;
+					map[name].checklist.push(item);
+				});
+			}
 		});
 
-		// Merge local uploadedFiles from enclosureStates
+		// 2️⃣ Local enclosureStates
 		Object.entries(enclosureStates || {}).forEach(([key, st]) => {
 			if (!st) return;
-			// find a name: prefer st.enclosureName else try to match id -> name via map._ids
-			let name = st.enclosureName;
-			if (!name) {
-				// find map entry that has this key in _ids
-				for (const nm of Object.keys(map)) {
-					if (map[nm]._ids.includes(String(key))) {
-						name = nm;
-						break;
-					}
-				}
+
+			let name = sanitizeName(st.enclosureName || st.enclosure);
+
+			// try from checklist
+			if (!name && Array.isArray(st.checklist) && st.checklist.length > 0) {
+				name = sanitizeName(st.checklist[0].enclosureName);
 			}
-			// final fallback: if single map key, use it
-			if (!name && Object.keys(map).length === 1) name = Object.keys(map)[0];
-			if (!name) return;
 
-			const uploaded = st.uploadedFile;
-			if (!uploaded) return;
-			if (!map[name]) map[name] = { enclosure: name, description: st.description || "", files: [], _ids: [] };
+			if (!name) return;   // ✅ do not create ghost enclosure
 
-			if (Array.isArray(uploaded)) map[name].files.push(...uploaded);
-			else map[name].files.push(uploaded);
+			if (!map[name]) {
+				map[name] = { enclosure: name, description: st.description || "", files: [], checklist: [], _ids: [] };
+			}
+
+			// files
+			if (st.uploadedFile) {
+				const files = Array.isArray(st.uploadedFile) ? st.uploadedFile : [st.uploadedFile];
+				map[name].files.push(...files.filter(Boolean));
+			}
+
+			// checklist
+			if (Array.isArray(st.checklist)) {
+				st.checklist.forEach(item => {
+					item.enclosureName = name;
+					map[name].checklist.push(item);
+				});
+			}
 		});
 
-		// Convert to array
-		return Object.values(map).map(item => ({
-			enclosure: item.enclosure,
-			description: item.description,
-			files: item.files,
-			_ids: item._ids || []
-		}));
+		// ✅ remove empty invalid enclosures
+		return Object.values(map).filter(e =>
+			e.enclosure &&
+			(e.files.length > 0 || e.checklist.length > 0)
+		);
 	};
+
+
+
+
 
 
 	const handleSubmitInspection = async () => {
@@ -892,7 +917,7 @@ export default function InspectionForm() {
 				return {
 					enclosure: e.enclosure,
 					description: e.description || "",
-					checklist: [],
+					checklist: Array.isArray(e.checklist) ? e.checklist : [], // keep checklist intact
 					filePath: converted,
 					_ids: e._ids || []
 				};
@@ -1010,7 +1035,7 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			/*const mergedUrl = URL.createObjectURL(pdfBlob);
+			/*	const mergedUrl = URL.createObjectURL(pdfBlob);
 			const link = document.createElement("a");
 			link.href = mergedUrl;
 			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
