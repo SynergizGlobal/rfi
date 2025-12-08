@@ -2,8 +2,11 @@ package com.metro.rfisystem.backend.controller;
 
 import java.util.Collections;
 import java.util.List;
+
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -76,7 +79,22 @@ public class AssignExecutiveController {
             return ResponseEntity.status(500).body("Error while assigning executive: " + e.getMessage());
         }
     }
+    
+    @PostMapping("/assignExecutive/delete/{id}")
+    public ResponseEntity<String> deleteAssignedExecutive(@PathVariable("id") String id) {
 
-	
+		String par = id;
+		boolean res = false;
+
+		if (!par.isEmpty()) {
+			res = assignExecutiveService.deleteAssignExecutiveLog(par);
+		}
+		if (res) {
+			return ResponseEntity.ok("Executives assigned deleted successfully!");
+
+		} else {
+			return ResponseEntity.status(400).body("Failed to assign executive");
+		}
+	}
 
 }

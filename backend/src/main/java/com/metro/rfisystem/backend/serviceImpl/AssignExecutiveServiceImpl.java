@@ -58,11 +58,25 @@ public class AssignExecutiveServiceImpl implements  AssignExecutiveService {
 	    return assignExecutiveRepository.findLatestAssignments()
 	            .stream()
 	            .map(log -> new AssignExecutiveResponse(
+	            		log.getId(),
 	                    log.getContract(),
 	                    log.getStructureType(),
 	                    log.getStructure(),
 	                    log.getAssignedPersonClient()))
 	            .collect(Collectors.toList());
+	}
+
+	public boolean deleteAssignExecutiveLog(String id) {
+		int count = 0;
+		String par = id;
+
+		count = assignExecutiveRepository.deleteAssignExecutiveLogById(par);
+		
+		if(count>0) {
+			return true;
+		}
+		return false;
+
 	}
 
 

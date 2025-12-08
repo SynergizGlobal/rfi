@@ -2,10 +2,14 @@ package com.metro.rfisystem.backend.repository.rfi;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import com.metro.rfisystem.backend.model.rfi.AssignExecutiveLog;
+
+import jakarta.transaction.Transactional;
 
 @Repository
 public interface AssignExecutiveLogRepository extends JpaRepository<AssignExecutiveLog, Long> {
@@ -36,6 +40,17 @@ public interface AssignExecutiveLogRepository extends JpaRepository<AssignExecut
 			+ " AND contract_id = :ContractId\r\n"
 			+ "", nativeQuery = true)
 	List<Long> getRfiIdsByStructureTypeAndStructure(String structureType, String Structure,String ContractId);
+
+	@Modifying
+	@Transactional
+	@Query(value = "DELETE a\r\n"
+			+ "FROM assign_executive_log a\r\n"
+			+ "INNER JOIN assign_executive_log b\r\n"
+			+ "  ON a.contract_id = b.contract_id\r\n"
+			+ " AND a.structure = b.structure\r\n"
+			+ " AND a.structure_type = b.structure_type\r\n"
+			+ "WHERE b.id = :id",nativeQuery = true)
+	int deleteAssignExecutiveLogById(String id);
 	
 
 }

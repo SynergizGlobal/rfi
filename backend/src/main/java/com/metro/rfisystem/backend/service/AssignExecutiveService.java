@@ -15,5 +15,7 @@ public interface AssignExecutiveService {
 
 	public void assignExecutives(List<Long> ids, AssignExecutiveRequest request);
 
+	boolean deleteAssignExecutiveLog(String par);
+
 
 }

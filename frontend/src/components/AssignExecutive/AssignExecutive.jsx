@@ -140,15 +140,25 @@ const AssignExecutive = () => {
       return;
     }
 
-    const payload = {
-      contract: formState.contract,
-      contractId: formState.contractId,
-      structureType: formState.structureType,
-      structure: formState.structure,
-      assignedPersonClient: formState.executive.value,
-      department: formState.department,
-	  userId:formState.userId
-    };
+	const payload = {
+	  contract: formState.contract,
+	  contractId: formState.contractId,
+	  structureType: formState.structureType,
+	  structure: formState.structure,
+
+	  assignedPersonClient: (formState.executive ?? [])
+	    .map(e => e.value)
+	    .join(","),
+
+	  department: (formState.executive ?? [])
+	    .map(e => e.department)
+	    .join(","),
+
+	  userId: (formState.executive ?? [])
+	    .map(e => e.userId)
+	    .join(",")
+	};
+
 
     try {
       const response = await axios.post(`${API_BASE_URL}rfi/assign-executive`, payload);
@@ -189,6 +199,43 @@ const AssignExecutive = () => {
       }
     }
   };
+  
+  
+	const handleDelete = (id) => {
+		if (window.confirm("Are you sure you want to delete?")) {
+			axios
+				.post(`${API_BASE_URL}rfi/assignExecutive/delete/${id}`)
+				.then((res) => {
+					alert("Data Deleted successfully!");
+
+					fetchAssignments();
+					setFormState({
+						project: "",
+						projectId: "",
+						work: "",
+						contract: "",
+						contractId: "",
+						structureType: "",
+						structure: "",
+						executive: "",
+						dyHodUserId: "",
+						department: "",
+						rfiId: ""
+					});
+					setErrors({});
+					setTimeout(() => {
+						tableRef.current?.scrollIntoView({ behavior: "smooth" });
+					}, 300);
+
+
+				})
+				.catch((err) => {
+					console.error("Error deleting :", err);
+					// If delete fails, revert the UI change
+					alert("Failed to delete.");
+				});
+		}
+	};
 
 
   return (
@@ -414,27 +461,29 @@ const AssignExecutive = () => {
 			  <div className="form-group">
 			    <label>Assign Executive</label>
 			    {errors.executive && <div className="error-text">{errors.executive}</div>}
-				<Select
-				  name="executive"
-				  options={executives}
-				  value={
-				    formState.executive
-				      ? executives.find((e) => e.value === formState.executive.value)
-				      : null
-				  }
-				  onChange={(selected) => {
-				    setFormState({
-				      ...formState,
-				      executive: selected,
-				      department: selected?.department || "",
-				      userId: selected?.userId || ""   // ✅ now matches
-				    });
-				    if (selected) {
-				      setErrors((prev) => ({ ...prev, executive: "" }));
-				    }
-				  }}
-				/>
+
+			    <Select
+			      name="executive"
+			      options={executives}
+			      isMulti
+			      classNamePrefix="react-select"
+			      placeholder="Select Executives"
+			      value={formState.executive}
+			      onChange={(selected) => {
+			        setFormState({
+			          ...formState,
+			          executive: selected ?? [],
+			          departments: selected?.map(e => e.department) ?? [],
+			          userIds: selected?.map(e => e.userId) ?? []
+			        });
+
+			        if (selected?.length > 0) {
+			          setErrors((prev) => ({ ...prev, executive: "" }));
+			        }
+			      }}
+			    />
 			  </div>
+
 
 
               <button type="submit" className="save-btn">
@@ -485,36 +534,43 @@ const AssignExecutive = () => {
                     <th>Structure Type</th>
                     <th>Structure</th>
                     <th>Assigned Executive</th>
+					<th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedData.length > 0 ? (
-                    paginatedData.map((assignments, idx) => (
-                      <tr key={idx}>
-                        <td>{assignments.contract}</td>
-                        <td>{assignments.structureType}</td>
-                        <td>{assignments.structure}</td>
-                        <td>{assignments.assignedExecutive}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: "center" }}>
-                        No assignments found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+								  {paginatedData.length > 0 ? (
+									  paginatedData.map((assignments, idx) => (
+										  <tr key={idx}>
+											  <td>{assignments.contract}</td>
+											  <td>{assignments.structureType}</td>
+											  <td>{assignments.structure}</td>
+											  <td>{assignments.assignedExecutive}</td>
+											  <td>						<button
+												  className="irf-btn-delete"
+												  onClick={() => handleDelete(assignments.id)}
+											  >
+												  Delete
+											  </button></td>
+										  </tr>
+									  ))
+								  ) : (
+									  <tr>
+										  <td colSpan="4" style={{ textAlign: "center" }}>
+											  No assignments found.
+										  </td>
+									  </tr>
+								  )}
+							  </tbody>
+						  </table>
 
-              <div className="table-footer">
-                <div className="info">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of{" "}
-                  {filteredData.length} entries
-                </div>
-                <div className="pagination">
-                  <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-                    Prev
+						  <div className="table-footer">
+							  <div className="info">
+								  Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of{" "}
+								  {filteredData.length} entries
+							  </div>
+							  <div className="pagination">
+								  <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
+									  Prev
                   </button>
                   <span> Page {currentPage} of {totalPages} </span>
                   <button
