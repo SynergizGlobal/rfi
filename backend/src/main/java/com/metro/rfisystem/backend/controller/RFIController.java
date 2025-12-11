@@ -348,10 +348,11 @@ public class RFIController {
 		boolean isContractor = "Contractor".equalsIgnoreCase(userRole);
 		boolean isRegular = "Regular User".equalsIgnoreCase(userRole);
 		boolean isEngineer = "Engg".equalsIgnoreCase(userDepartment);
+		boolean isDataAdmin = "Data Admin".equalsIgnoreCase(userRole);
 
 		Map<String, Long> counts = new HashMap<>();
 
-		if (isAdmin || isDyHOD || isContractor) {
+		if (isAdmin || isDyHOD || isContractor || isDataAdmin) {
 
 		    // ✅ Admin, DyHOD, Contractor → ALL RFIs
 		    counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));
