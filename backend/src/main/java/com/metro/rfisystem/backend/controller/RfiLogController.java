@@ -63,6 +63,7 @@ public class RfiLogController {
 	    return ResponseEntity.ok(dto);
 	}
 	
+// This method is used for the preview of full file path 	
 	@GetMapping("/previewFiles")
 	public ResponseEntity<Resource> serveFile(@RequestParam String filepath) throws IOException {
 	    String decodedPath = URLDecoder.decode(filepath, StandardCharsets.UTF_8);
@@ -83,6 +84,34 @@ public class RfiLogController {
 	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
 	        .body(resource);
 	}
+	
+	@Value("${supporting.docs.upload-dir}")
+	private String uploadDir;
+
+// This method is used for only fileName, serving file by adding the base path {supporting.docs.upload-dir}
+	@GetMapping("/previewFiles/file")
+	public ResponseEntity<Resource> serveFileForOnlyFileName(@RequestParam String filepath) throws IOException {
+	    
+	    Path file = Paths.get(uploadDir).resolve(filepath).normalize();
+
+	    if (!Files.exists(file) || !Files.isReadable(file)) {
+	        return ResponseEntity.notFound().build();
+	    }
+
+	    Resource resource = new UrlResource(file.toUri());
+
+	    String contentType = Files.probeContentType(file);
+	    if (contentType == null) {
+	        contentType = "application/octet-stream";
+	    }
+
+	    return ResponseEntity.ok()
+	        .contentType(MediaType.parseMediaType(contentType))
+	        .header(HttpHeaders.CONTENT_DISPOSITION,
+	                "inline; filename=\"" + file.getFileName().toString() + "\"")
+	        .body(resource);
+	}
+
 	
 	@GetMapping("/pdf/download/{rfiId}/{txnId}")
 	public ResponseEntity<byte[]> downloadPdf(@PathVariable String txnId, @PathVariable String rfiId) {

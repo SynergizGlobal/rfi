@@ -44,8 +44,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.total_qty AS totalQty,
 			    ic.site_image AS imgClient,
 			    ico.site_image AS imgContractor,
-			    ic.post_test_report_path As testResCon,
-			    ico.post_test_report_path As testResEngg
+			    ico.post_test_report_path As testResCon,
+			    ic.post_test_report_path As testResEngg
 
 			FROM rfi_data r
 			LEFT JOIN (
@@ -169,8 +169,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 				    m.total_qty AS totalQty,
 				    ico.site_image as imgContractor,
 				    ic.site_image as imgClient,
-				    ic.post_test_report_path As testResCon,
-				    ico.post_test_report_path As testResEngg
+				    ico.post_test_report_path As testResCon,
+				    ic.post_test_report_path As testResEngg
 
 				FROM rfi_data r
 				LEFT JOIN (
@@ -250,7 +250,11 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			  ANY_VALUE(ic.site_image) AS imagesUploadedByClient,
 			  ANY_VALUE(ico.site_image) AS imagesUploadedByContractor,
 			  ANY_VALUE(ic.test_insite_lab) AS testStatus,
-			  ANY_VALUE(ico.test_site_documents) AS testSiteDocumentsContractor
+			  ANY_VALUE(ico.test_site_documents) AS testSiteDocumentsContractor,
+			  ANY_VALUE(ico.post_test_report_path) As testResultContractor,
+			    ANY_VALUE(ic.post_test_report_path) As testResultEngineer,
+			    ANY_VALUE(ico.supporting_documents) as conSupportFilePaths,
+			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths
 
 			FROM rfi_data r
 			  LEFT JOIN rfi_inspection_details ic
@@ -311,12 +315,14 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(ico.test_site_documents) AS testSiteDocumentsContractor,
 			    ANY_VALUE(ico.post_test_report_path) As testResultContractor,
 			    ANY_VALUE(ic.post_test_report_path) As testResultEngineer,
-			    ANY_VALUE(NULL) AS dyHodUserName
+			    ANY_VALUE(NULL) AS dyHodUserName,
+			    ANY_VALUE(ico.supporting_documents) as conSupportFilePaths,
+			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths
 			FROM rfi_data r
 			LEFT JOIN rfi_inspection_details ic
-			    ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg' AND ic.work_status = 1
+			    ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg'
 			LEFT JOIN rfi_inspection_details ico
-			    ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg' AND ico.work_status = 1
+			    ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg'
 			LEFT JOIN rfi_validation v ON v.rfi_id_fk = r.id
 			LEFT JOIN rfi_enclosure re ON re.rfi_id_fk = r.id
 			WHERE r.id = :id
@@ -518,8 +524,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    m.total_qty AS totalQty,
 			    ico.site_image AS imgContractor,
 			    ic.site_image AS imgClient,
-			    ic.post_test_report_path As testResCon,
-			    ico.post_test_report_path As testResEngg
+			    ico.post_test_report_path As testResCon,
+			    ic.post_test_report_path As testResEngg
 			FROM rfi_data r
 			LEFT JOIN (
 			    SELECT r1.rfi_id_fk, r1.site_image, r1.inspection_status, r1.post_test_report_path

@@ -24,5 +24,11 @@ public interface RfiReportDTO {
     String getImagesUploadedByContractor();
     String getTestStatus();
     String getTestSiteDocumentsContractor();
+    String getTestResultContractor();
+    String getTestResultEngineer();
+    String getConSupportFilePaths();
+    String getEnggSupportFilePaths();
+
+
 }
 

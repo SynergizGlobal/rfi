@@ -34,16 +34,18 @@ export default function Validation() {
 	};
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [enclosures, setEnclosures] = useState([]);
-		const [Measurement,setMeasurement ] = useState([]);
+	const [Measurement, setMeasurement] = useState([]);
 
 
 
 
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, { withCredentials: true,		headers: {
-					            'Content-Type': 'application/json',
-					            'Accept': 'application/json'
-					        } })
+		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
+			withCredentials: true, headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json'
+			}
+		})
 			.then(res => {
 				console.log("GET /getRfiValidations response:", res.data);
 
@@ -95,7 +97,7 @@ export default function Validation() {
 		const remarks = remarksList[idx]?.trim();
 		const action = statusList[idx]?.trim();
 		const comment = comments[idx]?.trim();
-		 if (!remarks) {
+		if (!remarks) {
 			alert("Please select a remark before submitting.");
 			return;
 		}
@@ -117,11 +119,11 @@ export default function Validation() {
 		formData.append("action", action);
 		formData.append("comment", comment);
 
-		axios.post(`${API_BASE_URL}api/validation/validate`, formData,{
-		        headers: {
-		            'Accept': 'application/json'
-		        }
-		    })
+		axios.post(`${API_BASE_URL}api/validation/validate`, formData, {
+			headers: {
+				'Accept': 'application/json'
+			}
+		})
 			.then((response) => {
 				alert('Validation submitted successfully.');
 				setRfiList(prevList => {
@@ -149,12 +151,12 @@ export default function Validation() {
 
 
 	const fetchPreview = (rfiId) => {
-		axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,		{
-		        headers: {
-		            'Content-Type': 'application/json',
-		            'Accept': 'application/json'
-		        }
-		    })
+		axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`, {
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json'
+			}
+		})
 			.then((res) => {
 				const data = res.data;
 				setSelectedInspection(data.reportDetails);
@@ -166,8 +168,8 @@ export default function Validation() {
 	};
 
 	const handleDownload = () => {
-		if (selectedInspection ) {
-			generatePDF([selectedInspection], checklistItems, enclosures,Measurement);
+		if (selectedInspection) {
+			generatePDF([selectedInspection], checklistItems, enclosures, Measurement);
 		} else {
 			alert("⚠️ No data available to generate PDF!");
 		}
@@ -176,6 +178,7 @@ export default function Validation() {
 
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
 	const fileBaseURL = `${API_BASE_URL}api/validation/previewFiles`;
+	const fileBaseURLForFileName = `${API_BASE_URL}api/rfiLog/previewFiles/file`;
 
 	const safe = (val) => val || '-';
 
@@ -271,41 +274,41 @@ export default function Validation() {
 				['RFI Description', inspection.rfiDescription], ["Contractor's Representative", inspection.contractorRepresentative],
 				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
 				['Enclosures', inspection.enclosures]
-			].map(([lable,value]) => [lable, value ?? "N/A"]);
+			].map(([lable, value]) => [lable, value ?? "N/A"]);
 			doc.autoTable({
-			  startY: y,
-			  body: fields,
-			  styles: { fontSize: 9 },
-			  theme: "plain",
-			  columnStyles: { 0: { fontStyle: "bold" } }
+				startY: y,
+				body: fields,
+				styles: { fontSize: 9 },
+				theme: "plain",
+				columnStyles: { 0: { fontStyle: "bold" } }
 			});
 			y = doc.lastAutoTable.finalY || (y + 20);
 			ensureSpace(lineHeight);
 
 			if (measurements && (Array.isArray(measurements) ? measurements.length > 0 : true)) {
-			  const measurementArray = Array.isArray(measurements) ? measurements : [measurements];
+				const measurementArray = Array.isArray(measurements) ? measurements : [measurements];
 
-			  y += 10;
-			  doc.setFont(undefined, "bold").setFontSize(12);
-			  doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
+				y += 10;
+				doc.setFont(undefined, "bold").setFontSize(12);
+				doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
 
-			  doc.autoTable({
-			    startY: y + 5,
-			    head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
-			    body: measurementArray.map((m) => [
-			      safe(m.measurementType),
-			      safe(m.l),
-			      safe(m.b),
-			      safe(m.h),
-			      safe(m.no),
-			      safe(m.totalQty),
-			    ]),
-			    styles: { fontSize: 9 },
-			    headStyles: { fillColor: [0, 102, 153], textColor: 255 },
-			    theme: "grid",
-			  });
-			  y = doc.lastAutoTable.finalY || (y + 20);
-			  ensureSpace(lineHeight);
+				doc.autoTable({
+					startY: y + 5,
+					head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
+					body: measurementArray.map((m) => [
+						safe(m.measurementType),
+						safe(m.l),
+						safe(m.b),
+						safe(m.h),
+						safe(m.no),
+						safe(m.totalQty),
+					]),
+					styles: { fontSize: 9 },
+					headStyles: { fillColor: [0, 102, 153], textColor: 255 },
+					theme: "grid",
+				});
+				y = doc.lastAutoTable.finalY || (y + 20);
+				ensureSpace(lineHeight);
 			}
 			rfiName = inspection.rfiId;
 			ensureSpace(lineHeight);
@@ -344,7 +347,7 @@ export default function Validation() {
 
 			y += 15;
 			ensureSpace(lineHeight);
-			
+
 			doc.setFont(undefined, "bold").setFontSize(11).text("Validation Status & Remarks:", margin, y);
 			y += lineHeight;
 			doc.setFont(undefined, "bold").setFontSize(11).text("Status:", margin + 10, y);
@@ -355,63 +358,63 @@ export default function Validation() {
 			y += 15;
 			ensureSpace(lineHeight);
 			const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
-			    if (!paths || !paths.trim()) return;
-			    const files = paths.split(',').map(f => f.trim()).filter(Boolean);
-			    if (!files.length) return;
+				if (!paths || !paths.trim()) return;
+				const files = paths.split(',').map(f => f.trim()).filter(Boolean);
+				if (!files.length) return;
 
-			    const align = options.align || "left";
+				const align = options.align || "left";
 
-			    if (align === "center") {
-			        doc.setFont(undefined, 'bold');
-			        const textWidth = doc.getTextWidth(`${label}:`);
-			        const centerX = (pageWidth - textWidth) / 2;
-			        doc.text(`${label}:`, centerX, yPos);
-			    } else {
-			        doc.setFont(undefined, 'bold').text(`${label}:`, margin, yPos);
-			    }
-			    yPos += 5;
+				if (align === "center") {
+					doc.setFont(undefined, 'bold');
+					const textWidth = doc.getTextWidth(`${label}:`);
+					const centerX = (pageWidth - textWidth) / 2;
+					doc.text(`${label}:`, centerX, yPos);
+				} else {
+					doc.setFont(undefined, 'bold').text(`${label}:`, margin, yPos);
+				}
+				yPos += 5;
 
-			    for (const file of files) {
-			        const extension = file.split('.').pop().toLowerCase();
-			        const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+				for (const file of files) {
+					const extension = file.split('.').pop().toLowerCase();
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
-			        if (extension === 'pdf') {
-			            const response = await fetch(fileUrl);
-			            if (response.ok) {
-			                const blob = await response.blob();
-			                externalPdfBlobs.push(blob);
-			            }
-			        } else {
-			            const imgData = await toBase64(fileUrl);
-			            if (imgData) {
-			                if (yPos + imageHeight > pageHeight - 20) {
-			                    doc.addPage();
-			                    yPos = margin;
-			                }
+					if (extension === 'pdf') {
+						const response = await fetch(fileUrl);
+						if (response.ok) {
+							const blob = await response.blob();
+							externalPdfBlobs.push(blob);
+						}
+					} else {
+						const imgData = await toBase64(fileUrl);
+						if (imgData) {
+							if (yPos + imageHeight > pageHeight - 20) {
+								doc.addPage();
+								yPos = margin;
+							}
 
-			                let imgX = margin;
-			                if (align === "center") {
-			                    imgX = (pageWidth - imageWidth) / 2;
-			                }
+							let imgX = margin;
+							if (align === "center") {
+								imgX = (pageWidth - imageWidth) / 2;
+							}
 
-			                doc.addImage(imgData, 'JPEG', imgX, yPos, imageWidth, imageHeight);
-			                yPos += imageHeight + 5;
-			            } else {
-			                doc.setDrawColor(0);
-			                doc.setLineWidth(0.2);
+							doc.addImage(imgData, 'JPEG', imgX, yPos, imageWidth, imageHeight);
+							yPos += imageHeight + 5;
+						} else {
+							doc.setDrawColor(0);
+							doc.setLineWidth(0.2);
 
-			                let rectX = margin;
-			                if (align === "center") {
-			                    rectX = (pageWidth - imageWidth) / 2;
-			                }
+							let rectX = margin;
+							if (align === "center") {
+								rectX = (pageWidth - imageWidth) / 2;
+							}
 
-			                doc.rect(rectX, yPos, imageWidth, imageHeight);
-			                doc.text('Image not available', rectX + 3, yPos + 20);
-			                yPos += imageHeight + 5;
-			            }
-			        }
-			    }
-			    y = yPos;
+							doc.rect(rectX, yPos, imageWidth, imageHeight);
+							doc.text('Image not available', rectX + 3, yPos + 20);
+							yPos += imageHeight + 5;
+						}
+					}
+				}
+				y = yPos;
 			};
 
 			ensureSpace(lineHeight);
@@ -444,7 +447,7 @@ export default function Validation() {
 							doc.setFontSize(16);
 							doc.text(label, pageWidth / 2, 20, { align: "center" });
 
-							const imgWidth = pageWidth * 0.8;   
+							const imgWidth = pageWidth * 0.8;
 							const imgHeight = pageHeight * 0.6;
 							const x = (pageWidth - imgWidth) / 2;
 							const y = (pageHeight - imgHeight) / 2;
@@ -454,8 +457,73 @@ export default function Validation() {
 					}
 				}
 			};
+			const handlePdfOrImageForFileName = async (label, filePaths) => {
+			    if (!filePaths) return;
+
+			    let files = [];
+
+			    if (filePaths.trim().startsWith("[")) {
+			        try {
+			            const arr = JSON.parse(filePaths); // [{filePath, documentsDescription}]
+			            files = arr.map(obj => obj.filePath);
+			        } catch (err) {
+			            console.error("Invalid JSON filePath array:", err);
+			            return;
+			        }
+			    }
+			    else if (filePaths.includes(",")) {
+			        files = filePaths.split(",").map(f => f.trim());
+			    }
+			    else {
+			        files = [filePaths.trim()];
+			    }
+
+			    for (const file of files) {
+			        if (!file) continue;
+
+			        const extension = file.split(".").pop().toLowerCase();
+			        const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(file)}`;
+
+			        if (extension === "pdf") {
+			            const response = await fetch(fileUrl);
+			            if (response.ok) {
+			                const blob = await response.blob();
+			                externalPdfBlobs.push(blob);
+			            }
+			            continue;
+			        }
+
+			        const imgData = await toBase64(fileUrl);
+			        if (imgData) {
+			            doc.addPage();
+
+			            const pageWidth = doc.internal.pageSize.getWidth();
+			            const pageHeight = doc.internal.pageSize.getHeight();
+
+			            doc.setFont("helvetica", "bold");
+			            doc.setFontSize(16);
+			            doc.text(label, pageWidth / 2, 20, { align: "center" });
+
+			            const imgWidth = pageWidth * 0.8;
+			            const imgHeight = pageHeight * 0.6;
+			            const x = (pageWidth - imgWidth) / 2;
+			            const y = (pageHeight - imgHeight) / 2;
+
+			            doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+			        }
+			    }
+			};
 
 
+
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
+			y += 10;
+
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
+			y += 15;
+			
 			ensureSpace(lineHeight);
 			await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
 			y += 10;
@@ -465,21 +533,18 @@ export default function Validation() {
 			y += 15;
 
 			ensureSpace(lineHeight);
-			await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
-			y += 10;
-
-			ensureSpace(lineHeight);
-			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
-			y += 15;
-
-			ensureSpace(lineHeight);
 			if (enclosures && enclosures.length > 0) {
 				for (const enc of enclosures) {
 					await handlePdfOrImage(enc.enclosureName, enc.file);
 				}
 			}
 			ensureSpace(lineHeight);
-			await handlePdfOrImage('Test Report',inspection.testSiteDocumentsContractor);
+			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Contractor', inspection.conSupportFilePaths);
+			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Engineer', inspection.enggSupportFilePaths);
+			await handlePdfOrImage('Test Result uploaded_by Contractor', inspection.testResultContractor);
+			await handlePdfOrImage('Test Result uploaded_by Engineer', inspection.testResultEngineer);
+			await handlePdfOrImage('Test Report', inspection.testSiteDocumentsContractor);
+
 
 		}
 
@@ -494,12 +559,12 @@ export default function Validation() {
 
 	const downloadPDFWithDetails = async (rfiId, idx) => {
 		try {
-			const res = await axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,{
-			        headers: {
-			            'Content-Type': 'application/json',
-			            'Accept': 'application/json'
-			        }
-			    });
+			const res = await axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`, {
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json'
+				}
+			});
 
 			if (res.data?.reportDetails) {
 				const inspection = res.data.reportDetails;
@@ -508,10 +573,10 @@ export default function Validation() {
 				inspection.status = statusList[idx] || '';
 
 				await generatePDF(
-				  [inspection],
-				  res.data.checklistItems || [],
-				  res.data.enclosures || [],
-				  res.data.measurementDetails ? [res.data.measurementDetails] : []
+					[inspection],
+					res.data.checklistItems || [],
+					res.data.enclosures || [],
+					res.data.measurementDetails ? [res.data.measurementDetails] : []
 				);
 
 			} else {
@@ -561,7 +626,7 @@ export default function Validation() {
 								value={pageSize}
 								onChange={(e) => {
 									setPageSize(Number(e.target.value));
-									setPageIndex(0); 
+									setPageIndex(0);
 								}}
 							>
 								{[5, 10, 20, 50].map((size) => (
@@ -594,9 +659,9 @@ export default function Validation() {
 						<tbody>
 							{rfiList.length > 0 ? (
 								rfiList
-									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize) 
+									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
 									.map((rfi, idx) => {
-										const globalIndex = pageIndex * pageSize + idx; 
+										const globalIndex = pageIndex * pageSize + idx;
 										const remarks = remarksList[globalIndex];
 										const status = statusList[globalIndex];
 										const isValidated = submittedList[globalIndex];
@@ -848,20 +913,20 @@ export default function Validation() {
 
 
 								</div >
-								
+
 								{Measurement && (<div className='previewTable-section'>
 									<h3> Measurement Details</h3>
 									<div className='measurements-table-prev'>
 										<table>
 											<thead>
-											<tr>
-											<th>Type</th>
-											<th>Length</th>
-											<th>Breadth</th>
-											<th>Height</th>
-											<th>Count</th>
-											<th>Total Quantity</th>
-											</tr>
+												<tr>
+													<th>Type</th>
+													<th>Length</th>
+													<th>Breadth</th>
+													<th>Height</th>
+													<th>Count</th>
+													<th>Total Quantity</th>
+												</tr>
 											</thead>
 											<tbody>
 												<tr>
@@ -869,7 +934,7 @@ export default function Validation() {
 													<td>{Measurement.l}</td>
 													<td>{Measurement.b}</td>
 													<td>{Measurement.h}</td>
-													<td>{Measurement.no	}</td>
+													<td>{Measurement.no}</td>
 													<td>{Measurement.totalQty}</td>
 												</tr>
 											</tbody>
@@ -925,190 +990,352 @@ export default function Validation() {
 
 
 								<div className='previewTable-section'>
-								<h3>Validation Status & Remarks</h3>
-								<p><strong> Status:</strong> {selectedInspection.validationStatus || '---'}</p>
-								<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
+									<h3>Validation Status & Remarks</h3>
+									<p><strong> Status:</strong> {selectedInspection.validationStatus || '---'}</p>
+									<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
 
 								</div>
 								{selectedInspection.selfieClient && (
-									<>									
-									<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
-									<div className="image-gallery">
-										{selectedInspection.selfieClient.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+									<>
+										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
+										<div className="image-gallery">
+											{selectedInspection.selfieClient.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
 									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByClient && (
 									<>
-									<h4>Site Images By Inspector</h4>
-									<div className="image-gallery">
-										{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+										<h4>Site Images By Inspector</h4>
+										<div className="image-gallery">
+											{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
 									</>
 								)}
 
 								{selectedInspection.selfieContractor && (
 									<>
-									<h4>Contractor Selfie</h4>
-									<div className="image-gallery">
-										{selectedInspection.selfieContractor.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+										<h4>Contractor Selfie</h4>
+										<div className="image-gallery">
+											{selectedInspection.selfieContractor.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
 									</>
 								)}
 
 
 								{selectedInspection.imagesUploadedByContractor && (
 									<>
-									<h4>Site Images By Contractor</h4>
-									<div className="image-gallery">
-										{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
-											const trimmedPath = img.trim();
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+										<h4>Site Images By Contractor</h4>
+										<div className="image-gallery">
+											{selectedInspection.imagesUploadedByContractor.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
-											return (
-												<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-													<img
-														src={fileUrl}
-														alt={`Contractor Image ${idx + 1}`}
-														className="preview-image"
-														onError={() => console.error("Image load error:", fileUrl)}
-													/>
-												</a>
-											);
-										})}
-									</div>
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
 									</>
 								)}
 
 
 
 								{enclosures && enclosures.length > 0 ? (
-								  Object.entries(
-								    enclosures.reduce((groups, item) => {
-								      if (!groups[item.enclosureName]) groups[item.enclosureName] = [];
-								      groups[item.enclosureName].push(item.file);
-								      return groups;
-								    }, {})
-								  ).map(([enclosureName, files], idx) => (
-								    <React.Fragment key={idx}>
-								      <h4>Enclosures Uploaded ({enclosureName})</h4>
-								      <div className="image-gallery">
-								        {files.map((rawPath, i) => {
-								          const path = rawPath.trim();
-								          const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
-								          const extension = getExtension(path);
+									Object.entries(
+										enclosures.reduce((groups, item) => {
+											if (!groups[item.enclosureName]) groups[item.enclosureName] = [];
+											groups[item.enclosureName].push(item.file);
+											return groups;
+										}, {})
+									).map(([enclosureName, files], idx) => (
+										<React.Fragment key={idx}>
+											<h4>Enclosures Uploaded ({enclosureName})</h4>
+											<div className="image-gallery">
+												{files.map((rawPath, i) => {
+													const path = rawPath.trim();
+													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+													const extension = getExtension(path);
 
-								          return (
-								            <a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
-								              {extension === "pdf" ? (
-								                <embed
-								                  src={fileUrl}
-								                  type="application/pdf"
-								                  width="100%"
-								                  height="500px"
-								                  className="preview-pdf w-100"
-								                />
-								              ) : (
-								                <img
-								                  src={fileUrl}
-								                  alt={`Enclosure ${i + 1}`}
-								                  className="preview-image"
-												  style={{width: "100%", height: "100%", objectFit: "contain"}}
-								                  onError={() => console.error("Image load error:", fileUrl)}
-								                />
-								              )}
-								            </a>
-								          );
-								        })}
-								      </div>
-								    </React.Fragment>
-								  ))
+													return (
+														<a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === "pdf" ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt={`Enclosure ${i + 1}`}
+																	className="preview-image"
+																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																	onError={() => console.error("Image load error:", fileUrl)}
+																/>
+															)}
+														</a>
+													);
+												})}
+											</div>
+										</React.Fragment>
+									))
 								) : (
-								  <p>No enclosures uploaded.</p>
+									<p>No enclosures uploaded.</p>
+								)}
+
+
+								{selectedInspection.conSupportFilePaths && (
+									<>
+										<h4>Support Docs Uploaded By Contractor</h4>
+
+										<div className="image-gallery">
+											{JSON.parse(selectedInspection.conSupportFilePaths).map((doc, index) => {
+												const path = doc.filePath;
+												const description = doc.documentsDescription;
+
+												const filename = getFilename(path);
+												const extension = getExtension(filename);
+
+												const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+
+												return (
+													<div key={index} className="mb-3">
+														<p><strong>Description:</strong> {description}</p>
+
+														<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === "pdf" ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt={description || "Supporting Document"}
+																	className="preview-image"
+																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																/>
+															)}
+														</a>
+													</div>
+												);
+											})}
+										</div>
+									</>
 								)}
 
 
 
+								{selectedInspection.enggSupportFilePaths && (
+									<>
+										<h4>Support Docs Uploaded By Engineer</h4>
+
+										<div className="image-gallery">
+											{JSON.parse(selectedInspection.enggSupportFilePaths).map((doc, index) => {
+												const path = doc.filePath;
+												const description = doc.documentsDescription;
+
+												const filename = getFilename(path);
+												const extension = getExtension(filename);
+
+												const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+
+												return (
+													<div key={index} className="mb-3">
+														<p><strong>Description:</strong> {description}</p>
+
+														<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === "pdf" ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt={description || "Supporting Document"}
+																	className="preview-image"
+																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																/>
+															)}
+														</a>
+													</div>
+												);
+											})}
+										</div>
+									</>
+								)}
+
+								{selectedInspection.testResultContractor && (
+									<>
+										<h4>Test Result Uploaded By Contractor</h4>
+										<div className="image-gallery">
+
+											{(() => {
+												const path = selectedInspection.testResultContractor.trim();
+												const filename = getFilename(path);
+												const extension = getExtension(filename);
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+
+												return (
+													<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+														{extension === 'pdf' ? (
+															<embed
+																src={fileUrl}
+																type="application/pdf"
+																width="100%"
+																height="500px"
+																className="preview-pdf w-100"
+															/>
+														) : (
+															<img
+																src={fileUrl}
+																alt="Test Report"
+																className="preview-image"
+																style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																onError={() => console.error("Image load error:", fileUrl)}
+															/>
+														)}
+													</a>
+												);
+											})()}
+										</div>
+									</>
+								)}
+
+
+
+								{selectedInspection.testResultEngineer && (
+									<>
+										<h4>Test Result Uploaded By Engineer</h4>
+										<div className="image-gallery">
+
+											{(() => {
+												const path = selectedInspection.testResultEngineer.trim();
+												const filename = getFilename(path);
+												const extension = getExtension(filename);
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+
+												return (
+													<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+														{extension === 'pdf' ? (
+															<embed
+																src={fileUrl}
+																type="application/pdf"
+																width="100%"
+																height="500px"
+																className="preview-pdf w-100"
+															/>
+														) : (
+															<img
+																src={fileUrl}
+																alt="Test Report"
+																className="preview-image"
+																style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																onError={() => console.error("Image load error:", fileUrl)}
+															/>
+														)}
+													</a>
+												);
+											})()}
+										</div>
+									</>
+								)}
 
 
 								{selectedInspection.testSiteDocumentsContractor && (
 									<>
-									<h4>Test Report Uploaded By Contractor</h4>
-									<div className="image-gallery">
+										<h4>Test Report Uploaded By Contractor</h4>
+										<div className="image-gallery">
 
-										{(() => {
-											const path = selectedInspection.testSiteDocumentsContractor.trim();
-											const filename = getFilename(path);
-											const extension = getExtension(filename);
-											const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+											{(() => {
+												const path = selectedInspection.testSiteDocumentsContractor.trim();
+												const filename = getFilename(path);
+												const extension = getExtension(filename);
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
 
-											return (
-												<a href={fileUrl} target="_blank" rel="noopener noreferrer">
-													{extension === 'pdf' ? (
-														<embed
-															src={fileUrl}
-															type="application/pdf"
-															width="100%"
-															height="500px"
-															className="preview-pdf w-100"
-														/>
-													) : (
-														<img
-															src={fileUrl}
-															alt="Test Report"
-															className="preview-image"
-															style={{width: "100%", height: "100%", objectFit: "contain"}}
-															onError={() => console.error("Image load error:", fileUrl)}
-														/>
-													)}
-												</a>
-											);
-										})()}
-									</div>
+												return (
+													<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+														{extension === 'pdf' ? (
+															<embed
+																src={fileUrl}
+																type="application/pdf"
+																width="100%"
+																height="500px"
+																className="preview-pdf w-100"
+															/>
+														) : (
+															<img
+																src={fileUrl}
+																alt="Test Report"
+																className="preview-image"
+																style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																onError={() => console.error("Image load error:", fileUrl)}
+															/>
+														)}
+													</a>
+												);
+											})()}
+										</div>
 									</>
 								)}
 
@@ -1126,4 +1353,4 @@ export default function Validation() {
 			</div>
 		</div>
 	);
-	}
+}

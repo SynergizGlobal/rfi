@@ -170,6 +170,8 @@ export default function RfiLogList() {
 
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
 	const fileBaseURL = `${API_BASE_URL}api/rfiLog/previewFiles`;
+	const fileBaseURLForFileName = `${API_BASE_URL}api/rfiLog/previewFiles/file`;
+
 
 	const safe = (val) => val || '-';
 	const toBase64 = async (url) => {
@@ -1022,7 +1024,7 @@ export default function RfiLogList() {
 														<th>Length</th>
 														<th>Breadth</th>
 														<th>Height</th>
-												        <th>Weight</th>
+														<th>Weight</th>
 														<th>Count</th>
 														<th>Total Quantity</th>
 													</tr>
@@ -1097,52 +1099,6 @@ export default function RfiLogList() {
 											<p><strong>Comments:</strong> {selectedInspection.validationComments || '---'}</p>}
 
 									</div>
-									{selectedInspection.selfieClient && (
-										<>
-											<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
-											<div className="image-gallery">
-												{selectedInspection.selfieClient.split(',').map((img, idx) => {
-													const trimmedPath = img.trim();
-													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-													return (
-														<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-															<img
-																src={fileUrl}
-																alt={`Contractor Image ${idx + 1}`}
-																className="preview-image"
-																onError={() => console.error("Image load error:", fileUrl)}
-															/>
-														</a>
-													);
-												})}
-											</div>
-										</>
-									)}
-
-
-									{selectedInspection.imagesUploadedByClient && (
-										<>
-											<h4>Site Images By Inspector</h4>
-											<div className="image-gallery">
-												{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
-													const trimmedPath = img.trim();
-													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-													return (
-														<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-															<img
-																src={fileUrl}
-																alt={`Contractor Image ${idx + 1}`}
-																className="preview-image"
-																onError={() => console.error("Image load error:", fileUrl)}
-															/>
-														</a>
-													);
-												})}
-											</div>
-										</>
-									)}
 
 									{selectedInspection.selfieContractor && (
 										<>
@@ -1193,6 +1149,58 @@ export default function RfiLogList() {
 
 
 
+
+
+									{selectedInspection.selfieClient && (
+										<>
+											<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
+											<div className="image-gallery">
+												{selectedInspection.selfieClient.split(',').map((img, idx) => {
+													const trimmedPath = img.trim();
+													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+													return (
+														<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+															<img
+																src={fileUrl}
+																alt={`Contractor Image ${idx + 1}`}
+																className="preview-image"
+																onError={() => console.error("Image load error:", fileUrl)}
+															/>
+														</a>
+													);
+												})}
+											</div>
+										</>
+									)}
+
+
+									{selectedInspection.imagesUploadedByClient && (
+										<>
+											<h4>Site Images By Inspector</h4>
+											<div className="image-gallery">
+												{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
+													const trimmedPath = img.trim();
+													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+													return (
+														<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+															<img
+																src={fileUrl}
+																alt={`Contractor Image ${idx + 1}`}
+																className="preview-image"
+																onError={() => console.error("Image load error:", fileUrl)}
+															/>
+														</a>
+													);
+												})}
+											</div>
+										</>
+									)}
+
+
+
+
 									{enclosures && enclosures.length > 0 ? (
 										Object.entries(
 											enclosures.reduce((groups, item) => {
@@ -1236,6 +1244,177 @@ export default function RfiLogList() {
 										))
 									) : (
 										<p>No enclosures uploaded.</p>
+									)}
+
+
+
+
+
+
+
+
+									{selectedInspection.conSupportFilePaths && (
+										<>
+											<h4>Support Docs Uploaded By Contractor</h4>
+
+											<div className="image-gallery">
+												{JSON.parse(selectedInspection.conSupportFilePaths).map((doc, index) => {
+													const path = doc.filePath;
+													const description = doc.documentsDescription;
+
+													const filename = getFilename(path);
+													const extension = getExtension(filename);
+
+													const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+
+													return (
+														<div key={index} className="mb-3">
+															<p><strong>Description:</strong> {description}</p>
+
+															<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+																{extension === "pdf" ? (
+																	<embed
+																		src={fileUrl}
+																		type="application/pdf"
+																		width="100%"
+																		height="500px"
+																		className="preview-pdf w-100"
+																	/>
+																) : (
+																	<img
+																		src={fileUrl}
+																		alt={description || "Supporting Document"}
+																		className="preview-image"
+																		style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																	/>
+																)}
+															</a>
+														</div>
+													);
+												})}
+											</div>
+										</>
+									)}
+
+
+
+									{selectedInspection.enggSupportFilePaths && (
+										<>
+											<h4>Support Docs Uploaded By Engineer</h4>
+
+											<div className="image-gallery">
+												{JSON.parse(selectedInspection.enggSupportFilePaths).map((doc, index) => {
+													const path = doc.filePath;
+													const description = doc.documentsDescription;
+
+													const filename = getFilename(path);
+													const extension = getExtension(filename);
+
+													const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+
+													return (
+														<div key={index} className="mb-3">
+															<p><strong>Description:</strong> {description}</p>
+
+															<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+																{extension === "pdf" ? (
+																	<embed
+																		src={fileUrl}
+																		type="application/pdf"
+																		width="100%"
+																		height="500px"
+																		className="preview-pdf w-100"
+																	/>
+																) : (
+																	<img
+																		src={fileUrl}
+																		alt={description || "Supporting Document"}
+																		className="preview-image"
+																		style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																	/>
+																)}
+															</a>
+														</div>
+													);
+												})}
+											</div>
+										</>
+									)}
+
+									{selectedInspection.testResultContractor && (
+										<>
+											<h4>Test Result Uploaded By Contractor</h4>
+											<div className="image-gallery">
+
+												{(() => {
+													const path = selectedInspection.testResultContractor.trim();
+													const filename = getFilename(path);
+													const extension = getExtension(filename);
+													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+
+													return (
+														<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === 'pdf' ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt="Test Report"
+																	className="preview-image"
+																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																	onError={() => console.error("Image load error:", fileUrl)}
+																/>
+															)}
+														</a>
+													);
+												})()}
+											</div>
+										</>
+									)}
+
+
+
+									{selectedInspection.testResultEngineer && (
+										<>
+											<h4>Test Result Uploaded By Engineer</h4>
+											<div className="image-gallery">
+
+												{(() => {
+													const path = selectedInspection.testResultEngineer.trim();
+													const filename = getFilename(path);
+													const extension = getExtension(filename);
+													const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(path)}`;
+
+													return (
+														<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === 'pdf' ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt="Test Report"
+																	className="preview-image"
+																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																	onError={() => console.error("Image load error:", fileUrl)}
+																/>
+															)}
+														</a>
+													);
+												})()}
+											</div>
+										</>
 									)}
 
 

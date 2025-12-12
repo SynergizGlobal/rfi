@@ -51,6 +51,8 @@ public class RfiDetailsLogDTO {
     private String testResultContractor;
     private String testResultEngineer;
     private String dyHodUserName;
+    private String conSupportFilePaths;
+    private String enggSupportFilePaths;
 
     // Full constructor for native query mapping
     public RfiDetailsLogDTO(
@@ -97,7 +99,9 @@ public class RfiDetailsLogDTO {
             String testSiteDocumentsContractor,
             String testResultContractor,
             String testResultEngineer,
-            String dyHodUserName
+            String dyHodUserName,
+            String conSupportFilePaths,
+            String enggSupportFilePaths
     ) {
         this.project = project;
         this.work = work;
@@ -143,5 +147,7 @@ public class RfiDetailsLogDTO {
         this.testResultContractor = testResultContractor;
         this.testResultEngineer = testResultEngineer;
         this.dyHodUserName = dyHodUserName;
+        this.conSupportFilePaths = conSupportFilePaths;
+        this.enggSupportFilePaths = enggSupportFilePaths;
     }
 }
