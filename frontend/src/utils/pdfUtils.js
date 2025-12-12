@@ -119,6 +119,10 @@ export async function generateInspectionPdf(rfiData) {
 	const enclosuresData = Array.isArray(rfiData.enclosures) ? rfiData.enclosures : [];
 	const images = rfiData.images || { contractor: [], engineer: [] };
 	const testReportFile = rfiData.testReportFile || null;
+	const supportingDocs = rfiData.supportingDocs || [];
+	const supportingDescriptions = rfiData.supportingDescriptions || [];
+
+
 
 
 
@@ -273,12 +277,14 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Measurement Record", 40, 48);
 	autoTable(doc, {
 		startY: 60,
-		head: [["Type of Measurement", "L", "B", "H", "No.", "Total Qty."]],
+		head: [["Type of Measurement", "units", "L", "B", "H", "weight", "No.", "Total Qty."]],
 		body: measurements.map(m => [
 			m.type || "",
+			m.units || "",
 			m.l || "",
 			m.b || "",
 			m.h || "",
+			m.weight || "",
 			m.no || "",
 			m.total || ""
 		]),
@@ -326,23 +332,23 @@ export async function generateInspectionPdf(rfiData) {
 			});
 			encY = doc.lastAutoTable.finalY + 20;
 		}
-		 /*if (enc.uploadedFile) {
-			const file = enc.uploadedFile;
-			if (file.type === "application/pdf") {
-				//if (encY > 750) { doc.addPage(); encY = 60; }
-				enclosurePdfBlobs.push(file);
-				//pdfFileNames.push(file.name || "Unnamed PDF");
-			} else if (file.type.startsWith("image/")) {
-				try {
-					const base64 = await toBase64(URL.createObjectURL(file));
-					if (encY > 600) { doc.addPage(); encY = 60; }
-					doc.addImage(base64, "JPEG", 40, encY, 500, 300);
-					encY += 310;
-				} catch (err) {
-					console.warn("Failed to add enclosure image", err);
-				}
-			}
-		}
+		/*if (enc.uploadedFile) {
+		   const file = enc.uploadedFile;
+		   if (file.type === "application/pdf") {
+			   //if (encY > 750) { doc.addPage(); encY = 60; }
+			   enclosurePdfBlobs.push(file);
+			   //pdfFileNames.push(file.name || "Unnamed PDF");
+		   } else if (file.type.startsWith("image/")) {
+			   try {
+				   const base64 = await toBase64(URL.createObjectURL(file));
+				   if (encY > 600) { doc.addPage(); encY = 60; }
+				   doc.addImage(base64, "JPEG", 40, encY, 500, 300);
+				   encY += 310;
+			   } catch (err) {
+				   console.warn("Failed to add enclosure image", err);
+			   }
+		   }
+	   }
 */
 	}
 
@@ -477,6 +483,59 @@ export async function generateInspectionPdf(rfiData) {
 		}
 	}
 
+	// ==============================
+	// Supporting Documents (PDF or Images)
+	// ==============================
+	let supportingPdfBlobs = [];
+
+	if (supportingDocs?.length > 0) {
+		for (const docItem of supportingDocs) {
+			const file = docItem.file;
+
+			// Add title page inside main jsPDF
+		/*	doc.addPage();
+			doc.setFontSize(16);
+			doc.text("Supporting Document", 20, 30);
+			doc.setFontSize(12);
+			doc.text(docItem.description || "", 20, 50);*/
+
+			// Case 1: URL PDF
+			if (typeof file === "string" && file.toLowerCase().endsWith(".pdf")) {
+				const blob = await (await fetch(file)).blob();
+				supportingPdfBlobs.push(blob);   // ✅ Always Blob
+				continue;
+			}
+
+			// Case 2: Base64 PDF
+			if (typeof file === "string" && file.startsWith("data:application/pdf")) {
+				const byteCharacters = atob(file.split(",")[1]);
+				const byteNumbers = new Array(byteCharacters.length);
+				for (let i = 0; i < byteCharacters.length; i++)
+					byteNumbers[i] = byteCharacters.charCodeAt(i);
+
+				const byteArray = new Uint8Array(byteNumbers);
+				supportingPdfBlobs.push(new Blob([byteArray], { type: "application/pdf" })); // ✅ Blob
+				continue;
+			}
+
+			// Case 3: File object PDF
+			if (file instanceof File && file.type === "application/pdf") {
+				supportingPdfBlobs.push(file);  // ✅ File is fine
+				continue;
+			}
+
+			// Case 4: Images (PNG/JPG/JPEG)
+			let base64Image = file;
+
+			if (typeof file === "string" && !file.startsWith("data:")) {
+				const blob = await (await fetch(file)).blob();
+				base64Image = await toBase64(blob);
+			}
+
+			doc.addImage(base64Image, "JPEG", 20, 80, 500, 500);
+		}
+	}
+
 
 	// --- Enclosure PDF/image handling (fixed for multiple PDFs per enclosure) ---
 	const addedPdfFingerprints = new Set();
@@ -525,9 +584,13 @@ export async function generateInspectionPdf(rfiData) {
 		}
 	}
 
+
+
 	externalPdfBlobs = [
-		...testReportPdfBlobs,
-		...enclosurePdfBlobs
-	];
+    ...testReportPdfBlobs,
+    ...enclosurePdfBlobs,
+    ...supportingPdfBlobs,  // ✅ FIXED
+];
+
 	return { doc, externalPdfBlobs };
 }

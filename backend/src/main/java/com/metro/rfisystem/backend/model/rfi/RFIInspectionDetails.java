@@ -87,12 +87,12 @@ public class RFIInspectionDetails {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate engineer_submitted_date;
     
-    @Column(name = "contractor_esign_done")
-    private Boolean contractorEsignDone = false;
-
-    @Column(name = "engineer_esign_done")
-    private Boolean engineerEsignDone = false;
-    
+//    @Column(name = "contractor_esign_done")
+//    private Boolean contractorEsignDone = false;
+//
+//    @Column(name = "engineer_esign_done")
+//    private Boolean engineerEsignDone = false;
+//    
     @Column(name = "post_test_type")
     private String postTestType;
 
@@ -102,5 +102,12 @@ public class RFIInspectionDetails {
     @Column(name = "description_enclosure", length = 2000)
     private String descriptionEnclosure;
 
+ // Multiple supporting documents stored as JSON string
+    @Column(name = "supporting_documents")
+    private String supportingDocuments; 
     
+    @Column(name = "documents_description", length = 200) // fixed spelling
+    private String documentsDescription;
+
+
 }

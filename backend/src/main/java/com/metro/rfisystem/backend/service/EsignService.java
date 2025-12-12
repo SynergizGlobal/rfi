@@ -12,7 +12,9 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -48,7 +50,11 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
-
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -81,10 +87,14 @@ import com.itextpdf.text.pdf.security.ExternalSignatureContainer;
 import com.itextpdf.text.pdf.security.MakeSignature;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
+import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.controller.InspectionController;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.SignedXmlResponse;
+
+import jakarta.xml.bind.DatatypeConverter;
+
 import org.apache.xml.security.Init;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -99,6 +109,9 @@ public class EsignService {
 	
 	@Value("${rfi.pdf.storage-path}")
 	private String pdfStoragePath;
+	
+	@Value("${rfi.dsc.storage-path}")
+	private String dscStoragePath;
 	
 	static {
         Init.init();
@@ -196,7 +209,284 @@ public class EsignService {
 
 	    System.out.println("Contractor-signed PDF created at: " + signedPdfPath);
 	}
+	
+	private X509Certificate convertBase64ToX509(String base64) throws Exception {
 
+	    byte[] decoded;
+
+	    try {
+	        decoded = Base64.getMimeDecoder().decode(base64);
+	    } catch (IllegalArgumentException ex) {
+	        System.out.println("Base64 Decode Failed → Trying Basic Decoder");
+	        decoded = Base64.getDecoder().decode(base64);
+	    }
+
+	    CertificateFactory factory = CertificateFactory.getInstance("X.509");
+	    return (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(decoded));
+	}
+
+	public void stampPdfFromXml(String rfiId, String xmlFilePath, String userId,String txnId) throws Exception {
+
+		 File xmlFile = new File(xmlFilePath);
+		    if (!xmlFile.exists()) {
+		        throw new RuntimeException("XML not found: " + xmlFilePath);
+		    }
+
+		    String xmlContent = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
+
+		    // Extract Base64 Certificate
+		    String base64Cert = extractCertificateBase64(xmlContent);
+		    if (base64Cert == null) {
+		        throw new RuntimeException("UserX509Certificate not found in XML");
+		    }
+
+		    X509Certificate cert = convertBase64ToX509(base64Cert);
+
+	    String signerName     = getX509Field(cert, "CN");
+	    String signerLocation = getX509Field(cert, "ST");
+	    String signerTaxId    = getX509Field(cert, "SERIALNUMBER");
+
+	    if (signerLocation == null) signerLocation = "India";
+	    if (signerName == null) signerName = "Unknown";
+
+	    File pdfDir = new File(pdfStoragePath);
+	    if (!pdfDir.exists()) pdfDir.mkdirs();
+	    
+	    long rfiIdLong = Long.parseLong(rfiId); 
+
+		boolean isSave = inspectionService.SaveTxnIdSetEStatusCon(txnId, rfiIdLong, ESignStatus.CON_SUCCESS);
+
+
+	    String pdfPath = pdfDir + "/" + rfiId + ".pdf";
+	    String stampedPdfPath = pdfDir + "/signed_" + txnId + ".pdf";
+
+	    PdfReader reader = new PdfReader(pdfPath);
+	    FileOutputStream fos = new FileOutputStream(stampedPdfPath);
+
+	    PdfStamper stamper = PdfStamper.createSignature(reader, fos, '\0', null, true);
+	    PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+
+	    Rectangle pageSize = reader.getPageSize(1);
+	    Rectangle rect = new Rectangle(
+	        pageSize.getLeft(80),    // little padding from left
+	        pageSize.getBottom(100), // DSC box bottom
+	        pageSize.getLeft(280),   // width
+	        pageSize.getBottom(180)  // DSC box top (higher than label)
+	    );
+
+	    appearance.setReason("Contractor's Representative approval");
+	    appearance.setLocation("India");
+
+	    String signatureText = "Digitally signed by\n"
+	            + "Name: " + signerName + "\n"
+	            + "Date: " + new java.text.SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(new java.util.Date()) + "\n"
+	            + "Reason: Contractor's Representative approval\n"
+	            + "Location: India";
+
+	    appearance.setLayer2Text(signatureText);
+	    appearance.setVisibleSignature(rect, 1, "ContractorSignature");
+
+	    byte[] dummySig = new byte[256];
+	    ExternalSignatureContainer external = new ExternalSignatureContainer() {
+	        public byte[] sign(InputStream is) { return dummySig; }
+	        public void modifySigningDictionary(PdfDictionary dic) {}
+	    };
+
+	    MakeSignature.signExternalContainer(appearance, external, dummySig.length);
+
+	    stamper.close();
+	    reader.close();
+
+	    System.out.println("PDF stamped successfully → " + stampedPdfPath);
+	}
+
+	public void stampEnggPdfFromXml(String rfiId, String xmlFilePath, String userId) throws Exception {
+
+	    File xmlFile = new File(xmlFilePath);
+	    if (!xmlFile.exists()) throw new RuntimeException("XML not found: " + xmlFilePath);
+
+	    String xmlContent = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
+
+	    // Extract Base64 Certificate
+	    String base64Cert = extractCertificateBase64(xmlContent);
+	    if (base64Cert == null) {
+	        throw new RuntimeException("UserX509Certificate not found in XML");
+	    }
+	    X509Certificate cert = convertBase64ToX509(base64Cert);
+
+	    String signerName     = getX509Field(cert, "CN");
+	    String signerLocation = getX509Field(cert, "ST");
+	    String signerTaxId    = getX509Field(cert, "SERIALNUMBER");
+
+	    if (signerLocation == null) signerLocation = "India";
+	    if (signerName == null) signerName = "Unknown";
+
+	    File pdfDir = new File(pdfStoragePath);
+	    if (!pdfDir.exists()) pdfDir.mkdirs();
+	    
+	    Long longRfiId = Long.parseLong(rfiId);
+	    
+	    String txnId= inspectionService.getTxnId(longRfiId);
+	    
+
+	    String inputPdfPath = pdfDir + "/signed_" + txnId + "_temp.pdf";               // Contractor signed
+	    String engineerSignedPdfPath = pdfDir + "/signed_engineer_" + txnId + ".pdf"; 
+	    String finalPdfPath = pdfDir + "/signed_engineer_" + txnId + "_final.pdf";    
+
+	    PdfReader reader = new PdfReader(inputPdfPath);
+	    FileOutputStream fos = new FileOutputStream(engineerSignedPdfPath);
+
+	    PdfStamper stamper = PdfStamper.createSignature(reader, fos, '\0', null, true);
+	    PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+
+	    Rectangle pageSize = reader.getPageSize(1);
+	    Rectangle rect = new Rectangle(
+	        pageSize.getRight(280),   // shift left to center above label
+	        pageSize.getBottom(100),  // bottom Y
+	        pageSize.getRight(80),    // right padding
+	        pageSize.getBottom(180)   // top Y (higher than label)
+	    );
+
+	    String date = new java.text.SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(new java.util.Date());
+
+	    appearance.setReason("Employer's Representative approval");
+    appearance.setLocation("India");
+
+    String signatureText = "Digitally signed by\n"
+            + "Name: " + signerName + "\n"
+            + "Date: " + new java.text.SimpleDateFormat("yyyy.MM.dd HH:mm:ss z").format(new java.util.Date()) + "\n"
+            + "Reason: Employer's Representative approval\n"
+            + "Location: India";
+
+    		appearance.setLayer2Text(signatureText);
+    	appearance.setVisibleSignature(rect, 1, "EngineerSignature");
+
+	    byte[] dummySig = new byte[256];
+	    ExternalSignatureContainer external = new ExternalSignatureContainer() {
+	        public byte[] sign(InputStream is) { return dummySig; }
+	        public void modifySigningDictionary(PdfDictionary dic) {}
+	    };
+
+	    MakeSignature.signExternalContainer(appearance, external, dummySig.length);
+
+	    stamper.close();
+	    reader.close();
+
+	    System.out.println("PDF stamped successfully → " + engineerSignedPdfPath);
+	    
+	    // ==============================
+	    // Step 2: Disclaimer (Approved case)
+	    // ==============================
+	    RFI rfi = inspectionService.getRFIIdTxnId(txnId, "Engineer");
+
+	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+	    String today = LocalDate.now().format(formatter);	    
+	    
+	    
+	    PdfReader reader2 = new PdfReader(engineerSignedPdfPath);
+	    PdfStamper stamper2 = new PdfStamper(reader2, new FileOutputStream(finalPdfPath));
+
+	    String disclaimerText = buildDisclaimer(rfi, true, today);
+
+	    for (int i = 2; i <= reader2.getNumberOfPages(); i++) {
+	    	PdfContentByte canvas = stamper2.getOverContent(i);
+            float pageWidth = reader2.getPageSize(i).getWidth();
+            float pageHeight = reader2.getPageSize(i).getHeight();
+            float bottomMargin = 12f; // Safe margin above the physical footer
+            float maxWidth = pageWidth - 100f; // left-right padding
+ 
+            Font footerFont = new Font(Font.FontFamily.HELVETICA, 8);
+            Phrase footerPhrase = new Phrase(disclaimerText, footerFont);
+ 
+            // Wrap long text to fit inside the page
+            ColumnText ct = new ColumnText(canvas);
+            ct.setSimpleColumn(
+                    50f, // left margin
+                    bottomMargin, // bottom Y limit
+                    pageWidth - 50f, // right margin
+                    bottomMargin + 40f // top Y limit for footer
+            );
+            ct.setAlignment(Element.ALIGN_CENTER);
+            ct.setText(footerPhrase);
+            ct.go();
+        }
+ 
+
+	    stamper2.close();
+	    reader2.close();
+
+	    System.out.println("Engineer-signed PDF created at: " + finalPdfPath);	
+	    
+	    
+		boolean isSave = inspectionService.SaveEngStatus(longRfiId, ESignStatus.ENGG_SUCCESS);
+	    
+	    
+	}
+
+	/* ********************************************************************
+	   Extract field from DN
+	********************************************************************** */
+	private String getX509Field(X509Certificate cert, String key) {
+	    String dn = cert.getSubjectX500Principal().getName();
+	    for (String part : dn.split(",")) {
+	        part = part.trim();
+	        if (part.startsWith(key + "=")) {
+	            return part.substring((key + "=").length());
+	        }
+	    }
+	    return null;
+	}
+
+
+	/* ********************************************************************
+	   Extract XML tag content
+	********************************************************************** */
+	private String extractTag(String xml, String tag) {
+	    String start = "<" + tag + ">";
+	    String end   = "</" + tag + ">";
+
+	    int s = xml.indexOf(start);
+	    int e = xml.indexOf(end);
+	    if (s == -1 || e == -1) return null;
+
+	    return xml.substring(s + start.length(), e).trim();
+	}
+	private String extractCertificateBase64(String xml) {
+
+	    String start = "<UserX509Certificate>";
+	    String end = "</UserX509Certificate>";
+
+	    int s = xml.indexOf(start);
+	    int e = xml.indexOf(end);
+
+	    if (s == -1 || e == -1) return null;
+
+	    String cert = xml.substring(s + start.length(), e);
+
+	    // Cleanup unwanted characters
+	    cert = cert.replaceAll("\\s+", ""); // remove spaces, tabs, newlines
+	    cert = cert.replaceAll("-----BEGINCERTIFICATE-----", "");
+	    cert = cert.replaceAll("-----ENDCERTIFICATE-----", "");
+	    cert = cert.replaceAll("[^A-Za-z0-9+/=]", ""); // remove invalid base64 chars
+
+	    return cert;
+	}
+
+
+
+
+	public SignedXmlResponse getSignedXmlRequestSimple(byte[] pdfData,String sc, String txnId, String signerName, String companyName, Integer signY) throws Exception {
+		File tempPdfFile = File.createTempFile("temp", ".pdf");
+	    try (FileOutputStream fos = new FileOutputStream(tempPdfFile)) {
+	        fos.write(pdfData);
+	    }
+	    
+	    String documentHash = pdfSignerWithConAppearance(tempPdfFile, signerName, companyName, signY);
+
+		String xmlRequest = generateEsignXmlRequest(documentHash, sc, txnId);
+		String signedXmlRequest = generateSignedXMLRequest(xmlRequest, ASP_PRIVATE_KEY);
+		return new SignedXmlResponse (signedXmlRequest, txnId);
+	}
 
 
 	public void signWithDSEngineer(String txnId, String eSignResponse, String engName) throws Exception {
@@ -319,6 +609,149 @@ public class EsignService {
 	            + "It is a digitally generated document and is electronically signed on 1st page of this RFI.";
 	    }
 	}
+	
+	private byte[] loadPdfBytes(String signerName) throws Exception {
+
+	    // Path where user PDFs are stored
+//	    String baseDir = "C:/projects/rfi/dsc/";
+
+	    // User folder path
+	    File userFolder = new File(dscStoragePath + signerName);
+	    if (!userFolder.exists()) {
+	        userFolder.mkdirs();   // create folder if not exists
+	    }
+
+	    // PDF file path
+	    File pdfFile = new File(userFolder, "esign.pdf");
+
+	    // 1️⃣ If PDF exists → load it
+	    if (pdfFile.exists()) {
+	        return Files.readAllBytes(pdfFile.toPath());
+	    }
+
+	    // 2️⃣ If NOT exists → create a dummy PDF
+	    ByteArrayOutputStream out = new ByteArrayOutputStream();
+	    PDDocument document = new PDDocument();
+	    try {
+	        PDPage page = new PDPage(PDRectangle.A4);
+	        document.addPage(page);
+
+	        PDPageContentStream content = new PDPageContentStream(document, page);
+	        content.beginText();
+	        content.setFont(PDType1Font.HELVETICA_BOLD, 14);
+	        content.newLineAtOffset(50, 750);
+	        content.showText("Signature Document for: " + signerName);
+	        content.endText();
+	        content.close();
+
+	        document.save(out);
+	    } finally {
+	        document.close();		
+	    }
+
+	    // Save this newly created PDF to user folder
+	    Files.write(pdfFile.toPath(), out.toByteArray(), StandardOpenOption.CREATE);
+
+	    return out.toByteArray();
+	}
+
+	public SignedXmlResponse generateEsignXmlRequestForImageOnly(String sc, String txnId, String userId) {
+	    try {
+	        String ts = getCurrentTimestampIST();
+
+	        // SHA256 of a dummy string for image-only signing
+	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	        byte[] hashBytes = digest.digest("IMAGE_ONLY".getBytes(StandardCharsets.UTF_8));
+	        String documentHash = DatatypeConverter.printHexBinary(hashBytes);
+
+	        String xml = "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" "
+	                + "ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" "
+	                + "responseUrl=\"https://www.syntrackpro.com/rfiSystem_qa/rfi/signedResponse\">"
+	                //+ "responseUrl=\"https://localhost:8443/rfiSystem_qa/rfi/signedResponse\">"
+
+	                + "<Docs>"
+	                + "<InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Image only\">" + documentHash + "</InputHash>"
+	                + "</Docs>"
+	                + "</Esign>";
+
+	        return new SignedXmlResponse(xml, txnId);
+
+	    } catch (Exception ex) {
+	        throw new RuntimeException("Failed to generate eSign XML for image-only", ex);
+	    }
+	}
+
+
+
+	public void saveUserEsignedXml(String userId, String xml, String espTxnID) {
+
+	    if (userId == null || userId.isEmpty()) {
+	        throw new IllegalArgumentException("Invalid userId");
+	    }
+
+	    String basePath = dscStoragePath + userId;
+	    File folder = new File(basePath);
+	    if (!folder.exists()) folder.mkdirs();
+
+	    File xmlFile = new File(folder, "signed.xml");
+	    try {
+	        Files.writeString(xmlFile.toPath(), xml,
+	                StandardOpenOption.CREATE,
+	                StandardOpenOption.TRUNCATE_EXISTING);
+	    } catch (Exception e) {
+	        throw new RuntimeException("Failed to save signed XML", e);
+	    }
+	    
+	    /*
+	    if (espTxnID != null && !espTxnID.isEmpty()) {
+	        File txnFile = new File(folder, "txnId.txt");
+	        try {
+	            Files.writeString(txnFile.toPath(), espTxnID,
+	                    StandardOpenOption.CREATE,
+	                    StandardOpenOption.TRUNCATE_EXISTING);
+	        } catch (Exception e) {
+	            throw new RuntimeException("Failed to save txnId", e);
+	        }
+	    }*/	    
+
+	    //saveSignaturePng(userId, xml);
+	}
+
+	public void saveSignaturePng(String userId, String xml) {
+
+	    try {
+	        // Extract <Signature>...</Signature>   (NOT SignatureValue)
+	        String base64Signature = xml.replaceAll(
+	                "(?s).*<Signature>(.*?)</Signature>.*", "$1")
+	                .replaceAll("\\s+", "");
+
+	        if (base64Signature == null || base64Signature.isEmpty()) {
+	            System.out.println("⚠ No signature image found in XML");
+	            return;
+	        }
+
+	        byte[] imgBytes = Base64.getDecoder().decode(base64Signature);
+
+	        String folderPath = dscStoragePath + userId;
+	        File folder = new File(folderPath);
+	        if (!folder.exists()) folder.mkdirs();
+
+	        File signatureFile = new File(folder, "signature.png");
+	        try (FileOutputStream fos = new FileOutputStream(signatureFile)) {
+	            fos.write(imgBytes);
+	        }
+
+	        System.out.println("✅ Signature PNG saved: " + signatureFile.getAbsolutePath());
+
+	    } catch (Exception ex) {
+	        throw new RuntimeException("Failed to save signature PNG", ex);
+	    }
+	}
+
+
+
+
+
 
 	
 	public void applyEsignResponseToPdf(String eSignResponse, String srcPdf, String destPdf) throws Exception {
@@ -586,14 +1019,16 @@ public class EsignService {
 	    return hashDocument;
 	}
 
-	private String generateEsignXmlRequest(String documentHash, String sc, String txnId) {
-	    String ts = getCurrentTimestampIST();
-	    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://localhost:8443/rfi/signedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
-	}
-	
+		private String generateEsignXmlRequest(String documentHash, String sc, String txnId) {
+		    String ts = getCurrentTimestampIST();
+//		    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://localhost:8443/rfi/signedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
+		    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://www.syntrackpro.com/rfiSystem_qa/rfi/signedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
+		}
+		
 	private String generateEngEsignXmlRequest(String documentHash, String sc, String txnId) {
 	    String ts = getCurrentTimestampIST();
-	    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://localhost:8443/rfi/engineerSignedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
+//	    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://localhost:8443/rfi/engineerSignedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
+	    return "<Esign ver=\"2.1\" sc=\"" + sc + "\" ts=\"" + ts + "\" txn=\"" + txnId + "\" ekycIdType=\"A\" aspId=\"MRVC-902\" AuthMode=\"1\" responseSigType=\"pkcs7\" responseUrl=\"https://syntrackpro.com/rfiSystem_qa/rfi/engineerSignedResponse\"><Docs><InputHash id=\"1\" hashAlgorithm=\"SHA256\" docInfo=\"Bill data\">" + documentHash + "</InputHash></Docs></Esign>";
 	}	
 	
 	public String generateSignedXMLRequest(String xmlContent, String privateKeyString) {

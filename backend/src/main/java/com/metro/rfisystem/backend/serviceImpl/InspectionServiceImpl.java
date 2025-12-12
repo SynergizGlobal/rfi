@@ -11,6 +11,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,6 +31,8 @@ import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.RfiStatusProjection;
+import com.metro.rfisystem.backend.dto.SupportingDoc;
+import com.metro.rfisystem.backend.dto.SupportingDocDTO;
 import com.metro.rfisystem.backend.model.rfi.Measurements;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
@@ -42,6 +45,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.FontFactory;
@@ -50,6 +55,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -101,9 +107,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class InspectionServiceImpl implements InspectionService {
-	
-	private final JdbcTemplate jdbcTemplate;
 
+	private final JdbcTemplate jdbcTemplate;
 
 	private final RFIRepository rfiRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
@@ -111,8 +116,9 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Value("${rfi.inspection.images.upload-dir}")
 	private String uploadDir;
-	
-	
+
+	@Value("${supporting.docs.upload-dir}")
+	private String supportingDocsUploadDir;
 
 	@Override
 	public RfiInspectionDTO getById(Long id) {
@@ -134,34 +140,30 @@ public class InspectionServiceImpl implements InspectionService {
 
 	}
 
-
-
-
 	@Override
-	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-			MultipartFile testDocument, String deptFk) {
-		
-	    String deptFkPar = deptFk.equalsIgnoreCase("Engg") ? "Engg" : "CON";
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie, MultipartFile testDocument,
+			List<MultipartFile> supportingFiles, String deptFk) throws Exception {
 
-	    RFI rfi = rfiRepository.findById(dto.getRfiId())
-	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+		String deptFkPar = deptFk.equalsIgnoreCase("Engg") ? "Engg" : "CON";
 
-	    if (dto.getNameOfRepresentative() != null 
-	            && !dto.getNameOfRepresentative().equals(rfi.getNameOfRepresentative())) {
-	        rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
-	    }
+		RFI rfi = rfiRepository.findById(dto.getRfiId())
+				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
-	    Optional<RFIInspectionDetails> existingInspectionOpt =
-	            inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar);
+		if (dto.getNameOfRepresentative() != null
+				&& !dto.getNameOfRepresentative().equals(rfi.getNameOfRepresentative())) {
+			rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
+		}
 
-	    RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
-	    
-	    Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
-	    
-	    Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
-	    
-	    
-	    inspection.setRfi(rfi);
+		Optional<RFIInspectionDetails> existingInspectionOpt = inspectionRepository.findByRfiAndUploadedBy(rfi,
+				deptFkPar);
+
+		RFIInspectionDetails inspection = existingInspectionOpt.orElse(new RFIInspectionDetails());
+
+		Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
+
+		Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
+
+		inspection.setRfi(rfi);
 		if ("Engg".equalsIgnoreCase(deptFk)) {
 			inspection.setUploadedBy("Engg");
 			rfi.setStatus(EnumRfiStatus.AE_INSP_ONGOING);
@@ -169,109 +171,196 @@ public class InspectionServiceImpl implements InspectionService {
 			inspection.setUploadedBy("CON");
 			rfi.setStatus(EnumRfiStatus.CON_INSP_ONGOING);
 		}
-	    if (dto.getInspectionStatus() != null) {
-	        inspection.setInspectionStatus(dto.getInspectionStatus());
-	    }
+		if (dto.getInspectionStatus() != null) {
+			inspection.setInspectionStatus(dto.getInspectionStatus());
+		}
 
-	    if (selfie != null && !selfie.isEmpty()) {
-	        inspection.setSelfiePath(saveFile(selfie));
-	    }
+		if (selfie != null && !selfie.isEmpty()) {
+			inspection.setSelfiePath(saveFile(selfie));
+		}
 
-	    if (testDocument != null && !testDocument.isEmpty()) {
-	        inspection.setTestSiteDocuments(saveFile(testDocument));
-	    }
+		if (testDocument != null && !testDocument.isEmpty()) {
+			inspection.setTestSiteDocuments(saveFile(testDocument));
+		}
 
-	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
-	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
+		// Supporting documents
+		if (supportingFiles != null && !supportingFiles.isEmpty() && dto.getSupportingDescriptions() != null) {
+			List<SupportingDoc> existingDocs = new ArrayList<>();
 
-	    if (inspection.getId() == null) {
-	        inspection.setDateOfInspection(LocalDate.now());
-	        inspection.setTimeOfInspection(LocalTime.now());
-	    }
-	    if (dto.getDescriptionEnclosure() != null) {
-	        inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
-	    }
+			// Load existing JSON → List<SupportingDoc>
+			if (inspection.getSupportingDocuments() != null && !inspection.getSupportingDocuments().isEmpty()) {
+				ObjectMapper mapper = new ObjectMapper();
+				existingDocs = Arrays
+						.asList(mapper.readValue(inspection.getSupportingDocuments(), SupportingDoc[].class));
+				existingDocs = new ArrayList<>(existingDocs);
+			}
 
+			// Save new files to disk and add to list
+			for (int i = 0; i < supportingFiles.size(); i++) {
+				MultipartFile file = supportingFiles.get(i);
+				String description = dto.getSupportingDescriptions().get(i);
+				String savedPath = saveSupportingFile(file); // saves in ${user.home}/uploads/supporting-documents
 
-	    if (dto.getMeasurementType() != null) measurements.setMeasurementType(dto.getMeasurementType());
-	    if (dto.getLength() != null) measurements.setLength(dto.getLength());
-	    if (dto.getBreadth() != null) measurements.setBreadth(dto.getBreadth());
-	    if (dto.getHeight() != null) measurements.setHeight(dto.getHeight());
-	    if (dto.getNoOfItems() != null) measurements.setNoOfItems(dto.getNoOfItems());
-	    if (dto.getTotalQty() != null) measurements.setTotalQty(dto.getTotalQty());
-	    if (dto.getRfiId() != null) measurements.setRfi(rfi);
-	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
-	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
-	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
+				existingDocs.add(new SupportingDoc(savedPath, description));
+			}
 
-	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
+			// Save updated JSON
+			ObjectMapper mapper = new ObjectMapper();
+			inspection.setSupportingDocuments(mapper.writeValueAsString(existingDocs));
 
-        rfiRepository.save(rfi);
-	    inspectionRepository.save(inspection);
-	    measurementsRepository.save(measurements);
-	    return inspection.getId();
+			// Optional: join descriptions
+			inspection.setDocumentsDescription(
+					existingDocs.stream().map(SupportingDoc::getDocumentsDescription).collect(Collectors.joining(",")));
+		}
+
+		if (dto.getLocation() != null)
+			inspection.setLocation(dto.getLocation());
+		if (dto.getChainage() != null)
+			inspection.setChainage(dto.getChainage());
+
+		if (inspection.getId() == null) {
+			inspection.setDateOfInspection(LocalDate.now());
+			inspection.setTimeOfInspection(LocalTime.now());
+		}
+		if (dto.getDescriptionEnclosure() != null) {
+			inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
+		}
+
+		if (dto.getMeasurementType() != null)
+			measurements.setMeasurementType(dto.getMeasurementType());
+		if (dto.getLength() != null)
+			measurements.setLength(dto.getLength());
+		if (dto.getBreadth() != null)
+			measurements.setBreadth(dto.getBreadth());
+		if (dto.getHeight() != null)
+			measurements.setHeight(dto.getHeight());
+		if (dto.getWeight() != null)
+			measurements.setWeight(dto.getWeight());
+		if (dto.getUnits() != null)
+			measurements.setUnits(dto.getUnits());
+		if (dto.getNoOfItems() != null)
+			measurements.setNoOfItems(dto.getNoOfItems());
+		if (dto.getTotalQty() != null)
+			measurements.setTotalQty(dto.getTotalQty());
+		if (dto.getRfiId() != null)
+			measurements.setRfi(rfi);
+		if (dto.getInspectionStatus() != null)
+			inspection.setInspectionStatus(dto.getInspectionStatus());
+		if (dto.getTestInsiteLab() != null)
+			inspection.setTestInsiteLab(dto.getTestInsiteLab());
+		if (dto.getEngineerRemarks() != null)
+			inspection.setEngineerRemarks(dto.getEngineerRemarks());
+
+		inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
+
+		rfiRepository.save(rfi);
+		inspectionRepository.save(inspection);
+		measurementsRepository.save(measurements);
+		return inspection.getId();
 	}
-	
-	
+
 	@Transactional
-	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto,
-	                                                 MultipartFile selfie,
-	                                                 MultipartFile testDocument,
-	                                                 String deptFk) {
+	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
+			MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk) throws Exception {
 
-	    RFI rfi = rfiRepository.findById(dto.getRfiId())
-	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
+		RFI rfi = rfiRepository.findById(dto.getRfiId())
+				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
 
-	    RFIInspectionDetails inspection;
-	    
-	    String deptFkPar = (deptFk != null && deptFk.equalsIgnoreCase("Engg")) ? "Engg" : "CON";
+		RFIInspectionDetails inspection;
 
-	    if (dto.getInspectionId() == null) {
-	        inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar)
-	                .orElse(new RFIInspectionDetails());
-	        inspection.setRfi(rfi);
-	    } else {
-	        inspection = inspectionRepository.findById(dto.getInspectionId())
-	                .orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + dto.getInspectionId()));
-	    }
-	    
-	    Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
-	    
-	    Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
+		String deptFkPar = (deptFk != null && deptFk.equalsIgnoreCase("Engg")) ? "Engg" : "CON";
+
+		if (dto.getInspectionId() == null) {
+			inspection = inspectionRepository.findByRfiAndUploadedBy(rfi, deptFkPar).orElse(new RFIInspectionDetails());
+			inspection.setRfi(rfi);
+		} else {
+			inspection = inspectionRepository.findById(dto.getInspectionId())
+					.orElseThrow(() -> new RuntimeException("Inspection not found with ID: " + dto.getInspectionId()));
+		}
+
+		Optional<Measurements> existingMeasurementsOpt = measurementsRepository.findByRfiId(dto.getRfiId());
+
+		Measurements measurements = existingMeasurementsOpt.orElse(new Measurements());
 
 		if ("Engg".equalsIgnoreCase(deptFk)) {
 			inspection.setUploadedBy("Engg");
 		} else {
 			inspection.setUploadedBy("CON");
-		}	    inspection.setDateOfInspection(LocalDate.now());
-	    inspection.setTimeOfInspection(LocalTime.now());
+		}
+		inspection.setDateOfInspection(LocalDate.now());
+		inspection.setTimeOfInspection(LocalTime.now());
 
-	    if (dto.getLocation() != null) inspection.setLocation(dto.getLocation());
-	    if (dto.getChainage() != null) inspection.setChainage(dto.getChainage());
-	    if (dto.getMeasurementType() != null) measurements.setMeasurementType(dto.getMeasurementType());
-	    if (dto.getLength() != null) measurements.setLength(dto.getLength());
-	    if (dto.getBreadth() != null) measurements.setBreadth(dto.getBreadth());
-	    if (dto.getHeight() != null) measurements.setHeight(dto.getHeight());
-	    if (dto.getNoOfItems() != null) measurements.setNoOfItems(dto.getNoOfItems());
-	    if (dto.getTotalQty() != null) measurements.setTotalQty(dto.getTotalQty());
-	    if (dto.getRfiId() != null) measurements.setRfi(rfi);
-	    if (dto.getInspectionStatus() != null) inspection.setInspectionStatus(dto.getInspectionStatus());
-	    if (dto.getTestInsiteLab() != null) inspection.setTestInsiteLab(dto.getTestInsiteLab());
-	    if (dto.getEngineerRemarks() != null) inspection.setEngineerRemarks(dto.getEngineerRemarks());
-	    if (dto.getDescriptionEnclosure() != null) {
-	        inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
-	    }
+		if (dto.getLocation() != null)
+			inspection.setLocation(dto.getLocation());
+		if (dto.getChainage() != null)
+			inspection.setChainage(dto.getChainage());
+		if (dto.getMeasurementType() != null)
+			measurements.setMeasurementType(dto.getMeasurementType());
+		if (dto.getLength() != null)
+			measurements.setLength(dto.getLength());
+		if (dto.getBreadth() != null)
+			measurements.setBreadth(dto.getBreadth());
+		if (dto.getHeight() != null)
+			measurements.setHeight(dto.getHeight());
+		if (dto.getWeight() != null)
+			measurements.setWeight(dto.getWeight());
+		if (dto.getUnits() != null)
+			measurements.setUnits(dto.getUnits());
+		if (dto.getNoOfItems() != null)
+			measurements.setNoOfItems(dto.getNoOfItems());
+		if (dto.getTotalQty() != null)
+			measurements.setTotalQty(dto.getTotalQty());
+		if (dto.getRfiId() != null)
+			measurements.setRfi(rfi);
+		if (dto.getInspectionStatus() != null)
+			inspection.setInspectionStatus(dto.getInspectionStatus());
+		if (dto.getTestInsiteLab() != null)
+			inspection.setTestInsiteLab(dto.getTestInsiteLab());
+		if (dto.getEngineerRemarks() != null)
+			inspection.setEngineerRemarks(dto.getEngineerRemarks());
+		if (dto.getDescriptionEnclosure() != null) {
+			inspection.setDescriptionEnclosure(dto.getDescriptionEnclosure());
+		}
 
-	    if (selfie != null && !selfie.isEmpty()) {
-	        inspection.setSelfiePath(saveFile(selfie));
-	    }
-	    if (testDocument != null && !testDocument.isEmpty()) {
-	        inspection.setTestSiteDocuments(saveFile(testDocument));
-	    }
+		if (selfie != null && !selfie.isEmpty()) {
+			inspection.setSelfiePath(saveFile(selfie));
+		}
+		if (testDocument != null && !testDocument.isEmpty()) {
+			inspection.setTestSiteDocuments(saveFile(testDocument));
+		}
+		// Supporting documents
+		if (supportingFiles != null && !supportingFiles.isEmpty() && dto.getSupportingDescriptions() != null) {
+			List<SupportingDoc> existingDocs = new ArrayList<>();
 
-	    inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
+			// Load existing JSON → List<SupportingDoc>
+			if (inspection.getSupportingDocuments() != null && !inspection.getSupportingDocuments().isEmpty()) {
+				ObjectMapper mapper = new ObjectMapper();
+				existingDocs = Arrays
+						.asList(mapper.readValue(inspection.getSupportingDocuments(), SupportingDoc[].class));
+				existingDocs = new ArrayList<>(existingDocs);
+			}
 
-	   		if ("Engg".equalsIgnoreCase(deptFk)) {
+			// Save new files to disk and add to list
+			for (int i = 0; i < supportingFiles.size(); i++) {
+				MultipartFile file = supportingFiles.get(i);
+				String description = dto.getSupportingDescriptions().get(i);
+				String savedPath = saveSupportingFile(file); // saves in ${user.home}/uploads/supporting-documents
+
+				existingDocs.add(new SupportingDoc(savedPath, description));
+			}
+
+			// Save updated JSON
+			ObjectMapper mapper = new ObjectMapper();
+			inspection.setSupportingDocuments(mapper.writeValueAsString(existingDocs));
+
+			// Optional: join descriptions
+			inspection.setDocumentsDescription(
+					existingDocs.stream().map(SupportingDoc::getDocumentsDescription).collect(Collectors.joining(",")));
+		}
+
+		inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
+
+		if ("Engg".equalsIgnoreCase(deptFk)) {
 			if (dto.getTestInsiteLab() != null && dto.getTestInsiteLab().toString().equalsIgnoreCase("Rejected")) {
 				rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
 			} else
@@ -280,160 +369,252 @@ public class InspectionServiceImpl implements InspectionService {
 			rfi.setStatus(EnumRfiStatus.INSPECTED_BY_CON);
 		}
 
-	    inspectionRepository.save(inspection);
-	    measurementsRepository.save(measurements);
-	    rfiRepository.save(rfi);
+		inspectionRepository.save(inspection);
+		measurementsRepository.save(measurements);
+		rfiRepository.save(rfi);
 
-	    return "Engg".equalsIgnoreCase(deptFk)
-	            ? InspectionSubmitResult.ENGINEER_SUCCESS
-	            : InspectionSubmitResult.CONTRACTOR_SUCCESS;
+		return "Engg".equalsIgnoreCase(deptFk) ? InspectionSubmitResult.ENGINEER_SUCCESS
+				: InspectionSubmitResult.CONTRACTOR_SUCCESS;
 	}
-	
-	
+
 	@Override
 	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk) {
 
-	    if (siteImage == null || siteImage.isEmpty()) {
-	        throw new RuntimeException("No site image provided for upload.");
-	    }
+		if (siteImage == null || siteImage.isEmpty()) {
+			throw new RuntimeException("No site image provided for upload.");
+		}
 
-	    String deptFkPar = "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON";
+		String deptFkPar = "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON";
 
-	    RFI rfi = rfiRepository.findById(rfiId)
-	            .orElseThrow(() -> new RuntimeException("RFI not found with ID: " + rfiId));
-	    
-	    if((EnumRfiStatus.INSPECTION_DONE).equals(rfi.getStatus())) {
-	    	return "Upload Failed, Inspection Closed!";
-	    }
-	    
-	    if((EnumRfiStatus.VALIDATION_PENDING).equals(rfi.getStatus())) {
-	    	return "Upload Failed, Inspection under validation process!";
-	    }
+		RFI rfi = rfiRepository.findById(rfiId)
+				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + rfiId));
 
-	    if ("Engg".equals(deptFkPar)) {
-	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE
-	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
-	            return "Upload Failed, Inspection Already Submitted!";
-	        }
-	    } else {
-	        if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_CON
-	                || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
-	            return "Upload Failed, Inspection Already Submitted!";
-	        }
-	    }
+		if ((EnumRfiStatus.INSPECTION_DONE).equals(rfi.getStatus())) {
+			return "Upload Failed, Inspection Closed!";
+		}
 
-	    RFIInspectionDetails inspection = inspectionRepository
-	            .findByRfiIdAndUploadedBy(rfiId, deptFkPar)
-	            .orElseGet(() -> {
-	                RFIInspectionDetails newInspection = new RFIInspectionDetails();
-	                newInspection.setRfi(rfi);
-	                newInspection.setUploadedBy(deptFkPar);
-	                return newInspection;
-	            });
-	    String newFilePath = saveFile(siteImage);
-	    
-	    
-	    inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
-	    if (inspection.getSiteImage() != null && !inspection.getSiteImage().isEmpty()) {
-	    	inspection.setSiteImage(inspection.getSiteImage() + "," + newFilePath);
-	    }
-	    else
-	    {
-	    	inspection.setSiteImage(newFilePath);
-	    }
+		if ((EnumRfiStatus.VALIDATION_PENDING).equals(rfi.getStatus())) {
+			return "Upload Failed, Inspection under validation process!";
+		}
 
-	    if ("Engg".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.AE_INSP_ONGOING) {
-	        rfi.setStatus(EnumRfiStatus.AE_INSP_ONGOING);
-	    } else if ("CON".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.CON_INSP_ONGOING) {
-	        rfi.setStatus(EnumRfiStatus.CON_INSP_ONGOING);
-	    }
+		if ("Engg".equals(deptFkPar)) {
+			if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
+				return "Upload Failed, Inspection Already Submitted!";
+			}
+		} else {
+			if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_CON || rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
+				return "Upload Failed, Inspection Already Submitted!";
+			}
+		}
 
-	    inspectionRepository.save(inspection);
-	    rfiRepository.save(rfi);
+		RFIInspectionDetails inspection = inspectionRepository.findByRfiIdAndUploadedBy(rfiId, deptFkPar)
+				.orElseGet(() -> {
+					RFIInspectionDetails newInspection = new RFIInspectionDetails();
+					newInspection.setRfi(rfi);
+					newInspection.setUploadedBy(deptFkPar);
+					return newInspection;
+				});
+		String newFilePath = saveFile(siteImage);
 
-	    return "✅ Site image uploaded successfully for RFI ID " + rfiId + ".";
+		inspection.setWorkStatus(InspectionWorkFlowStatus.draft);
+		if (inspection.getSiteImage() != null && !inspection.getSiteImage().isEmpty()) {
+			inspection.setSiteImage(inspection.getSiteImage() + "," + newFilePath);
+		} else {
+			inspection.setSiteImage(newFilePath);
+		}
+
+		if ("Engg".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.AE_INSP_ONGOING) {
+			rfi.setStatus(EnumRfiStatus.AE_INSP_ONGOING);
+		} else if ("CON".equals(deptFkPar) && rfi.getStatus() != EnumRfiStatus.CON_INSP_ONGOING) {
+			rfi.setStatus(EnumRfiStatus.CON_INSP_ONGOING);
+		}
+
+		inspectionRepository.save(inspection);
+		rfiRepository.save(rfi);
+
+		return "✅ Site image uploaded successfully for RFI ID " + rfiId + ".";
 	}
-	
-	
-	
-	
 
 	@Override
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk) {
-	    List<RFIInspectionDetails> inspections = inspectionRepository.findAllByRfiId(rfiId);
+		List<RFIInspectionDetails> inspections = inspectionRepository.findAllByRfiId(rfiId);
 
-	    if (inspections.isEmpty()) {
-	        return Collections.emptyList();
-	    }
+		if (inspections.isEmpty()) {
+			return Collections.emptyList();
+		}
 
-	    List<RFIInspectionDetails> contractorRows = inspections.stream()
-	            .filter(ins -> !"Engg".equalsIgnoreCase(ins.getUploadedBy()))
-	            .toList();
+		List<RFIInspectionDetails> contractorRows = inspections.stream()
+				.filter(ins -> !"Engg".equalsIgnoreCase(ins.getUploadedBy())).toList();
 
-	    List<RFIInspectionDetails> engineerRows = inspections.stream()
-	            .filter(ins -> "Engg".equalsIgnoreCase(ins.getUploadedBy()))
-	            .toList();
+		List<RFIInspectionDetails> engineerRows = inspections.stream()
+				.filter(ins -> "Engg".equalsIgnoreCase(ins.getUploadedBy())).toList();
 
-	    List<RFIInspectionRequestDTO> result = new ArrayList<>();
+		List<RFIInspectionRequestDTO> result = new ArrayList<>();
 
-	    contractorRows.forEach(c -> {
-	        RFIInspectionRequestDTO dto = convertToFullDTO(c);
+		contractorRows.forEach(c -> {
+		    RFIInspectionRequestDTO dto = convertToFullDTO(c);
 
-	        engineerRows.forEach(e -> {
-	            if (e.getEngineerRemarks() != null) {
-	                if (dto.getEngineerRemarks() == null) dto.setEngineerRemarks(e.getEngineerRemarks());
-	                else dto.setEngineerRemarks(dto.getEngineerRemarks() + " | " + e.getEngineerRemarks());
-	            }
-	            if (e.getTestInsiteLab() != null && dto.getTestInsiteLab() == null) {
-	                dto.setTestInsiteLab(e.getTestInsiteLab());
-	            }
-	            if (!dto.getUploadedBy().contains("Engg")) {
-	                dto.setUploadedBy(dto.getUploadedBy() + ", Engg");
-	            }
-	        });
+		    engineerRows.forEach(e -> {
+		        // merge engineer remarks
+		        if (e.getEngineerRemarks() != null) {
+		            if (dto.getEngineerRemarks() == null)
+		                dto.setEngineerRemarks(e.getEngineerRemarks());
+		            else
+		                dto.setEngineerRemarks(dto.getEngineerRemarks() + " | " + e.getEngineerRemarks());
+		        }
 
-	        result.add(dto);
-	    });
+		        // merge lab test field
+		        if (e.getTestInsiteLab() != null && dto.getTestInsiteLab() == null) {
+		            dto.setTestInsiteLab(e.getTestInsiteLab());
+		        }
 
-	    if (contractorRows.isEmpty()) {
-	        engineerRows.forEach(e -> result.add(convertToFullDTO(e)));
-	    }
+		        // 🔥🔥 MERGE ENGINEER SUPPORTING DOCUMENTS HERE
+		        try {
+		            ObjectMapper mapper = new ObjectMapper();
+		            if (e.getSupportingDocuments() != null) {
+		                List<SupportingDoc> engineerDocs =
+		                    Arrays.asList(mapper.readValue(e.getSupportingDocuments(), SupportingDoc[].class));
 
-	    return result;
+		                // merge file paths
+		                List<String> newFiles = engineerDocs.stream().map(SupportingDoc::getFilePath).toList();
+		                List<String> mergedFiles = new ArrayList<>(dto.getSupportingFiles());
+		                mergedFiles.addAll(newFiles);
+		                dto.setSupportingFiles(mergedFiles);
+
+		                // merge descriptions
+		                List<String> newDescs = engineerDocs.stream().map(SupportingDoc::getDocumentsDescription).toList();
+		                List<String> mergedDescs = new ArrayList<>(dto.getSupportingDescriptions());
+		                mergedDescs.addAll(newDescs);
+		                dto.setSupportingDescriptions(mergedDescs);
+		            }
+		        } catch (Exception ex) {
+		            ex.printStackTrace();
+		        }
+
+		    });
+
+		    result.add(dto);
+		});
+
+		if (contractorRows.isEmpty()) {
+			engineerRows.forEach(e -> result.add(convertToFullDTO(e)));
+		}
+
+		return result;
 	}
 
 	private RFIInspectionRequestDTO convertToFullDTO(RFIInspectionDetails inspection) {
-	    RFIInspectionRequestDTO dto = new RFIInspectionRequestDTO();
-	    dto.setRfiId(inspection.getRfi().getId());
-	    dto.setInspectionId(inspection.getId());
-	    dto.setLocation(inspection.getLocation());
-	    dto.setChainage(inspection.getChainage());
+		RFIInspectionRequestDTO dto = new RFIInspectionRequestDTO();
+		dto.setRfiId(inspection.getRfi().getId());
+		dto.setInspectionId(inspection.getId());
+		dto.setLocation(inspection.getLocation());
+		dto.setChainage(inspection.getChainage());
 
-	    dto.setInspectionStatus(inspection.getInspectionStatus() != null
-	            ? inspection.getInspectionStatus()
-	            : null);
+		dto.setInspectionStatus(inspection.getInspectionStatus() != null ? inspection.getInspectionStatus() : null);
 
-	    dto.setUploadedBy(inspection.getUploadedBy());
-	    dto.setEngineerRemarks(inspection.getEngineerRemarks());
-	    dto.setTestInsiteLab(inspection.getTestInsiteLab());
-	    dto.setDescriptionEnclosure(inspection.getDescriptionEnclosure());
+		dto.setUploadedBy(inspection.getUploadedBy());
+		dto.setEngineerRemarks(inspection.getEngineerRemarks());
+		dto.setTestInsiteLab(inspection.getTestInsiteLab());
+		dto.setDescriptionEnclosure(inspection.getDescriptionEnclosure());
 
-	    // Fetch measurements if available
-	    measurementsRepository.findByRfiId(inspection.getRfi().getId())
-	            .ifPresent(m -> {
-	                MeasurementDTO mDto = new MeasurementDTO(
-	                        m.getMeasurementType(),
-	                        m.getLength(),
-	                        m.getBreadth(),
-	                        m.getHeight(),
-	                        m.getNoOfItems(),
-	                        m.getTotalQty()
-	                );
-	                dto.setMeasurements(mDto);
-	            });
+		// Decode supportingDocuments JSON → List<SupportingDoc>
+		if (inspection.getSupportingDocuments() != null) {
+			try {
+				ObjectMapper mapper = new ObjectMapper();
+				List<SupportingDoc> docs = Arrays
+						.asList(mapper.readValue(inspection.getSupportingDocuments(), SupportingDoc[].class));
 
+				// Extract file paths
+				dto.setSupportingFiles(docs.stream().map(SupportingDoc::getFilePath).toList());
 
-	    return dto;
+				// Extract descriptions
+				dto.setSupportingDescriptions(docs.stream().map(SupportingDoc::getDocumentsDescription).toList());
+
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+
+		// ======= NEW: DECODE SUPPORTING DESCRIPTIONS =======
+//		if (inspection.getDocumentsDescription() != null) {
+//			String desc = inspection.getDocumentsDescription();
+//			List<String> descriptions = Arrays.stream(desc.split(",")).map(String::trim).toList();
+//			dto.setSupportingDescriptions(descriptions);
+//		}
+
+		// Fetch measurements if available
+		measurementsRepository.findByRfiId(inspection.getRfi().getId()).ifPresent(m -> {
+			MeasurementDTO mDto = new MeasurementDTO(m.getMeasurementType(), m.getLength(), m.getBreadth(),
+					m.getHeight(), m.getWeight(), m.getUnits(), // <- this will send 'units' instead of 'unit'
+					m.getNoOfItems(), m.getTotalQty());
+			dto.setMeasurements(mDto);
+		});
+
+		return dto;
+	}
+
+	public boolean removeSupportingFileByRfiId(Long rfiId, String fileName) throws IOException {
+		// Fetch inspections for this RFI
+		List<RFIInspectionDetails> inspections = inspectionRepository.findAllByRfiId(rfiId);
+		boolean removed = false;
+
+		for (RFIInspectionDetails insp : inspections) {
+			if (insp.getSupportingDocuments() != null && !insp.getSupportingDocuments().isEmpty()) {
+				ObjectMapper mapper = new ObjectMapper();
+				List<SupportingDoc> docs = new ArrayList<>(
+						Arrays.asList(mapper.readValue(insp.getSupportingDocuments(), SupportingDoc[].class)));
+
+				Iterator<SupportingDoc> iter = docs.iterator();
+				while (iter.hasNext()) {
+					SupportingDoc doc = iter.next();
+					// Match by filename
+					if (doc.getFilePath().endsWith(fileName)) {
+						// Delete physical file
+						File file = new File(doc.getFilePath());
+						if (file.exists())
+							file.delete();
+						iter.remove();
+						removed = true;
+					}
+				}
+
+				// Save updated supporting documents back
+				insp.setSupportingDocuments(mapper.writeValueAsString(docs));
+				inspectionRepository.save(insp);
+			}
+		}
+
+		return removed;
+	}
+	
+	@Override
+	public List<SupportingDocDTO> getSupportingFilesByRfiId(Long rfiId) throws Exception {
+
+	    List<RFIInspectionDetails> inspections = inspectionRepository.findAllByRfiId(rfiId);
+	    List<SupportingDocDTO> result = new ArrayList<>();
+
+	    ObjectMapper mapper = new ObjectMapper();
+
+	    for (RFIInspectionDetails insp : inspections) {
+	        if (insp.getSupportingDocuments() != null && !insp.getSupportingDocuments().isEmpty()) {
+
+	            List<SupportingDoc> docs = Arrays.asList(
+	                    mapper.readValue(insp.getSupportingDocuments(), SupportingDoc[].class));
+
+	            for (SupportingDoc doc : docs) {
+
+	                String fileName = doc.getFilePath(); // because you saved only filename
+
+	                result.add(new SupportingDocDTO(
+	                        fileName,
+	                        doc.getDocumentsDescription(),
+	                        "/api/rfi/supporting-docs/" + fileName
+	                ));
+	            }
+	        }
+	    }
+
+	    return result;
 	}
 
 
@@ -455,6 +636,21 @@ public class InspectionServiceImpl implements InspectionService {
 		} catch (IOException ex) {
 			throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
 		}
+	}
+
+	private String saveSupportingFile(MultipartFile file) throws IOException {
+		Path dirPath = Paths.get(supportingDocsUploadDir).toAbsolutePath().normalize();
+
+		if (!Files.exists(dirPath)) {
+			Files.createDirectories(dirPath);
+		}
+
+		String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+		Path filePath = dirPath.resolve(filename);
+
+		Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+		return filename; // return file name for database storage
 	}
 
 // hepler function for submiRfi to send for validation by Engineer Only	
@@ -483,7 +679,6 @@ public class InspectionServiceImpl implements InspectionService {
 		}
 		return false;
 	}
-
 
 	@Override
 	public ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy)
@@ -540,107 +735,112 @@ public class InspectionServiceImpl implements InspectionService {
 				.contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
 	}
 
-	
 	@Override
-	public boolean SaveTxnIdSetEStatusCon(String txnId, Long rfiId,ESignStatus status) {
-	    String sql = "UPDATE rfi_data SET txn_id = ?, e_sign_status= ? WHERE id = ?";
-	    int rowsUpdated = jdbcTemplate.update(sql, txnId,status.name(), rfiId);
-	    return rowsUpdated > 0;
+	public boolean SaveTxnIdSetEStatusCon(String txnId, Long rfiId, ESignStatus status) {
+		String sql = "UPDATE rfi_data SET txn_id = ?, e_sign_status= ?,contractor_submitted_date = CURDATE() WHERE id = ?";
+		int rowsUpdated = jdbcTemplate.update(sql, txnId, status.name(), rfiId);
+		return rowsUpdated > 0;
 	}
-		
+
+	@Override
+	public boolean SaveEngStatus(Long rfiId, ESignStatus status) {
+		String sql = "UPDATE rfi_data SET e_sign_status= ? WHERE id = ?";
+		int rowsUpdated = jdbcTemplate.update(sql, status.name(), rfiId);
+		return rowsUpdated > 0;
+	}
 
 	@Override
 	public void saveESignStatusCon(ESignStatus status, String txnID) {
-	    String sql = "UPDATE rfi_data SET e_sign_status = ?, contractor_submitted_date = CURDATE() " +
-	                 "WHERE txn_id = ?";
-	    jdbcTemplate.update(sql, status.name(), txnID);
+		String sql = "UPDATE rfi_data SET e_sign_status = ?, contractor_submitted_date = CURDATE() "
+				+ "WHERE txn_id = ?";
+		jdbcTemplate.update(sql, status.name(), txnID);
 	}
-	
+
 	@Override
 	public void saveESignStatusEngg(ESignStatus status, String txnID) {
-	    String sql = "UPDATE rfi_data SET e_sign_status = ?, engineer_submitted_date = CURDATE() " +
-	                 "WHERE txn_id = ? ";
-	    jdbcTemplate.update(sql, status.name(), txnID);
+		String sql = "UPDATE rfi_data SET e_sign_status = ?, engineer_submitted_date = CURDATE() "
+				+ "WHERE txn_id = ? ";
+		jdbcTemplate.update(sql, status.name(), txnID);
 	}
-	
-	
+
 	@Override
 	public ESignStatus getEsignStatusEngg(Long rfiId) {
-	    String sql = "SELECT e_sign_status FROM rfi_data WHERE id = ?";
-	    try {
-	        String status = jdbcTemplate.queryForObject(sql, new Object[]{rfiId}, String.class);
-	        return status != null ? ESignStatus.valueOf(status) : ESignStatus.CON_PENDING;
-	    } catch (EmptyResultDataAccessException e) {
-	        // No record found → treat as PENDING
-	        return ESignStatus.CON_PENDING;
-	    }
+		String sql = "SELECT e_sign_status FROM rfi_data WHERE id = ?";
+		try {
+			String status = jdbcTemplate.queryForObject(sql, new Object[] { rfiId }, String.class);
+			return status != null ? ESignStatus.valueOf(status) : ESignStatus.CON_PENDING;
+		} catch (EmptyResultDataAccessException e) {
+			// No record found → treat as PENDING
+			return ESignStatus.CON_PENDING;
+		}
 	}
 
-
- 
 	@Override
 	public RFI getRFIIdTxnId(String espTxnID, String User) {
-	    System.out.println("Executing query for txn_id: " + espTxnID);
+		System.out.println("Executing query for txn_id: " + espTxnID);
 
-	    // 1️⃣ Update date first
-	    if ("Contractor".equalsIgnoreCase(User)) {
-	        String updateSql = "UPDATE rfi_data SET contractor_submitted_date = NOW() WHERE txn_id = ?";
-	        int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
-	        System.out.println("Contractor submitted date updated. Rows affected: " + rowsAffected);
-	    } else if ("Engineer".equalsIgnoreCase(User)) {
-	        String updateSql = "UPDATE rfi_data SET engineer_submitted_date = NOW() WHERE txn_id = ?";
-	        int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
-	        System.out.println("Engineer submitted date updated. Rows affected: " + rowsAffected);
-	    }
+		// 1️⃣ Update date first
+		if ("Contractor".equalsIgnoreCase(User)) {
+			String updateSql = "UPDATE rfi_data SET contractor_submitted_date = NOW() WHERE txn_id = ?";
+			int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
+			System.out.println("Contractor submitted date updated. Rows affected: " + rowsAffected);
+		} else if ("Engineer".equalsIgnoreCase(User)) {
+			String updateSql = "UPDATE rfi_data SET engineer_submitted_date = NOW() WHERE txn_id = ?";
+			int rowsAffected = jdbcTemplate.update(updateSql, espTxnID);
+			System.out.println("Engineer submitted date updated. Rows affected: " + rowsAffected);
+		}
 
-	    // 2️⃣ Fetch the updated RFI
-	    String selectSql = "SELECT rfi_id, id, txn_id, created_by, contractor_submitted_date, engineer_submitted_date "
-	            + "FROM rfi_data WHERE txn_id = ?";
+		// 2️⃣ Fetch the updated RFI
+		String selectSql = "SELECT rfi_id, id, txn_id, created_by, contractor_submitted_date, engineer_submitted_date "
+				+ "FROM rfi_data WHERE txn_id = ?";
 
-	    try {
-	        return jdbcTemplate.queryForObject(selectSql, new Object[]{espTxnID}, (rs, rowNum) -> {
-	            RFI rfiDetails = new RFI();
-	            rfiDetails.setId(rs.getLong("id"));
-	            rfiDetails.setRfi_Id(rs.getString("rfi_id"));
-	            rfiDetails.setTxn_id(rs.getString("txn_id"));
-	            rfiDetails.setCreatedBy(rs.getString("created_by"));
+		try {
+			return jdbcTemplate.queryForObject(selectSql, new Object[] { espTxnID }, (rs, rowNum) -> {
+				RFI rfiDetails = new RFI();
+				rfiDetails.setId(rs.getLong("id"));
+				rfiDetails.setRfi_Id(rs.getString("rfi_id"));
+				rfiDetails.setTxn_id(rs.getString("txn_id"));
+				rfiDetails.setCreatedBy(rs.getString("created_by"));
 
-	            java.sql.Date contractorDate = rs.getDate("contractor_submitted_date");
-	            java.sql.Date engineerDate = rs.getDate("engineer_submitted_date");
+				java.sql.Date contractorDate = rs.getDate("contractor_submitted_date");
+				java.sql.Date engineerDate = rs.getDate("engineer_submitted_date");
 
-	            rfiDetails.setContractor_submitted_date(contractorDate != null ? contractorDate.toLocalDate() : null);
-	            rfiDetails.setEngineer_submitted_date(engineerDate != null ? engineerDate.toLocalDate() : null);
+				rfiDetails.setContractor_submitted_date(contractorDate != null ? contractorDate.toLocalDate() : null);
+				rfiDetails.setEngineer_submitted_date(engineerDate != null ? engineerDate.toLocalDate() : null);
 
-	            System.out.println("engineer date after update: " + rfiDetails.getEngineer_submitted_date());
+				System.out.println("engineer date after update: " + rfiDetails.getEngineer_submitted_date());
 
-	            return rfiDetails;
-	        });
-	    } catch (EmptyResultDataAccessException e) {
-	        System.out.println("No RFI record found for txn_id: " + espTxnID);
-	        return null;
-	    }
+				return rfiDetails;
+			});
+		} catch (EmptyResultDataAccessException e) {
+			System.out.println("No RFI record found for txn_id: " + espTxnID);
+			return null;
+		}
 	}
+
 	@Override
 	public String getLastTxnIdForRfi(Long rfiId) {
-	    String sql = "SELECT txn_id FROM rfi_data WHERE id = ?";
-	    try {
-	        return jdbcTemplate.queryForObject(sql, new Object[]{rfiId}, String.class);
-	    } catch (EmptyResultDataAccessException e) {
-	        return null; // no txnId found
-	    }
+		String sql = "SELECT txn_id FROM rfi_data WHERE id = ?";
+		try {
+			return jdbcTemplate.queryForObject(sql, new Object[] { rfiId }, String.class);
+		} catch (EmptyResultDataAccessException e) {
+			return null; // no txnId found
+		}
 	}
-
-
-
 
 	public RFIInspectionDetails getLatestInspectionByRfiId(Long rfiId) {
-	    return inspectionRepository.findTopByRfi_IdOrderByIdDesc(rfiId).orElse(null);
+		return inspectionRepository.findTopByRfi_IdOrderByIdDesc(rfiId).orElse(null);
 	}
 
-
-
-
- 
- 
+	@Override
+	public String getTxnId(Long rfiId) {
+		String sql = "SELECT txn_id FROM rfi_data WHERE id = ?";
+		try {
+			String txn_id = jdbcTemplate.queryForObject(sql, new Object[] { rfiId }, String.class);
+			return txn_id;
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
 
 }

@@ -150,6 +150,23 @@ const Login = () => {
 
 				console.log(localStorage.getItem('loginDepartment'));
 				console.log("✅ Stored userId:", data.userId);
+				
+				try {
+				    const checkRes = await fetch(
+				        `${API_BASE_URL}api/checkUserDSC?userId=${data.userId}`,
+				        { method: "GET", credentials: "include" }
+				    );
+				    const checkData = await checkRes.json();
+ 
+				    if (checkData.exists) {
+				        localStorage.setItem("askForDSC", "false");   // Do NOT ask again
+				    } else {
+				        localStorage.setItem("askForDSC", "true");    // Ask for DSC
+				    }
+				} catch (err) {
+				    console.error("DSC check failed:", err);
+				    localStorage.setItem("askForDSC", "true"); // safe fallback
+				}	
 
 
 				if (data.allowedContractIds) {

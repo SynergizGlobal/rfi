@@ -10,6 +10,7 @@ import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
+import com.metro.rfisystem.backend.dto.SupportingDocDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 
@@ -29,13 +30,13 @@ public interface InspectionService {
 
 	public RfiInspectionDTO getById(Long id);
 
-	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-			MultipartFile testDocument, String deptFk);
+	public Long startInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,  MultipartFile testDocument,
+			List<MultipartFile> supportingFiles, String deptFk) throws Exception;
 
 	ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException;
 
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-														MultipartFile testDocument, String deptFk);
+														MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk) throws Exception;
 	
 	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk);
 
@@ -45,6 +46,15 @@ public interface InspectionService {
 	public RFI getRFIIdTxnId(String espTxnID, String user);
 
 	public RFIInspectionDetails getLatestInspectionByRfiId(Long id);
+	
+	public String getTxnId(Long id);
+	
+	public boolean SaveEngStatus(Long rfiId,ESignStatus status);
+
+
+	public boolean removeSupportingFileByRfiId(Long rfiId, String fileName) throws IOException;
+
+	public List<SupportingDocDTO> getSupportingFilesByRfiId(Long rfiId) throws Exception;
 
 
 }

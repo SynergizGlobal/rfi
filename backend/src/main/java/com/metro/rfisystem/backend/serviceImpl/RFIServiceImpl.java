@@ -467,6 +467,7 @@ public class RFIServiceImpl implements RFIService {
 
 		return "RFI closed successfully";
 	}
+	
 
 	@Override
 	public void autoCancelRFIs() {

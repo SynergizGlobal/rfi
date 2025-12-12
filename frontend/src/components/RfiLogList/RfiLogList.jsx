@@ -91,12 +91,19 @@ export default function RfiLogList() {
 				let displayStatus = '';
 				let color = '';
 
-				if (row.enggApproval === 'Rejected') {
+				// ✅ FIRST CHECK DELETED
+				if (row.status === 'DELETED') {
+					displayStatus = 'Deleted';
+					color = 'gray';
+
+				} else if (row.enggApproval === 'Rejected') {
 					displayStatus = 'Rejected';
 					color = 'red';
+
 				} else if (row.status === 'INSPECTION_DONE') {
 					displayStatus = 'Closed';
 					color = 'blue';
+
 				} else {
 					displayStatus = 'Open';
 					color = 'green';
@@ -105,7 +112,7 @@ export default function RfiLogList() {
 				return {
 					...row,
 					displayStatus,
-					displayColor: color, // optional: for styling in table cell
+					displayColor: color,
 				};
 			}),
 		[data]
@@ -1015,6 +1022,7 @@ export default function RfiLogList() {
 														<th>Length</th>
 														<th>Breadth</th>
 														<th>Height</th>
+												        <th>Weight</th>
 														<th>Count</th>
 														<th>Total Quantity</th>
 													</tr>
@@ -1025,6 +1033,7 @@ export default function RfiLogList() {
 														<td>{Measurement.l ?? "---"}</td>
 														<td>{Measurement.b ?? "---"}</td>
 														<td>{Measurement.h ?? "---"}</td>
+														<td>{Measurement.weight ?? "---"}</td>
 														<td>{Measurement.no ?? "---"}</td>
 														<td>{Measurement.totalQty ?? "---"}</td>
 													</tr>

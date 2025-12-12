@@ -311,6 +311,117 @@ const Inspection = () => {
 		}
 	};
 
+	const [showAssignPopup, setShowAssignPopup] = useState(false);
+	const [selectedPerson, setSelectedPerson] = useState('');
+	const [engineerOptions, setEngineerOptions] = useState([]);
+	const [selectedRfiForAssign, setSelectedRfiForAssign] = useState(null);
+
+
+
+	// Initialize assignedPersons from fetched data
+	useEffect(() => {
+		if (data && data.length > 0) {
+			const assignedMap = {};
+			data.forEach(rfi => {
+				if (rfi.assignedPersonClient) {
+					assignedMap[rfi.id] = rfi.assignedPersonClient;
+				}
+			});
+			setAssignedPersons(assignedMap);
+		}
+	}, [data]);
+
+	// Fetch engineers whenever RFI selection changes
+	useEffect(() => {
+		if (selectedRfiForAssign) {
+			fetchEngineersForContract(selectedRfiForAssign.contractId);
+		}
+	}, [selectedRfiForAssign]);
+
+	const fetchEngineersForContract = async (contractId) => {
+		const userId = localStorage.getItem('userId');
+		if (!userId) {
+			console.error("❌ Missing userId in localStorage, cannot fetch engineers");
+			return;
+		}
+
+		if (!contractId) {
+			console.error("❌ No contractId provided to fetch engineers");
+			return;
+		}
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}api/auth/engineer-names?userId=${encodeURIComponent(userId)}&contractId=${encodeURIComponent(contractId)}`
+			);
+
+			console.log(`Request URL: ${API_BASE_URL}api/auth/engineer-names?userId=${userId}&contractId=${contractId}`);
+			console.log("Response OK?", response.ok, "Status:", response.status);
+
+			const contentType = response.headers.get("Content-Type");
+			const body = contentType && contentType.includes("application/json")
+				? await response.json()
+				: await response.text();
+
+			if (!response.ok) {
+				console.error("❌ Backend error:", body);
+				throw new Error(`Failed to fetch engineers for ${contractId}`);
+			}
+
+			console.log("✅ Engineers:", body);
+			setEngineerOptions(Array.isArray(body) ? body : []); // ensure array
+		} catch (err) {
+			console.error("🔥 Fetch error:", err);
+		}
+	};
+
+
+	const handleSelectPerson = (e) => {
+		setSelectedPerson(e.target.value);
+	};
+
+	const handleAssignSubmit = async () => {
+		if (!selectedRfiForAssign || !selectedPerson) return;
+
+
+		try {
+			const response = await fetch(`${API_BASE_URL}rfi/assign-client-person`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+
+
+				body: JSON.stringify({
+					rfi_Id: selectedRfiForAssign.rfi_Id, // send as string, exactly what backend expects
+					assignedPersonClient: selectedPerson,
+					clientDepartment: deptFK,
+				}),
+
+				credentials: "include",
+			});
+			console.log("Submitting RFI assignment:", {
+				rfiId: selectedRfiForAssign.id,
+				assignedPersonClient: selectedPerson,
+				clientDepartment: deptFK,
+			});
+
+
+			if (response.ok) {
+				setAssignedPersons(prev => ({
+					...prev,
+					[selectedRfiForAssign.id]: selectedPerson
+				}));
+				setShowAssignPopup(false);
+				setSelectedPerson('');
+			} else {
+				alert("Assignment failed: " + (await response.text()));
+			}
+		} catch (err) {
+			console.error(err);
+			alert("Error assigning person");
+		}
+	};
+
+
+
 	function dataURLtoFile(dataUrl, filename) {
 		if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
 			console.warn("⚠️ Invalid data URL, skipping:", dataUrl);
@@ -346,14 +457,11 @@ const Inspection = () => {
 		{
 			Header: "Assigned Employer's Engineer",
 			Cell: ({ row }) => {
-				const assignedEngineerValue = row.original.assignedPersonClient;
-				return assignedEngineerValue ? (
-					assignedEngineerValue
-				) : (
-					<span style={{ color: '#888' }}>---</span>
-				);
+				const assignedEngineer = assignedPersons[row.original.id] || row.original.assignedPersonClient || '—';
+				return <span>{assignedEngineer}</span>; // Only display name
 			}
 		},
+
 		{ Header: 'Measurement Type', accessor: 'measurementType' },
 		{ Header: 'Total Qty', accessor: 'totalQty' },
 		{
@@ -463,23 +571,85 @@ const Inspection = () => {
 
 								<button
 									onClick={() => {
-										if (!isInspectionTimeValid(row.original.dateOfInspection, row.original.timeOfInspection)) {
+
+										const r = row.original;
+
+										// 1) Scheduled time check
+										if (!isInspectionTimeValid(r.dateOfInspection, r.timeOfInspection)) {
 											alert("Inspection cannot be started before the scheduled date and time.");
 											return;
 										}
-										if (row.original.status !== "CANCELLED") {
-											navigate('/InspectionForm', {
-												state: { rfi: row.original.id, skipSelfie: false, offlineMode: true },
-											});
-											setOpenDropdownRow(null);
-											setDropdownInfo({ rowId: null, targetRef: null });
+
+										// 2) Common conditions
+										if (r.status === "INSPECTION_DONE") {
+											alert("Inspection is already closed. Further inspection not allowed.");
+											return;
 										}
+										if (r.status === "VALIDATION_PENDING") {
+											alert("Inspection is under validation process. Further inspection not allowed.");
+											return;
+										}
+
+										const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
+
+										// 3) ENGINEERING CHECK (AE/Client)
+										if (deptFK === "engg") {
+
+											if (r.status === "INSPECTED_BY_AE") {
+												alert("Inspection Submitted. Further inspection not allowed.");
+												return;
+											}
+
+											const allowedStatuses = [
+												"INSPECTED_BY_CON",
+												"AE_INSP_ONGOING",
+												"UPDATED",
+												"RESCHEDULED",
+												"REASSIGNED"
+											];
+
+											if (!allowedStatuses.includes(r.status)) {
+												alert("Inspection not allowed until Contractor completes inspection.");
+												return;
+											}
+										}
+
+										// 4) CONTRACTOR CHECK
+										else {
+
+											if (r.status === "INSPECTED_BY_CON") {
+												alert("Inspection Submitted. Further inspection not allowed.");
+												return;
+											}
+
+											const allowedStatuses = [
+												"CREATED",
+												"CON_INSP_ONGOING",
+												"UPDATED",
+												"RESCHEDULED",
+												"REASSIGNED"
+											];
+
+											if (!allowedStatuses.includes(r.status)) {
+												alert("Inspection Submitted. Further inspection not allowed.");
+												return;
+											}
+										}
+
+										// 5) If all conditions are satisfied → Start Offline
+										navigate('/InspectionForm', {
+											state: { rfi: r.id, skipSelfie: false, offlineMode: true }
+										});
+
+										setOpenDropdownRow(null);
+										setDropdownInfo({ rowId: null, targetRef: null });
 									}}
 									disabled={row.original.status === "CANCELLED"}
 									style={row.original.status === "CANCELLED" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
 								>
 									Start Inspection Offline
 								</button>
+
 
 								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
@@ -518,6 +688,21 @@ const Inspection = () => {
 											Send for Validation
 										</button>
 									)}
+								{userRole === 'data admin' && (
+									<div>
+										<button
+											onClick={() => {
+												setSelectedRfiForAssign(row.original);
+												setShowAssignPopup(true);
+												fetchEngineersForContract(row.original.contractId);
+											}}
+										>
+											{assignedPersons[row.original.id] ? "Change Executive" : "Assign Executive"}
+										</button>
+									</div>
+								)}
+
+
 								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
 									row.original.approvalStatus?.toLowerCase() === 'accepted' && (
@@ -871,6 +1056,24 @@ const Inspection = () => {
 								<button onClick={() => confirmPopupData.onConfirm(confirmPopupData.rfiId)}>
 									Yes
 								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{showAssignPopup && (
+					<div className="popup-overlay">
+						<div className="popup">
+							<h3>Select Person to Assign</h3>
+							<select onChange={handleSelectPerson} value={selectedPerson || ''}>
+								<option value="" disabled>Select</option>
+								{engineerOptions.map((username, idx) => (
+									<option key={idx} value={username}>{username}</option>
+								))}
+							</select>
+							<div className='popup-buttons'>
+								<button onClick={() => setShowAssignPopup(false)}>Cancel</button>
+								<button onClick={handleAssignSubmit}>Done</button>
 							</div>
 						</div>
 					</div>

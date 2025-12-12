@@ -59,7 +59,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    WHERE uploaded_by != 'Engg'
 			) ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN measurements m ON r.id = m.rfi_id_fk
-			        WHERE r.is_deleted = 0 OR r.is_deleted IS NULL
+		    WHERE r.is_deleted = 0 OR r.is_deleted IS NULL
 			ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiListDTO> findAllRfiList();
@@ -186,7 +186,6 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 				LEFT JOIN measurements m ON r.id = m.rfi_id_fk
 				WHERE r.assigned_person_client = :assignedPersonClient
 			AND (r.is_deleted = 0 OR r.is_deleted IS NULL)
-
 				ORDER BY r.created_at DESC
 				""", nativeQuery = true)
 	List<RfiListDTO> findByAssignedPersonClient(@Param("assignedPersonClient") String assignedPersonClient);

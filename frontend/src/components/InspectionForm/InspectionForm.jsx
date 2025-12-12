@@ -56,6 +56,10 @@ export default function InspectionForm() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const [supportingUploadPopup, setSupportingUploadPopup] = useState(false); // <-- fix for your error
+	const [supportingDocs, setSupportingDocs] = useState([]); // stores File objects (or uploaded file metadata)
+	const [supportingDescriptions, setSupportingDescriptions] = useState([]);
+	const [supportingFiles, setSupportingFiles] = useState([]);
 	const contractorSubmitted = rfiData?.inspectionDetails?.some(
 		d => d.uploadedBy === "CON" && d.workStatus?.toUpperCase() === "SUBMITTED"
 	);
@@ -552,14 +556,14 @@ export default function InspectionForm() {
 
 
 	const [measurements, setMeasurements] = useState([
-		{ type: "", L: "", B: "", H: "", No: "", total: "" },
+		{ type: "", L: "", B: "", H: "", No: "", total: "", weight: "", units: "" },
 	]);
 
 
 	const handleAddMeasurement = () => {
 		setMeasurements((prev) => [
 			...prev,
-			{ type: "", L: "", B: "", H: "", No: "", total: "" },
+			{ type: "", L: "", B: "", H: "", No: "", total: "", weight: "", units: "" },
 		]);
 	};
 
@@ -567,61 +571,78 @@ export default function InspectionForm() {
 		setMeasurements((prev) => prev.filter((_, i) => i !== index));
 	};
 
+
 	const handleMeasurementChange = (index, field, value) => {
 		setMeasurements((prev) => {
 			const updated = [...prev];
 			updated[index][field] = value;
 
-			const { type, L, B, H, No } = updated[index];
-			let total = 0;
-			const num = parseFloat(No) || 1; // Default to 1 if No is empty
+			const { type, L, B, H, weight, No, units } = updated[index];
 
+			const num = parseFloat(No) || 1; // default quantity
+			const length = parseFloat(L) || 0;
+			const breadth = parseFloat(B) || 0;
+			const height = parseFloat(H) || 0;
+			let w = parseFloat(weight) || 0;
+
+
+			let total = 0;
+
+			// Calculate total based on type
 			if (type === "Area") {
-				total = ((parseFloat(L) || 0) * (parseFloat(B) || 0)) * num;
-			}
-			else if (type === "Length") {
-				total = (parseFloat(L) || 0) * num;
-			}
-			else if (type === "Volume") {
-				total = ((parseFloat(L) || 0) * (parseFloat(B) || 0) * (parseFloat(H) || 0)) * num;
-			}
-			else if (type === "Number") {
-				total = parseFloat(No) || 0;
+				total = length * breadth * num;
+			} else if (type === "Length") {
+				total = length * num;
+			} else if (type === "Volume") {
+				total = length * breadth * height * num;
+			} else if (type === "Number") {
+				total = num;
+			} else if (type === "Weight") {
+				total = w * num;
+
 			}
 
 			updated[index].total = total;
+			updated[index].weight = w;
+
 			return updated;
 		});
 	};
+
+
 
 	const [errors, setErrors] = useState({});
 
 
 
-
 	const handleSaveDraft = async () => {
-
 		if (isSaving) return;
 		setIsSaving(true);
 
 		setInspectionStatusMode("DRAFT");
 
+		// Prepare supportingFiles and supportingDescriptions from supportingDocs state
+		const supportingFiles = supportingDocs.map(doc => doc.file);
+		const supportingDescriptions = supportingDocs.map(doc => doc.description);
 
+		// Offline handling
 		if (!navigator.onLine) {
 			const offlineData = {
 				inspectionId: inspectionId || Date.now(), // unique ID if new
 				rfiId: rfiData.id,
 				selfieImage: selfieImage || null,
 				galleryImages: galleryImages || [],
-				testReportFile: testReportFile || null
-			};
+				testReportFile: testReportFile || null,
+				supportingFiles
 
+			};
 			await saveOfflineInspection(offlineData);
-			alert("📌 Images saved offline successfully!");
-			/*			navigate("/inspection");
-			*/
+			alert("📌 Draft saved offline successfully!");
+			setIsSaving(false);
 			return;
 		}
+
+		// Online handling: FormData for multipart upload
 		const formData = new FormData();
 
 		const inspectionPayload = {
@@ -634,23 +655,38 @@ export default function InspectionForm() {
 			length: parseFloat(measurements[0]?.L) || null,
 			breadth: parseFloat(measurements[0]?.B) || null,
 			height: parseFloat(measurements[0]?.H) || null,
+			weight: parseFloat(measurements[0]?.weight) || null,  // <-- use 'weight'
+
+			units: measurements[0]?.units || null,   // <-- frontend field must match DTO
 			noOfItems: parseInt(measurements[0]?.No) || null,
 			totalQty: measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || null,
 			inspectionStatus: inspectionStatusUserSelection || null,
 			testInsiteLab: testInLab || null,
 			engineerRemarks: engineerRemarks || null,
-			descriptionEnclosure: overallComments || '' // ✅ add description here
-
+			descriptionEnclosure: overallComments || '',
+			supportingDescriptions,
 		};
 
-
+		// Append JSON payload
 		formData.append("data", JSON.stringify(inspectionPayload));
 
+		// Append selfie image if available
 		if (selfieImage) {
-			formData.append("selfie", selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg"));
+			formData.append(
+				"selfie",
+				selfieImage instanceof File ? selfieImage : dataURLtoFile(selfieImage, "selfie.jpg")
+			);
 		}
 
-		if (testReportFile) formData.append("testReport", testReportFile);
+		// Append test report if available
+		if (testReportFile) {
+			formData.append("testReport", testReportFile);
+		}
+
+		// Append supporting files
+		supportingFiles.forEach((file) => {
+			formData.append("supportingFiles", file);
+		});
 
 		try {
 			const res = await fetch(`${API_BASE_URL}rfi/saveDraft`, {
@@ -662,14 +698,14 @@ export default function InspectionForm() {
 			if (!res.ok) throw new Error(await res.text());
 
 			const id = await res.json();
-			//	setInspectionId(id);
-			alert("Draft saved successfully!");
+			// setInspectionId(id); // if needed
+			alert("✅ Draft saved successfully!");
 			setIsSaving(false);
-			navigate("/inspection"); // Redirect after offline save
+			navigate("/inspection"); // Redirect after save
 
 		} catch (err) {
 			console.error("Draft save failed:", err);
-			alert(`Draft save failed: ${err.message}`);
+			alert(`❌ Draft save failed: ${err.message}`);
 			setIsSaving(false);
 		}
 	};
@@ -695,6 +731,8 @@ export default function InspectionForm() {
 				case "Area":
 					return m.L !== null && m.B !== null && m.total !== null;
 				case "Volume":
+					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
+				case "Weight":
 					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
 				default:
 					return false;
@@ -815,14 +853,22 @@ export default function InspectionForm() {
 
 
 
-
-
-
 	const handleSubmitInspection = async () => {
 		if (!validateStep()) {
 			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
+		
+		// Engineer must select inspection status
+    if (deptFK?.toLowerCase() === "engg" && !testInLab) {
+        alert("Inspection Status is mandatory!");
+        return;
+    }
+     // If rejected → remarks required
+    if (deptFK?.toLowerCase() === "engg" && testInLab === "Rejected" && !engineerRemarks.trim()) {
+        alert("Remarks are mandatory when Inspection is Rejected!");
+        return;
+    }
 
 		if (!validateEnclosures()) {
 			return; // block submission if enclosures incomplete
@@ -858,6 +904,17 @@ export default function InspectionForm() {
 		try {
 			// 1️⃣ Submit inspection data to backend
 			const formData = new FormData();
+
+			const supportingFiles = supportingDocs.map(doc => doc.file);
+			const supportingDescriptions = supportingDocs.map(doc => doc.description);
+
+			// Append backend files from supportingFiles state
+			// assuming supportingFiles array contains File objects or URLs
+			if (supportingFiles.length > 0) {
+				supportingFiles.forEach(file => {
+					formData.append("supportingFiles", file);
+				});
+			}
 			const inspectionPayload = {
 				inspectionId: inspectionId || null,
 				rfiId: rfiData.id,
@@ -868,6 +925,8 @@ export default function InspectionForm() {
 				length: parseFloat(measurements[0]?.L) || null,
 				breadth: parseFloat(measurements[0]?.B) || null,
 				height: parseFloat(measurements[0]?.H) || null,
+				weight: parseFloat(measurements[0]?.weight) || null,  // <-- use 'weight'
+				units: measurements[0]?.units || null,   // <-- frontend field must match DTO
 				noOfItems: parseInt(measurements[0]?.No) || null,
 				totalQty:
 					measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) ||
@@ -875,7 +934,8 @@ export default function InspectionForm() {
 				inspectionStatus: inspectionStatusUserSelection || null,
 				testInsiteLab: testInLab || null,
 				engineerRemarks: engineerRemarks || null,
-				descriptionEnclosure: overallComments || '' // ✅ add description here
+				descriptionEnclosure: overallComments || '', // ✅ add description here
+				supportingDescriptions,
 
 			};
 
@@ -924,6 +984,38 @@ export default function InspectionForm() {
 			});
 
 			console.log("📄 Checklists by enclosure prepared for PDF:", checklistsByEnclosure);
+
+
+			// Fetch supporting docs from backend
+			const backendSupportingDocs = await (async () => {
+				try {
+					const res = await fetch(`${API_BASE_URL}rfi/supporting-files/${rfiData.id}`, {
+						method: "GET",
+						credentials: "include",
+						headers: { "Content-Type": "application/json" },
+					});
+					if (!res.ok) return [];
+					return res.json();
+				} catch (err) {
+					console.warn("No backend supporting docs", err);
+					return [];
+				}
+			})();
+
+			// Build full list for PDF only
+			const supportingDocsForPdf = [
+				...supportingDocs.map(d => ({          // UI uploaded
+					file: d.file,
+					description: d.description
+				})),
+				...backendSupportingDocs.map(d => ({   // DB saved
+					file: `${API_BASE_URL}rfi/supporting-docs/${encodeURIComponent(d.fileName)}`,
+					description: d.description
+				}))
+			];
+
+
+
 
 
 
@@ -1013,11 +1105,16 @@ export default function InspectionForm() {
 				activity: rfiData.activity,
 				inspectionStatus: (testInLab || "").trim(),
 				enclosures: checklistsByEnclosure,
+				supportingDocs: supportingDocsForPdf, // ONLY for PDF
+
 				measurements: measurements.map((m) => ({
 					type: m.type,
 					l: m.L,
 					b: m.B,
 					h: m.H,
+					weight: m.weight || "",
+
+					units: m.units || "",        // <-- added unit
 					no: m.No,
 					total: m.total,
 				})),
@@ -1035,19 +1132,30 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			/*	const mergedUrl = URL.createObjectURL(pdfBlob);
+			const mergedUrl = URL.createObjectURL(pdfBlob);
 			const link = document.createElement("a");
 			link.href = mergedUrl;
 			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link);*/
+			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
 
 
-
-
 			if (!isEngineer) {
+
+
+
+
+				const confirmed = await showConfirmationModal(
+					"I hereby confirm that the information submitted in this RFI is accurate and complete to the best of my knowledge. I authorize the use of my E-Sign solely from identity verification (KYC) for submission authentication."
+				);
+
+				if (!confirmed) {
+					alert("Submission cancelled.");
+					setIsSubmitting(false);
+					return; // Stop further execution
+				}
 
 				const pdfFormData = new FormData();
 				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
@@ -1059,294 +1167,104 @@ export default function InspectionForm() {
 					credentials: "include",
 				});
 
-				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
-
-				console.log("✅ PDF uploaded successfully");
-
-
-
-
-
-
-
-				// ✅ Contractor Submission Flow
-				const txnId = generateUniqueTxnId();
-				const signForm = new FormData();
-				signForm.append("pdfBlob", pdfBlob);
-				signForm.append("sc", "Y");
-				signForm.append("txnId", txnId);
-				signForm.append("rfiId", rfiData?.id ?? "");
-				signForm.append("signerName", "Swathi");
-				signForm.append("contractorName", "M V");
-				signForm.append("signY", Math.floor(y));
-
-				const signRes = await fetch(`${API_BASE_URL}rfi/getSignedXmlRequest`, {
-					method: "POST",
-					body: signForm,
-					credentials: "include",
-				});
-				const response = await signRes.json();
-
-				// ✅ Open eSign in new window
-				const width = 800;
-				const height = 600;
-				const left = window.screenX + (window.outerWidth - width) / 2;
-				const top = window.screenY + (window.outerHeight - height) / 2;
-
-				const targetName = "esignPortal";
-				const esignWindow = window.open(
-					"",
-					targetName,
-					`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-				);
-				if (!esignWindow) {
-					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
-					setIsSubmitting(false);
-					return;
+				if (!uploadRes.ok) {
+					throw new Error("Failed to upload PDF");
 				}
 
-				const form = document.createElement("form");
-				form.method = "POST";
-				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-				form.target = targetName;
-				form.style.display = "none";
+				console.log("? PDF uploaded successfully");
 
-				const signedXmlRequest = document.createElement("input");
-				signedXmlRequest.type = "hidden";
-				signedXmlRequest.name = "eSignRequest";
-				signedXmlRequest.value = response.signedXmlRequest;
-				form.appendChild(signedXmlRequest);
+				const formData1 = new FormData();
+				formData1.append("rfiId", rfiData?.id);
+				formData1.append("txnId", generateUniqueTxnId());
 
-				const aspTxnID = document.createElement("input");
-				aspTxnID.type = "hidden";
-				aspTxnID.name = "aspTxnID";
-				aspTxnID.value = txnId;
-				form.appendChild(aspTxnID);
-
-				const contentType = document.createElement("input");
-				contentType.type = "hidden";
-				contentType.name = "Content-Type";
-				contentType.value = "application/xml";
-				form.appendChild(contentType);
-
-				document.body.appendChild(form);
-				form.submit();
-
-				const esignPromise = new Promise((resolve, reject) => {
-					let esignCompleted = false;
-
-					connectEsignSocket(txnId, (msg) => {
-						console.log("Contractor WebSocket message:", msg);
-						if (msg.status === "SUCCESS") {
-							esignCompleted = true;
-							resolve(true);
-						}
-						if (msg.status === "FAILED") {
-							esignCompleted = true;
-							reject(false);
-						}
-					});
-
-					const popupChecker = setInterval(() => {
-						try {
-							if (esignWindow.closed) {
-								clearInterval(popupChecker);
-								disconnectEsignSocket();
-
-								if (!esignCompleted) {
-									setIsSubmitting(false);
-									reject(false);
-									alert("Submission Process Canceled!");
-								}
-							}
-						} catch (err) {
-							// Ignore cross-origin errors
-						}
-					}, 500);
+				const stampRes = await fetch(`${API_BASE_URL}rfi/stampPdfFromXml`, {
+					method: "POST",
+					body: formData1,
+					credentials: "include",
 				});
 
+				if (!stampRes.ok) {
+					const errorText = await stampRes.text();
+					throw new Error("Stamping failed: " + errorText);
+				}
+
+				console.log("Stamping successful");
+
 				try {
-					const esignConSuccess = await esignPromise;
-					disconnectEsignSocket();
-
-					if (!esignConSuccess) throw new Error("Contractor eSign failed or timed out.");
-
-					// ✅ Continue normal final submit
 					const resCon = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 						method: "POST",
 						body: formData,
 						credentials: "include",
 					});
 
-					if (!resCon.ok) throw new Error(await resCon.text());
+					if (!resCon.ok) {
+						throw new Error(await resCon.text());
+					}
 
 					setInspectionStatusMode("SUBMITTED");
 					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
 					setIsSubmitting(false);
+
 					await new Promise((resolve) => {
-						alert("✅ Contractor eSign completed successfully.");
+						alert("Contractor eSign completed successfully.");
 						resolve();
 					});
+
 					navigate("/inspection");
 
 				} catch (err) {
 					console.error(err);
 					disconnectEsignSocket();
-					alert(`❌ ${err.message}`);
+					alert(`? ${err.message}`);
 					setIsSubmitting(false);
 				}
-			} else {
 
 
+			}
 
+			else {
 
-				const pdfFormData = new FormData();
-				pdfFormData.append("inspectionStatus", (testInLab || "").trim(),);
-				pdfFormData.append("engineerRemarks", engineerRemarks || "",)
-				pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
-				pdfFormData.append("rfiId", rfiData?.id);
-
-				const uploadRes = await fetch(`${API_BASE_URL}rfi/rfi/uploadPdf/Engg`, {
-					method: "POST",
-					body: pdfFormData,
-					credentials: "include",
-				});
-
-				if (!uploadRes.ok) throw new Error("Failed to upload PDF");
-
-				console.log("✅ PDF uploaded successfully");
-
-				// ✅ Engineer Submission Flow
-				const engForm = new FormData();
-				engForm.append("sc", "Y");
-				engForm.append("rfiId", rfiData?.id ?? "");
-				engForm.append("signerName", "Pranavi");
-				engForm.append("engineerName", "PVM");
-				engForm.append("signY", Math.floor(y));
-
-				const engRes = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
-					method: "POST",
-					body: engForm,
-					credentials: "include",
-				});
-
-				let response = {};
 
 				try {
-					const contentType = engRes.headers.get("content-type") || "";
+					const confirmed = await showConfirmationModal(
+						"I hereby confirm that the information submitted in this RFI is accurate and complete to the best of my knowledge. I authorize the use of my E-Sign solely from identity verification (KYC) for submission authentication."
+					);
 
-					if (contentType.includes("application/json")) {
-						response = await engRes.json();
-						if (response.error) {
-							alert(`⚠️ ${response.error}`);
-							setIsSubmitting(false);
-							return;
-						}
-					} else {
-						const text = await engRes.text();
-						if (text) {
-							alert(`⚠️ ${text}`);
-							setIsSubmitting(false);
-							return;
-						}
+					if (!confirmed) {
+						alert("Submission cancelled.");
+						setIsSubmitting(false);
+						return; // stop further execution
 					}
-				} catch (err) {
-					console.error("Failed to parse eSign response:", err);
-					alert("Error preparing eSign request. Please try again.");
-					setIsSubmitting(false);
-					return;
-				}
 
-				if (response.error) {
-					alert(`⚠️ ${response.error}`);
-					setIsSubmitting(false);
-					return;
-				}
+					const pdfFormData = new FormData();
+					pdfFormData.append("inspectionStatus", (testInLab || "").trim());
+					pdfFormData.append("engineerRemarks", engineerRemarks || "");
+					pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
+					pdfFormData.append("rfiId", rfiData?.id);
 
-				// ✅ Open eSign window
-				const width = 800;
-				const height = 600;
-				const left = window.screenX + (window.outerWidth - width) / 2;
-				const top = window.screenY + (window.outerHeight - height) / 2;
-
-				const targetName = "esignPortal";
-				const esignWindow = window.open(
-					"",
-					targetName,
-					`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-				);
-				if (!esignWindow) {
-					alert("⚠️ Please allow pop-ups for this site to continue eSign.");
-					setIsSubmitting(false);
-					return;
-				}
-
-				const form = document.createElement("form");
-				form.method = "POST";
-				form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-				form.target = targetName;
-				form.style.display = "none";
-
-				const signedXmlRequest = document.createElement("input");
-				signedXmlRequest.type = "hidden";
-				signedXmlRequest.name = "eSignRequest";
-				signedXmlRequest.value = response.signedXmlRequest;
-				form.appendChild(signedXmlRequest);
-
-				const aspTxnID = document.createElement("input");
-				aspTxnID.type = "hidden";
-				aspTxnID.name = "aspTxnID";
-				aspTxnID.value = response.txnId;
-				form.appendChild(aspTxnID);
-
-				const contentType = document.createElement("input");
-				contentType.type = "hidden";
-				contentType.name = "Content-Type";
-				contentType.value = "application/xml";
-				form.appendChild(contentType);
-
-				document.body.appendChild(form);
-				form.submit();
-
-				// ✅ WebSocket listener + popup-close detection
-				const esignPromise = new Promise((resolve, reject) => {
-					let esignCompleted = false;
-
-					connectEsignSocket(response.txnId, (msg) => {
-						console.log("Engineer WebSocket message:", msg);
-						if (msg.status === "SUCCESS") {
-							esignCompleted = true;
-							resolve(true);
-						}
-						if (msg.status === "FAILED") {
-							esignCompleted = true;
-							reject(false);
-						}
+					const uploadRes = await fetch(`${API_BASE_URL}rfi/rfi/uploadPdf/Engg`, {
+						method: "POST",
+						body: pdfFormData,
+						credentials: "include",
 					});
 
-					const popupChecker = setInterval(() => {
-						try {
-							if (esignWindow.closed) {
-								clearInterval(popupChecker);
-								disconnectEsignSocket();
+					if (!uploadRes.ok) throw new Error("Failed to upload PDF");
+					console.log("? PDF uploaded successfully");
 
-								if (!esignCompleted) {
-									setIsSubmitting(false);
-									reject(false);
-									alert("Submission Process Canceled!");
-								}
-							}
-						} catch (err) {
-							// Ignore cross-origin errors
-						}
-					}, 500);
-				});
+					const formData1 = new FormData();
+					formData1.append("rfiId", rfiData?.id);
 
-				try {
-					const esignEngSuccess = await esignPromise;
-					disconnectEsignSocket();
+					const stampRes = await fetch(`${API_BASE_URL}rfi/stampEnggPdfFromXml`, {
+						method: "POST",
+						body: formData1,
+						credentials: "include",
+					});
 
-					if (!esignEngSuccess) throw new Error("Engineer eSign failed or timed out.");
+					const stampData = await stampRes.json();
+					if (!stampRes.ok || stampData.status === "error") {
+						throw new Error(`Stamping failed: ${stampData.message || "Unknown error"}`);
+					}
+					console.log("? Stamping successful");
 
 					const resEngg = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 						method: "POST",
@@ -1356,26 +1274,27 @@ export default function InspectionForm() {
 
 					if (!resEngg.ok) {
 						const errText = await resEngg.text();
-						alert(`❌ Submission failed: ${errText}`);
-						throw new Error(errText);
+						throw new Error(`? Submission failed: ${errText}`);
 					}
 
 					setInspectionStatusMode("SUBMITTED");
 					setIsSubmitting(false);
 					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
-					await new Promise((resolve) => {
-						alert("✅ Engineer eSign completed successfully.");
-						resolve();
-					});
+					alert("Engineer eSign completed successfully.");
 					navigate("/inspection");
 
 				} catch (err) {
 					console.error(err);
 					disconnectEsignSocket();
-					alert(`❌ ${err.message}`);
+					alert(err.message);
 					setIsSubmitting(false);
 				}
+
+
 			}
+
+
+
 
 
 		} catch (err) {
@@ -1385,6 +1304,72 @@ export default function InspectionForm() {
 		}
 	};
 
+	function showConfirmationModal(message) {
+		return new Promise((resolve) => {
+			// Create modal elements
+			const modal = document.createElement("div");
+			modal.style.position = "fixed";
+			modal.style.top = "0";
+			modal.style.left = "0";
+			modal.style.width = "100%";
+			modal.style.height = "100%";
+			modal.style.backgroundColor = "rgba(0,0,0,0.5)";
+			modal.style.display = "flex";
+			modal.style.alignItems = "center";
+			modal.style.justifyContent = "center";
+			modal.style.zIndex = "9999";
+
+			const popup = document.createElement("div");
+			popup.style.backgroundColor = "#fff";
+			popup.style.padding = "20px";
+			popup.style.borderRadius = "8px";
+			popup.style.width = "500px";
+			popup.style.textAlign = "left";
+
+			const checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.id = "confirmationCheck";
+
+			const label = document.createElement("label");
+			label.htmlFor = "confirmationCheck";
+			label.innerText = message;
+			label.style.marginLeft = "10px";
+
+			const btnDiv = document.createElement("div");
+			btnDiv.style.marginTop = "20px";
+			btnDiv.style.textAlign = "right";
+
+			const btnOk = document.createElement("button");
+			btnOk.innerText = "Confirm";
+			btnOk.disabled = true;
+			btnOk.style.marginRight = "10px";
+
+			const btnCancel = document.createElement("button");
+			btnCancel.innerText = "Cancel";
+
+			btnDiv.appendChild(btnOk);
+			btnDiv.appendChild(btnCancel);
+			popup.appendChild(checkbox);
+			popup.appendChild(label);
+			popup.appendChild(btnDiv);
+			modal.appendChild(popup);
+			document.body.appendChild(modal);
+
+			checkbox.addEventListener("change", () => {
+				btnOk.disabled = !checkbox.checked;
+			});
+
+			btnOk.addEventListener("click", () => {
+				document.body.removeChild(modal);
+				resolve(true);
+			});
+
+			btnCancel.addEventListener("click", () => {
+				document.body.removeChild(modal);
+				resolve(false);
+			});
+		});
+	}
 	useEffect(() => {
 		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
 			setInspectionStatusMode("SUBMITTED");
@@ -1406,22 +1391,32 @@ export default function InspectionForm() {
 				const data = await res.json();
 				if (data.length > 0) {
 					const latestInspection = data[data.length - 1];
+					console.log("Latest inspection:", latestInspection);
+
 
 					setLocationText(latestInspection.location || "");
 					setChainage(latestInspection.chainage || "");
 
+
 					// ✅ measurements now comes from `latestInspection.measurements`
 					if (latestInspection.measurements) {
+						console.log("Raw measurement object:", latestInspection.measurements);
 						const m = latestInspection.measurements;
+						console.log("Measurement object:", m);
+						console.log("Measurement unit from backend:", m.unit);
+
 						setMeasurements([{
 							type: m.measurementType || "",
 							L: m.l || "",
 							B: m.b || "",
 							H: m.h || "",
+							weight: m.weight || "",
+							units: m.units || "",
 							No: m.no || "",
 							total: m.totalQty || ""
 						}]);
-					} else {
+					}
+					else {
 						setMeasurements([]);
 					}
 
@@ -1436,6 +1431,8 @@ export default function InspectionForm() {
 					setTestInLab(latestInspection.testInsiteLab || null);
 					setEngineerRemarks(latestInspection.engineerRemarks || "");
 					setOverallComments(latestInspection.descriptionEnclosure || "");
+					setSupportingFiles(latestInspection.supportingFiles || []);
+					setSupportingDescriptions(latestInspection.supportingDescriptions || []);
 
 
 				}
@@ -1642,7 +1639,7 @@ export default function InspectionForm() {
 
 	useEffect(() => {
 		if (!measurements || measurements.length === 0) {
-			setMeasurements([{ type: "", L: "", B: "", H: "", No: "", total: "" }]);
+			setMeasurements([{ type: "", units: "", L: "", B: "", H: "", No: "", total: "" }]);
 		}
 	}, [measurements]);
 
@@ -2156,6 +2153,143 @@ export default function InspectionForm() {
 										</tbody>
 									</table>
 
+									{/* Supporting Documents Upload Section */}
+									{/* Supporting Documents Section */}
+									<div className="supporting-documents-upload" style={{ marginTop: "20px" }}>
+										<label className="upload-label" style={{ fontWeight: "600" }}>
+											Supporting Documents
+										</label>
+
+										{/* Upload button */}
+										<button
+											className="hover-blue-btn"
+											style={{ marginLeft: "10px" }}
+											onClick={() => setSupportingUploadPopup(true)}
+											disabled={getDisabled()}
+										>
+											Upload
+										</button>
+
+										{/* Display files */}
+										{(supportingFiles.length > 0 || supportingDocs.length > 0) && (
+											<ul style={{ marginTop: "10px" }}>
+
+												{/* Backend files */}
+												{supportingFiles.map((fileUrl, idx) => {
+													const fileName = fileUrl.split("/").pop(); // extract filename
+													const fileLink = `${API_BASE_URL}rfi/supporting-docs/${fileName}`; // backend endpoint
+													return (
+														<li key={`backend-${idx}`} style={{ marginBottom: "10px" }}>
+															<span>{supportingDescriptions[idx] || `File ${idx + 1}`}</span>
+															<button
+																className="hover-green-btn"
+																style={{ marginLeft: "10px" }}
+																onClick={() => window.open(fileLink, "_blank")}
+															>
+																View
+															</button>
+															<button
+																className="hover-blue-btn"
+																style={{ marginLeft: "8px" }}
+																onClick={() => {
+																	const link = document.createElement("a");
+																	link.href = fileLink;
+																	link.download = fileName;
+																	document.body.appendChild(link);
+																	link.click();
+																	document.body.removeChild(link);
+																}}
+															>
+																Download
+															</button>
+															<button
+																className="hover-red-btn"
+																disabled={getDisabled()}
+																style={{ marginLeft: "8px" }}
+																onClick={async () => {
+																	try {
+																		const res = await fetch(
+																			`${API_BASE_URL}rfi/inspection/${rfiData.id}/supporting-doc?fileName=${encodeURIComponent(fileName)}`,
+																			{
+																				method: "DELETE",
+																				credentials: "include",
+																			}
+																		);
+																		if (!res.ok) throw new Error(await res.text());
+																		// remove file from frontend state
+																		setSupportingFiles(prev => prev.filter((_, i) => i !== idx));
+																		setSupportingDescriptions(prev => prev.filter((_, i) => i !== idx));
+																		alert("File removed successfully!");
+																	} catch (err) {
+																		console.error("Failed to remove file:", err);
+																		alert("Failed to remove file");
+																	}
+																}}
+
+															>
+																Remove
+															</button>
+														</li>
+													);
+												})}
+
+												{/* Newly uploaded files */}
+												{supportingDocs.map((docObj, idx) => (
+													<li key={`new-${idx}`} style={{ marginBottom: "10px" }}>
+														<input
+															type="text"
+															placeholder="Enter description"
+															value={docObj.description}
+															onChange={(e) => {
+																const newDocs = [...supportingDocs];
+																newDocs[idx].description = e.target.value;
+																setSupportingDocs(newDocs);
+															}}
+															style={{ marginRight: "10px", width: "250px" }}
+														/>
+														<button
+															className="hover-green-btn"
+															style={{ marginRight: "8px" }}
+															onClick={() => window.open(URL.createObjectURL(docObj.file), "_blank")}
+														>
+															View
+														</button>
+														<button
+															className="hover-blue-btn"
+															style={{ marginRight: "8px" }}
+															onClick={() => {
+																const link = document.createElement("a");
+																link.href = URL.createObjectURL(docObj.file);
+																link.download = docObj.file.name || "supporting_document";
+																link.click();
+															}}
+														>
+															Download
+														</button>
+														<button
+															className="hover-red-btn"
+															onClick={() => setSupportingDocs(prev => prev.filter((_, i) => i !== idx))}
+															disabled={getDisabled()}
+														>
+															Remove
+														</button>
+													</li>
+												))}
+											</ul>
+										)}
+
+										{/* Upload popup */}
+										{supportingUploadPopup && (
+											<UploadPopup
+												onClose={() => setSupportingUploadPopup(false)}
+												onSubmit={(file) => {
+													setSupportingDocs(prev => [...prev, { file, description: "" }]);
+													setSupportingUploadPopup(false);
+												}}
+											/>
+										)}
+									</div>
+
 									{/* ✅ Description box below the table */}
 									<div className="enclosure-comments">
 										<label htmlFor="enclosureComments">Description</label>
@@ -2173,6 +2307,7 @@ export default function InspectionForm() {
 								</div>
 
 								{/* ✅ Measurements Section */}
+								{/* ? Measurements Section */}
 								<hr className="section-divider" />
 
 								<div className="measurements-section">
@@ -2186,9 +2321,11 @@ export default function InspectionForm() {
 										<thead>
 											<tr>
 												<th>Type of Measurement</th>
+												<th>Units</th>
 												<th>L</th>
 												<th>B</th>
 												<th>H</th>
+												<th>Weight</th>
 												<th>No.</th>
 												<th>Total Qty</th>
 											</tr>
@@ -2196,97 +2333,139 @@ export default function InspectionForm() {
 
 										<tbody>
 											{Array.isArray(measurements) && measurements.length > 0 ? (
-												measurements.map((row, index) => (
-													<tr key={index}>
-														{/* Type */}
-														<td>
-															<select
-																className="measurement-input"
-																value={row.type || ""}
-																onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
-																disabled={getDisabled()}
-															>
-																<option value="">Select</option>
-																<option value="Area">Area</option>
-																<option value="Length">Length</option>
-																<option value="Volume">Volume</option>
-																<option value="Number">Number</option>
-															</select>
-														</td>
+												measurements.map((row, index) => {
+													const unitsOptions = row.type
+														? {
+															Length: ["mm", "cm", "m", "km", "in", "ft"],
+															Area: ["cm�", "m�", "km�", "ft�"],
+															Volume: ["cm�", "m�", "L", "mL"],
+															Weight: ["kg", "g", "ton"],
+															Number: ["Nos"],
+														}[row.type] || []
+														: [];
 
-														{/* L */}
-														<td>
-															<input
-																type="number"
-																className="measurement-input"
-																value={row.L ?? ""}
-																onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
-																disabled={getDisabled() || row.type === "Number"}
-															/>
-														</td>
+													return (
+														<tr key={index}>
+															{/* Type */}
+															<td>
+																<select
+																	className="measurement-input"
+																	value={row.type || ""}
+																	onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
+																	disabled={getDisabled()}
+																>
+																	<option value="">Select</option>
+																	<option value="Area">Area</option>
+																	<option value="Length">Length</option>
+																	<option value="Volume">Volume</option>
+																	<option value="Number">Number</option>
+																	<option value="Weight">Weight</option>
+																</select>
+															</td>
 
-														{/* B */}
-														<td>
-															<input
-																type="number"
-																className="measurement-input"
-																value={row.B ?? ""}
-																onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
-																disabled={
-																	getDisabled() || row.type === "Length" || row.type === "Number"
-																}
-															/>
-														</td>
+															{/* Units */}
+															<td>
+																<select
+																	className="measurement-input"
+																	value={row.units || ""}
+																	onChange={(e) => {
+																		if (e.target.value === "custom") {
+																			const newUnit = prompt("Enter your custom unit:");
+																			if (newUnit) handleMeasurementChange(index, "units", newUnit);
+																		} else {
+																			handleMeasurementChange(index, "units", e.target.value);
+																		}
+																	}}
+																	disabled={!row.type || getDisabled()}
+																>
+																	<option value="">Select Unit</option>
+																	{unitsOptions.map((units) => (
+																		<option key={units} value={units}>
+																			{units}
+																		</option>
+																	))}
+																	<option value="custom">Add Custom Unit</option>
+																</select>
+															</td>
 
-														{/* H */}
-														<td>
-															<input
-																type="number"
-																className="measurement-input"
-																value={row.H ?? ""}
-																onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
-																disabled={
-																	getDisabled() ||
-																	row.type === "Area" ||
-																	row.type === "Length" ||
-																	row.type === "Number"
-																}
-															/>
-														</td>
+															{/* L */}
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input"
+																	value={row.L ?? ""}
+																	onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
+																	disabled={getDisabled() || row.type === "Number" || row.type === "Weight"}
+																/>
+															</td>
 
-														{/* No */}
-														<td>
-															<input
-																type="number"
-																className="measurement-input"
-																value={row.No ?? ""}
-																onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
-																disabled={getDisabled()}
-															/>
-														</td>
+															{/* B */}
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input"
+																	value={row.B ?? ""}
+																	onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
+																	disabled={getDisabled() || row.type === "Length" || row.type === "Number" || row.type === "Weight"}
+																/>
+															</td>
 
-														{/* Total */}
-														<td>
-															<input
-																type="number"
-																className="measurement-input readonly-input"
-																value={row.total ?? ""}
-																readOnly
-															/>
-														</td>
-													</tr>
-												))
+															{/* H */}
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input"
+																	value={row.H ?? ""}
+																	onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
+																	disabled={getDisabled() || row.type === "Area" || row.type === "Length" || row.type === "Number" || row.type === "Weight"}
+																/>
+															</td>
+
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input"
+																	value={row.weight ?? ""}
+																	onChange={(e) => handleMeasurementChange(index, "weight", e.target.value)}
+																	disabled={getDisabled() || row.type !== "Weight"}  // <-- only editable for type Weight
+																/>
+															</td>
+
+
+															{/* No */}
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input"
+																	value={row.No ?? ""}
+																	onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
+																	disabled={getDisabled()}
+																/>
+															</td>
+
+															{/* Total */}
+															<td>
+																<input
+																	type="number"
+																	className="measurement-input readonly-input"
+																	value={row.total ?? ""}
+																	readOnly
+																/>
+															</td>
+														</tr>
+													);
+												})
 											) : (
 												<tr>
-													<td colSpan="6" style={{ textAlign: "center", color: "#888" }}>
+													<td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
 														No measurements added yet.
 													</td>
 												</tr>
 											)}
 										</tbody>
+
 									</table>
 								</div>
-
 								<div className="measurements-section">
 									<h3 className="section-title">Confirm Inspection <spam class="red">*</spam></h3>
 									<div

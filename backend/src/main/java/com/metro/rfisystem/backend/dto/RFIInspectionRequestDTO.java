@@ -1,4 +1,8 @@
 package com.metro.rfisystem.backend.dto;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RFIInspectionRequestDTO {
 	private Long inspectionId;
     private Long rfiId;
@@ -32,11 +37,17 @@ public class RFIInspectionRequestDTO {
     private Double height;
     private Integer noOfItems;
     private Double totalQty;
+    private Double weight;
+    private String units;
     private String engineerRemarks;
     private Object workStatus;
     private String uploadedBy;
     private String descriptionEnclosure;
     private MeasurementDTO measurements;
+    private List<String> supportingDescriptions; // descriptions
+    private List<String> supportingFiles;
+
+
 
 
 	

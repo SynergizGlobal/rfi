@@ -36,6 +36,12 @@ public class Measurements {
 
     @Column(name = "height")
     private Double height;
+    
+    @Column(name = "weight")
+    private Double weight;
+    
+    @Column(name = "units")
+    private String units;
 
     @Column(name = "no_of_items")
     private Integer noOfItems;
