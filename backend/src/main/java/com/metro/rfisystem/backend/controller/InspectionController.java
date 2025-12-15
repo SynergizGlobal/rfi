@@ -99,7 +99,6 @@ public class InspectionController {
 
 	@Value("${rfi.dsc.storage-path}")
 	private String dscStoragePath;
-	
 
 	@Value("${supporting.docs.upload-dir}")
 	private String supportingDocsUploadDir;
@@ -115,8 +114,7 @@ public class InspectionController {
 	public ResponseEntity<Long> saveDraftInspection(HttpSession session, @RequestPart("data") String dataJson,
 			@RequestPart(value = "selfie", required = false) MultipartFile selfie,
 			@RequestPart(value = "testReport", required = false) MultipartFile testDocument,
-	        @RequestPart(value = "supportingFiles", required = false) List<MultipartFile> supportingFiles) {
-
+			@RequestPart(value = "supportingFiles", required = false) List<MultipartFile> supportingFiles) {
 
 		String deptFk = (String) session.getAttribute("departmentFk");
 
@@ -124,7 +122,7 @@ public class InspectionController {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-			Long inspectionId = inspectionService.startInspection(dto, selfie, testDocument,supportingFiles, deptFk);
+			Long inspectionId = inspectionService.startInspection(dto, selfie, testDocument, supportingFiles, deptFk);
 
 			return ResponseEntity.ok(inspectionId);
 		} catch (Exception e) {
@@ -137,8 +135,7 @@ public class InspectionController {
 	public ResponseEntity<String> finalSubmitInspection(HttpSession session, @RequestPart("data") String dataJson,
 			@RequestPart(value = "selfie", required = false) MultipartFile selfie,
 			@RequestPart(value = "testReport", required = false) MultipartFile testDocument,
-	        @RequestPart(value = "supportingFiles", required = false) List<MultipartFile> supportingFiles) {
-
+			@RequestPart(value = "supportingFiles", required = false) List<MultipartFile> supportingFiles) {
 
 		String deptFk = (String) session.getAttribute("departmentFk");
 
@@ -146,7 +143,8 @@ public class InspectionController {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
-			InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, testDocument, supportingFiles, deptFk);
+			InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, testDocument,
+					supportingFiles, deptFk);
 
 			switch (result) {
 			case ENGINEER_SUCCESS:
@@ -201,71 +199,86 @@ public class InspectionController {
 					.body("Failed to fetch inspection: " + e.getMessage());
 		}
 	}
-	
-	
+
 	@GetMapping("/rfi/supporting-docs/{fileName:.+}")
 	public ResponseEntity<Resource> getSupportingDoc(@PathVariable String fileName) {
-	    try {
-	    	   Path filePath = Paths.get(supportingDocsUploadDir)
-                       .resolve(fileName)
-                       .normalize();
-	        Resource resource = new UrlResource(filePath.toUri());
+		try {
+			// Decode URL-encoded file name (spaces, parentheses, etc.)
+			fileName = java.net.URLDecoder.decode(fileName, StandardCharsets.UTF_8);
 
-	        if (!resource.exists()) {
-	            return ResponseEntity.notFound().build();
-	        }
+			// Build absolute file path
+			Path filePath = Paths.get(supportingDocsUploadDir).resolve(fileName).normalize();
 
-	        String contentType = "application/octet-stream";
-	        if (fileName.endsWith(".pdf")) {
-	            contentType = "application/pdf";
-	        } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-	            contentType = "image/jpeg";
-	        } else if (fileName.endsWith(".png")) {
-	            contentType = "image/png";
-	        }
+			// Check if file exists
+			if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+				System.out.println("File not found: " + filePath);
+				return ResponseEntity.notFound().build();
+			}
 
-	        return ResponseEntity.ok()
-	                .contentType(MediaType.parseMediaType(contentType))
-	                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-	                .body(resource);
+			Resource resource = new UrlResource(filePath.toUri());
 
-	    } catch (MalformedURLException e) {
-	        e.printStackTrace();
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-	    }
+			String contentType = Files.probeContentType(filePath);
+			if (contentType == null)
+				contentType = "application/octet-stream";
+
+			return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+					.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"").body(resource);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	@GetMapping("/rfi/supporting-doc/download")
+	public ResponseEntity<Resource> downloadSupportingDoc(@RequestParam Long rfiId, @RequestParam String fileName) {
+
+		try {
+			String basePath = supportingDocsUploadDir; // from your config
+			Path filePath = Paths.get(basePath).resolve(fileName).normalize();
+
+			if (!Files.exists(filePath)) {
+				return ResponseEntity.notFound().build();
+			}
+
+			Resource resource = new UrlResource(filePath.toUri());
+
+			return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
+					.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+					.body(resource);
+
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+		}
 	}
 
 	@GetMapping("/rfi/supporting-files/{rfiId}")
 	public ResponseEntity<?> getSupportingFilesByRfiId(@PathVariable Long rfiId) {
-	    try {
-	        List<SupportingDocDTO> files = inspectionService.getSupportingFilesByRfiId(rfiId);
-	        return ResponseEntity.ok(files);
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                .body("Failed to fetch supporting files: " + e.getMessage());
-	    }
+		try {
+			List<SupportingDocDTO> files = inspectionService.getSupportingFilesByRfiId(rfiId);
+			return ResponseEntity.ok(files);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Failed to fetch supporting files: " + e.getMessage());
+		}
 	}
 
-	
-	 @DeleteMapping("/rfi/inspection/{rfiId}/supporting-doc")
-	    public ResponseEntity<String> removeSupportingDoc(
-	            @PathVariable Long rfiId,
-	            @RequestParam String fileName) {
-	        try {
-	            boolean removed = inspectionService.removeSupportingFileByRfiId(rfiId, fileName);
-	            if (removed) {
-	                return ResponseEntity.ok("Supporting document removed successfully.");
-	            } else {
-	                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-	                        .body("File not found or already removed.");
-	            }
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                    .body("Failed to remove supporting document: " + e.getMessage());
-	        }
-	    }
+	@DeleteMapping("/rfi/inspection/{rfiId}/supporting-doc")
+	public ResponseEntity<String> removeSupportingDoc(@PathVariable Long rfiId, @RequestParam String fileName) {
+		try {
+			boolean removed = inspectionService.removeSupportingFileByRfiId(rfiId, fileName);
+			if (removed) {
+				return ResponseEntity.ok("Supporting document removed successfully.");
+			} else {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("File not found or already removed.");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Failed to remove supporting document: " + e.getMessage());
+		}
+	}
 
 //	@GetMapping("/inspections/{rfiId}")
 //	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId) {
@@ -284,13 +297,15 @@ public class InspectionController {
 //	}
 
 	@PostMapping("/rfi/upload")
-	public ResponseEntity<String> uploadEnclosure(@RequestParam("rfiId") Long rfiId,
+	public ResponseEntity<String> uploadEnclosure(@RequestParam("rfiId") Long rfiId, HttpSession session,
 
 			@RequestParam("enclosureName") String enclosureName, @RequestParam("file") MultipartFile file,
 			@RequestParam(value = "description", required = false) String description) {
+		String deptFk = (String) session.getAttribute("departmentFk");
 
 		try {
-			String savedFileName = rfiEnclosureService.uploadEnclosureFile(rfiId, enclosureName, file, description);
+			String savedFileName = rfiEnclosureService.uploadEnclosureFile(rfiId, deptFk, enclosureName, file,
+					description);
 			return ResponseEntity.ok("Uploaded successfully as: " + savedFileName);
 		} catch (IllegalArgumentException e) {
 			return ResponseEntity.badRequest().body(e.getMessage());
@@ -307,18 +322,24 @@ public class InspectionController {
 		return ResponseEntity.ok(result);
 	}
 
-	@DeleteMapping("/rfi/enclosure/files")
-	public ResponseEntity<List<EnclosureFileDto>> deleteFilesForEnclosure(@RequestParam Long rfiId,
-			@RequestParam String enclosureName) {
+	 @DeleteMapping("/rfi/enclosure/files")
+	    public ResponseEntity<String> deleteSingleFile(
+	            HttpSession session,
+	            @RequestParam Long id) {
 
-		int deleted = rfiEnclosureService.deleteFilesForEnclosure(rfiId, enclosureName);
+	        String deptFk = (String) session.getAttribute("departmentFk");
 
-		// Fetch updated list
-		List<EnclosureFileDto> updatedList = rfiEnclosureService.getEnclosures(rfiId);
-
-		return ResponseEntity.ok(updatedList);
-	}
-
+	        try {
+	            rfiEnclosureService.deleteSingleFile(id, deptFk);
+	            return ResponseEntity.ok("File deleted successfully");
+	        } catch (SecurityException e) {
+	            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+	        } catch (IllegalArgumentException e) {
+	            return ResponseEntity.badRequest().body(e.getMessage());
+	        } catch (Exception e) {
+	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("File delete failed");
+	        }
+	    }
 	@GetMapping("/rfi/autofill/{rfiId}")
 	public ResponseEntity<RFIInspectionAutofillDTO> getAutofillDetails(@PathVariable Long rfiId) {
 		RFIInspectionAutofillDTO dto = rfiEnclosureService.getAutofillData(rfiId);
@@ -554,119 +575,107 @@ public class InspectionController {
 		}
 	}
 
-	 @PostMapping("/rfi/signedResponse")
-		public String signedResponse(
-		        @RequestParam("espTxnID") String espTxnID,
-		        @RequestParam("eSignResponse") String eSignResponse,
-		        HttpSession session) {
+	@PostMapping("/rfi/signedResponse")
+	public String signedResponse(@RequestParam("espTxnID") String espTxnID,
+			@RequestParam("eSignResponse") String eSignResponse, HttpSession session) {
 
-		    try {
-		        Object userIdObj = session.getAttribute("userId");
-		        if (userIdObj == null) {
-		            throw new RuntimeException("User not logged in");
-		        }
+		try {
+			Object userIdObj = session.getAttribute("userId");
+			if (userIdObj == null) {
+				throw new RuntimeException("User not logged in");
+			}
 
-		        String userId = userIdObj.toString();
+			String userId = userIdObj.toString();
 
-		        String decodedXml = eSignResponse;
+			String decodedXml = eSignResponse;
 
-		        esignService.saveUserEsignedXml(userId.toString(), decodedXml,espTxnID);
+			esignService.saveUserEsignedXml(userId.toString(), decodedXml, espTxnID);
 
-		        return buildHtmlMessage("eSign completed successfully!", true);
+			return buildHtmlMessage("eSign completed successfully!", true);
 
-		    } catch (Exception e) {
-		        e.printStackTrace();
-		        return buildHtmlMessage("eSign failed!", false);
-		    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			return buildHtmlMessage("eSign failed!", false);
 		}
+	}
 
-@PostMapping("/rfi/stampPdfFromXml")
-public ResponseEntity<Map<String, String>> stampPdfFromXml(
-        @RequestParam("rfiId") String rfiId,
-        @RequestParam("txnId") String txnId,
-        HttpSession session) {
+	@PostMapping("/rfi/stampPdfFromXml")
+	public ResponseEntity<Map<String, String>> stampPdfFromXml(@RequestParam("rfiId") String rfiId,
+			@RequestParam("txnId") String txnId, HttpSession session) {
 
-    Map<String, String> response = new HashMap<>();
-    try {
-        String userId = (String) session.getAttribute("userId");
-        if (userId == null) {
-            throw new RuntimeException("User not logged in");
-        }
+		Map<String, String> response = new HashMap<>();
+		try {
+			String userId = (String) session.getAttribute("userId");
+			if (userId == null) {
+				throw new RuntimeException("User not logged in");
+			}
 
-        // Use Paths.get() for platform-independent paths
-        String xmlFilePath = Paths.get(dscStoragePath, userId, "signed.xml").toString();
+			// Use Paths.get() for platform-independent paths
+			String xmlFilePath = Paths.get(dscStoragePath, userId, "signed.xml").toString();
 
-        esignService.stampPdfFromXml(rfiId, xmlFilePath, userId, txnId);
+			esignService.stampPdfFromXml(rfiId, xmlFilePath, userId, txnId);
 
-        response.put("status", "success");
-        response.put("message", "Contractor e-sign successfully from XML");
-        return ResponseEntity.ok(response);
+			response.put("status", "success");
+			response.put("message", "Contractor e-sign successfully from XML");
+			return ResponseEntity.ok(response);
 
-    } catch (Exception e) {
-        e.printStackTrace();
-        response.put("status", "error");
-        response.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-}
+		} catch (Exception e) {
+			e.printStackTrace();
+			response.put("status", "error");
+			response.put("message", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+		}
+	}
 
+	@PostMapping("/rfi/stampEnggPdfFromXml")
+	public ResponseEntity<Map<String, String>> stampEnggPdfFromXml(@RequestParam("rfiId") String rfiId,
+			HttpSession session) {
 
+		Map<String, String> response = new HashMap<>();
+		try {
+			String userId = (String) session.getAttribute("userId");
+			if (userId == null) {
+				throw new RuntimeException("User not logged in");
+			}
 
-@PostMapping("/rfi/stampEnggPdfFromXml")
-public ResponseEntity<Map<String, String>> stampEnggPdfFromXml(
-        @RequestParam("rfiId") String rfiId,
-        HttpSession session) {
+			// Platform-independent path
+			String xmlFilePath = Paths.get(dscStoragePath, userId, "signed.xml").toString();
 
-    Map<String, String> response = new HashMap<>();
-    try {
-        String userId = (String) session.getAttribute("userId");
-        if (userId == null) {
-            throw new RuntimeException("User not logged in");
-        }
+			esignService.stampEnggPdfFromXml(rfiId, xmlFilePath, userId);
 
-        // Platform-independent path
-        String xmlFilePath = Paths.get(dscStoragePath, userId, "signed.xml").toString();
+			response.put("status", "success");
+			response.put("message", "Engineer e-sign successfully from XML");
+			return ResponseEntity.ok(response);
 
-        esignService.stampEnggPdfFromXml(rfiId, xmlFilePath, userId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			response.put("status", "error");
+			response.put("message", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+		}
+	}
 
-        response.put("status", "success");
-        response.put("message", "Engineer e-sign successfully from XML");
-        return ResponseEntity.ok(response);
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        response.put("status", "error");
-        response.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-}
-
-
-
-	/*private String buildHtmlMessage(String message, boolean success) {
-	    String color = success ? "green" : "red";
-
-	    return "<html><body style='font-family:Arial; text-align:center; padding-top:40px;'>"
-	            + "<h2 style='color:" + color + ";'>" + message + "</h2>"
-	            + "<p>You may close this window and return to the application.</p>"
-	            + "</body></html>";
-	}*/
+	/*
+	 * private String buildHtmlMessage(String message, boolean success) { String
+	 * color = success ? "green" : "red";
+	 * 
+	 * return
+	 * "<html><body style='font-family:Arial; text-align:center; padding-top:40px;'>"
+	 * + "<h2 style='color:" + color + ";'>" + message + "</h2>" +
+	 * "<p>You may close this window and return to the application.</p>" +
+	 * "</body></html>"; }
+	 */
 
 	private String buildHtmlMessage(String message, boolean success) {
-	    String color = success ? "green" : "red";
+		String color = success ? "green" : "red";
 
-	    return "<html><body style='font-family:Arial; text-align:center; padding-top:40px;'>"
-	            + "<h2 style='color:" + color + ";'>" + message + "</h2>"
-	            + "<p>You may close this window and return to the application.</p>"
-	            + (success
-	                ? "<script>"
-	                    + "if (window.opener) {"
-	                    + "  window.opener.postMessage('esign-completed', '*');"
-	                    + "}"
-	                    + "window.close();"
-	                    + "</script>"
-	                : "")
-	            + "</body></html>";
+		return "<html><body style='font-family:Arial; text-align:center; padding-top:40px;'>" + "<h2 style='color:"
+				+ color + ";'>" + message + "</h2>" + "<p>You may close this window and return to the application.</p>"
+				+ (success
+						? "<script>" + "if (window.opener) {" + "  window.opener.postMessage('esign-completed', '*');"
+								+ "}" + "window.close();" + "</script>"
+						: "")
+				+ "</body></html>";
 	}
 
 	private String buildHtmlRedirect(String message, boolean success) {
@@ -783,8 +792,8 @@ public ResponseEntity<Map<String, String>> stampEnggPdfFromXml(
 		}
 	}
 
-@PostMapping(value = "/rfi/getSignedXmlRequestSimple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin(origins = "https://syntrackpro.com")
+	@PostMapping(value = "/rfi/getSignedXmlRequestSimple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@CrossOrigin(origins = "https://syntrackpro.com")
 	public ResponseEntity<SignedXmlResponse> getSignedXmlRequestSimple(@RequestPart("pdfBlob") MultipartFile pdfBlob,
 			@RequestParam("sc") String sc, @RequestParam("txnId") String txnId,
 			@RequestParam("signerName") String signerName, @RequestParam("contractorName") String companyName,

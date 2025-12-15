@@ -12,7 +12,7 @@ import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.TestType;
 
 public interface RFIEnclosureService {
-	String uploadEnclosureFile(Long rfiId, String enclosureName, MultipartFile file, String description);
+	String uploadEnclosureFile(Long rfiId, String deptFk, String enclosureName, MultipartFile file, String description);
     
     public RFIInspectionAutofillDTO getAutofillData(Long rfiId);
 
@@ -22,7 +22,15 @@ public interface RFIEnclosureService {
     public List<EnclosureFileDto> getEnclosures(Long rfiId);
 
 
-	int deleteFilesForEnclosure(Long rfiId, String enclosureName);
+//	int deleteFilesForEnclosure(Long rfiId, String deptFk, String enclosureName);
+
+
+
+//	boolean deleteFileById(Long id, String deptFk);
+
+
+
+	void deleteSingleFile(Long id, String deptFk);
 
 
 

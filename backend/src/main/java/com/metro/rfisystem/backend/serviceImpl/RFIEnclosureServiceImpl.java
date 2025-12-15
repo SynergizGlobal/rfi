@@ -46,9 +46,9 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 	@Value("${rfi.enclosures.upload-dir}")
 	private String uploadDir;
 
-	
 	@Override
-	public String uploadEnclosureFile(Long rfiId, String enclosureName, MultipartFile file, String description) {
+	public String uploadEnclosureFile(Long rfiId, String deptFk, String enclosureName, MultipartFile file,
+			String description) {
 		if (file == null || file.isEmpty()) {
 			throw new IllegalArgumentException("No file provided.");
 		}
@@ -92,6 +92,12 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 			enclosure.setEnclosureUploadFile(filePath.toString());
 			enclosure.setDescription(description);
 
+			// 🔥 CORE FIX
+			enclosure.setUploadedBy("Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON");
+
+			// 🔒 Lock contractor files
+			enclosure.setLocked(!"Engg".equalsIgnoreCase(deptFk));
+
 			enclosureRepository.save(enclosure);
 
 			return fileName;
@@ -111,66 +117,60 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 			return true;
 		}
 	}
-	
+
 	public List<EnclosureFileDto> getEnclosures(Long rfiId) {
 
-	    List<Object[]> rows = enclosureRepository.findByRfiId(rfiId);
+		List<Object[]> rows = enclosureRepository.findByRfiId(rfiId);
 
-	    Map<String, List<String>> grouped = new LinkedHashMap<>();
+		Map<String, List<String>> grouped = new LinkedHashMap<>();
 
-	    for (Object[] row : rows) {
-	        String enclosure = (String) row[0];
-	        String file = (String) row[1];
+		for (Object[] row : rows) {
+			String enclosure = (String) row[0];
+			String file = (String) row[1];
 
-	        grouped.computeIfAbsent(enclosure, k -> new ArrayList<>()).add(file);
-	    }
+			grouped.computeIfAbsent(enclosure, k -> new ArrayList<>()).add(file);
+		}
 
-	    List<EnclosureFileDto> result = new ArrayList<>();
+		List<EnclosureFileDto> result = new ArrayList<>();
 
-	    for (Map.Entry<String, List<String>> entry : grouped.entrySet()) {
-	    	EnclosureFileDto dto = new EnclosureFileDto();
-	        dto.setEnclosureName(entry.getKey());
-	        dto.setFiles(entry.getValue());
-	        result.add(dto);
-	    }
+		for (Map.Entry<String, List<String>> entry : grouped.entrySet()) {
+			EnclosureFileDto dto = new EnclosureFileDto();
+			dto.setEnclosureName(entry.getKey());
+			dto.setFiles(entry.getValue());
+			result.add(dto);
+		}
 
-	    return result;
+		return result;
 	}
-	
+
 	@Override
-	public int deleteFilesForEnclosure(Long rfiId, String enclosureName) {
+	public void deleteSingleFile(Long id, String deptFk) {
+		RFIEnclosure file = enclosureRepository.findById(id)
+				.orElseThrow(() -> new IllegalArgumentException("Invalid file ID"));
 
-	    List<RFIEnclosure> files =
-	            enclosureRepository.findByRfiIdAndEnclosureName(rfiId, enclosureName);
+		// Normalize deptFk
+		String currentUser = deptFk.equalsIgnoreCase("CONTRACTOR") ? "CON"
+				: deptFk.equalsIgnoreCase("ENGG") ? "ENGG" : deptFk;
 
-	    if (files.isEmpty()) {
-	        return 0;
-	    }
+		String fileOwner = file.getUploadedBy().trim().toUpperCase();
 
-	    int deletedCount = 0;
+		if (!fileOwner.equals(currentUser.toUpperCase())) {
+			throw new SecurityException("You cannot delete files uploaded by " + file.getUploadedBy());
+		}
 
-	    for (RFIEnclosure file : files) {
+		// Delete physical file
+		try {
+			String path = file.getEnclosureUploadFile();
+			if (path != null) {
+				Files.deleteIfExists(Paths.get(path));
+			}
+		} catch (IOException e) {
+			throw new RuntimeException("File delete error: " + e.getMessage(), e);
+		}
 
-	        // Delete physical file
-	        try {
-	            String path = file.getEnclosureUploadFile();
-	            if (path != null) {
-	                Files.deleteIfExists(Paths.get(path));
-	            }
-	        } catch (IOException e) {
-	            throw new RuntimeException("File delete error: " + e.getMessage());
-	        }
-
-	        // Delete only FILE record (not the master enclosure)
-	        enclosureRepository.delete(file);
-
-	        deletedCount++;
-	    }
-
-	    return deletedCount;
+		// Delete DB record
+		enclosureRepository.delete(file);
 	}
-
-
 
 	@Override
 	public RFIInspectionAutofillDTO getAutofillData(Long rfiId) {

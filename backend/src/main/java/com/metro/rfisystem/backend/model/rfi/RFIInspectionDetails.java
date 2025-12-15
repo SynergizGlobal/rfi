@@ -102,10 +102,9 @@ public class RFIInspectionDetails {
     @Column(name = "description_enclosure", length = 2000)
     private String descriptionEnclosure;
 
- // Multiple supporting documents stored as JSON string
-    @Column(name = "supporting_documents")
-    private String supportingDocuments; 
-    
+    @Column(name = "supporting_documents", columnDefinition = "TEXT")
+    private String supportingDocuments;
+
     @Column(name = "documents_description", length = 200) // fixed spelling
     private String documentsDescription;
 

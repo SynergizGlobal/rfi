@@ -32,8 +32,12 @@ public class RFIEnclosure {
     private String description;
     
     private String enclosureName;
- 
     
-    @Column(length = 1000)
+    @Column(name = "uploaded_by") // Engg / CON
+    private String uploadedBy;
+ 
+    @Column(name = "is_locked")
+    private Boolean locked = false;
+    
     private String enclosureUploadFile;
 }

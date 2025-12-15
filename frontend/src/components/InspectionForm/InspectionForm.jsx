@@ -80,6 +80,24 @@ export default function InspectionForm() {
 		}
 	};
 
+	{/* STATE: Add this above (inside your component) */ }
+	const [customUnits, setCustomUnits] = useState({
+		Length: [],
+		Area: [],
+		Volume: [],
+		Weight: [],
+		Number: []
+	});
+
+	const baseUnits = {
+		Length: ["mm", "cm", "m", "km", "in", "ft"],
+		Area: ["cm²", "m²", "km²", "ft²"],
+		Volume: ["cm³", "m³", "L", "mL"],
+		Weight: ["kg", "g", "ton"],
+		Number: ["Nos"],
+	};
+
+
 
 	useEffect(() => {
 		if (id) {
@@ -858,17 +876,17 @@ export default function InspectionForm() {
 			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
-		
+
 		// Engineer must select inspection status
-    if (deptFK?.toLowerCase() === "engg" && !testInLab) {
-        alert("Inspection Status is mandatory!");
-        return;
-    }
-     // If rejected → remarks required
-    if (deptFK?.toLowerCase() === "engg" && testInLab === "Rejected" && !engineerRemarks.trim()) {
-        alert("Remarks are mandatory when Inspection is Rejected!");
-        return;
-    }
+		if (deptFK?.toLowerCase() === "engg" && !testInLab) {
+			alert("Inspection Status is mandatory!");
+			return;
+		}
+		// If rejected → remarks required
+		if (deptFK?.toLowerCase() === "engg" && testInLab === "Rejected" && !engineerRemarks.trim()) {
+			alert("Remarks are mandatory when Inspection is Rejected!");
+			return;
+		}
 
 		if (!validateEnclosures()) {
 			return; // block submission if enclosures incomplete
@@ -1132,13 +1150,13 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			const mergedUrl = URL.createObjectURL(pdfBlob);
+			/*const mergedUrl = URL.createObjectURL(pdfBlob);
 			const link = document.createElement("a");
 			link.href = mergedUrl;
 			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link);
+			document.body.removeChild(link);*/
 			// 4️⃣ Upload PDF to backend
 
 
@@ -1402,6 +1420,25 @@ export default function InspectionForm() {
 					if (latestInspection.measurements) {
 						console.log("Raw measurement object:", latestInspection.measurements);
 						const m = latestInspection.measurements;
+
+						// ⭐ Add this block to register unit if not in predefined list
+						const unitFromBackend = m.units;
+						const typeFromBackend = m.measurementType;
+
+						if (unitFromBackend && typeFromBackend) {
+							const isNotBase =
+								!baseUnits[typeFromBackend]?.includes(unitFromBackend);
+
+							const isNotCustom =
+								!customUnits[typeFromBackend]?.includes(unitFromBackend);
+
+							if (isNotBase && isNotCustom) {
+								setCustomUnits(prev => ({
+									...prev,
+									[typeFromBackend]: [...prev[typeFromBackend], unitFromBackend]
+								}));
+							}
+						}
 						console.log("Measurement object:", m);
 						console.log("Measurement unit from backend:", m.unit);
 
@@ -1966,7 +2003,7 @@ export default function InspectionForm() {
 
 								<div className="measurements-section">
 									<h3 className="section-title">Enclosures <span class="red">*</span></h3>
-									<table className="measurements-table">
+									{/*<table className="measurements-table">
 										<thead>
 											<tr>
 												<th>RFI Description</th>
@@ -2044,7 +2081,7 @@ export default function InspectionForm() {
 														<td>
 															{enclosureFile ? (
 																<>
-																	{/* DOWNLOAD BUTTON */}
+																	{ DOWNLOAD BUTTON }
 																	<button
 																		className="hover-blue-btn"
 																		onClick={() => {
@@ -2071,7 +2108,7 @@ export default function InspectionForm() {
 																		Download
 																	</button>
 
-																	{/* DELETE BUTTON */}
+																	{ DELETE BUTTON }
 																	<button
 																		className="hover-red-btn"
 																		disabled={getDisabled()}
@@ -2151,10 +2188,183 @@ export default function InspectionForm() {
 												);
 											})}
 										</tbody>
+									</table>*/}
+
+
+									<table className="measurements-table">
+										<thead>
+											<tr>
+												<th>RFI Description</th>
+												<th>Enclosure</th>
+												<th>Action</th>
+												<th>Uploaded</th>
+												<th>Test Report</th>
+											</tr>
+										</thead>
+										<tbody>
+											{enclosuresData.map((e, index) => {
+												const files = rfiData.enclosure?.filter(
+													(enc) => enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+												) || [];
+
+												const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+
+												return (
+													<tr key={e.id}>
+														<td>{e.rfiDescription}</td>
+														<td>{e.enclosure}</td>
+
+														{/* Upload/Open buttons */}
+														<td>
+															{enclosureActions[e.id] === 'UPLOAD' ? (
+																<button
+																	className="hover-blue-btn"
+																	onClick={() => setUploadPopup(e.id)}
+																	disabled={getDisabled()}
+																>
+																	Upload
+																</button>
+															) : (
+																<>
+																	<button
+																		className="hover-blue-btn"
+																		onClick={() => setChecklistPopup(e.id)}
+																	>
+																		{deptFK?.toLowerCase() === "engg"
+																			? (files.some(f => f.uploadedBy === "Engg") ? "View" : "Open")
+																			: (files.some(f => f.uploadedBy === "CON") ? "View" : "Open")}
+																	</button>
+
+																	<button
+																		className="hover-blue-btn"
+																		onClick={() => setUploadPopup(e.id)}
+																		disabled={getDisabled()}
+																	>
+																		Upload
+																	</button>
+																</>
+															)}
+														</td>
+
+														{/* Download and Remove buttons */}
+														<td>
+															{files.length > 0 ? (
+																files.map((file) => (
+
+																	<div key={file.id} style={{ display: "flex", gap: "5px" }}>
+																		{/* Download button */}
+																		<button
+																			className="hover-blue-btn"
+																			onClick={() => {
+																				const url = `${API_BASE_URL}api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(file.enclosureName)}&uploadedBy=${file.uploadedBy}`;
+																				fetch(url)
+																					.then((res) => res.blob())
+																					.then((blob) => {
+																						const blobUrl = window.URL.createObjectURL(blob);
+																						const link = document.createElement("a");
+																						link.href = blobUrl;
+																						link.download = `${rfiData.rfi_Id}-${file.enclosureName}.pdf`;
+																						document.body.appendChild(link);
+																						link.click();
+																						link.remove();
+																					});
+																			}}
+																		>
+																			Download
+																		</button>
+
+																		<button
+																			className="hover-red-btn"
+																			disabled={getDisabled()}
+																			onClick={async () => {
+																				// Normalize and map roles
+																				let currentDeptNormalized = deptFK?.trim().toUpperCase();
+																				if (currentDeptNormalized === "CONTRACTOR") currentDeptNormalized = "CON";
+																				if (currentDeptNormalized === "ENGG") currentDeptNormalized = "ENGG";
+
+																				const fileOwnerNormalized = file.uploadedBy?.trim().toUpperCase();
+
+																				console.log("DEBUG: normalized deptFK:", currentDeptNormalized);
+																				console.log("DEBUG: normalized file uploadedBy:", fileOwnerNormalized);
+
+																				if (currentDeptNormalized !== fileOwnerNormalized) {
+																					alert(`❌ You cannot delete files uploaded by ${file.uploadedBy}.`);
+																					return;
+																				}
+
+																				if (!window.confirm(`Delete  uploaded file under ${e.enclosure}?`)) return;
+
+																				try {
+																					const res = await fetch(
+																						`${API_BASE_URL}rfi/enclosure/files?id=${file.id}`,
+																						{ method: "DELETE", credentials: "include" }
+																					);
+
+																					if (!res.ok) {
+																						const txt = await res.text().catch(() => "");
+																						throw new Error(txt || "Delete failed");
+																					}
+
+																					alert("Files deleted successfully");
+
+																					setRfiData((prev) => ({
+																						...prev,
+																						enclosure: prev.enclosure?.filter((f) => f.id !== file.id),
+																					}));
+																				} catch (err) {
+																					console.error(err);
+																					alert("Error deleting files");
+																				}
+																			}}
+																		>
+																			Remove
+																		</button>
+
+
+
+																	</div>
+																))
+															) : (
+																"---"
+															)}
+														</td>
+
+
+
+														{/* Test Report */}
+														{index === 0 && (
+															<td rowSpan={enclosuresData.length}>
+																{rfiReportFilepath ? (
+																	<button
+																		type="button"
+																		className="hover-blue-btn"
+																		onClick={() => {
+																			const downloadUrl = `${API_BASE_URL}/rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
+																			const link = document.createElement("a");
+																			link.href = downloadUrl;
+																			link.download = 'report.pdf';
+																			document.body.appendChild(link);
+																			link.click();
+																			document.body.removeChild(link);
+																		}}
+																	>
+																		Download
+																	</button>
+																) : (
+																	"---"
+																)}
+															</td>
+														)}
+													</tr>
+												);
+											})}
+										</tbody>
 									</table>
 
-									{/* Supporting Documents Upload Section */}
+
+
 									{/* Supporting Documents Section */}
+									{/* Supporting Documents Upload Section */}
 									<div className="supporting-documents-upload" style={{ marginTop: "20px" }}>
 										<label className="upload-label" style={{ fontWeight: "600" }}>
 											Supporting Documents
@@ -2177,31 +2387,48 @@ export default function InspectionForm() {
 												{/* Backend files */}
 												{supportingFiles.map((fileUrl, idx) => {
 													const fileName = fileUrl.split("/").pop(); // extract filename
-													const fileLink = `${API_BASE_URL}rfi/supporting-docs/${fileName}`; // backend endpoint
+													const downloadUrl = `${API_BASE_URL}rfi/supporting-doc/download?rfiId=${rfiData.id}&fileName=${encodeURIComponent(fileName)}`;
+													const viewUrl = `${API_BASE_URL}rfi/supporting-docs/${encodeURIComponent(fileName)}`; // inline view
+
 													return (
 														<li key={`backend-${idx}`} style={{ marginBottom: "10px" }}>
 															<span>{supportingDescriptions[idx] || `File ${idx + 1}`}</span>
+
+															{/* View */}
 															<button
 																className="hover-green-btn"
 																style={{ marginLeft: "10px" }}
-																onClick={() => window.open(fileLink, "_blank")}
+																onClick={() => window.open(viewUrl, "_blank")}
 															>
 																View
 															</button>
+
+															{/* Download */}
 															<button
 																className="hover-blue-btn"
 																style={{ marginLeft: "8px" }}
-																onClick={() => {
-																	const link = document.createElement("a");
-																	link.href = fileLink;
-																	link.download = fileName;
-																	document.body.appendChild(link);
-																	link.click();
-																	document.body.removeChild(link);
+																onClick={async () => {
+																	try {
+																		const res = await fetch(downloadUrl, { credentials: "include" });
+																		if (!res.ok) throw new Error("File not found");
+																		const blob = await res.blob();
+																		const link = document.createElement("a");
+																		link.href = window.URL.createObjectURL(blob);
+																		link.download = fileName;
+																		document.body.appendChild(link);
+																		link.click();
+																		document.body.removeChild(link);
+																		window.URL.revokeObjectURL(link.href);
+																	} catch (err) {
+																		console.error(err);
+																		alert("Download failed");
+																	}
 																}}
 															>
 																Download
 															</button>
+
+															{/* Remove */}
 															<button
 																className="hover-red-btn"
 																disabled={getDisabled()}
@@ -2210,13 +2437,9 @@ export default function InspectionForm() {
 																	try {
 																		const res = await fetch(
 																			`${API_BASE_URL}rfi/inspection/${rfiData.id}/supporting-doc?fileName=${encodeURIComponent(fileName)}`,
-																			{
-																				method: "DELETE",
-																				credentials: "include",
-																			}
+																			{ method: "DELETE", credentials: "include" }
 																		);
 																		if (!res.ok) throw new Error(await res.text());
-																		// remove file from frontend state
 																		setSupportingFiles(prev => prev.filter((_, i) => i !== idx));
 																		setSupportingDescriptions(prev => prev.filter((_, i) => i !== idx));
 																		alert("File removed successfully!");
@@ -2225,7 +2448,6 @@ export default function InspectionForm() {
 																		alert("Failed to remove file");
 																	}
 																}}
-
 															>
 																Remove
 															</button>
@@ -2290,6 +2512,7 @@ export default function InspectionForm() {
 										)}
 									</div>
 
+
 									{/* ✅ Description box below the table */}
 									<div className="enclosure-comments">
 										<label htmlFor="enclosureComments">Description</label>
@@ -2307,7 +2530,6 @@ export default function InspectionForm() {
 								</div>
 
 								{/* ✅ Measurements Section */}
-								{/* ? Measurements Section */}
 								<hr className="section-divider" />
 
 								<div className="measurements-section">
@@ -2315,7 +2537,9 @@ export default function InspectionForm() {
 										Measurements <span className="red">*</span>
 									</h3>
 
-									{errors.measurements && <p className="error-text">{errors.measurements}</p>}
+									{errors.measurements && (
+										<p className="error-text">{errors.measurements}</p>
+									)}
 
 									<table className="measurements-table">
 										<thead>
@@ -2335,13 +2559,10 @@ export default function InspectionForm() {
 											{Array.isArray(measurements) && measurements.length > 0 ? (
 												measurements.map((row, index) => {
 													const unitsOptions = row.type
-														? {
-															Length: ["mm", "cm", "m", "km", "in", "ft"],
-															Area: ["cm�", "m�", "km�", "ft�"],
-															Volume: ["cm�", "m�", "L", "mL"],
-															Weight: ["kg", "g", "ton"],
-															Number: ["Nos"],
-														}[row.type] || []
+														? [
+															...baseUnits[row.type],
+															...(customUnits[row.type] || [])
+														]
 														: [];
 
 													return (
@@ -2351,7 +2572,13 @@ export default function InspectionForm() {
 																<select
 																	className="measurement-input"
 																	value={row.type || ""}
-																	onChange={(e) => handleMeasurementChange(index, "type", e.target.value)}
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"type",
+																			e.target.value
+																		)
+																	}
 																	disabled={getDisabled()}
 																>
 																	<option value="">Select</option>
@@ -2370,21 +2597,48 @@ export default function InspectionForm() {
 																	value={row.units || ""}
 																	onChange={(e) => {
 																		if (e.target.value === "custom") {
-																			const newUnit = prompt("Enter your custom unit:");
-																			if (newUnit) handleMeasurementChange(index, "units", newUnit);
+																			const newUnit = prompt(
+																				"Enter your custom unit:"
+																			);
+
+																			if (newUnit?.trim()) {
+																				// Update row
+																				handleMeasurementChange(
+																					index,
+																					"units",
+																					newUnit
+																				);
+
+																				// Save globally
+																				setCustomUnits((prev) => ({
+																					...prev,
+																					[row.type]: [
+																						...prev[row.type],
+																						newUnit
+																					]
+																				}));
+																			}
 																		} else {
-																			handleMeasurementChange(index, "units", e.target.value);
+																			handleMeasurementChange(
+																				index,
+																				"units",
+																				e.target.value
+																			);
 																		}
 																	}}
 																	disabled={!row.type || getDisabled()}
 																>
 																	<option value="">Select Unit</option>
-																	{unitsOptions.map((units) => (
-																		<option key={units} value={units}>
-																			{units}
+
+																	{unitsOptions.map((unit) => (
+																		<option key={unit} value={unit}>
+																			{unit}
 																		</option>
 																	))}
-																	<option value="custom">Add Custom Unit</option>
+
+																	<option value="custom">
+																		➕ Add Custom Unit
+																	</option>
 																</select>
 															</td>
 
@@ -2394,8 +2648,18 @@ export default function InspectionForm() {
 																	type="number"
 																	className="measurement-input"
 																	value={row.L ?? ""}
-																	onChange={(e) => handleMeasurementChange(index, "L", e.target.value)}
-																	disabled={getDisabled() || row.type === "Number" || row.type === "Weight"}
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"L",
+																			e.target.value
+																		)
+																	}
+																	disabled={
+																		getDisabled() ||
+																		row.type === "Number" ||
+																		row.type === "Weight"
+																	}
 																/>
 															</td>
 
@@ -2405,8 +2669,19 @@ export default function InspectionForm() {
 																	type="number"
 																	className="measurement-input"
 																	value={row.B ?? ""}
-																	onChange={(e) => handleMeasurementChange(index, "B", e.target.value)}
-																	disabled={getDisabled() || row.type === "Length" || row.type === "Number" || row.type === "Weight"}
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"B",
+																			e.target.value
+																		)
+																	}
+																	disabled={
+																		getDisabled() ||
+																		row.type === "Length" ||
+																		row.type === "Number" ||
+																		row.type === "Weight"
+																	}
 																/>
 															</td>
 
@@ -2416,21 +2691,42 @@ export default function InspectionForm() {
 																	type="number"
 																	className="measurement-input"
 																	value={row.H ?? ""}
-																	onChange={(e) => handleMeasurementChange(index, "H", e.target.value)}
-																	disabled={getDisabled() || row.type === "Area" || row.type === "Length" || row.type === "Number" || row.type === "Weight"}
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"H",
+																			e.target.value
+																		)
+																	}
+																	disabled={
+																		getDisabled() ||
+																		row.type === "Area" ||
+																		row.type === "Length" ||
+																		row.type === "Number" ||
+																		row.type === "Weight"
+																	}
 																/>
 															</td>
 
+															{/* Weight */}
 															<td>
 																<input
 																	type="number"
 																	className="measurement-input"
 																	value={row.weight ?? ""}
-																	onChange={(e) => handleMeasurementChange(index, "weight", e.target.value)}
-																	disabled={getDisabled() || row.type !== "Weight"}  // <-- only editable for type Weight
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"weight",
+																			e.target.value
+																		)
+																	}
+																	disabled={
+																		getDisabled() ||
+																		row.type !== "Weight"
+																	}
 																/>
 															</td>
-
 
 															{/* No */}
 															<td>
@@ -2438,7 +2734,13 @@ export default function InspectionForm() {
 																	type="number"
 																	className="measurement-input"
 																	value={row.No ?? ""}
-																	onChange={(e) => handleMeasurementChange(index, "No", e.target.value)}
+																	onChange={(e) =>
+																		handleMeasurementChange(
+																			index,
+																			"No",
+																			e.target.value
+																		)
+																	}
 																	disabled={getDisabled()}
 																/>
 															</td>
@@ -2457,13 +2759,15 @@ export default function InspectionForm() {
 												})
 											) : (
 												<tr>
-													<td colSpan="7" style={{ textAlign: "center", color: "#888" }}>
+													<td
+														colSpan="8"
+														style={{ textAlign: "center", color: "#888" }}
+													>
 														No measurements added yet.
 													</td>
 												</tr>
 											)}
 										</tbody>
-
 									</table>
 								</div>
 								<div className="measurements-section">
