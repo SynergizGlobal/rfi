@@ -159,7 +159,7 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text(`Contractor :- ${contractor}`, 40, 160);
 
-	// ==============================
+	// =============================
 	// Part I: RFI Details
 	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(12);
@@ -367,7 +367,7 @@ export async function generateInspectionPdf(rfiData) {
 		const rowSpacing = 180;
 		const imgStartX = 60;
 
-		// Check available space before adding section title
+		// Ensure space for section title
 		if (encY + 60 > pageHeight - 150) {
 			doc.addPage();
 			encY = 60;
@@ -377,7 +377,6 @@ export async function generateInspectionPdf(rfiData) {
 		doc.text(sectionTitle, 40, encY + 10);
 
 		let currentY = encY + 25;
-		let pageIndex = 1;
 
 		imageArray.forEach((img, i) => {
 			if (!img?.startsWith("data:image")) {
@@ -388,10 +387,9 @@ export async function generateInspectionPdf(rfiData) {
 			const col = i % imagesPerRow;
 			const x = imgStartX + col * columnSpacing;
 
-			// If image exceeds page height, add new page
+			// Page break if image overflows
 			if (currentY + imageHeight > pageHeight - 80) {
 				doc.addPage();
-				pageIndex++;
 				currentY = 60;
 				doc.setFont("helvetica", "bold").setFontSize(12);
 				doc.text(`${sectionTitle} (continuation):`, 40, currentY);
@@ -404,13 +402,19 @@ export async function generateInspectionPdf(rfiData) {
 				console.warn(`${sectionTitle} → Failed to add image`, e);
 			}
 
-			// Move down after filling one row
-			if (col === imagesPerRow - 1) currentY += rowSpacing;
+			const isEndOfRow = col === imagesPerRow - 1;
+			const isLastImage = i === imageArray.length - 1;
+
+			// ✅ MOVE DOWN IF ROW COMPLETE OR LAST IMAGE
+			if (isEndOfRow || isLastImage) {
+				currentY += rowSpacing;
+			}
 		});
 
-		// Leave space after section
+		// Space after section
 		encY = currentY + 40;
 	};
+
 
 	renderSiteImages("Contractor Site Images:", images.contractor);
 	renderSiteImages("Engineer Site Images:", images.engineer);
