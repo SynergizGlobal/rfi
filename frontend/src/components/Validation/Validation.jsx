@@ -167,13 +167,6 @@ export default function Validation() {
 			.catch((err) => console.error(err));
 	};
 
-	const handleDownload = () => {
-		if (selectedInspection) {
-			generatePDF([selectedInspection], checklistItems, enclosures, Measurement);
-		} else {
-			alert("⚠️ No data available to generate PDF!");
-		}
-	};
 
 
 	const getFilename = (path) => path?.split('\\').pop().replace(/^"|"$/g, '');
@@ -221,7 +214,7 @@ export default function Validation() {
 		return new Blob([mergedPdfBytes], { type: 'application/pdf' });
 	}
 
-	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements) => {
+	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements, ) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 		const safe = (val) => val || '---';
 		const logoUrl = 'https://www.manabadi.com/wp-content/uploads/2016/11/4649MRVC.jpg';
@@ -262,6 +255,65 @@ export default function Validation() {
 					y = margin;
 				}
 			};
+			
+			// ---------- TOP HEADER ROW ----------
+							ensureSpace(15);
+
+							const statusText =
+								inspection.testStatus === "Rejected"
+									? "Rejected"
+									: inspection.rfiStatus === "INSPECTION_DONE"
+										? "Closed"
+										: "Active";
+
+							const statusColor =
+								statusText === "Rejected"
+									? [255, 0, 0]       
+									: statusText === "Closed"
+										? [0, 102, 204]   
+										: [0, 128, 0];   
+
+										
+										
+										doc.autoTable({
+											startY: y,
+											body: [[
+												{ content: "Client:\nMumbai Rail Vikas Corporation", styles: { fontStyle: "bold" } },
+												{
+													content: "RFI Status:",
+													styles: {
+														fontStyle: "bold",
+														halign: "right",
+													},
+												},
+											]],
+											theme: "plain",
+											styles: { fontSize: 10, valign: "top" },
+											columnStyles: {
+												0: { halign: "left" },
+												1: { halign: "right" },
+											},
+											didDrawCell: function (data) {
+												// RIGHT CELL ONLY
+												if (data.section === "body" && data.column.index === 1) {
+													const x = data.cell.x + data.cell.width;
+													const y = data.cell.y + 12;
+
+													doc.setFont("helvetica", "bold");
+													doc.setFontSize(10);
+													doc.setTextColor(...statusColor);
+
+													// Draw ONLY status value
+													doc.text(statusText, x - 2, y, { align: "right" });
+
+													// Reset color
+													doc.setTextColor(0, 0, 0);
+												}
+											},
+										});
+
+
+							y = doc.lastAutoTable.finalY + 6;
 
 
 
@@ -269,11 +321,11 @@ export default function Validation() {
 				['Consultant', inspection.consultant],
 				['Contract', inspection.contract], ['Contractor', inspection.contractor],
 				['Contract ID', inspection.contractId], ['RFI ID', inspection.rfiId],
-				['Date of Inspection', inspection.dateOfInspection], ['Location', inspection.location],
+				['Location', inspection.location],['Date of Inspection', inspection.dateOfInspection],
 				['Proposed Time', inspection.proposedInspectionTime], ['Actual Time', inspection.actualInspectionTime],
 				['RFI Description', inspection.rfiDescription], ["Contractor's Representative", inspection.contractorRepresentative],
-				['Client Representative', inspection.clientRepresentative], ['Description by Contractor', inspection.descriptionByContractor],
-				['Enclosures', inspection.enclosures]
+				['Client Representative', inspection.clientRepresentative],
+				['Enclosures', inspection.enclosures],  ['Description by Contractor', inspection.descriptionByContractor]
 			].map(([lable, value]) => [lable, value ?? "N/A"]);
 			doc.autoTable({
 				startY: y,
@@ -290,8 +342,9 @@ export default function Validation() {
 
 				y += 10;
 				doc.setFont(undefined, "bold").setFontSize(12);
+				ensureSpace(lineHeight);
 				doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
-
+				ensureSpace(lineHeight);
 				doc.autoTable({
 					startY: y + 5,
 					head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
@@ -350,6 +403,7 @@ export default function Validation() {
 
 			doc.setFont(undefined, "bold").setFontSize(11).text("Validation Status & Remarks:", margin, y);
 			y += lineHeight;
+			ensureSpace(lineHeight);
 			doc.setFont(undefined, "bold").setFontSize(11).text("Status:", margin + 10, y);
 			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.validationStatus), margin + 30, y);
 			y += lineHeight;
@@ -547,52 +601,121 @@ export default function Validation() {
 
 
 		}
-
 		const mergedBlob = await mergeWithExternalPdfs(doc);
-		const link = document.createElement('a');
-		link.href = URL.createObjectURL(mergedBlob);
-		if (rfiName) {
-			link.download = `${rfiName}_RfiReport.pdf`;
+
+		return {
+			blob: mergedBlob,
+			fileName: rfiName
+				? `${rfiName}_RfiReport.pdf`
+				: `RfiReport_${Date.now()}.pdf`
+		};
+
+};
+
+
+//handle download method for hte table download button
+const downloadPDFWithDetails = async (rfiId, idx) => {
+	try {
+		const res = await axios.get(
+			`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,
+			{
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+			}
+		);
+
+		if (!res.data?.reportDetails) {
+			alert("No inspection details found.");
+			return;
 		}
+
+		const inspection = res.data.reportDetails;
+
+		inspection.remarks = remarksList[idx] || "";
+		inspection.status = statusList[idx] || "";
+
+		const { blob, fileName } = await generatePDF(
+			[inspection],
+			res.data.checklistItems || [],
+			res.data.enclosures || [],
+			res.data.measurementDetails
+				? [res.data.measurementDetails]
+				: []
+		);
+
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+
+	} catch (err) {
+		console.error("Error fetching details for PDF:", err);
+		alert("Failed to generate PDF. Please try again.");
+	}
+};
+
+
+
+//print hanle method in the previw 
+
+const handlePrint = async () => {
+	if (!selectedInspection) {
+		alert("No data available to print!");
+		return;
+	}
+
+	const result = await generatePDF(
+		[selectedInspection],
+		checklistItems,
+		enclosures,
+		Measurement
+	);
+
+	const blobUrl = URL.createObjectURL(result.blob);
+
+	const iframe = document.createElement("iframe");
+	iframe.style.display = "none";
+	iframe.src = blobUrl;
+
+	document.body.appendChild(iframe);
+
+	iframe.onload = () => {
+		iframe.contentWindow.focus();
+		iframe.contentWindow.print();
+	};
+};
+
+
+
+
+	
+// Downlaod handle method in the preview	
+	const handleDownload = async () => {
+		if (!selectedInspection) {
+			alert("No data available to generate PDF!");
+			return;
+		}
+
+		const result = await generatePDF(
+			[selectedInspection],
+			checklistItems,
+			enclosures,
+			Measurement
+		);
+
+		const link = document.createElement("a");
+		link.href = URL.createObjectURL(result.blob);
+		link.download = result.fileName;
 		link.click();
 	};
 
-	const downloadPDFWithDetails = async (rfiId, idx) => {
-		try {
-			const res = await axios.get(`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`, {
-				headers: {
-					'Content-Type': 'application/json',
-					'Accept': 'application/json'
-				}
-			});
-
-			if (res.data?.reportDetails) {
-				const inspection = res.data.reportDetails;
-
-				inspection.remarks = remarksList[idx] || '';
-				inspection.status = statusList[idx] || '';
-
-				await generatePDF(
-					[inspection],
-					res.data.checklistItems || [],
-					res.data.enclosures || [],
-					res.data.measurementDetails ? [res.data.measurementDetails] : []
-				);
-
-			} else {
-				alert("No inspection details found.");
-			}
-		} catch (err) {
-			console.error("Error fetching details for PDF:", err);
-			alert("Failed to generate PDF. Please try again.");
-		}
-	};
-
-
-
-	const handlePrint = () => {
-		window.print();
-	};
 
 	const [pageIndex, setPageIndex] = useState(0);
 	const [pageSize, setPageSize] = useState(5);
@@ -1340,7 +1463,7 @@ export default function Validation() {
 								)}
 
 
-								<div className="popup-actions">
+								<div className='preview-popup-btn'>
 									<button onClick={() => setSelectedInspection(null)}>Close</button>
 									<button onClick={handlePrint}>Print</button>
 									<button onClick={handleDownload}>Download PDF</button>
