@@ -200,34 +200,73 @@ public class InspectionController {
 		}
 	}
 
-	@GetMapping("/rfi/supporting-docs/{fileName:.+}")
-	public ResponseEntity<Resource> getSupportingDoc(@PathVariable String fileName) {
-		try {
-			// Decode URL-encoded file name (spaces, parentheses, etc.)
-			fileName = java.net.URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+//	@GetMapping("/rfi/supporting-docs/{fileName:.+}")
+//	public ResponseEntity<Resource> getSupportingDoc(@PathVariable String fileName) {
+//		try {
+//			// Decode URL-encoded file name (spaces, parentheses, etc.)
+//			fileName = java.net.URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+//
+//			// Build absolute file path
+//			Path filePath = Paths.get(supportingDocsUploadDir).resolve(fileName).normalize();
+//
+//			// Check if file exists
+//			if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+//				System.out.println("File not found: " + filePath);
+//				return ResponseEntity.notFound().build();
+//			}
+//
+//			Resource resource = new UrlResource(filePath.toUri());
+//
+//			String contentType = Files.probeContentType(filePath);
+//			if (contentType == null)
+//				contentType = "application/octet-stream";
+//
+//			return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+//					.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"").body(resource);
+//
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//		}
+//	}
 
-			// Build absolute file path
-			Path filePath = Paths.get(supportingDocsUploadDir).resolve(fileName).normalize();
+	
+	@GetMapping("/rfi/supporting-docs")
+	public ResponseEntity<Resource> getSupportingDoc(@RequestParam String fileName) {
 
-			// Check if file exists
-			if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
-				System.out.println("File not found: " + filePath);
-				return ResponseEntity.notFound().build();
-			}
+	    try {
+	        // Decode filename
+	        fileName = java.net.URLDecoder.decode(fileName, StandardCharsets.UTF_8);
 
-			Resource resource = new UrlResource(filePath.toUri());
+	        Path filePath = Paths.get(supportingDocsUploadDir)
+	                .resolve(fileName)
+	                .normalize();
 
-			String contentType = Files.probeContentType(filePath);
-			if (contentType == null)
-				contentType = "application/octet-stream";
+	        System.out.println("Resolved file path: " + filePath.toAbsolutePath());
 
-			return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
-					.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"").body(resource);
+	        if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+	            return ResponseEntity.notFound().build();
+	        }
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-		}
+	        Resource resource = new UrlResource(filePath.toUri());
+
+	        String contentType = Files.probeContentType(filePath);
+	        if (contentType == null) {
+	            contentType = "application/octet-stream";
+	        }
+
+	        return ResponseEntity.ok()
+	                .contentType(MediaType.parseMediaType(contentType))
+	                .header(
+	                        HttpHeaders.CONTENT_DISPOSITION,
+	                        "inline; filename=\"" + fileName + "\""
+	                )
+	                .body(resource);
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+	    }
 	}
 
 	@GetMapping("/rfi/supporting-doc/download")

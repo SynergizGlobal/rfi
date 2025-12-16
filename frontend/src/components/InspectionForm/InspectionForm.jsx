@@ -2388,7 +2388,7 @@ export default function InspectionForm() {
 												{supportingFiles.map((fileUrl, idx) => {
 													const fileName = fileUrl.split("/").pop(); // extract filename
 													const downloadUrl = `${API_BASE_URL}rfi/supporting-doc/download?rfiId=${rfiData.id}&fileName=${encodeURIComponent(fileName)}`;
-													const viewUrl = `${API_BASE_URL}rfi/supporting-docs/${encodeURIComponent(fileName)}`; // inline view
+													const viewUrl = `${API_BASE_URL}/rfi/supporting-docs?fileName=${encodeURIComponent(fileName)}`;
 
 													return (
 														<li key={`backend-${idx}`} style={{ marginBottom: "10px" }}>
