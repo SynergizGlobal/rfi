@@ -1,6 +1,8 @@
 package com.metro.rfisystem.backend.repository.rfi;
 
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,6 +29,8 @@ public interface RFIEnclosureRepository extends JpaRepository<RFIEnclosure, Long
 	 List<Object[]> findByRfiId(@Param("rfiId") Long rfiId);
 
 	List<RFIEnclosure> findAllByRfi_IdAndEnclosureNameAndUploadedBy(Long rfiId, String enclosureName, String uploadedBy);
+
+	Optional<RFIEnclosure> findByIdAndUploadedBy(Long id, String uploadedBy);
 
 
 }

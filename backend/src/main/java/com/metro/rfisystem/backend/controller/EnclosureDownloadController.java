@@ -109,56 +109,112 @@ public class EnclosureDownloadController {
 //	}
 
 	
-	@GetMapping("/DownloadEnclosure")
-	public ResponseEntity<Resource> downloadEnclosureByRole(
-	        @RequestParam Long rfiId,
-	        @RequestParam String enclosureName,
-	        HttpSession session) throws Exception {
+//	@GetMapping("/DownloadEnclosure")
+//	public ResponseEntity<Resource> downloadEnclosureByRole(
+//	        @RequestParam Long rfiId,
+//	        @RequestParam String enclosureName,
+//	        HttpSession session) throws Exception {
+//
+//		String deptFk = (String) session.getAttribute("departmentFk");
+//
+//	    // Fetch files uploaded by this role only
+//	    List<RFIEnclosure> files = enclosureRepository
+//	            .findAllByRfi_IdAndEnclosureNameAndUploadedBy(rfiId, enclosureName,
+//	                    "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON");
+//
+//	    if (files.isEmpty()) return ResponseEntity.notFound().build();
+//
+//	    // For simplicity, you can send them individually or merge them
+//	    // Here, merge only files of the same role
+//	    Path mergedPdf = Files.createTempFile("merged_", ".pdf");
+//
+//	    try (OutputStream outputStream = Files.newOutputStream(mergedPdf);
+//	         PdfWriter writer = new PdfWriter(outputStream);
+//	         PdfDocument pdfDoc = new PdfDocument(writer);
+//	         Document document = new Document(pdfDoc)) {
+//
+//	        PdfMerger merger = new PdfMerger(pdfDoc);
+//
+//	        for (RFIEnclosure file : files) {
+//	            Path path = Paths.get(file.getEnclosureUploadFile());
+//	            if (!Files.exists(path)) continue;
+//
+//	            // Check if image
+//	            String contentType = Files.probeContentType(path);
+//	            if (contentType != null && contentType.startsWith("image")) {
+//	                addImageToDocument(document, path, file.getEnclosureName(), true);
+//	            } else if ("application/pdf".equals(contentType)) {
+//	                try (PdfDocument srcDoc = new PdfDocument(new PdfReader(path.toFile()))) {
+//	                    merger.merge(srcDoc, 1, srcDoc.getNumberOfPages());
+//	                }
+//	            }
+//	        }
+//	    }
+//
+//	    Resource resource = new UrlResource(mergedPdf.toUri());
+//	    return ResponseEntity.ok()
+//	            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" +
+//	                    enclosureName + "_" + deptFk + "_merged.pdf\"")
+//	            .contentType(MediaType.APPLICATION_PDF)
+//	            .body(resource);
+//	}
 
-		String deptFk = (String) session.getAttribute("departmentFk");
+	
+	 @GetMapping("/DownloadEnclosure")
+	    public ResponseEntity<Resource> downloadEnclosureById(
+	            @RequestParam Long id,
+	            HttpSession session) throws Exception {
 
-	    // Fetch files uploaded by this role only
-	    List<RFIEnclosure> files = enclosureRepository
-	            .findAllByRfi_IdAndEnclosureNameAndUploadedBy(rfiId, enclosureName,
-	                    "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON");
+	        String deptFk = (String) session.getAttribute("departmentFk");
+	        String role = "Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON";
 
-	    if (files.isEmpty()) return ResponseEntity.notFound().build();
+	        // ✅ Fetch by ID only
+	        RFIEnclosure file = enclosureRepository
+	                .findByIdAndUploadedBy(id, role)
+	                .orElseThrow(() -> new RuntimeException("File not found or access denied"));
 
-	    // For simplicity, you can send them individually or merge them
-	    // Here, merge only files of the same role
-	    Path mergedPdf = Files.createTempFile("merged_", ".pdf");
-
-	    try (OutputStream outputStream = Files.newOutputStream(mergedPdf);
-	         PdfWriter writer = new PdfWriter(outputStream);
-	         PdfDocument pdfDoc = new PdfDocument(writer);
-	         Document document = new Document(pdfDoc)) {
-
-	        PdfMerger merger = new PdfMerger(pdfDoc);
-
-	        for (RFIEnclosure file : files) {
-	            Path path = Paths.get(file.getEnclosureUploadFile());
-	            if (!Files.exists(path)) continue;
-
-	            // Check if image
-	            String contentType = Files.probeContentType(path);
-	            if (contentType != null && contentType.startsWith("image")) {
-	                addImageToDocument(document, path, file.getEnclosureName(), true);
-	            } else if ("application/pdf".equals(contentType)) {
-	                try (PdfDocument srcDoc = new PdfDocument(new PdfReader(path.toFile()))) {
-	                    merger.merge(srcDoc, 1, srcDoc.getNumberOfPages());
-	                }
-	            }
+	        Path sourcePath = Paths.get(file.getEnclosureUploadFile());
+	        if (!Files.exists(sourcePath)) {
+	            return ResponseEntity.notFound().build();
 	        }
+
+	        String contentType = Files.probeContentType(sourcePath);
+
+	        // ================= IMAGE → PDF =================
+	        if (contentType != null && contentType.startsWith("image")) {
+
+	            Path pdfPath = Files.createTempFile("enclosure_", ".pdf");
+
+	            try (PdfWriter writer = new PdfWriter(pdfPath.toFile());
+	                 PdfDocument pdfDoc = new PdfDocument(writer);
+	                 Document document = new Document(pdfDoc)) {
+
+	                addImageToDocument(
+	                        document,
+	                        sourcePath,
+	                        file.getEnclosureName(), // only for title text
+	                        false
+	                );
+	            }
+
+	            Resource resource = new UrlResource(pdfPath.toUri());
+	            return ResponseEntity.ok()
+	                    .header(HttpHeaders.CONTENT_DISPOSITION,
+	                            "attachment; filename=\"enclosure_" + id + ".pdf\"")
+	                    .contentType(MediaType.APPLICATION_PDF)
+	                    .body(resource);
+	        }
+
+	        // ================= PDF → DIRECT DOWNLOAD =================
+	        Resource resource = new UrlResource(sourcePath.toUri());
+	        return ResponseEntity.ok()
+	                .header(HttpHeaders.CONTENT_DISPOSITION,
+	                        "attachment; filename=\"" + sourcePath.getFileName() + "\"")
+	                .contentType(MediaType.APPLICATION_PDF)
+	                .body(resource);
 	    }
 
-	    Resource resource = new UrlResource(mergedPdf.toUri());
-	    return ResponseEntity.ok()
-	            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" +
-	                    enclosureName + "_" + deptFk + "_merged.pdf\"")
-	            .contentType(MediaType.APPLICATION_PDF)
-	            .body(resource);
-	}
-
+	
 
 	// ✅ Helper method (handles long enclosure names gracefully)
 	private void addImageToDocument(Document document, Path imagePath, String enclosureName, boolean hasNext) throws Exception {

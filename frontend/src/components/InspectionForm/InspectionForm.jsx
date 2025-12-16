@@ -1027,7 +1027,7 @@ export default function InspectionForm() {
 					description: d.description
 				})),
 				...backendSupportingDocs.map(d => ({   // DB saved
-					file: `${API_BASE_URL}rfi/supporting-docs/${encodeURIComponent(d.fileName)}`,
+					file: `${API_BASE_URL}rfi/supporting-docs?fileName=${encodeURIComponent(d.fileName)}`,
 					description: d.description
 				}))
 			];
@@ -2256,22 +2256,33 @@ export default function InspectionForm() {
 																		<button
 																			className="hover-blue-btn"
 																			onClick={() => {
-																				const url = `${API_BASE_URL}api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(file.enclosureName)}&uploadedBy=${file.uploadedBy}`;
-																				fetch(url)
-																					.then((res) => res.blob())
+																				const url = `${API_BASE_URL}api/rfi/DownloadEnclosure?id=${file.id}`;
+
+																				fetch(url, {
+																					method: "GET",
+																					credentials: "include" // 🔴 REQUIRED for HttpSession
+																				})
+																					.then((res) => {
+																						if (!res.ok) throw new Error("Download failed");
+																						return res.blob();
+																					})
 																					.then((blob) => {
 																						const blobUrl = window.URL.createObjectURL(blob);
 																						const link = document.createElement("a");
+																						const safeName = file.enclosureName
+																							?.replace(/[^a-zA-Z0-9_-]/g, "_"); // avoid invalid chars
 																						link.href = blobUrl;
-																						link.download = `${rfiData.rfi_Id}-${file.enclosureName}.pdf`;
+																						link.download = `${safeName}_${file.id}.pdf`;
 																						document.body.appendChild(link);
 																						link.click();
 																						link.remove();
-																					});
+																					})
+																					.catch(() => alert("Download failed"));
 																			}}
 																		>
 																			Download
 																		</button>
+
 
 																		<button
 																			className="hover-red-btn"
@@ -2388,7 +2399,7 @@ export default function InspectionForm() {
 												{supportingFiles.map((fileUrl, idx) => {
 													const fileName = fileUrl.split("/").pop(); // extract filename
 													const downloadUrl = `${API_BASE_URL}rfi/supporting-doc/download?rfiId=${rfiData.id}&fileName=${encodeURIComponent(fileName)}`;
-													const viewUrl = `${API_BASE_URL}/rfi/supporting-docs?fileName=${encodeURIComponent(fileName)}`;
+													const viewUrl = `${API_BASE_URL}rfi/supporting-docs?fileName=${encodeURIComponent(fileName)}`;
 
 													return (
 														<li key={`backend-${idx}`} style={{ marginBottom: "10px" }}>
