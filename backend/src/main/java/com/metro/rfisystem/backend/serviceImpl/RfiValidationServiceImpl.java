@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
@@ -44,12 +45,24 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	@Override
 	public List<GetRfiDTO> showValidations(String UserRole, String UserType, String UserId, String Department,
 			String UserName) {
-		if ("IT Admin".equalsIgnoreCase(UserRole)) {
+
+		boolean isAdmin = UserRole != null && ("IT Admin".equalsIgnoreCase(UserRole)
+				|| ("Data Admin").equalsIgnoreCase(UserRole));
+
+		boolean isDyHod = UserType != null && "DyHOD".equalsIgnoreCase(UserType);
+		
+		boolean isEngineer = !StringUtils.isEmpty(UserName) && ("Engg").equalsIgnoreCase(Department);
+		if (isAdmin || isDyHod) {
 			return rfiRepository.showRfiValidationsItAdmin();
-		} else if ("DyHOD".equalsIgnoreCase(UserType)) {
-			return rfiRepository.showRfiValidationsDyHod(UserId);
 		}
-		return rfiRepository.showRfiValidationsAssignedBy(UserName);
+//		else if (isDyHod) {
+//			return rfiRepository.showRfiValidationsDyHod(UserId);
+//		}
+			else if (isEngineer)
+		{
+			return rfiRepository.showRfiValidationsAssignedBy(UserName);
+		}
+		else return null;
 	}
 
 	@Override

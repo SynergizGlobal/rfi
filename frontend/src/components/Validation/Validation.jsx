@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
 import autoTable from 'jspdf-autotable';
@@ -36,8 +36,7 @@ export default function Validation() {
 	const [enclosures, setEnclosures] = useState([]);
 	const [Measurement, setMeasurement] = useState([]);
 
-
-
+	
 
 	useEffect(() => {
 		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
@@ -198,24 +197,45 @@ export default function Validation() {
 		return typeof file === 'string' && file.toLowerCase().endsWith('.pdf');
 	};
 
-	const externalPdfBlobs = [];
 
-	async function mergeWithExternalPdfs(jsPDFDoc) {
-		const mainPdfBytes = jsPDFDoc.output('arraybuffer');
-		const mainPdf = await PDFDocument.load(mainPdfBytes);
+	async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs = []) {
+			const mainPdfBytes = jsPDFDoc.output("arraybuffer");
+			const mainPdf = await PDFDocument.load(mainPdfBytes);
 
-		for (const fileBlob of externalPdfBlobs) {
-			const externalPDF = await PDFDocument.load(await fileBlob.arrayBuffer());
-			const pages = await mainPdf.copyPages(externalPDF, externalPDF.getPageIndices());
-			pages.forEach((page) => mainPdf.addPage(page));
+			if (!Array.isArray(externalPdfBlobs) || externalPdfBlobs.length === 0) {
+				const finalBytes = await mainPdf.save();
+				return new Blob([finalBytes], { type: "application/pdf" });
+			}
+
+			const seen = new Set();
+
+			for (const fileBlob of externalPdfBlobs) {
+				if (!fileBlob) continue;
+
+				const key = `${fileBlob.size}_${fileBlob.type}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+
+				const externalPdfBytes = await fileBlob.arrayBuffer();
+				const externalPDF = await PDFDocument.load(externalPdfBytes);
+
+				const pages = await mainPdf.copyPages(
+					externalPDF,
+					externalPDF.getPageIndices()
+				);
+
+				pages.forEach((page) => mainPdf.addPage(page));
+			}
+
+			const mergedPdfBytes = await mainPdf.save();
+			return new Blob([mergedPdfBytes], { type: "application/pdf" });
 		}
 
-		const mergedPdfBytes = await mainPdf.save();
-		return new Blob([mergedPdfBytes], { type: 'application/pdf' });
-	}
 
 	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements, ) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+		const externalPdfBlobs = [];
+		const seenPdfUrls = new Set();
 		const safe = (val) => val || '---';
 		const logoUrl = 'https://www.manabadi.com/wp-content/uploads/2016/11/4649MRVC.jpg';
 		const logo = await toBase64(logoUrl);
@@ -226,9 +246,7 @@ export default function Validation() {
 		const imageWidth = 120
 		const imageHeight = 100;
 		const lineHeight = 6;
-
 		let rfiName = null;
-
 
 		for (let idx = 0; idx < inspectionList.length; idx++) {
 			const inspection = inspectionList[idx];
@@ -294,7 +312,6 @@ export default function Validation() {
 												1: { halign: "right" },
 											},
 											didDrawCell: function (data) {
-												// RIGHT CELL ONLY
 												if (data.section === "body" && data.column.index === 1) {
 													const x = data.cell.x + data.cell.width;
 													const y = data.cell.y + 12;
@@ -303,10 +320,8 @@ export default function Validation() {
 													doc.setFontSize(10);
 													doc.setTextColor(...statusColor);
 
-													// Draw ONLY status value
 													doc.text(statusText, x - 2, y, { align: "right" });
 
-													// Reset color
 													doc.setTextColor(0, 0, 0);
 												}
 											},
@@ -343,6 +358,7 @@ export default function Validation() {
 				y += 10;
 				doc.setFont(undefined, "bold").setFontSize(12);
 				ensureSpace(lineHeight);
+				ensureSpace(30);
 				doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
 				ensureSpace(lineHeight);
 				doc.autoTable({
@@ -429,146 +445,155 @@ export default function Validation() {
 				yPos += 5;
 
 				for (const file of files) {
-					const extension = file.split('.').pop().toLowerCase();
-					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+				  if (!file) continue;
 
-					if (extension === 'pdf') {
-						const response = await fetch(fileUrl);
-						if (response.ok) {
-							const blob = await response.blob();
-							externalPdfBlobs.push(blob);
-						}
-					} else {
-						const imgData = await toBase64(fileUrl);
-						if (imgData) {
-							if (yPos + imageHeight > pageHeight - 20) {
-								doc.addPage();
-								yPos = margin;
-							}
+				  const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
-							let imgX = margin;
-							if (align === "center") {
-								imgX = (pageWidth - imageWidth) / 2;
-							}
+				  const isPdfFile =
+				    typeof file === "string" &&
+				    file.trim().toLowerCase().endsWith(".pdf");
 
-							doc.addImage(imgData, 'JPEG', imgX, yPos, imageWidth, imageHeight);
-							yPos += imageHeight + 5;
-						} else {
-							doc.setDrawColor(0);
-							doc.setLineWidth(0.2);
+				  if (isPdfFile) {
+				    const response = await fetch(fileUrl);
+				    if (response.ok) {
+				      externalPdfBlobs.push(await response.blob());
+				    }
+				    continue;
+				  }
 
-							let rectX = margin;
-							if (align === "center") {
-								rectX = (pageWidth - imageWidth) / 2;
-							}
+				  const imgData = await toBase64(fileUrl);
+				  if (imgData) {
+				    if (yPos + imageHeight > pageHeight - 20) {
+				      doc.addPage();
+				      yPos = margin;
+				    }
 
-							doc.rect(rectX, yPos, imageWidth, imageHeight);
-							doc.text('Image not available', rectX + 3, yPos + 20);
-							yPos += imageHeight + 5;
-						}
-					}
+				    let imgX = margin;
+				    if (align === "center") {
+				      imgX = (pageWidth - imageWidth) / 2;
+				    }
+
+				    doc.addImage(imgData, "JPEG", imgX, yPos, imageWidth, imageHeight);
+				    yPos += imageHeight + 5;
+				  } else {
+				    // placeholder
+				    doc.rect(margin, yPos, imageWidth, imageHeight);
+				    doc.text("Image not available", margin + 3, yPos + 20);
+				    yPos += imageHeight + 5;
+				  }
 				}
+
 				y = yPos;
 			};
 
 			ensureSpace(lineHeight);
 
-			const handlePdfOrImage = async (label, filePaths) => {
-				if (!filePaths) return;
+			const parseFilePaths = (filePaths) => {
+				if (!filePaths) return [];
 
-				const files = filePaths.split(",").map(f => f.trim()).filter(Boolean);
+				if (Array.isArray(filePaths)) return filePaths;
+
+				const trimmed = filePaths.trim();
+
+				if (trimmed.startsWith("[")) {
+					try {
+						const arr = JSON.parse(trimmed);
+						return arr.map(obj => obj.filePath || obj).filter(Boolean);
+					} catch {
+						return [];
+					}
+				}
+
+				if (trimmed.includes("||")) {
+					return trimmed.split("||").map(f => f.trim()).filter(Boolean);
+				}
+
+				return [trimmed];
+			};
+			const handlePdfOrImage = async (label, filePaths) => {
+				const files = parseFilePaths(filePaths);
 				if (!files.length) return;
 
 				for (const file of files) {
-					const extension = file.split(".").pop().toLowerCase();
 					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
-					if (extension === "pdf") {
-						const response = await fetch(fileUrl);
-						if (response.ok) {
-							const blob = await response.blob();
-							externalPdfBlobs.push(blob);
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
+
+					if (isPdfFile) {
+						if (!seenPdfUrls.has(fileUrl)) {
+							seenPdfUrls.add(fileUrl);
+							const response = await fetch(fileUrl);
+							if (response.ok) {
+								externalPdfBlobs.push(await response.blob());
+							}
 						}
-					} else {
-						const imgData = await toBase64(fileUrl);
-						if (imgData) {
-							doc.addPage();
+						continue;
+					}
 
-							const pageWidth = doc.internal.pageSize.getWidth();
-							const pageHeight = doc.internal.pageSize.getHeight();
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						doc.addPage();
 
-							doc.setFont("helvetica", "bold");
-							doc.setFontSize(16);
-							doc.text(label, pageWidth / 2, 20, { align: "center" });
+						const pageWidth = doc.internal.pageSize.getWidth();
+						const pageHeight = doc.internal.pageSize.getHeight();
 
-							const imgWidth = pageWidth * 0.8;
-							const imgHeight = pageHeight * 0.6;
-							const x = (pageWidth - imgWidth) / 2;
-							const y = (pageHeight - imgHeight) / 2;
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(16);
+						doc.text(label, pageWidth / 2, 20, { align: "center" });
 
-							doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-						}
+						const imgWidth = pageWidth * 0.8;
+						const imgHeight = pageHeight * 0.6;
+						const x = (pageWidth - imgWidth) / 2;
+						const y = (pageHeight - imgHeight) / 2;
+
+						doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
 					}
 				}
 			};
 			const handlePdfOrImageForFileName = async (label, filePaths) => {
-			    if (!filePaths) return;
+				const files = parseFilePaths(filePaths);
+				if (!files.length) return;
 
-			    let files = [];
+				for (const file of files) {
+					const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(file)}`;
 
-			    if (filePaths.trim().startsWith("[")) {
-			        try {
-			            const arr = JSON.parse(filePaths); // [{filePath, documentsDescription}]
-			            files = arr.map(obj => obj.filePath);
-			        } catch (err) {
-			            console.error("Invalid JSON filePath array:", err);
-			            return;
-			        }
-			    }
-			    else if (filePaths.includes(",")) {
-			        files = filePaths.split(",").map(f => f.trim());
-			    }
-			    else {
-			        files = [filePaths.trim()];
-			    }
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
 
-			    for (const file of files) {
-			        if (!file) continue;
+					if (isPdfFile) {
+						if (!seenPdfUrls.has(fileUrl)) {
+							seenPdfUrls.add(fileUrl);
+							const response = await fetch(fileUrl);
+							if (response.ok) {
+								externalPdfBlobs.push(await response.blob());
+							}
+						}
+						continue;
+					}
 
-			        const extension = file.split(".").pop().toLowerCase();
-			        const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(file)}`;
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						doc.addPage();
 
-			        if (extension === "pdf") {
-			            const response = await fetch(fileUrl);
-			            if (response.ok) {
-			                const blob = await response.blob();
-			                externalPdfBlobs.push(blob);
-			            }
-			            continue;
-			        }
+						const pageWidth = doc.internal.pageSize.getWidth();
+						const pageHeight = doc.internal.pageSize.getHeight();
 
-			        const imgData = await toBase64(fileUrl);
-			        if (imgData) {
-			            doc.addPage();
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(16);
+						doc.text(label, pageWidth / 2, 20, { align: "center" });
 
-			            const pageWidth = doc.internal.pageSize.getWidth();
-			            const pageHeight = doc.internal.pageSize.getHeight();
+						const imgWidth = pageWidth * 0.8;
+						const imgHeight = pageHeight * 0.6;
+						const x = (pageWidth - imgWidth) / 2;
+						const y = (pageHeight - imgHeight) / 2;
 
-			            doc.setFont("helvetica", "bold");
-			            doc.setFontSize(16);
-			            doc.text(label, pageWidth / 2, 20, { align: "center" });
-
-			            const imgWidth = pageWidth * 0.8;
-			            const imgHeight = pageHeight * 0.6;
-			            const x = (pageWidth - imgWidth) / 2;
-			            const y = (pageHeight - imgHeight) / 2;
-
-			            doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-			        }
-			    }
+						doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+					}
+				}
 			};
-
-
 
 			ensureSpace(lineHeight);
 			await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
@@ -601,7 +626,7 @@ export default function Validation() {
 
 
 		}
-		const mergedBlob = await mergeWithExternalPdfs(doc);
+		const mergedBlob = await mergeWithExternalPdfs(doc, externalPdfBlobs);
 
 		return {
 			blob: mergedBlob,
@@ -662,9 +687,6 @@ const downloadPDFWithDetails = async (rfiId, idx) => {
 };
 
 
-
-//print hanle method in the previw 
-
 const handlePrint = async () => {
 	if (!selectedInspection) {
 		alert("No data available to print!");
@@ -683,17 +705,23 @@ const handlePrint = async () => {
 	const iframe = document.createElement("iframe");
 	iframe.style.display = "none";
 	iframe.src = blobUrl;
-
 	document.body.appendChild(iframe);
 
 	iframe.onload = () => {
 		iframe.contentWindow.focus();
 		iframe.contentWindow.print();
 	};
+
+	const cleanup = () => {
+		URL.revokeObjectURL(blobUrl);
+		if (iframe.parentNode) {
+			document.body.removeChild(iframe);
+		}
+		window.removeEventListener("focus", cleanup);
+	};
+
+	window.addEventListener("focus", cleanup);
 };
-
-
-
 
 	
 // Downlaod handle method in the preview	
