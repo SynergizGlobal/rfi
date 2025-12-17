@@ -55,6 +55,8 @@ const Inspection = () => {
 	  "UPDATED",
 	  "RESCHEDULED",
 	  "REASSIGNED",
+	  "CON_INSP_ONGOING",
+	  "INSPECTED_BY_CON",
 	];
 
 
@@ -752,7 +754,7 @@ const Inspection = () => {
 										</button>
 									)}
 
-								{userRole === 'it admin' ? (
+								{(userRole === 'it admin' || userRole === 'data admin') ? (
 									// ✅ Show only this button for IT Admin
 									<button
 										onClick={() => {
