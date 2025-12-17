@@ -50,6 +50,12 @@ const Inspection = () => {
 	const location = useLocation();
 	const { filterStatus } = location.state || {};
 
+	const changeExecutiveAllowedStatuses = [
+	  "CREATED",
+	  "UPDATED",
+	  "RESCHEDULED",
+	  "REASSIGNED",
+	];
 
 
 	useEffect(() => {
@@ -688,19 +694,24 @@ const Inspection = () => {
 											Send for Validation
 										</button>
 									)}
-								{userRole === 'data admin' && (
-									<div>
-										<button
-											onClick={() => {
-												setSelectedRfiForAssign(row.original);
-												setShowAssignPopup(true);
-												fetchEngineersForContract(row.original.contractId);
-											}}
-										>
-											{assignedPersons[row.original.id] ? "Change Executive" : "Assign Executive"}
-										</button>
-									</div>
-								)}
+									
+									{userRole === "data admin" &&
+									  changeExecutiveAllowedStatuses.includes(row.original.status) && (
+									    <div>
+									      <button
+									        onClick={() => {
+									          setSelectedRfiForAssign(row.original);
+									          setShowAssignPopup(true);
+									          fetchEngineersForContract(row.original.contractId);
+									        }}
+									      >
+									        {assignedPersons[row.original.id]
+									          ? "Change Executive"
+									          : "Assign Executive"}
+									      </button>
+									    </div>
+									)}
+
 
 
 								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin' || userRole === 'data admin') &&
