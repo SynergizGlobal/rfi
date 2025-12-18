@@ -170,7 +170,7 @@ public class EnclosureDownloadController {
 
 	        // ✅ Fetch by ID only
 	        RFIEnclosure file = enclosureRepository
-	                .findByIdAndUploadedBy(id, role)
+	                .findById(id)
 	                .orElseThrow(() -> new RuntimeException("File not found or access denied"));
 
 	        Path sourcePath = Paths.get(file.getEnclosureUploadFile());

@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -259,7 +261,7 @@ public class InspectionController {
 	                .contentType(MediaType.parseMediaType(contentType))
 	                .header(
 	                        HttpHeaders.CONTENT_DISPOSITION,
-	                        "inline; filename=\"" + fileName + "\""
+	                        "inline; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 	                )
 	                .body(resource);
 

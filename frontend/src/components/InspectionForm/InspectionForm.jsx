@@ -2290,9 +2290,8 @@ export default function InspectionForm() {
 																			onClick={async () => {
 																				// Normalize and map roles
 																				let currentDeptNormalized = deptFK?.trim().toUpperCase();
-																				if (currentDeptNormalized === "CONTRACTOR") currentDeptNormalized = "CON";
+																				if (currentDeptNormalized !== "ENGG") currentDeptNormalized = "CON";
 																				if (currentDeptNormalized === "ENGG") currentDeptNormalized = "ENGG";
-
 																				const fileOwnerNormalized = file.uploadedBy?.trim().toUpperCase();
 
 																				console.log("DEBUG: normalized deptFK:", currentDeptNormalized);
