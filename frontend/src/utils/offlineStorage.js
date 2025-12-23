@@ -12,12 +12,44 @@ const enclosuresDB = localforage.createInstance({
     storeName: "offlineEnclosures"
 });
 
-// ----- INSPECTIONS -----
-export const saveOfflineInspection = async (inspection) => {
-    const id = inspection.rfiId; // ✅ use rfiId as the key
-    if (!id) throw new Error("Missing rfiId in inspection");
-    await inspectionsDB.setItem(String(id), inspection);
+/* =========================================================
+   SAVE / UPDATE INSPECTION (🔥 MERGE LOGIC)
+========================================================= */
+export const saveOfflineInspection = async (newInspection) => {
+  const rfiId = newInspection.rfiId;
+  if (!rfiId) throw new Error("Missing rfiId");
+
+  const existing = await inspectionsDB.getItem(String(rfiId));
+
+  const merged = {
+    ...existing,
+    ...newInspection,
+
+    // 🔴 CRITICAL: APPEND gallery images
+    galleryImages: [
+      ...(existing?.galleryImages || []),
+      ...(newInspection?.galleryImages || [])
+    ],
+
+    // 🔴 Preserve existing selfie unless overwritten
+    selfieImage: newInspection.selfieImage ?? existing?.selfieImage ?? null,
+
+    // 🔴 Preserve test report
+    testReportFile:
+      newInspection.testReportFile ?? existing?.testReportFile ?? null,
+
+    // 🔴 Preserve supporting files
+    supportingFiles: [
+      ...(existing?.supportingFiles || []),
+      ...(newInspection?.supportingFiles || [])
+    ]
+  };
+
+  await inspectionsDB.setItem(String(rfiId), merged);
+
+  console.log("📦 [OFFLINE SAVED]", merged);
 };
+
 
 
 export const getOfflineInspection = async (id) => {

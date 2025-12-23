@@ -649,7 +649,6 @@ export default function InspectionForm() {
 				inspectionId: inspectionId || Date.now(), // unique ID if new
 				rfiId: rfiData.id,
 				selfieImage: selfieImage || null,
-				galleryImages: galleryImages || [],
 				testReportFile: testReportFile || null,
 				supportingFiles
 
@@ -1481,6 +1480,14 @@ export default function InspectionForm() {
 		fetchInspections();
 	}, [rfiData?.id]);
 
+	useEffect(() => {
+		console.log(
+			"📦 OFFLINE DATA:",
+			JSON.parse(localStorage.getItem("offlineInspections"))
+		);
+	}, []);
+
+
 	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
 
 	const syncOfflineInspections = async () => {
@@ -1488,8 +1495,23 @@ export default function InspectionForm() {
 
 		// ✅ Sync inspection images first
 		const offlineInspections = await getAllOfflineInspections();
+
+
 		for (const inspection of offlineInspections) {
+			for (const img of inspection.galleryImages || []) {
+				const fd = new FormData();
+				fd.append("siteImage", img);
+				fd.append("RfiId", inspection.rfiId);
+
+				await fetch(`${API_BASE_URL}rfi/inspection/uploadSiteImage`, {
+					method: "POST",
+					body: fd,
+					credentials: "include"
+				});
+			}
 			try {
+
+
 				const formData = new FormData();
 				formData.append("data", JSON.stringify({ rfiId: inspection.rfiId }));
 
@@ -1501,10 +1523,10 @@ export default function InspectionForm() {
 				}
 
 				// Site Images
-				inspection.galleryImages?.forEach((img, i) => {
+				/*inspection.galleryImages?.forEach((img, i) => {
 					if (img) formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
 				});
-
+*/
 				// Test Report
 				if (inspection.testReportFile) {
 					formData.append("testReport", inspection.testReportFile);
@@ -1601,6 +1623,19 @@ export default function InspectionForm() {
 	const handleSiteImageUpload = async (file, rfiId) => {
 		if (!file) {
 			alert("⚠️ Please capture or select an image before uploading.");
+			return;
+		}
+		/* =========================
+			 OFFLINE
+		  ========================= */
+		if (!navigator.onLine) {
+			await saveOfflineInspection({
+				inspectionId: inspectionId || Date.now(),
+				rfiId,
+				galleryImages: [file]   // 🔴 MERGED
+			});
+
+			console.log("📸 Offline site image saved");
 			return;
 		}
 
@@ -1820,7 +1855,32 @@ export default function InspectionForm() {
 														onClick={async () => {
 															try {
 																setUploading(true);
+																// 🔴 OFFLINE MODE → SAVE LOCALLY
+
+																console.log("📌 [DEBUG] Gallery images before upload:", galleryImages);
+																console.log("📌 [DEBUG] RFI ID:", rfiData?.id);
+
+																if (!galleryImages[0] || !rfiData?.id) {
+																	console.warn("⚠️ Missing image or RFI ID");
+																	return;
+																}
+
+																if (!navigator.onLine) {
+																	await saveOfflineInspection({
+																		inspectionId: inspectionId || Date.now(),
+																		rfiId: rfiData.id,
+																		galleryImages: [galleryImages[0]]
+																	});
+
+																	console.log("📌 [DEBUG] Saved offline image:", galleryImages[0]);
+																	setGalleryImages([]);
+																	setSiteImage(null);
+																	return;
+																}
+
+
 																if (galleryImages[0] && rfiData?.id) {
+
 																	await handleSiteImageUpload(galleryImages[0], rfiData.id);
 																	console.log('Upload successful');
 																	setGalleryImages([]);
@@ -1994,6 +2054,8 @@ export default function InspectionForm() {
 														)}
 													</td>
 												</tr>
+
+
 											</tbody>
 										</table>
 									</div>

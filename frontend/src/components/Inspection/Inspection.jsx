@@ -8,6 +8,8 @@ import DropdownPortal from '../DropdownPortal/DropdownPortal';
 import axios from 'axios';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures, getOfflineEnclosures } from '../../utils/offlineStorage';
 import { generateOfflineInspectionPdf, mergeWithExternalPdfs } from '../../utils/pdfGenerate';
+import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket";
+
 
 
 const DropdownMenu = ({ style, children }) => {
@@ -51,12 +53,12 @@ const Inspection = () => {
 	const { filterStatus } = location.state || {};
 
 	const changeExecutiveAllowedStatuses = [
-	  "CREATED",
-	  "UPDATED",
-	  "RESCHEDULED",
-	  "REASSIGNED",
-	  "CON_INSP_ONGOING",
-	  "INSPECTED_BY_CON",
+		"CREATED",
+		"UPDATED",
+		"RESCHEDULED",
+		"REASSIGNED",
+		"CON_INSP_ONGOING",
+		"INSPECTED_BY_CON",
 	];
 
 
@@ -159,7 +161,6 @@ const Inspection = () => {
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
-
 
 
 	const generateUniqueTxnId = () => {
@@ -427,6 +428,73 @@ const Inspection = () => {
 			alert("Error assigning person");
 		}
 	};
+
+	function showConfirmationModal(message) {
+		return new Promise((resolve) => {
+			// Create modal elements
+			const modal = document.createElement("div");
+			modal.style.position = "fixed";
+			modal.style.top = "0";
+			modal.style.left = "0";
+			modal.style.width = "100%";
+			modal.style.height = "100%";
+			modal.style.backgroundColor = "rgba(0,0,0,0.5)";
+			modal.style.display = "flex";
+			modal.style.alignItems = "center";
+			modal.style.justifyContent = "center";
+			modal.style.zIndex = "9999";
+
+			const popup = document.createElement("div");
+			popup.style.backgroundColor = "#fff";
+			popup.style.padding = "20px";
+			popup.style.borderRadius = "8px";
+			popup.style.width = "500px";
+			popup.style.textAlign = "left";
+
+			const checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.id = "confirmationCheck";
+
+			const label = document.createElement("label");
+			label.htmlFor = "confirmationCheck";
+			label.innerText = message;
+			label.style.marginLeft = "10px";
+
+			const btnDiv = document.createElement("div");
+			btnDiv.style.marginTop = "20px";
+			btnDiv.style.textAlign = "right";
+
+			const btnOk = document.createElement("button");
+			btnOk.innerText = "Confirm";
+			btnOk.disabled = true;
+			btnOk.style.marginRight = "10px";
+
+			const btnCancel = document.createElement("button");
+			btnCancel.innerText = "Cancel";
+
+			btnDiv.appendChild(btnOk);
+			btnDiv.appendChild(btnCancel);
+			popup.appendChild(checkbox);
+			popup.appendChild(label);
+			popup.appendChild(btnDiv);
+			modal.appendChild(popup);
+			document.body.appendChild(modal);
+
+			checkbox.addEventListener("change", () => {
+				btnOk.disabled = !checkbox.checked;
+			});
+
+			btnOk.addEventListener("click", () => {
+				document.body.removeChild(modal);
+				resolve(true);
+			});
+
+			btnCancel.addEventListener("click", () => {
+				document.body.removeChild(modal);
+				resolve(false);
+			});
+		});
+	}
 
 
 
@@ -696,22 +764,22 @@ const Inspection = () => {
 											Send for Validation
 										</button>
 									)}
-									
-									{userRole === "data admin" &&
-									  changeExecutiveAllowedStatuses.includes(row.original.status) && (
-									    <div>
-									      <button
-									        onClick={() => {
-									          setSelectedRfiForAssign(row.original);
-									          setShowAssignPopup(true);
-									          fetchEngineersForContract(row.original.contractId);
-									        }}
-									      >
-									        {assignedPersons[row.original.id]
-									          ? "Change Executive"
-									          : "Assign Executive"}
-									      </button>
-									    </div>
+
+								{userRole === "data admin" &&
+									changeExecutiveAllowedStatuses.includes(row.original.status) && (
+										<div>
+											<button
+												onClick={() => {
+													setSelectedRfiForAssign(row.original);
+													setShowAssignPopup(true);
+													fetchEngineersForContract(row.original.contractId);
+												}}
+											>
+												{assignedPersons[row.original.id]
+													? "Change Executive"
+													: "Assign Executive"}
+											</button>
+										</div>
 									)}
 
 
@@ -805,7 +873,122 @@ const Inspection = () => {
 
 
 								{userRole !== 'engg' && (
+
 									<button
+										disabled={!completedOfflineInspections[row.original.id]}
+										onClick={async () => {
+											try {
+												const confirmed = await showConfirmationModal(
+													"I hereby confirm that the information submitted in this RFI is accurate and complete to the best of my knowledge. I authorize the use of my E-Sign solely for identity verification (KYC) for submission authentication."
+												);
+
+												if (!confirmed) {
+													alert("Submission cancelled.");
+													return;
+												}
+
+												const rfiId = row.original.id;
+												if (!rfiId) throw new Error("Invalid RFI");
+
+												// ================= OFFLINE DATA =================
+												const offlineDataArr = await getAllOfflineInspections(rfiId);
+												const offlineData = offlineDataArr[0];
+												const enclosures = await getOfflineEnclosures(rfiId);
+
+												const pdfDoc = await generateOfflineInspectionPdf({
+													selfieImage: offlineData.selfieImage,
+													galleryImages: offlineData.galleryImages,
+													testReportFile: offlineData.testReportFile,
+													enclosureImages: enclosures
+												});
+
+												const pdfBlob = pdfDoc.output("blob");
+
+												// ================= CONTRACTOR =================
+												if (deptFK !== "engg") {
+													const pdfFormData = new FormData();
+													pdfFormData.append("pdf", pdfBlob, `${rfiId}.pdf`);
+													pdfFormData.append("rfiId", rfiId);
+
+													// Upload contractor PDF
+													const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdfContractor`, {
+														method: "POST",
+														body: pdfFormData,
+														credentials: "include"
+													});
+													if (!uploadRes.ok) throw new Error("Contractor PDF upload failed");
+
+													// Stamp contractor PDF
+													const stampForm = new FormData();
+													stampForm.append("rfiId", rfiId);
+													stampForm.append("txnId", generateUniqueTxnId());
+
+													const stampRes = await fetch(`${API_BASE_URL}rfi/stampPdfFromXml`, {
+														method: "POST",
+														body: stampForm,
+														credentials: "include"
+													});
+													const stampData = await stampRes.json();
+													if (!stampRes.ok || stampData.status === "error") {
+														throw new Error(stampData.message || "Contractor PDF stamping failed");
+													}
+
+													alert("Contractor PDF stamped successfully");
+												}
+
+												// ================= ENGINEER =================
+												else {
+													const pdfFormData = new FormData();
+													pdfFormData.append("pdf", pdfBlob, `${rfiId}.pdf`);
+													pdfFormData.append("rfiId", rfiId);
+
+													// Upload engineer PDF
+													const uploadRes = await fetch(`${API_BASE_URL}rfi/rfi/uploadPdf/Engg`, {
+														method: "POST",
+														body: pdfFormData,
+														credentials: "include"
+													});
+													if (!uploadRes.ok) throw new Error("Engineer PDF upload failed");
+
+													// Stamp engineer PDF
+													const stampForm = new FormData();
+													stampForm.append("rfiId", rfiId);
+
+													const stampRes = await fetch(`${API_BASE_URL}rfi/stampEnggPdfFromXml`, {
+														method: "POST",
+														body: stampForm,
+														credentials: "include"
+													});
+													const stampData = await stampRes.json();
+													if (!stampRes.ok || stampData.status === "error") {
+														throw new Error(stampData.message || "Engineer PDF stamping failed");
+													}
+
+													alert("Engineer PDF stamped successfully");
+												}
+
+												// ================= LOCK =================
+												/*												setInspectionStatusMode("SUBMITTED");
+																								localStorage.setItem(`inspectionLocked_${rfiId}`, "true");
+												*/
+												/*												navigate("/inspection");
+												*/
+												// Clear offline cache
+												await removeOfflineInspection(rfiId);
+												await clearOfflineEnclosures(rfiId);
+
+											} catch (err) {
+												console.error(err);
+												disconnectEsignSocket();
+												alert(err.message || "Submit failed");
+											}
+										}}
+									>
+										Submit
+									</button>
+
+
+									/*<button
 										disabled={!completedOfflineInspections[row.original.id]}
 										onClick={async () => {
 											try {
@@ -904,34 +1087,34 @@ const Inspection = () => {
 									>
 										Submit
 									</button>
-
+*/
 
 
 								)}
-								
-								
+
+
 								{deptFK === 'engg' ? (
-								    row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
-								        <button
-								            onClick={() => {
-								                setSelectedRfi(row.original);
-								                setShowUploadPopup(true);
-								            }}
-								        >
-								            Upload Test Results
-								        </button>
-								    )
+									row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
+										<button
+											onClick={() => {
+												setSelectedRfi(row.original);
+												setShowUploadPopup(true);
+											}}
+										>
+											Upload Test Results
+										</button>
+									)
 								) : (
-								    row.original.status === "INSPECTION_DONE" && row.original.testResCon === null && (
-								        <button
-								            onClick={() => {
-								                setSelectedRfi(row.original);
-								                setShowUploadPopup(true);
-								            }}
-								        >
-								            Upload Test Results
-								        </button>
-								    )
+									row.original.status === "INSPECTION_DONE" && row.original.testResCon === null && (
+										<button
+											onClick={() => {
+												setSelectedRfi(row.original);
+												setShowUploadPopup(true);
+											}}
+										>
+											Upload Test Results
+										</button>
+									)
 								)}
 
 
