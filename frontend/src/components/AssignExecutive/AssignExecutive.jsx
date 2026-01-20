@@ -555,7 +555,7 @@ const AssignExecutive = () => {
 									  ))
 								  ) : (
 									  <tr>
-										  <td colSpan="4" style={{ textAlign: "center" }}>
+										  <td colSpan="5" style={{ textAlign: "center" }}>
 											  No assignments found.
 										  </td>
 									  </tr>
