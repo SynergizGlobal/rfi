@@ -8,7 +8,8 @@ public interface RfiListDTO {
     String getElement();
     String getActivity();
     String getAssignedPersonClient();
-    String getCreatedBy();           
+    String getCreatedBy();  
+    String getRfiDescription();
     String getdateOfSubmission();
     String getInspectionStatus();
     String getStatus();

@@ -9,6 +9,7 @@ import axios from 'axios';
 import { saveOfflineInspection, saveOfflineEnclosure, getAllOfflineEnclosures, getAllOfflineInspections, removeOfflineInspection, removeOfflineEnclosure, clearOfflineEnclosures, getOfflineEnclosures } from '../../utils/offlineStorage';
 import { generateOfflineInspectionPdf, mergeWithExternalPdfs } from '../../utils/pdfGenerate';
 import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSocket";
+import ReactDOM from "react-dom";
 
 
 
@@ -50,6 +51,12 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	
+	
+	const [showAssignPopup, setShowAssignPopup] = useState(false);
+	const [selectedPerson, setSelectedPerson] = useState('');
+	const [engineerOptions, setEngineerOptions] = useState([]);
+	const [selectedRfiForAssign, setSelectedRfiForAssign] = useState(null);
 
 
 	const location = useLocation();
@@ -291,42 +298,39 @@ const Inspection = () => {
 	const [downloadingId, setDownloadingId] = useState(null);
 
 
-	const handleDownloadSiteImagesPdf = async (id, uploadedBy, rfiId) => {
-		const isContractor = uploadedBy?.toLowerCase() === "contractor";
-		const uniqueId = isContractor ? id : `client-${id}`;
-		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
-		try {
-			setDownloadingId(uniqueId);
+//	const handleDownloadSiteImagesPdf = async (id, uploadedBy, rfiId) => {
+//		const isContractor = uploadedBy?.toLowerCase() === "contractor";
+//		const uniqueId = isContractor ? id : `client-${id}`;
+//		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
+//		try {
+//			setDownloadingId(uniqueId);
+//
+//			const response = await fetch(
+//				`${API_BASE_URL}rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
+//			);
+//
+//			if (!response.ok) {
+//				alert("No images found or failed to generate PDF.");
+//				return;
+//			}
+//			const blob = await response.blob();
+//			const url = window.URL.createObjectURL(blob);
+//			const link = document.createElement("a");
+//			link.href = url;
+//			const filename = fileNameGenerated;
+//			link.setAttribute("download", filename);
+//			document.body.appendChild(link);
+//			link.click();
+//			link.remove();
+//		} catch (err) {
+//			console.error("PDF download error:", err);
+//			alert("Failed to download PDF.");
+//		} finally {
+//			setDownloadingId(null);
+//		}
+//	};
 
-			const response = await fetch(
-				`${API_BASE_URL}rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
-			);
 
-			if (!response.ok) {
-				alert("No images found or failed to generate PDF.");
-				return;
-			}
-			const blob = await response.blob();
-			const url = window.URL.createObjectURL(blob);
-			const link = document.createElement("a");
-			link.href = url;
-			const filename = fileNameGenerated;
-			link.setAttribute("download", filename);
-			document.body.appendChild(link);
-			link.click();
-			link.remove();
-		} catch (err) {
-			console.error("PDF download error:", err);
-			alert("Failed to download PDF.");
-		} finally {
-			setDownloadingId(null);
-		}
-	};
-
-	const [showAssignPopup, setShowAssignPopup] = useState(false);
-	const [selectedPerson, setSelectedPerson] = useState('');
-	const [engineerOptions, setEngineerOptions] = useState([]);
-	const [selectedRfiForAssign, setSelectedRfiForAssign] = useState(null);
 
 
 
@@ -584,15 +588,60 @@ const Inspection = () => {
 	  }
 	};
 
+	const RfiDescCell = ({ value }) => {
+		const [showPopup, setShowPopup] = useState(false);
 
+		if (!value) return null;
+
+		const modalContent = (
+			<div className="popup-modal-rfi-loglist bg-black bg-opacity-50 z-50">
+				<div className="popup-modal-inner bg-white rounded-xl shadow-lg p-4 max-w-md w-full">
+					<h2 className="text-lg font-semibold mb-2">Notes</h2>
+					<p className="text-gray-700 whitespace-pre-wrap ">{value}</p>
+					<div className='d-flex justify-content-end'>
+						<button
+							onClick={() => setShowPopup(false)}
+							className="btn btn-white"
+						>
+							Close
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+		return (
+			<>
+				{value.length > 50 ? (
+					<>
+						<button
+							onClick={() => setShowPopup(true)}
+							className="text-blue-600 underline"
+						>
+							👁️
+						</button>
+						{showPopup &&
+							ReactDOM.createPortal(
+								modalContent,
+								document.querySelector(".dashboard")
+							)}
+					</>
+				) : (
+					<span>{value}</span>
+				)}
+			</>
+		);
+	};
 
 
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfi_Id' },
-		{ Header: 'Project', accessor: 'project' },
+		{ Header: 'Raised Date', accessor: 'dateOfSubmission' },
 		{ Header: 'Structure', accessor: 'structure' },
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
+		{ Header: 'RFI Description',
+			 accessor: 'rfiDescription',
+		 Cell: ({ value }) => <RfiDescCell value={value} /> },
 		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{
 			Header: "Assigned Employer's Engineer",
@@ -608,44 +657,44 @@ const Inspection = () => {
 			Header: 'Inspection Status',
 			accessor: 'status'
 		},
-		{
-			Header: 'Download Contractor Images',
-			Cell: ({ row }) => {
-				const isDownloading = downloadingId === row.original.id;
-				const hasContractorImage = row.original.imgContractor !== null;
-
-				return hasContractorImage ? (
-					<button
-						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor', row.original.rfi_Id)}
-						className="btn-download"
-						disabled={isDownloading}
-					>
-						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-					</button>
-				) : (
-					<span style={{ color: '#888' }}></span>
-				);
-			}
-		},
-		{
-			Header: 'Download Client Images',
-			Cell: ({ row }) => {
-				const isDownloading = downloadingId === `client-${row.original.id}`;
-				const hasClientImage = row.original.imgClient !== null;
-
-				return hasClientImage ? (
-					<button
-						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User', row.original.rfi_Id)}
-						className="btn-download"
-						disabled={isDownloading}
-					>
-						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-					</button>
-				) : (
-					<span style={{ color: '#888' }}></span>
-				);
-			}
-		},
+//		{
+//			Header: 'Download Contractor Images',
+//			Cell: ({ row }) => {
+//				const isDownloading = downloadingId === row.original.id;
+//				const hasContractorImage = row.original.imgContractor !== null;
+//
+//				return hasContractorImage ? (
+//					<button
+//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor', row.original.rfi_Id)}
+//						className="btn-download"
+//						disabled={isDownloading}
+//					>
+//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+//					</button>
+//				) : (
+//					<span style={{ color: '#888' }}></span>
+//				);
+//			}
+//		},
+//		{
+//			Header: 'Download Client Images',
+//			Cell: ({ row }) => {
+//				const isDownloading = downloadingId === `client-${row.original.id}`;
+//				const hasClientImage = row.original.imgClient !== null;
+//
+//				return hasClientImage ? (
+//					<button
+//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User', row.original.rfi_Id)}
+//						className="btn-download"
+//						disabled={isDownloading}
+//					>
+//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+//					</button>
+//				) : (
+//					<span style={{ color: '#888' }}></span>
+//				);
+//			}
+//		},
 		{
 			Header: 'Action',
 			Cell: ({ row }) => {
