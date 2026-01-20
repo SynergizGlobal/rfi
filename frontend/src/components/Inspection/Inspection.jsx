@@ -42,6 +42,9 @@ const Inspection = () => {
 	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
 
 	const [showUploadPopup, setShowUploadPopup] = useState(false);
+	const [showUploadPopupAttachDocs, setShowUploadPopupAttachDocs] = useState(false);
+	const [attachmentDescription, setAttachmentDescription] = useState("");
+
 	const [selectedTestType, setSelectedTestType] = useState('');
 	const [uploadedFile, setUploadedFile] = useState(null);
 
@@ -523,6 +526,67 @@ const Inspection = () => {
 		}
 	}
 
+	const handleClosePopPupAttachement = async () => {
+		setShowUploadPopupAttachDocs(false);
+		 setUploadedFile(null);
+		 setAttachmentDescription("");
+	}
+	
+	const handleClosePopPupTestResult = async () => {
+		setShowUploadPopup(false);
+		 setUploadedFile(null);
+		 setSelectedTestType("");
+	}
+
+
+	const handleUploadAttachment = async () => {
+	  try {
+	    if (!selectedRfi?.id) {
+	      alert("No RFI selected!");
+	      return;
+	    }
+
+	    if (!uploadedFile) {
+	      alert("Please select a file!");
+	      return;
+	    }
+
+	    const rfiId = selectedRfi.id;
+
+	    const formData = new FormData();
+	    formData.append("rfiId", rfiId);
+	    formData.append("description", attachmentDescription?.trim() || "");
+	    formData.append("file", uploadedFile);
+
+	    const res = await fetch(`${API_BASE_URL}rfi/upload-attachment`, {
+	      method: "POST",
+	      body: formData,
+	      credentials: "include",
+	    });
+
+	    const msg = await res.text();
+
+	    if (res.ok) {
+	      alert(msg);
+
+	      // ✅ reset
+	      setUploadedFile(null);
+	      setAttachmentDescription("");
+	      setShowUploadPopupAttachDocs(false);
+
+
+	    } else {
+	      alert("Upload Failed: " + msg);
+	    }
+	  } catch (err) {
+	    console.error(err);
+	    alert("Upload Error: " + err.message);
+	  }
+	};
+
+
+
+
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfi_Id' },
 		{ Header: 'Project', accessor: 'project' },
@@ -726,6 +790,17 @@ const Inspection = () => {
 									Start Inspection Offline
 								</button>
 
+								{row.original.approvalStatus?.toLowerCase() === 'accepted' && (
+									<button
+										onClick={() => {
+											setSelectedRfi(row.original);
+											setShowUploadPopupAttachDocs(true);
+										}}
+									>
+										Upload Attachments
+									</button>
+								)}
+
 
 								{(deptFK.toLowerCase() === 'engg' || userRole === 'it admin') &&
 									row.original.status === 'INSPECTED_BY_AE' &&
@@ -739,6 +814,7 @@ const Inspection = () => {
 														fetch(`${API_BASE_URL}api/validation/send-for-validation/${id}`, {
 															method: "POST",
 															headers: { "Content-Type": "application/json" },
+															credentials: "include"
 														})
 															.then(async (res) => {
 																const text = await res.text();
@@ -1093,6 +1169,8 @@ const Inspection = () => {
 								)}
 
 
+
+
 								{deptFK === 'engg' ? (
 									row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
 										<button
@@ -1281,7 +1359,7 @@ const Inspection = () => {
 				{showUploadPopup && (
 					<div className="inspection popup-overlay" onClick={() => setShowUploadPopup(false)}>
 						<div className="upload-popup" onClick={(e) => e.stopPropagation()}>
-							<button className="close-btn" onClick={() => setShowUploadPopup(false)}>✖</button>
+							<button className="close-btn" onClick={handleClosePopPupTestResult}>✖</button>
 							<h3>Upload Test Results</h3>
 
 							<div className="form-group">
@@ -1312,6 +1390,7 @@ const Inspection = () => {
 									type="file"
 									id="uploadInput"
 									style={{ display: "none" }}
+									accept=".pdf,application/pdf"
 									onChange={(e) => setUploadedFile(e.target.files[0])}
 								/>
 								{uploadedFile && <p>Uploaded: {uploadedFile.name}</p>}
@@ -1323,6 +1402,64 @@ const Inspection = () => {
 						</div>
 					</div>
 				)}
+
+
+				{showUploadPopupAttachDocs && (
+					<div
+						className="inspection popup-overlay"
+						onClick={() => setShowUploadPopupAttachDocs(false)}   // ✅ correct close
+					>
+						<div className="upload-popup" onClick={(e) => e.stopPropagation()}>
+							<button className="close-btn" onClick={handleClosePopPupAttachement}>
+								✖
+							</button>
+
+							<h3>Upload Attachment</h3>
+
+							{/* ✅ DESCRIPTION */}
+							<div className="form-group">
+								<label>Description:</label>
+								<input
+									type="text"
+									value={attachmentDescription}
+									onChange={(e) => setAttachmentDescription(e.target.value)}
+									placeholder="Enter description"
+								/>
+							</div>
+
+							{/* ✅ FILE */}
+							<div className="form-group">
+								<label>Attach File:</label>
+
+								<a
+									href="#"
+									className="upload-link"
+									onClick={(e) => {
+										e.preventDefault();
+										document.getElementById("uploadInputAttachment").click();
+									}}
+								>
+									Upload Documents 📄
+								</a>
+
+								<input
+									type="file"
+									id="uploadInputAttachment"
+									style={{ display: "none" }}
+									accept=".pdf,application/pdf"
+									onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+								/>
+
+			{uploadedFile && <p style={{ text: "none" }}><strong>Selected File:</strong> {uploadedFile.name}</p>}
+							</div>
+
+							<button className="done-btn" onClick={handleUploadAttachment}>
+								Upload
+							</button>
+						</div>
+					</div>
+				)}
+
 
 
 

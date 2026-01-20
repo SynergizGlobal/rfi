@@ -13,10 +13,34 @@ public class FileStorageService {
 
     @Value("${rfi.pdf.storage-path}")
     private String pdfStoragePath;
+    
+    @Value("${rfi.attachments.upload-dir}")
+    private String pdfStoragePathAttachments;
 
     public String saveFile(MultipartFile file) {
         try {
             Path uploadDir = Paths.get(pdfStoragePath).toAbsolutePath().normalize();
+            Files.createDirectories(uploadDir);
+
+            String originalName = file.getOriginalFilename();
+            String safeFileName = (originalName != null ? originalName.replaceAll("[\\\\/:*?\"<>|]", "_") : "uploaded.pdf");
+
+            String fileName = System.currentTimeMillis() + "_" + safeFileName;
+
+            Path filePath = uploadDir.resolve(fileName).normalize();
+
+            file.transferTo(filePath.toFile());
+
+            return filePath.toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException("❌ Failed to store file: " + e.getMessage(), e);
+        }
+    }
+    
+    public String saveFileAttachment(MultipartFile file) {
+        try {
+            Path uploadDir = Paths.get(pdfStoragePathAttachments).toAbsolutePath().normalize();
             Files.createDirectories(uploadDir);
 
             String originalName = file.getOriginalFilename();

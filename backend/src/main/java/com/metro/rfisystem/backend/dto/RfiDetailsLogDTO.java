@@ -1,5 +1,7 @@
 package com.metro.rfisystem.backend.dto;
 
+import java.util.List;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -53,6 +55,9 @@ public class RfiDetailsLogDTO {
     private String dyHodUserName;
     private String conSupportFilePaths;
     private String enggSupportFilePaths;
+    private String attachmentData;
+
+    private List<AttachmentFileDTO> attachments;
 
     // Full constructor for native query mapping
     public RfiDetailsLogDTO(
@@ -101,7 +106,8 @@ public class RfiDetailsLogDTO {
             String testResultEngineer,
             String dyHodUserName,
             String conSupportFilePaths,
-            String enggSupportFilePaths
+            String enggSupportFilePaths,
+            String attachmentData
     ) {
         this.project = project;
         this.work = work;
@@ -149,5 +155,6 @@ public class RfiDetailsLogDTO {
         this.dyHodUserName = dyHodUserName;
         this.conSupportFilePaths = conSupportFilePaths;
         this.enggSupportFilePaths = enggSupportFilePaths;
+        this.attachmentData  = attachmentData;
     }
 }

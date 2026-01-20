@@ -1,14 +1,17 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
-
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
+import com.metro.rfisystem.backend.constants.EnumValidation;
+import com.metro.rfisystem.backend.dto.AttachmentFileDTO;
 import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
 import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
@@ -25,13 +28,13 @@ import com.metro.rfisystem.backend.repository.rfi.RFIEnclosureRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.repository.rfi.RfiValidationRepository;
 import com.metro.rfisystem.backend.service.RfiValidationService;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class RfiValidationServiceImpl implements RfiValidationService {
-
 
 	private final RFIRepository rfiRepository;
 	private final RfiValidationRepository rfiValidationRepository;
@@ -44,31 +47,35 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 	@Override
 	public List<GetRfiDTO> showValidations(String UserRole, String UserType, String UserId, String Department,
-			String UserName) {
+			String UserName, String designation) {
+		boolean isEnggAuthority = UserRole != null
+				&& ("Engg".equalsIgnoreCase(Department) && ("Data Admin").equalsIgnoreCase(UserRole))
+				&& (!designation.equalsIgnoreCase("Project Engineer")
+						&& (!("Regular User").equalsIgnoreCase(UserRole)));
 
 		boolean isAdmin = UserRole != null && ("IT Admin".equalsIgnoreCase(UserRole)
-				|| ("Data Admin").equalsIgnoreCase(UserRole));
+				|| ("Data Admin").equalsIgnoreCase(UserRole) && !"Engg".equalsIgnoreCase(Department));
 
 		boolean isDyHod = UserType != null && "DyHOD".equalsIgnoreCase(UserType);
-		
-		boolean isEngineer = !StringUtils.isEmpty(UserName) && ("Engg").equalsIgnoreCase(Department);
-		if (isAdmin || isDyHod) {
+
+		boolean isProjEngg = !StringUtils.isEmpty(UserName) && ("Engg").equalsIgnoreCase(Department);
+
+		if (isAdmin) {
 			return rfiRepository.showRfiValidationsItAdmin();
-		}
-//		else if (isDyHod) {
-//			return rfiRepository.showRfiValidationsDyHod(UserId);
-//		}
-			else if (isEngineer)
-		{
+		} else if (isDyHod) {
+			return rfiRepository.showRfiValidationsDyHod(UserId);
+		} else if (isEnggAuthority) {
+			return rfiRepository.showRfiValidationsEnggAuth(UserName);
+		} else if (isProjEngg) {
 			return rfiRepository.showRfiValidationsAssignedBy(UserName);
-		}
-		else return null;
+		} else
+			return null;
 	}
 
 	@Override
 	@Transactional
 	public boolean validateRfi(RfiValidateDTO dto) {
-		
+
 		boolean success = false;
 		Optional<RFI> rfiOpt = rfiRepository.findById(dto.getLong_rfi_id());
 		Optional<RfiValidation> valOpt = rfiValidationRepository.findById(dto.getLong_rfi_validate_id());
@@ -81,7 +88,7 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 		rfiRepository.save(rfi);
 		validation.setRemarks(dto.getRemarks());
 		validation.setEnumValidation(dto.getAction());
-        validation.setComment(dto.getComment());
+		validation.setComment(dto.getComment());
 		rfiValidationRepository.save(validation);
 		emailService.sendValidationMail(rfi, validation);
 		success = true;
@@ -89,22 +96,48 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 	}
 
-	
+	private List<AttachmentFileDTO> parseAttachmentData(String attachmentData) {
+		if (attachmentData == null || attachmentData.trim().isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		List<AttachmentFileDTO> list = new ArrayList<>();
+
+		String[] items = attachmentData.split("\\|\\|"); // split ||
+
+		for (String item : items) {
+			if (item == null || item.trim().isEmpty())
+				continue;
+
+			item = item.replace("##", "");
+
+			String[] parts = item.split("::", 2);
+			String fileName = parts.length > 0 ? parts[0].trim() : "";
+			String desc = parts.length > 1 ? parts[1].trim() : "";
+
+			list.add(new AttachmentFileDTO(fileName, desc));
+		}
+
+		return list;
+	}
+
 	@Override
 	public RfiDetailsDTO getRfiPreview(Long rfiId) {
 		List<RfiReportDTO> reportList = rfiRepository.getRfiReportDetails(rfiId);
 		RfiReportDTO report = reportList.isEmpty() ? null : reportList.get(0);
+		String data = report.getAttachmentData();
+		report.setAttachments(parseAttachmentData(data));
 		Optional<MeasurementDTO> measurementDetails = measurementsRepository.findMeasurementByRfiId(rfiId);
 
 		List<ChecklistItemDTO> checklist = checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
 		List<EnclosureDTO> enclosures = enclosureRepository.findEnclosuresByRfiId(rfiId);
 
-		return new RfiDetailsDTO(report, checklist, enclosures,measurementDetails);
+		return new RfiDetailsDTO(report, checklist, enclosures, measurementDetails);
 	}
 
 	@Override
 	@Transactional
-	public String sendRfiForValidation(Long rfiId) {
+	public String sendRfiForValidation(Long rfiId, EnumValidation validationAuth) {
 		Optional<RfiStatusProjection> rfiProjOpt = rfiRepository.findStatusById(rfiId);
 
 		if (rfiProjOpt.isEmpty()) {
@@ -140,6 +173,7 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 		RfiValidation validation = new RfiValidation();
 		validation.setRfi(fullRfi);
+		validation.setValidationAuthority(validationAuth);
 		validation.setSentForValidationAt(LocalDateTime.now());
 
 		fullRfi.setRfiValidation(validation);

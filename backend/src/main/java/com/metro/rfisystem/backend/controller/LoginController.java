@@ -79,6 +79,7 @@ public class LoginController {
 			session.setAttribute("departmentFk", user.getDepartmentFk());
 			session.setAttribute("loginDepartment", loginDepartment);
 			session.setAttribute("reportingToIdSrfk", user.getReportingToIdSrfk());
+			session.setAttribute("designation", user.getDesignation());
 
 			System.out.println("User ID: " + user.getUserId());
 			System.out.println("Reporting To: " + user.getReportingToIdSrfk());

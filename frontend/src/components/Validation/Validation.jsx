@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
 import autoTable from 'jspdf-autotable';
@@ -17,13 +17,41 @@ export default function Validation() {
 	const [message, setMessage] = useState('');
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
+	const designation = localStorage.getItem("designation")?.toLowerCase();
+	const department = localStorage.getItem("departmentFk")?.toLowerCase();
 	const isITAdmin = userRole === 'it admin';
 	const isDyHOD = userType === "dyhod";
+
+	const isEnggAuthority =
+		userRole != null &&
+		department === "engg" &&
+		userRole === "data admin" &&
+		designation !== "project engineer" &&
+		userType !== "dyhod" &&
+		userRole !== "regular user";
 
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const [editModeList, setEditModeList] = useState([]);
 	const [comments, setComments] = useState({});
+
+
+	const [checklistItems, setChecklistItems] = useState([]);
+	const [enclosures, setEnclosures] = useState([]);
+	const [Measurement, setMeasurement] = useState([]);
+	const [rfiList, setRfiList] = useState([]);
+	const [rfiList1, setRfiList1] = useState([]);
+
+	const [remarksList, setRemarksList] = useState([]);
+	const [remarksList1, setRemarksList1] = useState([]);
+
+	const [statusList, setStatusList] = useState([]);
+	const [statusList1, setStatusList1] = useState([]);
+
+
+
+
+
 	const handleCommentChange = (rowIndex, value) => {
 		if (value.length <= 500) {
 			setComments((prev) => ({
@@ -32,48 +60,131 @@ export default function Validation() {
 			}));
 		}
 	};
-	const [checklistItems, setChecklistItems] = useState([]);
-	const [enclosures, setEnclosures] = useState([]);
-	const [Measurement, setMeasurement] = useState([]);
 
-	
+
+
+
+	//	useEffect(() => {
+	//		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
+	//			withCredentials: true, headers: {
+	//				'Content-Type': 'application/json',
+	//				'Accept': 'application/json'
+	//			}
+	//		})
+	//			.then(res => {
+	//				console.log("GET /getRfiValidations response:", res.data);
+	//
+	//				const data = Array.isArray(res.data) ? res.data : [];
+	//
+	//				if (isEnggAuthority) {
+	//
+	//				}
+	//
+	//				setRfiList(data);
+	//				setRemarksList(data.map(item => item.remarks || ""));
+	//				setStatusList(data.map(item => item.status || ""));
+	//				setEditModeList(data.map(() => false));
+	//				setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
+	//
+	//				if (data.length === 0) {
+	//					setMessage('No RFI validations found.');
+	//				} else {
+	//					setMessage('');
+	//				}
+	//			})
+	//			.catch(err => {
+	//				console.error("Error fetching RFI validations:", err);
+	//				setRfiList([]);
+	//				setRemarksList([]);
+	//				setStatusList([]);
+	//				setEditModeList([]);
+	//				setSubmittedList([]);
+	//				setMessage('Error loading RFI validations.');
+	//			});
+	//	}, []);
+
 
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
-			withCredentials: true, headers: {
-				'Content-Type': 'application/json',
-				'Accept': 'application/json'
-			}
-		})
-			.then(res => {
+		axios
+			.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
+				withCredentials: true,
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json"
+				}
+			})
+			.then((res) => {
 				console.log("GET /getRfiValidations response:", res.data);
 
 				const data = Array.isArray(res.data) ? res.data : [];
 
+				// ✅ ONLY if EnggAuthority
+				if (isEnggAuthority) {
+					// ✅ RFI List (EnggAuthority)
+					const enggAuthorityData = data.filter(
+						(item) => (item.valdationAuth || "").toLowerCase() === "enggauthority"
+					);
+
+					// ✅ RFI List1 (DyHod)
+					const dyhodData = data.filter(
+						(item) => (item.valdationAuth || "").toLowerCase() === "dyhod"
+					);
+
+					// ✅ set rfiList -> EnggAuthority
+					setRfiList(enggAuthorityData);
+					setRemarksList(enggAuthorityData.map((item) => item.remarks || ""));
+					setStatusList(enggAuthorityData.map((item) => item.status || ""));
+					setEditModeList(enggAuthorityData.map(() => false));
+					setSubmittedList(
+						enggAuthorityData.map((item) => (item.remarks && item.status ? true : false))
+					);
+
+					// ✅ set rfiList1 -> DyHod
+					setRfiList1(dyhodData);
+					setRemarksList1(dyhodData.map((item) => item.remarks || ""));
+					setStatusList1(dyhodData.map((item) => item.status || ""));
+
+					// ✅ message handling
+					if (enggAuthorityData.length === 0 || dyhodData.length === 0) {
+						setMessage("No RFI validations found.");
+					} else {
+						setMessage("No Data");
+					}
+
+					return; // ✅ stop normal flow
+				}
+
+				// ✅ normal user -> full data
 				setRfiList(data);
-				setRemarksList(data.map(item => item.remarks || ""));
-				setStatusList(data.map(item => item.status || ""));
+				setRemarksList(data.map((item) => item.remarks || ""));
+				setStatusList(data.map((item) => item.status || ""));
 				setEditModeList(data.map(() => false));
-				setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
+				setSubmittedList(data.map((item) => (item.remarks && item.status ? true : false)));
 
 				if (data.length === 0) {
-					setMessage('No RFI validations found.');
+					setMessage("No RFI validations found.");
 				} else {
-					setMessage('');
+					setMessage("");
 				}
 			})
-			.catch(err => {
+			.catch((err) => {
 				console.error("Error fetching RFI validations:", err);
+
 				setRfiList([]);
+				setRfiList1([]);
+
 				setRemarksList([]);
+				setRemarksList1([]);
+
 				setStatusList([]);
+				setStatusList1([]);
+
 				setEditModeList([]);
 				setSubmittedList([]);
-				setMessage('Error loading RFI validations.');
+
+				setMessage("Error loading RFI validations.");
 			});
 	}, []);
-
-
 
 
 	const updateRemark = (idx, value) => {
@@ -172,15 +283,6 @@ export default function Validation() {
 	const fileBaseURL = `${API_BASE_URL}api/validation/previewFiles`;
 	const fileBaseURLForFileName = `${API_BASE_URL}api/rfiLog/previewFiles/file`;
 
-	const safe = (val) => val || '-';
-
-
-	const [rfiList, setRfiList] = useState([]);
-	const [remarksList, setRemarksList] = useState([]);
-	const [statusList, setStatusList] = useState([]);
-	const [comment, setComment] = useState([]);
-
-
 
 
 	const toBase64 = async (url) => {
@@ -199,40 +301,54 @@ export default function Validation() {
 
 
 	async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs = []) {
-			const mainPdfBytes = jsPDFDoc.output("arraybuffer");
-			const mainPdf = await PDFDocument.load(mainPdfBytes);
+		const mainPdfBytes = jsPDFDoc.output("arraybuffer");
+		const mainPdf = await PDFDocument.load(mainPdfBytes);
 
-			if (!Array.isArray(externalPdfBlobs) || externalPdfBlobs.length === 0) {
-				const finalBytes = await mainPdf.save();
-				return new Blob([finalBytes], { type: "application/pdf" });
-			}
-
-			const seen = new Set();
-
-			for (const fileBlob of externalPdfBlobs) {
-				if (!fileBlob) continue;
-
-				const key = `${fileBlob.size}_${fileBlob.type}`;
-				if (seen.has(key)) continue;
-				seen.add(key);
-
-				const externalPdfBytes = await fileBlob.arrayBuffer();
-				const externalPDF = await PDFDocument.load(externalPdfBytes);
-
-				const pages = await mainPdf.copyPages(
-					externalPDF,
-					externalPDF.getPageIndices()
-				);
-
-				pages.forEach((page) => mainPdf.addPage(page));
-			}
-
-			const mergedPdfBytes = await mainPdf.save();
-			return new Blob([mergedPdfBytes], { type: "application/pdf" });
+		if (!Array.isArray(externalPdfBlobs) || externalPdfBlobs.length === 0) {
+			const finalBytes = await mainPdf.save();
+			return new Blob([finalBytes], { type: "application/pdf" });
 		}
 
+		const seen = new Set();
 
-	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements, ) => {
+		for (const fileBlob of externalPdfBlobs) {
+			if (!fileBlob) continue;
+
+			const key = `${fileBlob.size}_${fileBlob.type}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+
+			const externalPdfBytes = await fileBlob.arrayBuffer();
+			const externalPDF = await PDFDocument.load(externalPdfBytes);
+
+			const pages = await mainPdf.copyPages(
+				externalPDF,
+				externalPDF.getPageIndices()
+			);
+
+			pages.forEach((page) => mainPdf.addPage(page));
+		}
+
+		const mergedPdfBytes = await mainPdf.save();
+		return new Blob([mergedPdfBytes], { type: "application/pdf" });
+	}
+
+
+	let cachedBase64 = null;
+	const loadFontAsBase64 = async (url) => {
+		const res = await fetch(url);
+		const buffer = await res.arrayBuffer();
+
+		let binary = "";
+		const bytes = new Uint8Array(buffer);
+		for (let i = 0; i < bytes.byteLength; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+
+		return btoa(binary);
+	};
+
+	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements,) => {
 		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 		const externalPdfBlobs = [];
 		const seenPdfUrls = new Set();
@@ -247,6 +363,7 @@ export default function Validation() {
 		const imageHeight = 100;
 		const lineHeight = 6;
 		let rfiName = null;
+		const hasNonEnglish = (txt = "") => /[^\x00-\x7F]/.test(String(txt || ""));
 
 		for (let idx = 0; idx < inspectionList.length; idx++) {
 			const inspection = inspectionList[idx];
@@ -273,62 +390,62 @@ export default function Validation() {
 					y = margin;
 				}
 			};
-			
+
 			// ---------- TOP HEADER ROW ----------
-							ensureSpace(15);
+			ensureSpace(15);
 
-							const statusText =
-								inspection.testStatus === "Rejected"
-									? "Rejected"
-									: inspection.rfiStatus === "INSPECTION_DONE"
-										? "Closed"
-										: "Active";
+			const statusText =
+				inspection.testStatus === "Rejected"
+					? "Rejected"
+					: inspection.rfiStatus === "INSPECTION_DONE"
+						? "Closed"
+						: "Active";
 
-							const statusColor =
-								statusText === "Rejected"
-									? [255, 0, 0]       
-									: statusText === "Closed"
-										? [0, 102, 204]   
-										: [0, 128, 0];   
-
-										
-										
-										doc.autoTable({
-											startY: y,
-											body: [[
-												{ content: "Client:\nMumbai Rail Vikas Corporation", styles: { fontStyle: "bold" } },
-												{
-													content: "RFI Status:",
-													styles: {
-														fontStyle: "bold",
-														halign: "right",
-													},
-												},
-											]],
-											theme: "plain",
-											styles: { fontSize: 10, valign: "top" },
-											columnStyles: {
-												0: { halign: "left" },
-												1: { halign: "right" },
-											},
-											didDrawCell: function (data) {
-												if (data.section === "body" && data.column.index === 1) {
-													const x = data.cell.x + data.cell.width;
-													const y = data.cell.y + 12;
-
-													doc.setFont("helvetica", "bold");
-													doc.setFontSize(10);
-													doc.setTextColor(...statusColor);
-
-													doc.text(statusText, x - 2, y, { align: "right" });
-
-													doc.setTextColor(0, 0, 0);
-												}
-											},
-										});
+			const statusColor =
+				statusText === "Rejected"
+					? [255, 0, 0]
+					: statusText === "Closed"
+						? [0, 102, 204]
+						: [0, 128, 0];
 
 
-							y = doc.lastAutoTable.finalY + 6;
+
+			doc.autoTable({
+				startY: y,
+				body: [[
+					{ content: "Client:\nMumbai Rail Vikas Corporation", styles: { fontStyle: "bold" } },
+					{
+						content: "RFI Status:",
+						styles: {
+							fontStyle: "bold",
+							halign: "right",
+						},
+					},
+				]],
+				theme: "plain",
+				styles: { fontSize: 10, valign: "top" },
+				columnStyles: {
+					0: { halign: "left" },
+					1: { halign: "right" },
+				},
+				didDrawCell: function(data) {
+					if (data.section === "body" && data.column.index === 1) {
+						const x = data.cell.x + data.cell.width;
+						const y = data.cell.y + 12;
+
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(10);
+						doc.setTextColor(...statusColor);
+
+						doc.text(statusText, x - 2, y, { align: "right" });
+
+						doc.setTextColor(0, 0, 0);
+					}
+				},
+			});
+
+
+			y = doc.lastAutoTable.finalY + 6;
 
 
 
@@ -336,19 +453,46 @@ export default function Validation() {
 				['Consultant', inspection.consultant],
 				['Contract', inspection.contract], ['Contractor', inspection.contractor],
 				['Contract ID', inspection.contractId], ['RFI ID', inspection.rfiId],
-				['Location', inspection.location],['Date of Inspection', inspection.dateOfInspection],
+				['Location', inspection.location], ['Date of Inspection', inspection.dateOfInspection],
 				['Proposed Time', inspection.proposedInspectionTime], ['Actual Time', inspection.actualInspectionTime],
 				['RFI Description', inspection.rfiDescription], ["Contractor's Representative", inspection.contractorRepresentative],
 				['Client Representative', inspection.clientRepresentative],
-				['Enclosures', inspection.enclosures],  ['Description by Contractor', inspection.descriptionByContractor]
+				['Enclosures', inspection.enclosures], ['Description by Contractor', inspection.descriptionByContractor]
 			].map(([lable, value]) => [lable, value ?? "N/A"]);
+
+			if (!cachedBase64) {
+				cachedBase64 = await loadFontAsBase64("/fonts/NotoSansDevanagari-Regular.ttf");
+			}
+
+			doc.addFileToVFS("NotoSansDevanagari-Regular.ttf", cachedBase64);
+			doc.addFont("NotoSansDevanagari-Regular.ttf", "NotoSans", "normal");
+
+
 			doc.autoTable({
 				startY: y,
 				body: fields,
 				styles: { fontSize: 9 },
 				theme: "plain",
-				columnStyles: { 0: { fontStyle: "bold" } }
+				columnStyles: { 0: { fontStyle: "bold" } },
+
+				// ✅ apply font to Location value column only
+				didParseCell: function(data) {
+					if (data.section !== "body") return;
+
+					// row.raw is like: ["Location", "...."]
+					const row = data.row.raw;
+					const label = row?.[0];
+
+					// value column is index 1
+					if (label === "Location" && data.column.index === 1 && hasNonEnglish(data.cell.raw)) {
+						data.cell.styles.font = "NotoSans";
+					}
+				}
 			});
+
+
+
+
 			y = doc.lastAutoTable.finalY || (y + 20);
 			ensureSpace(lineHeight);
 
@@ -445,42 +589,42 @@ export default function Validation() {
 				yPos += 5;
 
 				for (const file of files) {
-				  if (!file) continue;
+					if (!file) continue;
 
-				  const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
-				  const isPdfFile =
-				    typeof file === "string" &&
-				    file.trim().toLowerCase().endsWith(".pdf");
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
 
-				  if (isPdfFile) {
-				    const response = await fetch(fileUrl);
-				    if (response.ok) {
-				      externalPdfBlobs.push(await response.blob());
-				    }
-				    continue;
-				  }
+					if (isPdfFile) {
+						const response = await fetch(fileUrl);
+						if (response.ok) {
+							externalPdfBlobs.push(await response.blob());
+						}
+						continue;
+					}
 
-				  const imgData = await toBase64(fileUrl);
-				  if (imgData) {
-				    if (yPos + imageHeight > pageHeight - 20) {
-				      doc.addPage();
-				      yPos = margin;
-				    }
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						if (yPos + imageHeight > pageHeight - 20) {
+							doc.addPage();
+							yPos = margin;
+						}
 
-				    let imgX = margin;
-				    if (align === "center") {
-				      imgX = (pageWidth - imageWidth) / 2;
-				    }
+						let imgX = margin;
+						if (align === "center") {
+							imgX = (pageWidth - imageWidth) / 2;
+						}
 
-				    doc.addImage(imgData, "JPEG", imgX, yPos, imageWidth, imageHeight);
-				    yPos += imageHeight + 5;
-				  } else {
-				    // placeholder
-				    doc.rect(margin, yPos, imageWidth, imageHeight);
-				    doc.text("Image not available", margin + 3, yPos + 20);
-				    yPos += imageHeight + 5;
-				  }
+						doc.addImage(imgData, "JPEG", imgX, yPos, imageWidth, imageHeight);
+						yPos += imageHeight + 5;
+					} else {
+						// placeholder
+						doc.rect(margin, yPos, imageWidth, imageHeight);
+						doc.text("Image not available", margin + 3, yPos + 20);
+						yPos += imageHeight + 5;
+					}
 				}
 
 				y = yPos;
@@ -552,21 +696,39 @@ export default function Validation() {
 					}
 				}
 			};
-			const handlePdfOrImageForFileName = async (label, filePaths) => {
-				const files = parseFilePaths(filePaths);
+			const handlePdfOrImageForFileName = async (label, input, dir) => {
+				let files = [];
+
+				// ✅ Case 1: input is array (attachments array)
+				if (Array.isArray(input)) {
+					files = input
+						.map(a => a?.fileName)
+						.filter(f => typeof f === "string" && f.trim());
+				}
+
+				// ✅ Case 2: input is string (support file paths)
+				else {
+					files = parseFilePaths(input);
+				}
+
 				if (!files.length) return;
 
 				for (const file of files) {
-					const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(file)}`;
+					const fileUrl =
+						`${fileBaseURLForFileName}` +
+						`?fileName=${encodeURIComponent(file)}` +
+						`&dir=${encodeURIComponent(dir || "")}`;
 
 					const isPdfFile =
 						typeof file === "string" &&
 						file.trim().toLowerCase().endsWith(".pdf");
 
+					// ✅ PDF add as blob
 					if (isPdfFile) {
 						if (!seenPdfUrls.has(fileUrl)) {
 							seenPdfUrls.add(fileUrl);
-							const response = await fetch(fileUrl);
+
+							const response = await fetch(fileUrl, { credentials: "include" });
 							if (response.ok) {
 								externalPdfBlobs.push(await response.blob());
 							}
@@ -574,6 +736,7 @@ export default function Validation() {
 						continue;
 					}
 
+					// ✅ Image add into jsPDF
 					const imgData = await toBase64(fileUrl);
 					if (imgData) {
 						doc.addPage();
@@ -602,7 +765,7 @@ export default function Validation() {
 			ensureSpace(lineHeight);
 			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
 			y += 15;
-			
+
 			ensureSpace(lineHeight);
 			await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
 			y += 10;
@@ -618,8 +781,23 @@ export default function Validation() {
 				}
 			}
 			ensureSpace(lineHeight);
-			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Contractor', inspection.conSupportFilePaths);
-			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Engineer', inspection.enggSupportFilePaths);
+			await handlePdfOrImageForFileName(
+				"Supporting Docs uploaded_by Contractor",
+				inspection.conSupportFilePaths,
+				"support"
+			);
+
+			await handlePdfOrImageForFileName(
+				"Supporting Docs uploaded_by Engineer",
+				inspection.enggSupportFilePaths,
+				"support"
+			);
+
+			await handlePdfOrImageForFileName(
+				"Attached Files",
+				inspection.attachments,
+				"attachment"
+			);
 			await handlePdfOrImage('Test Result uploaded_by Contractor', inspection.testResultContractor);
 			await handlePdfOrImage('Test Result uploaded_by Engineer', inspection.testResultEngineer);
 			await handlePdfOrImage('Test Report', inspection.testSiteDocumentsContractor);
@@ -635,96 +813,96 @@ export default function Validation() {
 				: `RfiReport_${Date.now()}.pdf`
 		};
 
-};
+	};
 
 
-//handle download method for hte table download button
-const downloadPDFWithDetails = async (rfiId, idx) => {
-	try {
-		const res = await axios.get(
-			`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,
-			{
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json",
-				},
+	//handle download method for hte table download button
+	const downloadPDFWithDetails = async (rfiId, idx) => {
+		try {
+			const res = await axios.get(
+				`${API_BASE_URL}api/validation/getRfiReportDetail/${rfiId}`,
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+				}
+			);
+
+			if (!res.data?.reportDetails) {
+				alert("No inspection details found.");
+				return;
 			}
-		);
 
-		if (!res.data?.reportDetails) {
-			alert("No inspection details found.");
+			const inspection = res.data.reportDetails;
+
+			inspection.remarks = remarksList[idx] || "";
+			inspection.status = statusList[idx] || "";
+
+			const { blob, fileName } = await generatePDF(
+				[inspection],
+				res.data.checklistItems || [],
+				res.data.enclosures || [],
+				res.data.measurementDetails
+					? [res.data.measurementDetails]
+					: []
+			);
+
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = fileName;
+			document.body.appendChild(link);
+			link.click();
+
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+
+		} catch (err) {
+			console.error("Error fetching details for PDF:", err);
+			alert("Failed to generate PDF. Please try again.");
+		}
+	};
+
+
+	const handlePrint = async () => {
+		if (!selectedInspection) {
+			alert("No data available to print!");
 			return;
 		}
 
-		const inspection = res.data.reportDetails;
-
-		inspection.remarks = remarksList[idx] || "";
-		inspection.status = statusList[idx] || "";
-
-		const { blob, fileName } = await generatePDF(
-			[inspection],
-			res.data.checklistItems || [],
-			res.data.enclosures || [],
-			res.data.measurementDetails
-				? [res.data.measurementDetails]
-				: []
+		const result = await generatePDF(
+			[selectedInspection],
+			checklistItems,
+			enclosures,
+			Measurement
 		);
 
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = fileName;
-		document.body.appendChild(link);
-		link.click();
+		const blobUrl = URL.createObjectURL(result.blob);
 
-		document.body.removeChild(link);
-		URL.revokeObjectURL(url);
+		const iframe = document.createElement("iframe");
+		iframe.style.display = "none";
+		iframe.src = blobUrl;
+		document.body.appendChild(iframe);
 
-	} catch (err) {
-		console.error("Error fetching details for PDF:", err);
-		alert("Failed to generate PDF. Please try again.");
-	}
-};
+		iframe.onload = () => {
+			iframe.contentWindow.focus();
+			iframe.contentWindow.print();
+		};
 
+		const cleanup = () => {
+			URL.revokeObjectURL(blobUrl);
+			if (iframe.parentNode) {
+				document.body.removeChild(iframe);
+			}
+			window.removeEventListener("focus", cleanup);
+		};
 
-const handlePrint = async () => {
-	if (!selectedInspection) {
-		alert("No data available to print!");
-		return;
-	}
-
-	const result = await generatePDF(
-		[selectedInspection],
-		checklistItems,
-		enclosures,
-		Measurement
-	);
-
-	const blobUrl = URL.createObjectURL(result.blob);
-
-	const iframe = document.createElement("iframe");
-	iframe.style.display = "none";
-	iframe.src = blobUrl;
-	document.body.appendChild(iframe);
-
-	iframe.onload = () => {
-		iframe.contentWindow.focus();
-		iframe.contentWindow.print();
+		window.addEventListener("focus", cleanup);
 	};
 
-	const cleanup = () => {
-		URL.revokeObjectURL(blobUrl);
-		if (iframe.parentNode) {
-			document.body.removeChild(iframe);
-		}
-		window.removeEventListener("focus", cleanup);
-	};
 
-	window.addEventListener("focus", cleanup);
-};
-
-	
-// Downlaod handle method in the preview	
+	// Downlaod handle method in the preview	
 	const handleDownload = async () => {
 		if (!selectedInspection) {
 			alert("No data available to generate PDF!");
@@ -751,12 +929,11 @@ const handlePrint = async () => {
 	const totalEntries = rfiList.length;
 	const pageCount = Math.ceil(totalEntries / pageSize);
 
-	const currentData = rfiList.slice(
-		pageIndex * pageSize,
-		(pageIndex + 1) * pageSize
-	);
+	const [pageIndex1, setPageIndex1] = useState(0);
+	const [pageSize1, setPageSize1] = useState(5);
 
-
+	const totalEntries1 = rfiList1.length;
+	const pageCount1 = Math.ceil(totalEntries1 / pageSize);
 
 
 
@@ -769,200 +946,324 @@ const handlePrint = async () => {
 					<h2 className="validation-heading">RFI VALIDATION</h2>
 
 
-
-					<div className="left-align">
-						<label>
-							Show{' '}
-							<select
-								value={pageSize}
-								onChange={(e) => {
-									setPageSize(Number(e.target.value));
-									setPageIndex(0);
-								}}
-							>
-								{[5, 10, 20, 50].map((size) => (
-									<option key={size} value={size}>
-										{size}
-									</option>
-								))}
-							</select>{' '}
-							entries
-						</label>
-					</div>
-
-
-					<table className="validation-table">
-						<thead>
-							<tr>
-								<th>RFI ID</th>
-								<th>Preview</th>
-								<th>Download</th>
-								<th>Remarks</th>
-								<th>Status</th>
-								{(isDyHOD || isITAdmin) && (
-									<th>Comments</th>
-								)}
-								{(isDyHOD || isITAdmin) && (
-									<th>Action</th>
-								)}
-							</tr>
-						</thead>
-						<tbody>
-							{rfiList.length > 0 ? (
-								rfiList
-									.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
-									.map((rfi, idx) => {
-										const globalIndex = pageIndex * pageSize + idx;
-										const remarks = remarksList[globalIndex];
-										const status = statusList[globalIndex];
-										const isValidated = submittedList[globalIndex];
-										const isEditable = editModeList[globalIndex];
-
-										return (
-											<tr key={globalIndex}>
-												<td>{rfi.stringRfiId}</td>
-
-												<td>
-													<button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
-												</td>
-
-												<td>
-													<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, globalIndex)}>⬇️</button>
-												</td>
-												{/* Remarks column */}
-												<td>
-													{(isDyHOD || isITAdmin) ? (
-														<select
-															value={remarks || ""}
-															onChange={(e) => updateRemark(globalIndex, e.target.value)}
-															disabled={isValidated && !isEditable}
-														>
-															<option value="">-- Select --</option>
-															<option value="NONO">NONO</option>
-															<option value="NONOC(B)">NONOC (B)</option>
-															<option value="NONOC(C)">NONOC (C)</option>
-															<option value="NOR">NOR</option>
-														</select>
-													) : (
-														remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
-													)}
-												</td>
+					<div>
+						<div className="left-align">
+							<label>
+								Show{' '}
+								<select
+									value={pageSize}
+									onChange={(e) => {
+										setPageSize(Number(e.target.value));
+										setPageIndex(0);
+									}}
+								>
+									{[5, 10, 20, 50].map((size) => (
+										<option key={size} value={size}>
+											{size}
+										</option>
+									))}
+								</select>{' '}
+								entries
+							</label>
+						</div>
 
 
-												{/* Status column */}
-												<td>
-													{(isDyHOD || isITAdmin) ? (
-														<select
-															value={status || ""}
-															onChange={(e) => updateStatus(globalIndex, e.target.value)}
-															disabled={isValidated && !isEditable}
-														>
-															<option value="">-- Select --</option>
-															<option value="APPROVED">Approved</option>
-															<option value="REJECTED">Rejected</option>
-														</select>
-													) : (
-														status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
-													)}
-												</td>
+						<table className="validation-table">
+							<thead>
+								<tr>
+									<th>RFI ID</th>
+									<th>Preview</th>
+									<th>Download</th>
+									<th>Remarks</th>
+									<th>Status</th>
+									{(isDyHOD || isITAdmin || isEnggAuthority) && (
+										<th>Comments</th>
+									)}
+									{(isDyHOD || isITAdmin || isEnggAuthority) && (
+										<th>Action</th>
+									)}
+								</tr>
+							</thead>
+							<tbody>
+								{rfiList.length > 0 ? (
+									rfiList
+										.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
+										.map((rfi, idx) => {
+											const globalIndex = pageIndex * pageSize + idx;
+											const remarks = remarksList[globalIndex];
+											const status = statusList[globalIndex];
+											const isValidated = submittedList[globalIndex];
+											const isEditable = editModeList[globalIndex];
 
+											return (
+												<tr key={globalIndex}>
+													<td>{rfi.stringRfiId}</td>
 
-												{(isDyHOD || isITAdmin) && (<td style={{ position: "relative" }}>
-													<textarea
-														value={comments[globalIndex] || ""}
-														onChange={(e) => handleCommentChange(globalIndex, e.target.value)}
-														disabled={isValidated && !isEditable}
-														placeholder="Enter your comment"
-														style={{
-															width: "100%",
-															minHeight: "60px",
-															resize: "vertical",
-															padding: "8px",
-															borderRadius: "6px",
-															border: "1px solid #ccc",
-															fontSize: "14px",
-															boxSizing: "border-box"
-														}}
-													/>
-													{/* Character counter inside bottom-right */}
-													<div
-														style={{
-															position: "absolute",
-															bottom: "1px",
-															right: "10px",
-															fontSize: "12px",
-															color: (comments[globalIndex]?.length || 0) >= 500 ? "red" : "#888",
-															pointerEvents: "none",
-															backgroundColor: "#fff"
-														}}
-													>
-														{500 - (comments[globalIndex]?.length || 0)} / 500
-													</div>
-												</td>)}
-
-
-
-												{/* Action */}
-												{(isDyHOD || isITAdmin) && (
 													<td>
-														{isValidated ? (
-															isEditable ? (
-																<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
-															) : (
-																<button className='btn btn-secondary' onClick={() => toggleEditMode(globalIndex)}>Edit</button>
-															)
+														<button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
+													</td>
+
+													<td>
+														<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, globalIndex)}>⬇️</button>
+													</td>
+													{/* Remarks column */}
+													<td>
+														{(isDyHOD || isITAdmin || isEnggAuthority) ? (
+															<select
+																value={remarks || ""}
+																onChange={(e) => updateRemark(globalIndex, e.target.value)}
+																disabled={isValidated && !isEditable}
+															>
+																<option value="">-- Select --</option>
+																<option value="NONO">NONO</option>
+																<option value="NONOC(B)">NONOC (B)</option>
+																<option value="NONOC(C)">NONOC (C)</option>
+																<option value="NOR">NOR</option>
+															</select>
 														) : (
-															<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
+															remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
 														)}
 													</td>
-												)}
-											</tr>
-										);
-									})
-							) : (
-								<tr>
-									<td colSpan="7">
-										{message && (
-											<div className="alert alert-info" role="alert">
-												{message}
-											</div>
-										)}
-									</td>
-								</tr>
-							)}
-						</tbody>
 
 
-					</table>
+													{/* Status column */}
+													<td>
+														{(isDyHOD || isITAdmin || isEnggAuthority) ? (
+															<select
+																value={status || ""}
+																onChange={(e) => updateStatus(globalIndex, e.target.value)}
+																disabled={isValidated && !isEditable}
+															>
+																<option value="">-- Select --</option>
+																<option value="APPROVED">Approved</option>
+																<option value="REJECTED">Rejected</option>
+															</select>
+														) : (
+															status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+														)}
+													</td>
+
+
+													{(isDyHOD || isITAdmin || isEnggAuthority) && (<td style={{ position: "relative" }}>
+														<textarea
+															value={comments[globalIndex] || ""}
+															onChange={(e) => handleCommentChange(globalIndex, e.target.value)}
+															disabled={isValidated && !isEditable}
+															placeholder="Enter your comment"
+															style={{
+																width: "100%",
+																minHeight: "60px",
+																resize: "vertical",
+																padding: "8px",
+																borderRadius: "6px",
+																border: "1px solid #ccc",
+																fontSize: "14px",
+																boxSizing: "border-box"
+															}}
+														/>
+														{/* Character counter inside bottom-right */}
+														<div
+															style={{
+																position: "absolute",
+																bottom: "1px",
+																right: "10px",
+																fontSize: "12px",
+																color: (comments[globalIndex]?.length || 0) >= 500 ? "red" : "#888",
+																pointerEvents: "none",
+																backgroundColor: "#fff"
+															}}
+														>
+															{500 - (comments[globalIndex]?.length || 0)} / 500
+														</div>
+													</td>)}
 
 
 
+													{/* Action */}
+													{(isDyHOD || isITAdmin || isEnggAuthority) && (
+														<td>
+															{isValidated ? (
+																isEditable ? (
+																	<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
+																) : (
+																	<button className='btn btn-secondary' onClick={() => toggleEditMode(globalIndex)}>Edit</button>
+																)
+															) : (
+																<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
+															)}
+														</td>
+													)}
+												</tr>
+											);
+										})
+								) : (
+									<tr>
+										<td colSpan={7}>
+											{message && (
+												<div className="alert alert-info text-center" role="alert">
+													{message}
+												</div>
+											)}
+										</td>
+									</tr>
+
+								)}
+							</tbody>
 
 
-					<div className="">
-						<div >
-							<span>
-								Showing {rfiList.length === 0 ? 0 : pageIndex * pageSize + 1} to{' '}
-								{Math.min((pageIndex + 1) * pageSize, rfiList.length)} of {rfiList.length} entries
-							</span>
+						</table>
+						<div className="">
+							<div >
+								<span>
+									Showing {rfiList.length === 0 ? 0 : pageIndex * pageSize + 1} to{' '}
+									{Math.min((pageIndex + 1) * pageSize, rfiList.length)} of {rfiList.length} entries
+								</span>
 
-							<button
-								onClick={() => setPageIndex((prev) => Math.max(prev - 1, 0))}
-								disabled={pageIndex === 0}
-							>
-								&laquo;
-							</button>
-							<span style={{ margin: '0 10px' }}>
-								Page {pageIndex + 1} of {pageCount}
-							</span>
-							<button
-								onClick={() => setPageIndex((prev) => Math.min(prev + 1, pageCount - 1))}
-								disabled={pageIndex >= pageCount - 1}
-							>
-								&raquo;
-							</button>
+								<button
+									onClick={() => setPageIndex((prev) => Math.max(prev - 1, 0))}
+									disabled={pageIndex === 0}
+								>
+									&laquo;
+								</button>
+								<span style={{ margin: '0 10px' }}>
+									Page {pageIndex + 1} of {pageCount}
+								</span>
+								<button
+									onClick={() => setPageIndex((prev) => Math.min(prev + 1, pageCount - 1))}
+									disabled={pageIndex >= pageCount - 1}
+								>
+									&raquo;
+								</button>
+							</div>
 						</div>
+
 					</div>
+
+
+					{isEnggAuthority && (
+						<div>
+							<h2 className="validation-heading">RFI LIST</h2>
+
+							<div className="left-align">
+								<label>
+									Show{' '}
+									<select
+										value={pageSize1}
+										onChange={(e) => {
+											setPageSize1(Number(e.target.value));
+											setPageIndex1(0);
+										}}
+									>
+										{[5, 10, 20, 50].map((size) => (
+											<option key={size} value={size}>
+												{size}
+											</option>
+										))}
+									</select>{' '}
+									entries
+								</label>
+							</div>
+							<table className="validation-table">
+
+								<thead>
+									<tr>
+										<th>RFI ID</th>
+										<th>Preview</th>
+										<th>Download</th>
+										<th>Remarks</th>
+										<th>Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{rfiList1.length > 0 ? (
+										rfiList1
+											.slice(pageIndex1 * pageSize1, (pageIndex1 + 1) * pageSize1)
+											.map((rfi, idx) => {
+												const globalIndex = pageIndex * pageSize + idx;
+												const remarks = remarksList1[globalIndex];
+												const status = statusList1[globalIndex];
+
+												return (
+													<tr key={globalIndex}>
+														<td>{rfi.stringRfiId}</td>
+
+														<td>
+															<button onClick={() => fetchPreview(rfi.longRfiId)}>👁️</button>
+														</td>
+
+														<td>
+															<button onClick={() => downloadPDFWithDetails(rfi.longRfiId, globalIndex)}>⬇️</button>
+														</td>
+														{/* Remarks column */}
+														<td>
+															{remarks ? <span>{remarks}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+															}
+														</td>
+
+
+														{/* Status column */}
+														<td>
+
+															{status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+															}
+														</td>
+
+													</tr>
+												);
+											})
+									) : (
+										<tr>
+											<td colSpan={5}>
+												{message && (
+													<div className="alert alert-info text-center" role="alert">
+														{message}
+													</div>
+												)}
+											</td>
+										</tr>
+									)}
+								</tbody>
+
+
+							</table>
+
+
+							<div className="">
+								<div >
+									<span>
+										Showing {rfiList1.length === 0 ? 0 : pageIndex1 * pageSize1 + 1} to{' '}
+										{Math.min((pageIndex1 + 1) * pageSize1, rfiList1.length)} of {rfiList1.length} entries
+									</span>
+
+									<button
+										onClick={() => setPageIndex1((prev) => Math.max(prev - 1, 0))}
+										disabled={pageIndex1 === 0}
+									>
+										&laquo;
+									</button>
+									<span style={{ margin: '0 10px' }}>
+										Page {pageIndex1 + 1} of {pageCount1}
+									</span>
+									<button
+										onClick={() => setPageIndex1((prev) => Math.min(prev + 1, pageCount1 - 1))}
+										disabled={pageIndex1 >= pageCount1 - 1}
+									>
+										&raquo;
+									</button>
+								</div>
+							</div>
+
+
+						</div>
+
+					)
+
+					}
+
+
+
+
+
 
 
 					{selectedInspection && (
@@ -1300,7 +1601,7 @@ const handlePrint = async () => {
 												const filename = getFilename(path);
 												const extension = getExtension(filename);
 
-												const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+												const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(path)}&dir=support`;
 
 												return (
 													<div key={index} className="mb-3">
@@ -1345,7 +1646,7 @@ const handlePrint = async () => {
 												const filename = getFilename(path);
 												const extension = getExtension(filename);
 
-												const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+												const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(path)}&dir=support`;
 
 												return (
 													<div key={index} className="mb-3">
@@ -1366,6 +1667,57 @@ const handlePrint = async () => {
 																	alt={description || "Supporting Document"}
 																	className="preview-image"
 																	style={{ width: "100%", height: "100%", objectFit: "contain" }}
+																/>
+															)}
+														</a>
+													</div>
+												);
+											})}
+										</div>
+									</>
+								)}
+
+								{selectedInspection.attachments?.length > 0 && (
+									<>
+										<h4>Attached Documents</h4>
+
+										<div className="image-gallery">
+											{selectedInspection.attachments.map((att, index) => {
+												const filename = att.fileName;         // ✅ coming from backend
+												const description = att.description;   // ✅ coming from backend
+
+												const extension = getExtension(filename);
+
+												// ✅ dir should be "attachment" as per your backend
+												const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(
+													filename
+												)}&dir=attachment`;
+
+												return (
+													<div key={index} className="mb-3">
+														<p>
+															<strong>Description:</strong> {description || "-"}
+														</p>
+
+														<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+															{extension === "pdf" ? (
+																<embed
+																	src={fileUrl}
+																	type="application/pdf"
+																	width="100%"
+																	height="500px"
+																	className="preview-pdf w-100"
+																/>
+															) : (
+																<img
+																	src={fileUrl}
+																	alt={description || "Attachment"}
+																	className="preview-image"
+																	style={{
+																		width: "100%",
+																		height: "100%",
+																		objectFit: "contain",
+																	}}
 																/>
 															)}
 														</a>

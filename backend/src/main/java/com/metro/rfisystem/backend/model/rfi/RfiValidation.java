@@ -49,4 +49,7 @@ public class RfiValidation {
 	
 	@Column(name = "comment", length = 500)
 	private String comment;
+	
+	@Enumerated(EnumType.STRING)
+	private EnumValidation validationAuthority;
 }

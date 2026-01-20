@@ -5,14 +5,16 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.itextpdf.text.DocumentException;
-import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.ESignStatus;
+import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.SupportingDocDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
+import com.metro.rfisystem.backend.model.rfi.RfiAttachments;
 
 public interface InspectionService {
 //	public RFIInspectionDetails getRFIIdTxnId(String espTxnID);
@@ -55,6 +57,9 @@ public interface InspectionService {
 	public boolean removeSupportingFileByRfiId(Long rfiId, String fileName) throws IOException;
 
 	public List<SupportingDocDTO> getSupportingFilesByRfiId(Long rfiId) throws Exception;
+	
+    public String uploadAttachment(Long rfiId, String description, MultipartFile file, String userId);
+
 
 
 }

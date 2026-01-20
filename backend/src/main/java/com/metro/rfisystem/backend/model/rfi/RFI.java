@@ -194,5 +194,10 @@ public class RFI {
     private Boolean isDeleted = false;
     @Column(name = "deleted_at")
     private LocalDate deletedAt;
+    
+    @OneToMany(mappedBy = "rfi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RfiAttachments> attachments = new ArrayList<>();
+
 
 }

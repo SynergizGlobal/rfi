@@ -34,6 +34,12 @@ public class RfiLogController {
 
 	private final RfiLogService logService;
 	
+	
+	@Value("${supporting.docs.upload-dir}")
+	private String uploadDirSupporting;
+	
+	@Value("${rfi.attachments.upload-dir}")
+	private String uploadDirAttachments;
 
 	@GetMapping("/getAllRfiLogDetails")
 	public ResponseEntity<List<RfiLogDTO>> getAllRfiLogDetails(HttpSession session) {
@@ -84,33 +90,51 @@ public class RfiLogController {
 	        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName().toString() + "\"")
 	        .body(resource);
 	}
-	
-	@Value("${supporting.docs.upload-dir}")
-	private String uploadDir;
 
-// This method is used for only fileName, serving file by adding the base path {supporting.docs.upload-dir}
+// This method is used for only fileName, serving file by adding the base path like {supporting.docs.upload-dir}
 	@GetMapping("/previewFiles/file")
-	public ResponseEntity<Resource> serveFileForOnlyFileName(@RequestParam String filepath) throws IOException {
-	    
-	    Path file = Paths.get(uploadDir).resolve(filepath).normalize();
+	public ResponseEntity<Resource> serveFileForOnlyFileName(
+	        @RequestParam String fileName,
+	        @RequestParam String dir) throws IOException {
 
-	    if (!Files.exists(file) || !Files.isReadable(file)) {
+	    if (fileName == null || fileName.trim().isEmpty()) {
+	        return ResponseEntity.badRequest().build();
+	    }
+
+	    Path baseDir;
+
+	    if ("attachment".equalsIgnoreCase(dir)) {
+	        baseDir = Paths.get(uploadDirAttachments);
+	    } else if ("support".equalsIgnoreCase(dir)) {
+	        baseDir = Paths.get(uploadDirSupporting);
+	    } else {
+	        return ResponseEntity.badRequest().body(null); 
+	    }
+
+	    Path filePath = baseDir.resolve(fileName).normalize();
+
+	    if (!filePath.startsWith(baseDir.normalize())) {
+	        return ResponseEntity.status(403).build(); 
+	    }
+
+	    if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
 	        return ResponseEntity.notFound().build();
 	    }
 
-	    Resource resource = new UrlResource(file.toUri());
+	    Resource resource = new UrlResource(filePath.toUri());
 
-	    String contentType = Files.probeContentType(file);
+	    String contentType = Files.probeContentType(filePath);
 	    if (contentType == null) {
 	        contentType = "application/octet-stream";
 	    }
 
 	    return ResponseEntity.ok()
-	        .contentType(MediaType.parseMediaType(contentType))
-	        .header(HttpHeaders.CONTENT_DISPOSITION,
-	                "inline; filename=\"" + file.getFileName().toString() + "\"")
-	        .body(resource);
+	            .contentType(MediaType.parseMediaType(contentType))
+	            .header(HttpHeaders.CONTENT_DISPOSITION,
+	                    "inline; filename=\"" + filePath.getFileName().toString() + "\"")
+	            .body(resource);
 	}
+
 
 	
 	@GetMapping("/pdf/download/{rfiId}/{txnId}")

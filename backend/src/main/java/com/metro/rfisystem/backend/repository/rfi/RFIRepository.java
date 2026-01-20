@@ -59,7 +59,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    WHERE uploaded_by != 'Engg'
 			) ico ON r.id = ico.rfi_id_fk
 			LEFT JOIN measurements m ON r.id = m.rfi_id_fk
-		    WHERE r.is_deleted = 0 OR r.is_deleted IS NULL
+			   WHERE r.is_deleted = 0 OR r.is_deleted IS NULL
 			ORDER BY r.created_at DESC
 			""", nativeQuery = true)
 	List<RfiListDTO> findAllRfiList();
@@ -202,25 +202,29 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "WHERE r.id = :id", nativeQuery = true)
 	Optional<RfiStatusProjection> findStatusById(@Param("id") Long id);
 
-	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
+	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks, validation_authority as valdationAuth from rfi_data as r\r\n"
 			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsItAdmin();
 
-	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks from rfi_data as r\r\n"
-			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n" + "where dy_hod_user_id =:userId\r\n"
+	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks, validation_authority as valdationAuth from rfi_data as r\r\n"
+			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n" + "where validation_authority = 'DyHod' \r\n"
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsDyHod(String userId);
 
-	@Query(value = "    SELECT r.rfi_id,\r\n"
-			+ "           r.id,\r\n"
-			+ "           rv.id,\r\n"
-			+ "           rv.action AS status,\r\n"
-			+ "           rv.remarks AS remarks\r\n"
-			+ "    FROM rfi_data r\r\n"
-			+ "    RIGHT JOIN rfi_validation rv\r\n"
-			+ "        ON r.id = rv.rfi_id_fk\r\n"
-			+ "    WHERE assigned_person_client LIKE CONCAT('%',:userName, '%')\r\n"
+	@Query(value = "    SELECT r.rfi_id,\r\n" + "           r.id,\r\n" + "           rv.id,\r\n"
+			+ "           rv.action AS status,\r\n" + "           rv.remarks AS remarks,\r\n"
+			+ "			   validation_authority as valdationAuth \r\n" + "    FROM rfi_data r\r\n"
+			+ "    RIGHT JOIN rfi_validation rv\r\n" + "        ON r.id = rv.rfi_id_fk\r\n"
+//			+ "    WHERE validation_authority = 'EnggAuthority' \r\n"
+			+ "    ORDER BY rv.sent_for_validation_at DESC ", nativeQuery = true)
+	public List<GetRfiDTO> showRfiValidationsEnggAuth(@Param("userName") String userName);
+
+	@Query(value = "    SELECT r.rfi_id,\r\n" + "           r.id,\r\n" + "           rv.id,\r\n"
+			+ "           rv.action AS status,\r\n" + "           rv.remarks AS remarks, \r\n"
+			+ "			   validation_authority as valdationAuth \r\n" + "    FROM rfi_data r\r\n"
+			+ "    RIGHT JOIN rfi_validation rv\r\n" + "        ON r.id = rv.rfi_id_fk\r\n"
+			+ "    WHERE assigned_person_client LIKE CONCAT('%',:userName, '%') and validation_authority = 'EnggAuthority' \r\n"
 			+ "    ORDER BY rv.sent_for_validation_at DESC ", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsAssignedBy(@Param("userName") String userName);
 
@@ -260,8 +264,18 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			  ANY_VALUE(ico.post_test_report_path) As testResultContractor,
 			    ANY_VALUE(ic.post_test_report_path) As testResultEngineer,
 			    ANY_VALUE(ico.supporting_documents) as conSupportFilePaths,
-			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths
-
+			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths,
+					ANY_VALUE(
+					  GROUP_CONCAT(
+					    CONCAT(
+					      ua.file_name, '::',
+					      REPLACE(IFNULL(ua.description, ''), '::', ''),
+					      '##'
+					    )
+					    ORDER BY ua.id
+					    SEPARATOR '||'
+					  )
+					) AS attachmentData
 			FROM rfi_data r
 			  LEFT JOIN rfi_inspection_details ic
 			    ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg'
@@ -271,6 +285,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ON v.rfi_id_fk = r.id
 			  LEFT JOIN rfi_enclosure re
 			    ON re.rfi_id_fk = r.id
+			LEFT JOIN rfi_attachments ua ON ua.rfi_id_fk = r.id
 			WHERE r.id = :id
 			GROUP BY r.id;
 			""", nativeQuery = true)
@@ -323,7 +338,19 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(ic.post_test_report_path) As testResultEngineer,
 			    ANY_VALUE(NULL) AS dyHodUserName,
 			    ANY_VALUE(ico.supporting_documents) as conSupportFilePaths,
-			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths
+			    ANY_VALUE(ic.supporting_documents) as enggSupportFilePaths,
+					ANY_VALUE(
+					  GROUP_CONCAT(
+					    CONCAT(
+					      ua.file_name, '::',
+					      REPLACE(IFNULL(ua.description, ''), '::', ''),
+					      '##'
+					    )
+					    ORDER BY ua.id
+					    SEPARATOR '||'
+					  )
+					) AS attachmentData
+
 			FROM rfi_data r
 			LEFT JOIN rfi_inspection_details ic
 			    ON r.id = ic.rfi_id_fk AND ic.uploaded_by = 'Engg'
@@ -331,6 +358,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ON r.id = ico.rfi_id_fk AND ico.uploaded_by != 'Engg'
 			LEFT JOIN rfi_validation v ON v.rfi_id_fk = r.id
 			LEFT JOIN rfi_enclosure re ON re.rfi_id_fk = r.id
+			         LEFT JOIN rfi_attachments ua on  ua.rfi_id_fk = r.id
 			WHERE r.id = :id
 			GROUP BY r.id
 			""", nativeQuery = true)

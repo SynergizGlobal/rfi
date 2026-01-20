@@ -1,9 +1,15 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.metro.rfisystem.backend.dto.AttachmentFileDTO;
 import com.metro.rfisystem.backend.dto.ChecklistItemDTO;
 import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.MeasurementDTO;
@@ -16,9 +22,8 @@ import com.metro.rfisystem.backend.repository.rfi.MeasurementsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIEnclosureRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.RfiLogService;
+
 import lombok.RequiredArgsConstructor;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 
 
@@ -71,22 +76,60 @@ public class RfiLogServiceImpl implements RfiLogService {
 		return rfiRepository.listAllRfiLogByCreatedBy(userName);
 	}
 	
+	private List<AttachmentFileDTO> parseAttachmentData(String attachmentData) {
+	    if (attachmentData == null || attachmentData.trim().isEmpty()) {
+	        return new ArrayList<>();
+	    }
+
+	    List<AttachmentFileDTO> list = new ArrayList<>();
+
+	    String[] items = attachmentData.split("\\|\\|"); // split ||
+
+	    for (String item : items) {
+	        if (item == null || item.trim().isEmpty()) continue;
+
+	        item = item.replace("##", "");
+
+	        String[] parts = item.split("::", 2);
+	        String fileName = parts.length > 0 ? parts[0].trim() : "";
+	        String desc = parts.length > 1 ? parts[1].trim() : "";
+
+	        list.add(new AttachmentFileDTO(fileName, desc));
+	    }
+
+	    return list;
+	}
 
 
 	@Override
 	public RfiLogWrappedDTO getRfiDetails(Long rfiId) {
-		List<RfiDetailsLogDTO> reportList = rfiRepository.getRfiReportDetailsRfiLog(rfiId);
-		RfiDetailsLogDTO report = reportList.isEmpty() ? null : reportList.get(0);
-		Optional<MeasurementDTO> measurementDetails = measurementsRepository.findMeasurementByRfiId(rfiId);
-		if(report.getDyHodUserId() != null) {
-		String DyHodUserName = userRepository.findUserNameByUserId(report.getDyHodUserId());
-		report.setDyHodUserName(DyHodUserName);
-		}
-		List<ChecklistItemDTO> checklist = checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
-		List<EnclosureDTO> enclosures = enclosureRepository.findEnclosuresByRfiId(rfiId);
 
-		return new RfiLogWrappedDTO(report, checklist, enclosures,measurementDetails);
+	    List<RfiDetailsLogDTO> reportList = rfiRepository.getRfiReportDetailsRfiLog(rfiId);
+	    RfiDetailsLogDTO report = reportList.isEmpty() ? null : reportList.get(0);
+
+	    if (report != null) {
+	        String data = report.getAttachmentData(); 
+	        report.setAttachments(parseAttachmentData(data));
+	        report.setAttachmentData(""); 
+	    }
+
+	    Optional<MeasurementDTO> measurementDetails =
+	            measurementsRepository.findMeasurementByRfiId(rfiId);
+
+	    if (report != null && report.getDyHodUserId() != null) {
+	        String DyHodUserName = userRepository.findUserNameByUserId(report.getDyHodUserId());
+	        report.setDyHodUserName(DyHodUserName);
+	    }
+
+	    List<ChecklistItemDTO> checklist =
+	            checklistDescriptionRepository.findChecklistItemsByRfiId(rfiId);
+
+	    List<EnclosureDTO> enclosures =
+	            enclosureRepository.findEnclosuresByRfiId(rfiId);
+
+	    return new RfiLogWrappedDTO(report, checklist, enclosures, measurementDetails);
 	}
+
 	
 	@Override
 	public File getSignedPdfByTxnId(String txnId) throws FileNotFoundException {

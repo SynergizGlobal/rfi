@@ -1,5 +1,7 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,20 +15,37 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.apache.pdfbox.io.MemoryUsageSetting;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
-import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
@@ -37,72 +56,16 @@ import com.metro.rfisystem.backend.model.rfi.Measurements;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
 import com.metro.rfisystem.backend.model.rfi.RfiValidation;
+import com.metro.rfisystem.backend.model.rfi.RfiAttachments;
 import com.metro.rfisystem.backend.repository.rfi.MeasurementsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
+import com.metro.rfisystem.backend.repository.rfi.UploadAttachmentRepository;
+import com.metro.rfisystem.backend.service.FileStorageService;
 import com.metro.rfisystem.backend.service.InspectionService;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Paragraph;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.pdf.PdfWriter;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.util.Objects;
-import java.util.Optional;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.metro.rfisystem.backend.constants.EnumRfiStatus;
-import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
-import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
-import com.metro.rfisystem.backend.dto.RfiStatusProjection;
-import com.metro.rfisystem.backend.model.rfi.RFI;
-import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
-import com.metro.rfisystem.backend.model.rfi.RfiValidation;
-import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository;
-import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
-import com.metro.rfisystem.backend.service.InspectionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.pdf.PdfWriter;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import java.io.ByteArrayOutputStream;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -113,12 +76,21 @@ public class InspectionServiceImpl implements InspectionService {
 	private final RFIRepository rfiRepository;
 	private final RFIInspectionDetailsRepository inspectionRepository;
 	private final MeasurementsRepository measurementsRepository;
+	private final UploadAttachmentRepository uploadAttachmentRepository;
+	private final FileStorageService fileStorageService;
+	
+	@Value("${rfi.pdf.storage-path}")
+	private String pdfStoragePath;
 
 	@Value("${rfi.inspection.images.upload-dir}")
 	private String uploadDir;
 
 	@Value("${supporting.docs.upload-dir}")
 	private String supportingDocsUploadDir;
+	
+	@Value("rfi.attachments.upload-dir")
+	private String rfiAttachmentsUploadDir;
+
 
 	@Override
 	public RfiInspectionDTO getById(Long id) {
@@ -842,5 +814,70 @@ public class InspectionServiceImpl implements InspectionService {
 			return null;
 		}
 	}
+	
+	@Override
+	@Transactional
+	public String uploadAttachment(Long rfiId, String description, MultipartFile file, String userId) {
+
+	    try {
+	        if (file == null || file.isEmpty()) {
+	            return "File is required!";
+	        }
+
+	        Optional<RFI> optRfi = rfiRepository.findById(rfiId);
+	        if (optRfi.isEmpty()) {
+	            return "Invalid RFI ID: " + rfiId;
+	        }
+
+	        RFI rfi = optRfi.get();
+	        String txnId = rfi.getTxn_id();
+
+	        if (txnId == null || txnId.trim().isEmpty()) {
+	            return "Txn Id not found! to Fetch Signed PDF!";
+	        }
+
+	        String serverPdfPath = Paths.get(pdfStoragePath, "signed_engineer_" + txnId + "_final.pdf").toString();
+	        File finalPdf = new File(serverPdfPath);
+
+	        if (!finalPdf.exists()) {
+	            return "Server PDF not found at: " + finalPdf.getAbsolutePath();
+	        }
+
+	        String attachmentFilePath = fileStorageService.saveFileAttachment(file);
+	        File uploadedFile = new File(attachmentFilePath);
+	        String finalFileName = uploadedFile.getName();
+	        if (!uploadedFile.exists()) {
+	            return "Uploaded file not found after saving: " + uploadedFile.getAbsolutePath();
+	        }
+
+	        Path tempMerged = Files.createTempFile("merged_attachment_", ".pdf");
+
+	        PDFMergerUtility merger = new PDFMergerUtility();
+	        merger.addSource(finalPdf);
+	        merger.addSource(uploadedFile);
+	        merger.setDestinationFileName(tempMerged.toString());
+	        merger.mergeDocuments(MemoryUsageSetting.setupMainMemoryOnly());
+
+	        Files.move(tempMerged, finalPdf.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+	        RfiAttachments attachment = RfiAttachments.builder()
+	                .rfi(rfi)
+	                .description(description)
+	                .fileName(finalFileName)
+	                .uploadedAt(LocalDateTime.now())
+	                .uploadedBy(userId)
+	                .build();
+
+	        uploadAttachmentRepository.save(attachment);
+
+	        return "Attachment uploaded successfully.";
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "Something went wrong, please try after some time! " + e.getMessage();
+	    }
+	}
+
+
 
 }

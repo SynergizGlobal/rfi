@@ -113,6 +113,7 @@ export async function generateInspectionPdf(rfiData) {
 	const Component = rfiData.Component || "";
 	const Element = rfiData.Element || "";
 	const activity = rfiData.activity || "";
+	const rfiSelectedDescription = rfiData.rfiDescriptionSelected || "";
 	const rfiDescription = rfiData.rfiDescription || "";
 	const inspectionStatus = (rfiData.inspectionStatus || "").trim();
 	const engineerRemarks = rfiData.engineerRemarks || "";
@@ -121,6 +122,8 @@ export async function generateInspectionPdf(rfiData) {
 	const testReportFile = rfiData.testReportFile || null;
 	const supportingDocs = rfiData.supportingDocs || [];
 	const supportingDescriptions = rfiData.supportingDescriptions || [];
+	const inspDescriptionCon = rfiData.inspDescriptionCon || "";
+	const inspDescriptionEngg = rfiData.inspDescriptionEngg || "";
 
 
 
@@ -178,10 +181,13 @@ export async function generateInspectionPdf(rfiData) {
 	doc.text("Date of Inspection :", 350, 225);
 	doc.text(dateOfInspection, 440, 225);
 
-	doc.text("Structure Type/Structure/Component/Element/Activity :", 40, 245);
-	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity}`, 40, 260, { maxWidth: 500 });
+	doc.text("Structure Type/Structure/Component/Element/Activity/Rfi-Description :", 40, 245);
+	doc.text(`${StructureType} / ${Structure} / ${Component} / ${Element} / ${activity} / ${rfiSelectedDescription}`, 40, 260, { maxWidth: 500 });
 
-	doc.text("Location :", 40, 282);
+	doc.setFont("helvetica", "bold");
+	doc.text("Location:", 40, 282);
+	doc.setFont("helvetica", "normal");
+
 	doc.text(locationText, 85, 282, { maxWidth: 400 });
 
 	doc.setFont("helvetica", "bold");
@@ -271,86 +277,125 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// Measurement Record (mandatory)
 	// ==============================
+	// ============================== // Measurement Record (mandatory) // ============================== 
 	doc.addPage();
+	const normalizeText = (txt) =>
+	  String(txt || "-")
+	    .replace(/\r\n/g, "\n")
+	    .replace(/\n/g, " ")        // ✅ newline becomes space
+	    .replace(/\s+/g, " ")       // ✅ remove extra spaces
+	    .trim();
+
 	doc.rect(30, 30, 540, 810);
+
+	let y = 45;
+
+	/* ✅ Inspection Description (Contractor) */
+	/* ✅ Contractor Description */
+	doc.setFont("helvetica", "bold").setFontSize(10);
+	doc.text("Inspection Description (Contractor):", 40, y);
+
+	doc.setFont("helvetica", "normal").setFontSize(9);
+
+	const descCon = normalizeText(inspDescriptionCon);
+	const descLinesCon = doc.splitTextToSize(descCon, 500);
+	doc.text(descLinesCon, 40, y + 14);
+	y += 14 + descLinesCon.length * 14 + 15;
+
+
+	/* ✅ Inspection Description (Client) */
+	doc.setFont("helvetica", "bold").setFontSize(10);
+	doc.text("Inspection Description (Client):", 40, y);
+
+	doc.setFont("helvetica", "normal").setFontSize(9);
+
+	const descEngg = normalizeText(inspDescriptionEngg);
+	const descLinesEngg = doc.splitTextToSize(descEngg, 500);
+	doc.text(descLinesEngg, 40, y + 14);
+	y += 14 + descLinesEngg.length * 14 + 20;
+
+
+	/* ✅ Measurement Record heading */
 	doc.setFont("helvetica", "bold").setFontSize(11);
-	doc.text("Measurement Record", 40, 48);
+	doc.text("Measurement Record", 40, y);
+
+	const tableStartY = y + 12;
+
 	autoTable(doc, {
-		startY: 60,
-		head: [["Type of Measurement", "units", "L", "B", "H", "weight", "No.", "Total Qty."]],
-		body: measurements.map(m => [
-			m.type || "",
-			m.units || "",
-			m.l || "",
-			m.b || "",
-			m.h || "",
-			m.weight || "",
-			m.no || "",
-			m.total || ""
-		]),
-		styles: { fontSize: 8, cellPadding: 3 },
-		headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold" }
+	  startY: tableStartY,
+	  head: [["Type of Measurement", "Units", "L", "B", "H", "Weight", "No.", "Total Qty."]],
+	  body: measurements.map((m) => [
+	    m.type || "",
+	    m.units || "",
+	    m.l || "",
+	    m.b || "",
+	    m.h || "",
+	    m.weight || "",
+	    m.no || "",
+	    m.total || ""
+	  ]),
+	  styles: { fontSize: 8, cellPadding: 3 },
+	  headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold" }
 	});
 
-	// ==============================
-	// Enclosures + Checklists + Site Images
-	// ==============================
+	/* ✅ Start Enclosures BELOW table */
+	let encY = (doc.lastAutoTable?.finalY || tableStartY) + 30;
+	if (encY > pageHeight - 120) {
+	  doc.addPage();
+	  doc.rect(30, 30, 540, 810);
+	  encY = 60;
+	}
+
+	/* ==============================
+	   Enclosures + Checklists + Site Images
+	   ============================== */
 
 	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.text("Enclosures", 40, 160);
+	doc.text("Enclosures", 40, encY);
 
-	let encY = 180;
+	encY += 20;
+
 	let enclosurePdfBlobs = [];
+
 	for (const [index, enc] of enclosuresData.entries()) {
-		if (encY > 750) { doc.addPage(); encY = 60; }
+	  if (encY > pageHeight - 80) {
+	    doc.addPage();
+	    doc.rect(30, 30, 540, 810);
+	    encY = 60;
+	  }
 
-		doc.setFont("helvetica", "bold").setFontSize(11);
-		doc.text(`Enclosure ${index + 1}: ${enc.enclosure || ""}`, 40, encY);
+	  doc.setFont("helvetica", "bold").setFontSize(11);
+	  doc.text(`Enclosure ${index + 1}: ${enc.enclosure || ""}`, 40, encY);
 
-		if (enc.description) {
-			doc.setFont("helvetica", "normal").setFontSize(10);
-			doc.text(`Description: ${enc.description}`, 60, encY + 15, { maxWidth: 480 });
-			encY += 30;
-		} else {
-			encY += 20;
-		}
+	  if (enc.description) {
+	    doc.setFont("helvetica", "normal").setFontSize(10);
+	    doc.text(`Description: ${enc.description}`, 60, encY + 15, { maxWidth: 480 });
+	    encY += 30;
+	  } else {
+	    encY += 20;
+	  }
 
-		if (enc.checklist?.length) {
-			autoTable(doc, {
-				startY: encY,
-				head: [["ID", "Description", "Contractor Status", "Engineer Status", "Contractor Remark", "Engineer Remark"]],
-				body: enc.checklist.map((row, i) => [
-					row.id || i + 1,
-					row.description || "",
-					row.contractorStatus || "",
-					row.engineerStatus || "",
-					row.contractorRemark || "",
-					row.aeRemark || ""
-				]),
-				styles: { fontSize: 8, cellPadding: 3 },
-				headStyles: { fillColor: [220, 220, 220] }
-			});
-			encY = doc.lastAutoTable.finalY + 20;
-		}
-		/*if (enc.uploadedFile) {
-		   const file = enc.uploadedFile;
-		   if (file.type === "application/pdf") {
-			   //if (encY > 750) { doc.addPage(); encY = 60; }
-			   enclosurePdfBlobs.push(file);
-			   //pdfFileNames.push(file.name || "Unnamed PDF");
-		   } else if (file.type.startsWith("image/")) {
-			   try {
-				   const base64 = await toBase64(URL.createObjectURL(file));
-				   if (encY > 600) { doc.addPage(); encY = 60; }
-				   doc.addImage(base64, "JPEG", 40, encY, 500, 300);
-				   encY += 310;
-			   } catch (err) {
-				   console.warn("Failed to add enclosure image", err);
-			   }
-		   }
-	   }
-*/
-	}
+	  if (enc.checklist?.length) {
+	    autoTable(doc, {
+	      startY: encY,
+	      head: [["ID", "Description", "Contractor Status", "Engineer Status", "Contractor Remark", "Engineer Remark"]],
+	      body: enc.checklist.map((row, i) => [
+	        row.id || i + 1,
+	        row.description || "",
+	        row.contractorStatus || "",
+	        row.engineerStatus || "",
+	        row.contractorRemark || "",
+	        row.aeRemark || ""
+	      ]),
+	      styles: { fontSize: 8, cellPadding: 3 },
+	      headStyles: { fillColor: [220, 220, 220] }
+	    });
+
+	    encY = doc.lastAutoTable.finalY + 20;
+	  }
+	  }
+	
+
 
 
 	// ==============================

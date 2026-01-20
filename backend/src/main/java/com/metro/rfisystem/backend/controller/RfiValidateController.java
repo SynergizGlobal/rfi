@@ -1,18 +1,23 @@
 package com.metro.rfisystem.backend.controller;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
+
+import org.pptx4j.pml.CTTLTimeNodeParallel;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import java.util.Collections;
-import java.util.List;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,15 +25,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.metro.rfisystem.backend.constants.EnumValidation;
 import com.metro.rfisystem.backend.dto.GetRfiDTO;
 import com.metro.rfisystem.backend.dto.RfiDetailsDTO;
 import com.metro.rfisystem.backend.dto.RfiValidateDTO;
 import com.metro.rfisystem.backend.service.RfiValidationService;
-import jakarta.servlet.http.HttpSession;
-import java.io.File;
-import java.io.IOException;
-import java.net.URLDecoder;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -56,9 +60,45 @@ public class RfiValidateController {
 	
 	
 	@PostMapping("/send-for-validation/{rfiId}")
-	public ResponseEntity<String> sendForValidation(@PathVariable Long rfiId) {
+	public ResponseEntity<String> sendForValidation(@PathVariable Long rfiId, HttpSession session) {
 	    try {
-	        String result = rfiValidationService.sendRfiForValidation(rfiId);
+	        String designation = (String) session.getAttribute("designation");
+	        String deptFk = (String) session.getAttribute("departmentFk");
+	        
+	        System.out.println("Dwsingation:   "+designation);
+	        System.out.println("Dwsingation:   "+designation);
+	        System.out.println("Dwsingation:   "+designation);
+	        System.out.println("Dwsingation:   "+designation);
+
+	        System.out.println();
+	        System.out.println();
+	        System.out.println();
+	        System.out.println();
+
+	        System.out.println("Dwsingation:   "+deptFk);
+	        System.out.println("Dwsingation:   "+deptFk);
+	        System.out.println("Dwsingation:   "+deptFk);
+	        System.out.println("Dwsingation:   "+deptFk);
+
+	        System.out.println();
+	        System.out.println();
+	        System.out.println();
+	        System.out.println();
+
+	        EnumValidation validationAuth =
+	                (deptFk != null && designation != null
+	                        && deptFk.equalsIgnoreCase("Engg")
+	                        && designation.equalsIgnoreCase("Project Engineer"))
+	                ? EnumValidation.EnggAuthority
+	                : EnumValidation.DyHod;
+	        
+	        System.out.println("String: validaition:  "+ validationAuth);
+	        System.out.println("String: validaition:  "+ validationAuth);
+	        System.out.println("String: validaition:  "+ validationAuth);
+	        System.out.println("String: validaition:  "+ validationAuth);
+	        System.out.println("String: validaition:  "+ validationAuth);
+	    	
+	        String result = rfiValidationService.sendRfiForValidation(rfiId, validationAuth );
 
 	        if ("RFI sent for validation successfully.".equals(result)) {
 	            return ResponseEntity.ok(result); 
@@ -82,8 +122,10 @@ public class RfiValidateController {
 		String userId = (String) session.getAttribute("userId");
 		String department = (String) session.getAttribute("departmentFk");
 		String userName = (String) session.getAttribute("userName");
+		String designation= (String) session.getAttribute("designation");
 		
-		List<GetRfiDTO> list = rfiValidationService.showValidations(userRole, userType, userId, department, userName);
+		List<GetRfiDTO> list = rfiValidationService.showValidations(userRole, userType, userId, department, userName
+				,designation);
 
 		if (list.isEmpty()) {
 			return ResponseEntity.ok(Collections.emptyList()); 

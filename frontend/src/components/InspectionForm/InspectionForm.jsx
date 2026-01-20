@@ -37,7 +37,6 @@ export default function InspectionForm() {
 	const [uploadPopup, setUploadPopup] = useState(null);
 	const [showCamera, setShowCamera] = useState(false);
 	const [cameraMode, setCameraMode] = useState('environment');
-	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
 	const [chainage, setChainage] = useState('');
 	const [inspectionStatus, setInspectionStatus] = useState('');
 	const [testInLab, setTestInLab] = useState(null);
@@ -46,9 +45,10 @@ export default function InspectionForm() {
 	const [dateOfInspection, setDateOfInspection] = useState('');
 	const [timeOfInspection, setTimeOfInspection] = useState('');
 	const [enclosuresData, setEnclosuresData] = useState([]);
-	const [checklistData, setChecklistData] = useState([]);
 	const [enclosureActions, setEnclosureActions] = useState({});
 	const [overallComments, setOverallComments] = useState('');
+	const [overallComments2, setOverallComments2] = useState('');
+
 	const [engineerRemarks, setEngineerRemarks] = useState("");
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const selfieRef = useRef(null);
@@ -106,6 +106,38 @@ export default function InspectionForm() {
 				.then((data) => {
 					setRfiData(data);
 					setContractorRep(data.nameOfRepresentative || "");
+
+					//Setting stored location  based on role and descritpion..
+					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
+
+						// ✅ latest CON record
+						const conInspection = data.inspectionDetails
+							.filter(det => (det.uploadedBy || "").toLowerCase() === "con")
+							.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
+
+						// ✅ latest Engg record
+						const enggInspection = data.inspectionDetails
+							.filter(det => (det.uploadedBy || "").toLowerCase() === "engg")
+							.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
+
+						// ✅ set both comments
+						setOverallComments(conInspection?.descriptionEnclosure || "");
+						setOverallComments2(enggInspection?.descriptionEnclosure || "");
+
+						if (isEngineer) {
+							setLocationText(enggInspection?.location)
+						}
+						else {
+							setLocationText(conInspection?.location)
+						}
+
+
+					} else {
+						setOverallComments("");
+						setOverallComments2("");
+						setLocationText("");
+					}
+
 
 					// ✅ Handle Enclosures
 					if (data.enclosures) {
@@ -868,6 +900,19 @@ export default function InspectionForm() {
 		);
 	};
 
+	const formatDateSlash = (dateValue) => {
+	  if (!dateValue) return "";
+
+	  const d = new Date(dateValue);
+	  if (isNaN(d.getTime())) return "";
+
+	  const dd = String(d.getDate()).padStart(2, "0");
+	  const mm = String(d.getMonth() + 1).padStart(2, "0");
+	  const yyyy = d.getFullYear();
+
+	  return `${dd}/${mm}/${yyyy}`;
+	};
+
 
 
 	const handleSubmitInspection = async () => {
@@ -1112,9 +1157,10 @@ export default function InspectionForm() {
 				location: locationText,
 				chainage,
 				submissionDate: new Date().toLocaleDateString(),
-				dateOfInspection,
+				dateOfInspection: formatDateSlash(dateOfInspection),
 				timeOfInspection,
-				rfiDescription: rfiData.rfiDescription,
+				rfiDescriptionSelected: rfiData.rfiDescription,
+				rfiDescription: rfiData.description,
 				StructureType: rfiData.structureType,
 				Structure: rfiData.structure,
 				Component: rfiData.component,
@@ -1122,7 +1168,10 @@ export default function InspectionForm() {
 				activity: rfiData.activity,
 				inspectionStatus: (testInLab || "").trim(),
 				enclosures: checklistsByEnclosure,
-				supportingDocs: supportingDocsForPdf, // ONLY for PDF
+				supportingDocs: supportingDocsForPdf,
+				inspDescriptionCon: overallComments || "",
+				inspDescriptionEngg: overallComments2 || "",
+
 
 				measurements: measurements.map((m) => ({
 					type: m.type,
@@ -1130,8 +1179,7 @@ export default function InspectionForm() {
 					b: m.B,
 					h: m.H,
 					weight: m.weight || "",
-
-					units: m.units || "",        // <-- added unit
+					units: m.units || "",       
 					no: m.No,
 					total: m.total,
 				})),
@@ -1149,20 +1197,17 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			/*const mergedUrl = URL.createObjectURL(pdfBlob);
+			const mergedUrl = URL.createObjectURL(pdfBlob);
 			const link = document.createElement("a");
 			link.href = mergedUrl;
 			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link);*/
+			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
 
 
 			if (!isEngineer) {
-
-
-
 
 				const confirmed = await showConfirmationModal(
 					"I hereby confirm that the information submitted in this RFI is accurate and complete to the best of my knowledge. I authorize the use of my E-Sign solely from identity verification (KYC) for submission authentication."
@@ -1410,8 +1455,6 @@ export default function InspectionForm() {
 					const latestInspection = data[data.length - 1];
 					console.log("Latest inspection:", latestInspection);
 
-
-					setLocationText(latestInspection.location || "");
 					setChainage(latestInspection.chainage || "");
 
 
@@ -1457,16 +1500,10 @@ export default function InspectionForm() {
 					}
 
 					setSelfieImage(latestInspection.selfiePath || null);
-					//					setGalleryImages(
-					//						latestInspection.siteImage
-					//							? latestInspection.siteImage.split(",").map(img => img.trim())
-					//							: []
-					//					);
 					setTestReportFile(latestInspection.testSiteDocuments || null);
 					setInspectionStatus(latestInspection.inspectionStatus || null);
 					setTestInLab(latestInspection.testInsiteLab || null);
 					setEngineerRemarks(latestInspection.engineerRemarks || "");
-					setOverallComments(latestInspection.descriptionEnclosure || "");
 					setSupportingFiles(latestInspection.supportingFiles || []);
 					setSupportingDescriptions(latestInspection.supportingDescriptions || []);
 
@@ -2587,7 +2624,7 @@ export default function InspectionForm() {
 
 									{/* ✅ Description box below the table */}
 									<div className="enclosure-comments">
-										<label htmlFor="enclosureComments">Description</label>
+										<label htmlFor="enclosureComments">Description By Contractor</label>
 										<textarea
 											id="enclosureComments"
 											placeholder="Enter your comments here"
@@ -2598,6 +2635,22 @@ export default function InspectionForm() {
 											disabled={getDisabled()}
 										></textarea>
 									</div>
+
+									{(overallComments2 || isEngineer) && (
+										<div className="enclosure-comments">
+											<label htmlFor="enclosureCommentsEngg">Description By Client</label>
+											<textarea
+												id="enclosureCommentsEngg"
+												placeholder="Enter client comments"
+												value={overallComments2}
+												onChange={(e) => setOverallComments2(e.target.value)}
+												className="comments-textarea"
+												rows={4}
+												disabled={getDisabled()}
+											/>
+										</div>
+									)}
+
 
 								</div>
 
@@ -2948,49 +3001,46 @@ export default function InspectionForm() {
 															<option value="Rejected">Rejected</option>
 														</select>
 
-														{testInLab === "Rejected" && (
-															<div style={{ position: "relative", width: "100%" }}>
-																<label>Remarks <spam className="red">*</spam></label>
-																<textarea
-																	value={engineerRemarks}
-																	onChange={(e) => {
-																		if (e.target.value.length <= 1000) {
-																			setEngineerRemarks(e.target.value);
-																		}
-																	}}
-																	placeholder="Enter remarks"
-																	style={{
-																		width: "100%",
-																		minHeight: "100px",
-																		padding: "10px",
-																		boxSizing: "border-box",
-																		resize: "vertical",
-																	}}
-																	disabled={getDisabled()}
-																/>
-																<div
-																	style={{
-																		position: "absolute",
-																		top: "8px",
-																		right: "12px",
-																		fontSize: "12px",
-																		color:
-																			engineerRemarks.length >= 1000 ? "red" : "#888",
-																		pointerEvents: "none",
-																		backgroundColor: "white",
-																		padding: "0 4px",
-																		borderRadius: "4px",
-																	}}
-																>
-																	{1000 - (engineerRemarks?.length || 0)} limit
-																</div>
-															</div>
-														)}
+
 													</>
 												)}
 											</div>
+
 										</div>
+										{testInLab === "Rejected" && (
+											<div className="enclosure-comments">
+												<label>Remarks By Client <spam className="red">*</spam></label>
+												<textarea
+													value={engineerRemarks}
+													onChange={(e) => {
+														if (e.target.value.length <= 1000) {
+															setEngineerRemarks(e.target.value);
+														}
+													}}
+													placeholder="Enter remarks"
+													className="comments-textarea"
+													disabled={getDisabled()}
+												/>
+												<div
+													style={{
+														position: "absolute",
+														top: "8px",
+														right: "12px",
+														fontSize: "12px",
+														color:
+															engineerRemarks.length >= 1000 ? "red" : "#888",
+														pointerEvents: "none",
+														backgroundColor: "white",
+														padding: "0 4px",
+														borderRadius: "4px",
+													}}
+												>
+													{1000 - (engineerRemarks?.length || 0)} limit
+												</div>
+											</div>
+										)}
 									</div>
+
 								</div>
 
 

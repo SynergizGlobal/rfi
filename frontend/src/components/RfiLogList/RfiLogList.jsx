@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from "react-dom";
 import autoTable from 'jspdf-autotable';
 import { PDFDocument } from 'pdf-lib';
@@ -256,485 +256,574 @@ export default function RfiLogList() {
 	}
 
 
-		const generatePDF = async (inspectionList, checklistItems, enclosures, measurements, ) => {
-			const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-			const externalPdfBlobs = [];
-			const seenPdfUrls = new Set();
-			const safe = (val) => val || '---';
-			const logoUrl = 'https://www.manabadi.com/wp-content/uploads/2016/11/4649MRVC.jpg';
-			const logo = await toBase64(logoUrl);
-			const pageWidth = doc.internal.pageSize.getWidth();
-			const pageHeight = doc.internal.pageSize.getHeight();
-			const margin = 10;
-			const contentWidth = pageWidth - 2 * margin;
-			const imageWidth = 120
-			const imageHeight = 100;
-			const lineHeight = 6;
+	let cachedBase64 = null;
+	const loadFontAsBase64 = async (url) => {
+		const res = await fetch(url);
+		const buffer = await res.arrayBuffer();
 
-			let rfiName = null;
+		let binary = "";
+		const bytes = new Uint8Array(buffer);
+		for (let i = 0; i < bytes.byteLength; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
 
+		return btoa(binary);
+	};
 
-			for (let idx = 0; idx < inspectionList.length; idx++) {
-				const inspection = inspectionList[idx];
-				rfiName = inspection.rfiId;
-
-				if (idx !== 0) doc.addPage();
-				let y = margin;
-				doc.setFontSize(14).setFont(undefined, 'bold');
-				doc.text('Mumbai Rail Vikas Corporation', pageWidth / 2, y, { align: 'center' });
-				if (logo) doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
-				y += 18;
-				doc.setFontSize(14).setFont(undefined, 'bold');
-				doc.text('REQUEST FOR INSPECTION (RFI) REPORT', pageWidth / 2, y, { align: 'center' });
-				y += 10;
-				doc.setFontSize(10).setFont(undefined, 'normal');
+	const generatePDF = async (inspectionList, checklistItems, enclosures, measurements,) => {
+		const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+		const externalPdfBlobs = [];
+		const seenPdfUrls = new Set();
+		const safe = (val) => val || '---';
+		const logoUrl = 'https://www.manabadi.com/wp-content/uploads/2016/11/4649MRVC.jpg';
+		const logo = await toBase64(logoUrl);
+		const pageWidth = doc.internal.pageSize.getWidth();
+		const pageHeight = doc.internal.pageSize.getHeight();
+		const margin = 10;
+		const contentWidth = pageWidth - 2 * margin;
+		const imageWidth = 120
+		const imageHeight = 100;
+		const lineHeight = 6;
+		let rfiName = null;
+		const hasNonEnglish = (txt = "") => /[^\x00-\x7F]/.test(String(txt || ""));
 
 
+		for (let idx = 0; idx < inspectionList.length; idx++) {
+			const inspection = inspectionList[idx];
+			rfiName = inspection.rfiId;
 
-				const bottomMargin = 20;
-
-				const ensureSpace = (neededHeight) => {
-					if (y + neededHeight > pageHeight - bottomMargin) {
-						doc.addPage();
-						y = margin;
-					}
-				};
-
-				// ---------- TOP HEADER ROW ----------
-				ensureSpace(15);
-
-				const statusText =
-					inspection.testStatus === "Rejected"
-						? "Rejected"
-						: inspection.rfiStatus === "INSPECTION_DONE"
-							? "Closed"
-							: "Active";
-
-				const statusColor =
-					statusText === "Rejected"
-						? [255, 0, 0]       
-						: statusText === "Closed"
-							? [0, 102, 204]   
-							: [0, 128, 0];   
-
-							
-							
-							doc.autoTable({
-								startY: y,
-								body: [[
-									{ content: "Client:\nMumbai Rail Vikas Corporation", styles: { fontStyle: "bold" } },
-									{
-										content: "RFI Status:",
-										styles: {
-											fontStyle: "bold",
-											halign: "right",
-										},
-									},
-								]],
-								theme: "plain",
-								styles: { fontSize: 10, valign: "top" },
-								columnStyles: {
-									0: { halign: "left" },
-									1: { halign: "right" },
-								},
-								didDrawCell: function (data) {
-									// RIGHT CELL ONLY
-									if (data.section === "body" && data.column.index === 1) {
-										const x = data.cell.x + data.cell.width;
-										const y = data.cell.y + 12;
-
-										doc.setFont("helvetica", "bold");
-										doc.setFontSize(10);
-										doc.setTextColor(...statusColor);
-
-										// Draw ONLY status value
-										doc.text(statusText, x - 2, y, { align: "right" });
-
-										// Reset color
-										doc.setTextColor(0, 0, 0);
-									}
-								},
-							});
+			if (idx !== 0) doc.addPage();
+			let y = margin;
+			doc.setFontSize(14).setFont(undefined, 'bold');
+			doc.text('Mumbai Rail Vikas Corporation', pageWidth / 2, y, { align: 'center' });
+			if (logo) doc.addImage(logo, 'JPEG', pageWidth - margin - 45, y, 45, 15);
+			y += 18;
+			doc.setFontSize(14).setFont(undefined, 'bold');
+			doc.text('REQUEST FOR INSPECTION (RFI) REPORT', pageWidth / 2, y, { align: 'center' });
+			y += 10;
+			doc.setFontSize(10).setFont(undefined, 'normal');
 
 
-				y = doc.lastAutoTable.finalY + 6;
 
-				// ---------- DETAILS TABLE ----------
-				const rows = [
-					["Consultant", "N/A", "RFI ID", inspection.rfiId],
-					["Project", inspection.project, "Date of Submission", inspection.dateOfCreation],
-					["Work", inspection.work, "Contract", inspection.contract],
-					["Contract ID", inspection.contractId, "Structure Type", inspection.structureType],
-					["Structure", inspection.structure, "Component", inspection.component],
-					["Element", inspection.element, "Activity", inspection.activity],
-					["RFI Description", inspection.rfiDescription, "Type of RFI", inspection.typeOfRfi],
-					["Enclosures", inspection.enclosures, "Contractor", inspection.contractor],
-					["Contractor's Representative", inspection.contractorRepresentative, "Client Representative", inspection.clientRepresentative],
+			const bottomMargin = 20;
 
-					["__FULL__", "Contractor Inspected Date", inspection.conInspDate, "normal"],
-
-					["Proposed Time", inspection.proposedInspectionTime, "Actual Time", inspection.actualInspectionTime],
-					["Proposed Inspection Date", inspection.proposedDateOfInspection, "Actual Inspection Date", inspection.actualDateOfInspection],
-					["Contractor Location", inspection.conLocation, "Client Location", inspection.clientLocation],
-					["Inspection Test Type", inspection.typeOfTest, "Test Approval By Inspector", inspection.testStatus],
-					["Chainage", inspection.chainage, "DyHod", inspection.dyHodUserName],
-
-					["__FULL__", "Description", inspection.descriptionByContractor, "normal"],
-				];
-
-				if (inspection.engineerRemarks) {
-					ensureSpace(lineHeight);
-					rows.push(["__FULL__", "Engineer Remarks", inspection.engineerRemarks, "info"]);
+			const ensureSpace = (neededHeight) => {
+				if (y + neededHeight > pageHeight - bottomMargin) {
+					doc.addPage();
+					y = margin;
 				}
+			};
+
+			// ---------- TOP HEADER ROW ----------
+			ensureSpace(15);
+
+			const statusText =
+				inspection.testStatus === "Rejected"
+					? "Rejected"
+					: inspection.rfiStatus === "INSPECTION_DONE"
+						? "Closed"
+						: "Active";
+
+			const statusColor =
+				statusText === "Rejected"
+					? [255, 0, 0]
+					: statusText === "Closed"
+						? [0, 102, 204]
+						: [0, 128, 0];
 
 
+
+			doc.autoTable({
+				startY: y,
+				body: [[
+					{ content: "Client:\nMumbai Rail Vikas Corporation", styles: { fontStyle: "bold" } },
+					{
+						content: "RFI Status:",
+						styles: {
+							fontStyle: "bold",
+							halign: "right",
+						},
+					},
+				]],
+				theme: "plain",
+				styles: { fontSize: 10, valign: "top" },
+				columnStyles: {
+					0: { halign: "left" },
+					1: { halign: "right" },
+				},
+				didDrawCell: function(data) {
+					// RIGHT CELL ONLY
+					if (data.section === "body" && data.column.index === 1) {
+						const x = data.cell.x + data.cell.width;
+						const y = data.cell.y + 12;
+
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(10);
+						doc.setTextColor(...statusColor);
+
+						// Draw ONLY status value
+						doc.text(statusText, x - 2, y, { align: "right" });
+
+						// Reset color
+						doc.setTextColor(0, 0, 0);
+					}
+				},
+			});
+
+
+			y = doc.lastAutoTable.finalY + 6;
+
+			// ---------- DETAILS TABLE ----------
+			const rows = [
+				["Consultant", "N/A", "RFI ID", inspection.rfiId],
+				["Project", inspection.project, "Date of Submission", inspection.dateOfCreation],
+				["Work", inspection.work, "Contract", inspection.contract],
+				["Contract ID", inspection.contractId, "Structure Type", inspection.structureType],
+				["Structure", inspection.structure, "Component", inspection.component],
+				["Element", inspection.element, "Activity", inspection.activity],
+				["RFI Description", inspection.rfiDescription, "Type of RFI", inspection.typeOfRfi],
+				["Enclosures", inspection.enclosures, "Contractor", inspection.contractor],
+				["Contractor's Representative", inspection.contractorRepresentative, "Client Representative", inspection.clientRepresentative],
+
+				["__FULL__", "Contractor Inspected Date", inspection.conInspDate, "normal"],
+
+				["Proposed Time", inspection.proposedInspectionTime, "Actual Time", inspection.actualInspectionTime],
+				["Proposed Inspection Date", inspection.proposedDateOfInspection, "Actual Inspection Date", inspection.actualDateOfInspection],
+				["Contractor Location", inspection.conLocation, "Client Location", inspection.clientLocation],
+				["Inspection Test Type", inspection.typeOfTest, "Test Approval By Inspector", inspection.testStatus],
+				["Chainage", inspection.chainage, "DyHod", inspection.dyHodUserName],
+
+				["__FULL__", "Description", inspection.descriptionByContractor, "normal"],
+			];
+
+			if (inspection.engineerRemarks) {
+				ensureSpace(lineHeight);
+				rows.push(["__FULL__", "Engineer Remarks", inspection.engineerRemarks, "info"]);
+			}
+
+			if (!cachedBase64) {
+				cachedBase64 = await loadFontAsBase64("/fonts/NotoSansDevanagari-Regular.ttf");
+			}
+
+			doc.addFileToVFS("NotoSansDevanagari-Regular.ttf", cachedBase64);
+			doc.addFont("NotoSansDevanagari-Regular.ttf", "NotoSans", "normal");
+
+
+
+			doc.autoTable({
+				startY: y,
+
+				body: rows.map(r => {
+					if (r[0] === "__FULL__") {
+						return [{
+							content: `${r[1]}:\n${safe(r[2])}`,
+							colSpan: 4,
+							styles: { textColor: [255, 255, 255] },
+							contentType: r[3] || "normal",
+						}];
+					}
+
+					return [
+						{ content: `${r[0]}:`, styles: { fontStyle: "bold" } },
+						safe(r[1]),
+						{ content: `${r[2]}:`, styles: { fontStyle: "bold" } },
+						safe(r[3]),
+					];
+				}),
+
+				didParseCell: function(data) {
+					if (data.section !== "body") return;
+
+					// Read the label text from col 0 and col 2 safely
+					const labelCell0 = data.row?.cells?.[0]?.raw;
+					const labelCell2 = data.row?.cells?.[2]?.raw;
+
+					const label1 =
+						typeof labelCell0 === "string" ? labelCell0 :
+							labelCell0?.content ? labelCell0.content.replace(":", "").trim() : "";
+
+					const label2 =
+						typeof labelCell2 === "string" ? labelCell2 :
+							labelCell2?.content ? labelCell2.content.replace(":", "").trim() : "";
+
+					// Apply font to Contractor Location value (col 1)
+					if (label1 === "Contractor Location" && data.column.index === 1 && hasNonEnglish(data.cell.raw)) {
+						data.cell.styles.font = "NotoSans";
+					}
+
+					// Apply font to Client Location value (col 3)
+					if (label2 === "Client Location" && data.column.index === 3 && hasNonEnglish(data.cell.raw)) {
+						data.cell.styles.font = "NotoSans";
+					}
+
+					// ✅ also handle FULL rows if value contains Hindi
+					if (data.cell.raw?.colSpan === 4 && hasNonEnglish(data.cell.raw?.content || "")) {
+						data.cell.styles.font = "NotoSans";
+					}
+				},
+				didDrawCell: function(data) {
+					// keep your FULL row renderer same
+					if (data.section === "body" && data.cell.raw?.colSpan === 4) {
+						const text = data.cell.text.join("\n");
+						const [label, ...rest] = text.split("\n");
+						const value = rest.join("\n");
+
+						const x = data.cell.x + 2;
+						const y = data.cell.y + 6;
+
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(9);
+						doc.setTextColor(0, 0, 0);
+						doc.text(label, x, y);
+
+						// ✅ If FULL row contains local language, use NotoSans
+						doc.setFont(hasNonEnglish(value) ? "NotoSans" : "helvetica", "normal");
+
+						doc.setTextColor(0, 0, 0);
+						doc.text(value, x, y + 6, { maxWidth: data.cell.width - 4 });
+
+						// switch back
+						doc.setFont("helvetica", "normal");
+					}
+				},
+
+				theme: "grid",
+				styles: {
+					fontSize: 9,
+					cellPadding: 3,
+					valign: "top",
+					overflow: "linebreak",
+				},
+				columnStyles: {
+					0: { cellWidth: 38 },
+					1: { cellWidth: 52 },
+					2: { cellWidth: 38 },
+					3: { cellWidth: 52 },
+				},
+			});
+
+
+
+			y = doc.lastAutoTable.finalY || (y + 20);
+			ensureSpace(lineHeight);
+
+			if (measurements && (Array.isArray(measurements) ? measurements.length > 0 : true)) {
+				const measurementArray = Array.isArray(measurements) ? measurements : [measurements];
+
+				y += 10;
+				doc.setFont(undefined, "bold").setFontSize(12);
+				ensureSpace(lineHeight);
+				ensureSpace(30);
+				doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
 
 				doc.autoTable({
-					startY: y,
-					body: rows.map(r => {
-
-						if (r[0] === "__FULL__") {
-							return [{
-								content: `${r[1]}:\n${safe(r[2])}`,
-								colSpan: 4,
-
-								styles: {
-									textColor: [255, 255, 255],
-								},
-
-								contentType: r[3] || "normal",
-							}];
-						}
-
-						return [
-							{ content: `${r[0]}:`, styles: { fontStyle: "bold" } },
-							safe(r[1]),
-							{ content: `${r[2]}:`, styles: { fontStyle: "bold" } },
-							safe(r[3]),
-						];
-					}),
-
-					didDrawCell: function (data) {
-						if (data.section === "body" && data.cell.raw?.colSpan === 4) {
-
-							const text = data.cell.text.join("\n");
-							const [label, ...rest] = text.split("\n");
-							const value = rest.join("\n");
-
-							const x = data.cell.x + 2;
-							const y = data.cell.y + 6;
-
-							doc.setFont("helvetica", "bold");
-							doc.setFontSize(9);
-							doc.setTextColor(0, 0, 0);
-							doc.text(label, x, y);
-
-							doc.setFont("helvetica", "normal");
-							doc.setTextColor(0, 0, 0);
-							doc.text(value, x, y + 6, {
-								maxWidth: data.cell.width - 4,
-							});
-						}
-					},
+					startY: y + 5,
+					head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
+					body: measurementArray.map((m) => [
+						safe(m.measurementType),
+						safe(m.l),
+						safe(m.b),
+						safe(m.h),
+						safe(m.no),
+						safe(m.totalQty),
+					]),
+					styles: { fontSize: 9 },
+					headStyles: { fillColor: [0, 102, 153], textColor: 255 },
 					theme: "grid",
-					styles: {
-						fontSize: 9,
-						cellPadding: 3,
-						valign: "top",
-						overflow: "linebreak",
-					},
-					columnStyles: {
-						0: { cellWidth: 38 },
-						1: { cellWidth: 52 },
-						2: { cellWidth: 38 },
-						3: { cellWidth: 52 },
-					},
 				});
-
-				
 				y = doc.lastAutoTable.finalY || (y + 20);
 				ensureSpace(lineHeight);
-
-				if (measurements && (Array.isArray(measurements) ? measurements.length > 0 : true)) {
-					const measurementArray = Array.isArray(measurements) ? measurements : [measurements];
-
+			}
+			rfiName = inspection.rfiId;
+			ensureSpace(lineHeight);
+			if (checklistItems && checklistItems.length > 0) {
+				const grouped = checklistItems.reduce((groups, item) => {
+					if (!groups[item.enclosureName]) groups[item.enclosureName] = [];
+					groups[item.enclosureName].push(item);
+					return groups;
+				}, {});
+				ensureSpace(lineHeight);
+				for (const [enclosureName, items] of Object.entries(grouped)) {
 					y += 10;
 					doc.setFont(undefined, "bold").setFontSize(12);
+					doc.text(`${enclosureName}`, pageWidth / 2, y, { align: "center" });
 					ensureSpace(lineHeight);
-					ensureSpace(30);
-					doc.text("Measurement Details", pageWidth / 2, y, { align: "center" });
-
 					doc.autoTable({
 						startY: y + 5,
-						head: [["Type", "Length", "Breadth", "Height", "Count", "Total Quantity"]],
-						body: measurementArray.map((m) => [
-							safe(m.measurementType),
-							safe(m.l),
-							safe(m.b),
-							safe(m.h),
-							safe(m.no),
-							safe(m.totalQty),
+						head: [["#", "Description", "Contractor Status", "AE Status", "Contractor Remarks", "AE Remarks"]],
+						body: items.map((row, i) => [
+							i + 1,
+							safe(row.checklistDescription),
+							safe(row.conStatus),
+							safe(row.aeStatus),
+							safe(row.contractorRemark),
+							safe(row.aeRemark),
 						]),
 						styles: { fontSize: 9 },
 						headStyles: { fillColor: [0, 102, 153], textColor: 255 },
-						theme: "grid",
+						theme: "grid"
 					});
+
 					y = doc.lastAutoTable.finalY || (y + 20);
-					ensureSpace(lineHeight);
 				}
-				rfiName = inspection.rfiId;
 				ensureSpace(lineHeight);
-				if (checklistItems && checklistItems.length > 0) {
-					const grouped = checklistItems.reduce((groups, item) => {
-						if (!groups[item.enclosureName]) groups[item.enclosureName] = [];
-						groups[item.enclosureName].push(item);
-						return groups;
-					}, {});
-					ensureSpace(lineHeight);
-					for (const [enclosureName, items] of Object.entries(grouped)) {
-						y += 10;
-						doc.setFont(undefined, "bold").setFontSize(12);
-						doc.text(`${enclosureName}`, pageWidth / 2, y, { align: "center" });
-						ensureSpace(lineHeight);
-						doc.autoTable({
-							startY: y + 5,
-							head: [["#", "Description", "Contractor Status", "AE Status", "Contractor Remarks", "AE Remarks"]],
-							body: items.map((row, i) => [
-								i + 1,
-								safe(row.checklistDescription),
-								safe(row.conStatus),
-								safe(row.aeStatus),
-								safe(row.contractorRemark),
-								safe(row.aeRemark),
-							]),
-							styles: { fontSize: 9 },
-							headStyles: { fillColor: [0, 102, 153], textColor: 255 },
-							theme: "grid"
-						});
+			}
 
-						y = doc.lastAutoTable.finalY || (y + 20);
-					}
-					ensureSpace(lineHeight);
+			y += 15;
+			ensureSpace(30);
+
+			doc.setFont(undefined, "bold").setFontSize(11)
+				.text("Validation Status & Remarks:", margin, y);
+
+			y += lineHeight;
+
+			doc.setFont(undefined, "bold").setFontSize(11)
+				.text("Status:", margin + 10, y);
+
+			doc.setFont(undefined, "normal").setFontSize(11)
+				.text(safe(inspection.validationStatus), margin + 30, y);
+
+			y += lineHeight;
+
+			doc.setFont(undefined, "bold").setFontSize(11)
+				.text("Remarks:", margin + 10, y);
+
+			doc.setFont(undefined, "normal").setFontSize(11)
+				.text(safe(inspection.remarks), margin + 30, y);
+
+			y += 15;
+
+			const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
+				if (!paths || !paths.trim()) return;
+				const files = paths.split(',').map(f => f.trim()).filter(Boolean);
+				if (!files.length) return;
+
+				const align = options.align || "left";
+
+				if (align === "center") {
+					doc.setFont(undefined, 'bold');
+					const textWidth = doc.getTextWidth(`${label}:`);
+					const centerX = (pageWidth - textWidth) / 2;
+					doc.text(`${label}:`, centerX, yPos);
+				} else {
+					doc.setFont(undefined, 'bold').text(`${label}:`, margin, yPos);
 				}
+				yPos += 5;
 
-				y += 15;
-				ensureSpace(30); 
 
-				doc.setFont(undefined, "bold").setFontSize(11)
-				   .text("Validation Status & Remarks:", margin, y);
+				for (const file of files) {
+					if (!file) continue;
 
-				y += lineHeight;
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
 
-				doc.setFont(undefined, "bold").setFontSize(11)
-				   .text("Status:", margin + 10, y);
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
 
-				doc.setFont(undefined, "normal").setFontSize(11)
-				   .text(safe(inspection.validationStatus), margin + 30, y);
+					if (isPdfFile) {
+						const response = await fetch(fileUrl);
+						if (response.ok) {
+							externalPdfBlobs.push(await response.blob());
+						}
+						continue;
+					}
 
-				y += lineHeight;
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						if (yPos + imageHeight > pageHeight - 20) {
+							doc.addPage();
+							yPos = margin;
+						}
 
-				doc.setFont(undefined, "bold").setFontSize(11)
-				   .text("Remarks:", margin + 10, y);
+						let imgX = margin;
+						if (align === "center") {
+							imgX = (pageWidth - imageWidth) / 2;
+						}
 
-				doc.setFont(undefined, "normal").setFontSize(11)
-				   .text(safe(inspection.remarks), margin + 30, y);
-
-				y += 15;
-
-				const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
-					if (!paths || !paths.trim()) return;
-					const files = paths.split(',').map(f => f.trim()).filter(Boolean);
-					if (!files.length) return;
-
-					const align = options.align || "left";
-
-					if (align === "center") {
-						doc.setFont(undefined, 'bold');
-						const textWidth = doc.getTextWidth(`${label}:`);
-						const centerX = (pageWidth - textWidth) / 2;
-						doc.text(`${label}:`, centerX, yPos);
+						doc.addImage(imgData, "JPEG", imgX, yPos, imageWidth, imageHeight);
+						yPos += imageHeight + 5;
 					} else {
-						doc.setFont(undefined, 'bold').text(`${label}:`, margin, yPos);
+						// placeholder
+						doc.rect(margin, yPos, imageWidth, imageHeight);
+						doc.text("Image not available", margin + 3, yPos + 20);
+						yPos += imageHeight + 5;
 					}
-					yPos += 5;
+				}
 
+				y = yPos;
+			};
 
-					for (const file of files) {
-					  if (!file) continue;
+			ensureSpace(lineHeight);
 
-					  const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+			const parseFilePaths = (filePaths) => {
+				if (!filePaths) return [];
 
-					  const isPdfFile =
-					    typeof file === "string" &&
-					    file.trim().toLowerCase().endsWith(".pdf");
+				if (Array.isArray(filePaths)) return filePaths;
 
-					  if (isPdfFile) {
-					    const response = await fetch(fileUrl);
-					    if (response.ok) {
-					      externalPdfBlobs.push(await response.blob());
-					    }
-					    continue;
-					  }
+				const trimmed = filePaths.trim();
 
-					  const imgData = await toBase64(fileUrl);
-					  if (imgData) {
-					    if (yPos + imageHeight > pageHeight - 20) {
-					      doc.addPage();
-					      yPos = margin;
-					    }
+				if (trimmed.startsWith("[")) {
+					try {
+						const arr = JSON.parse(trimmed);
+						return arr.map(obj => obj.filePath || obj).filter(Boolean);
+					} catch {
+						return [];
+					}
+				}
 
-					    let imgX = margin;
-					    if (align === "center") {
-					      imgX = (pageWidth - imageWidth) / 2;
-					    }
+				if (trimmed.includes("||")) {
+					return trimmed.split("||").map(f => f.trim()).filter(Boolean);
+				}
 
-					    doc.addImage(imgData, "JPEG", imgX, yPos, imageWidth, imageHeight);
-					    yPos += imageHeight + 5;
-					  } else {
-					    // placeholder
-					    doc.rect(margin, yPos, imageWidth, imageHeight);
-					    doc.text("Image not available", margin + 3, yPos + 20);
-					    yPos += imageHeight + 5;
-					  }
+				return [trimmed];
+			};
+			const handlePdfOrImage = async (label, filePaths) => {
+				const files = parseFilePaths(filePaths);
+				if (!files.length) return;
+
+				for (const file of files) {
+					const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
+
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
+
+					if (isPdfFile) {
+						if (!seenPdfUrls.has(fileUrl)) {
+							seenPdfUrls.add(fileUrl);
+							const response = await fetch(fileUrl);
+							if (response.ok) {
+								externalPdfBlobs.push(await response.blob());
+							}
+						}
+						continue;
 					}
 
-					y = yPos;
-				};
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						doc.addPage();
 
-				ensureSpace(lineHeight);
+						const pageWidth = doc.internal.pageSize.getWidth();
+						const pageHeight = doc.internal.pageSize.getHeight();
 
-				const parseFilePaths = (filePaths) => {
-								if (!filePaths) return [];
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(16);
+						doc.text(label, pageWidth / 2, 20, { align: "center" });
 
-								if (Array.isArray(filePaths)) return filePaths;
+						const imgWidth = pageWidth * 0.8;
+						const imgHeight = pageHeight * 0.6;
+						const x = (pageWidth - imgWidth) / 2;
+						const y = (pageHeight - imgHeight) / 2;
 
-								const trimmed = filePaths.trim();
-
-								if (trimmed.startsWith("[")) {
-									try {
-										const arr = JSON.parse(trimmed);
-										return arr.map(obj => obj.filePath || obj).filter(Boolean);
-									} catch {
-										return [];
-									}
-								}
-
-								if (trimmed.includes("||")) {
-									return trimmed.split("||").map(f => f.trim()).filter(Boolean);
-								}
-
-								return [trimmed];
-							};
-							const handlePdfOrImage = async (label, filePaths) => {
-								const files = parseFilePaths(filePaths);
-								if (!files.length) return;
-
-								for (const file of files) {
-									const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(file)}`;
-
-									const isPdfFile =
-										typeof file === "string" &&
-										file.trim().toLowerCase().endsWith(".pdf");
-
-									if (isPdfFile) {
-										if (!seenPdfUrls.has(fileUrl)) {
-											seenPdfUrls.add(fileUrl);
-											const response = await fetch(fileUrl);
-											if (response.ok) {
-												externalPdfBlobs.push(await response.blob());
-											}
-										}
-										continue;
-									}
-
-									const imgData = await toBase64(fileUrl);
-									if (imgData) {
-										doc.addPage();
-
-										const pageWidth = doc.internal.pageSize.getWidth();
-										const pageHeight = doc.internal.pageSize.getHeight();
-
-										doc.setFont("helvetica", "bold");
-										doc.setFontSize(16);
-										doc.text(label, pageWidth / 2, 20, { align: "center" });
-
-										const imgWidth = pageWidth * 0.8;
-										const imgHeight = pageHeight * 0.6;
-										const x = (pageWidth - imgWidth) / 2;
-										const y = (pageHeight - imgHeight) / 2;
-
-										doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-									}
-								}
-							};
-							const handlePdfOrImageForFileName = async (label, filePaths) => {
-								const files = parseFilePaths(filePaths);
-								if (!files.length) return;
-
-								for (const file of files) {
-									const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(file)}`;
-
-									const isPdfFile =
-										typeof file === "string" &&
-										file.trim().toLowerCase().endsWith(".pdf");
-
-									if (isPdfFile) {
-										if (!seenPdfUrls.has(fileUrl)) {
-											seenPdfUrls.add(fileUrl);
-											const response = await fetch(fileUrl);
-											if (response.ok) {
-												externalPdfBlobs.push(await response.blob());
-											}
-										}
-										continue;
-									}
-
-									const imgData = await toBase64(fileUrl);
-									if (imgData) {
-										doc.addPage();
-
-										const pageWidth = doc.internal.pageSize.getWidth();
-										const pageHeight = doc.internal.pageSize.getHeight();
-
-										doc.setFont("helvetica", "bold");
-										doc.setFontSize(16);
-										doc.text(label, pageWidth / 2, 20, { align: "center" });
-
-										const imgWidth = pageWidth * 0.8;
-										const imgHeight = pageHeight * 0.6;
-										const x = (pageWidth - imgWidth) / 2;
-										const y = (pageHeight - imgHeight) / 2;
-
-										doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-									}
-								}
-							};
-
-				ensureSpace(lineHeight);
-				await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
-				y += 10;
-
-				ensureSpace(lineHeight);
-				await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
-				y += 15;
-				
-				ensureSpace(lineHeight);
-				await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
-				y += 10;
-
-				ensureSpace(lineHeight);
-				await imageSection('Inspector Site Images', inspection.imagesUploadedByClient, margin, y, { align: "center" });
-				y += 15;
-
-				ensureSpace(lineHeight);
-				if (enclosures && enclosures.length > 0) {
-					for (const enc of enclosures) {
-						await handlePdfOrImage(enc.enclosureName, enc.file);
+						doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
 					}
+				}
+			};
+			const handlePdfOrImageForFileName = async (label, input, dir) => {
+				let files = [];
+
+				// ✅ Case 1: input is array (attachments array)
+				if (Array.isArray(input)) {
+					files = input
+						.map(a => a?.fileName)
+						.filter(f => typeof f === "string" && f.trim());
+				}
+
+				// ✅ Case 2: input is string (support file paths)
+				else {
+					files = parseFilePaths(input);
+				}
+
+				if (!files.length) return;
+
+				for (const file of files) {
+					const fileUrl =
+						`${fileBaseURLForFileName}` +
+						`?fileName=${encodeURIComponent(file)}` +
+						`&dir=${encodeURIComponent(dir || "")}`;
+
+					const isPdfFile =
+						typeof file === "string" &&
+						file.trim().toLowerCase().endsWith(".pdf");
+
+					// ✅ PDF add as blob
+					if (isPdfFile) {
+						if (!seenPdfUrls.has(fileUrl)) {
+							seenPdfUrls.add(fileUrl);
+
+							const response = await fetch(fileUrl, { credentials: "include" });
+							if (response.ok) {
+								externalPdfBlobs.push(await response.blob());
+							}
+						}
+						continue;
+					}
+
+					// ✅ Image add into jsPDF
+					const imgData = await toBase64(fileUrl);
+					if (imgData) {
+						doc.addPage();
+
+						const pageWidth = doc.internal.pageSize.getWidth();
+						const pageHeight = doc.internal.pageSize.getHeight();
+
+						doc.setFont("helvetica", "bold");
+						doc.setFontSize(16);
+						doc.text(label, pageWidth / 2, 20, { align: "center" });
+
+						const imgWidth = pageWidth * 0.8;
+						const imgHeight = pageHeight * 0.6;
+						const x = (pageWidth - imgWidth) / 2;
+						const y = (pageHeight - imgHeight) / 2;
+
+						doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+					}
+				}
+			};
+
+
+
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Selfie', inspection.selfieContractor, margin, y, { align: "center" });
+			y += 10;
+
+			ensureSpace(lineHeight);
+			await imageSection('Contractor Site Images', inspection.imagesUploadedByContractor, margin, y, { align: "center" });
+			y += 15;
+
+			ensureSpace(lineHeight);
+			await imageSection('Inspector Selfie', inspection.selfieClient, margin, y, { align: "center" });
+			y += 10;
+
+			ensureSpace(lineHeight);
+			await imageSection('Inspector Site Images', inspection.imagesUploadedByClient, margin, y, { align: "center" });
+			y += 15;
+
+			ensureSpace(lineHeight);
+			if (enclosures && enclosures.length > 0) {
+				for (const enc of enclosures) {
+					await handlePdfOrImage(enc.enclosureName, enc.file);
+				}
 			}
 			ensureSpace(lineHeight);
-			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Contractor', inspection.conSupportFilePaths);
-			await handlePdfOrImageForFileName('Supporting Docs uploaded_by Engineer', inspection.enggSupportFilePaths);
+			await handlePdfOrImageForFileName(
+				"Supporting Docs uploaded_by Contractor",
+				inspection.conSupportFilePaths,
+				"support"
+			);
+
+			await handlePdfOrImageForFileName(
+				"Supporting Docs uploaded_by Engineer",
+				inspection.enggSupportFilePaths,
+				"support"
+			);
+
+			await handlePdfOrImageForFileName(
+				"Attached Files",
+				inspection.attachments,
+				"attachment"
+			);
+
 			await handlePdfOrImage('Test Result uploaded_by Contractor', inspection.testResultContractor);
 			await handlePdfOrImage('Test Result uploaded_by Engineer', inspection.testResultEngineer);
 			await handlePdfOrImage('Test Report', inspection.testSiteDocumentsContractor);
@@ -1212,7 +1301,7 @@ export default function RfiLogList() {
 										</div>
 										<div className="form-fields">
 											<label>Client Location:</label>
-											<p>{selectedInspection.conLocation}</p>
+											<p>{selectedInspection.clientLocation}</p>
 										</div>
 
 
@@ -1496,7 +1585,7 @@ export default function RfiLogList() {
 													const filename = getFilename(path);
 													const extension = getExtension(filename);
 
-													const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+													const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(path)}&dir=support`;
 
 													return (
 														<div key={index} className="mb-3">
@@ -1541,7 +1630,7 @@ export default function RfiLogList() {
 													const filename = getFilename(path);
 													const extension = getExtension(filename);
 
-													const fileUrl = `${fileBaseURLForFileName}?filepath=${encodeURIComponent(path)}`;
+													const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(path)}&dir=support`;
 
 													return (
 														<div key={index} className="mb-3">
@@ -1571,6 +1660,60 @@ export default function RfiLogList() {
 											</div>
 										</>
 									)}
+
+
+
+									{selectedInspection.attachments?.length > 0 && (
+										<>
+											<h4>Attached Documents</h4>
+
+											<div className="image-gallery">
+												{selectedInspection.attachments.map((att, index) => {
+													const filename = att.fileName;         // ✅ coming from backend
+													const description = att.description;   // ✅ coming from backend
+
+													const extension = getExtension(filename);
+
+													// ✅ dir should be "attachment" as per your backend
+													const fileUrl = `${fileBaseURLForFileName}?fileName=${encodeURIComponent(
+														filename
+													)}&dir=attachment`;
+
+													return (
+														<div key={index} className="mb-3">
+															<p>
+																<strong>Description:</strong> {description || "-"}
+															</p>
+
+															<a href={fileUrl} target="_blank" rel="noopener noreferrer">
+																{extension === "pdf" ? (
+																	<embed
+																		src={fileUrl}
+																		type="application/pdf"
+																		width="100%"
+																		height="500px"
+																		className="preview-pdf w-100"
+																	/>
+																) : (
+																	<img
+																		src={fileUrl}
+																		alt={description || "Attachment"}
+																		className="preview-image"
+																		style={{
+																			width: "100%",
+																			height: "100%",
+																			objectFit: "contain",
+																		}}
+																	/>
+																)}
+															</a>
+														</div>
+													);
+												})}
+											</div>
+										</>
+									)}
+
 
 									{selectedInspection.testResultContractor && (
 										<>

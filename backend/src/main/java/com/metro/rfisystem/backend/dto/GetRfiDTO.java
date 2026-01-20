@@ -16,6 +16,7 @@ public class GetRfiDTO {
 	public Long longRfiValidateId;
 	private String status;
 	private String remarks;
+	private String valdationAuth;
 	
 
 }
