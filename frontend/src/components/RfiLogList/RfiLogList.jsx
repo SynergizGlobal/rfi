@@ -903,6 +903,7 @@ export default function RfiLogList() {
 	const columns = useMemo(() => [
 		{ Header: 'RFI ID', accessor: 'rfiId' },
 		{ Header: 'RFI Date', accessor: 'dateOfSubmission' },
+		{ Header: 'ID Of Structure', accessor: 'structure' },
 		{ Header: 'RFI Description', accessor: 'rfiDescription' },
 		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{ Header: 'RFI Requested By', accessor: 'rfiRequestedBy' },

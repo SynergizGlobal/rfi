@@ -11,6 +11,7 @@ public class RfiLogDTO {
 	private long id;
     private String rfiId;
     private String dateOfSubmission;
+    private String structure;
     private String rfiDescription;
     private String rfiRequestedBy;
     private String department;

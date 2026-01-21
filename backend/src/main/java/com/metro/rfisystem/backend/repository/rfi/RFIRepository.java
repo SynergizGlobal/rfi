@@ -78,6 +78,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 				    r.structure AS structure,
 				    r.element AS element,
 				    r.activity AS activity,
+				    r.description AS rfiDescription,
 				    r.assigned_person_client AS assignedPersonClient,
 				    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
 				    DATE_FORMAT(r.date_of_inspection, '%d-%m-%y') AS dateOfInspection,
@@ -157,6 +158,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 				    r.element AS element,
 				    r.activity AS activity,
 				    r.created_by as createdBy,
+				    r.description AS rfiDescription,
 				    r.name_of_representative AS nameOfRepresentative,
 				    r.assigned_person_client AS assignedPersonClient,
 				    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
@@ -205,11 +207,12 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 
 	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks, validation_authority as valdationAuth from rfi_data as r\r\n"
 			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n"
+			+ " where r.is_deleted !=1\r\n"
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsItAdmin();
 
 	@Query(value = "select r.rfi_id , r.id,rv.id, rv.action as status, rv.remarks as remarks, validation_authority as valdationAuth from rfi_data as r\r\n"
-			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n" + "where validation_authority = 'DyHod' \r\n"
+			+ "right join rfi_validation as rv on r.id = rv.rfi_id_fk\r\n" + "where validation_authority = 'DyHod' and r.is_deleted !=1 \r\n"
 			+ "ORDER BY rv.sent_for_validation_at DESC", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsDyHod(String userId);
 
@@ -217,7 +220,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "           rv.action AS status,\r\n" + "           rv.remarks AS remarks,\r\n"
 			+ "			   validation_authority as valdationAuth \r\n" + "    FROM rfi_data r\r\n"
 			+ "    RIGHT JOIN rfi_validation rv\r\n" + "        ON r.id = rv.rfi_id_fk\r\n"
-//			+ "    WHERE validation_authority = 'EnggAuthority' \r\n"
+			+ " where r.is_deleted !=1\r\n"
 			+ "    ORDER BY rv.sent_for_validation_at DESC ", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsEnggAuth(@Param("userName") String userName);
 
@@ -225,7 +228,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			+ "           rv.action AS status,\r\n" + "           rv.remarks AS remarks, \r\n"
 			+ "			   validation_authority as valdationAuth \r\n" + "    FROM rfi_data r\r\n"
 			+ "    RIGHT JOIN rfi_validation rv\r\n" + "        ON r.id = rv.rfi_id_fk\r\n"
-			+ "    WHERE assigned_person_client LIKE CONCAT('%',:userName, '%') and validation_authority = 'EnggAuthority' \r\n"
+			+ "    WHERE assigned_person_client LIKE CONCAT('%',:userName, '%') and validation_authority = 'EnggAuthority' and r.is_deleted !=1 \r\n"
 			+ "    ORDER BY rv.sent_for_validation_at DESC ", nativeQuery = true)
 	public List<GetRfiDTO> showRfiValidationsAssignedBy(@Param("userName") String userName);
 
@@ -370,6 +373,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.id AS id,
 			    ANY_VALUE(r.rfi_id) AS rfiId,
 			    ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
+			    ANY_VALUE(r.structure),
 			    ANY_VALUE(r.rfi_description) AS rfiDescription,
 			    ANY_VALUE(r.created_by) AS rfiRequestedBy,
 			    ANY_VALUE(r.client_department) AS department,
@@ -379,7 +383,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			    ANY_VALUE(r.status) AS status,
 			    ANY_VALUE(r.e_sign_status) AS eStatus,
-			    ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			    ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			    ANY_VALUE(r.project_name) AS project,
 			    ANY_VALUE(r.work_short_name) AS work,
 			    ANY_VALUE(r.contract_short_name) AS contract,
@@ -398,6 +402,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			SELECT
 			    r.id AS id,
 			    ANY_VALUE(r.rfi_id) AS rfiId,
+			    ANY_VALUE(r.structure),
 			    ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
 			    ANY_VALUE(r.rfi_description) AS rfiDescription,
 			    ANY_VALUE(r.created_by) AS rfiRequestedBy,
@@ -408,7 +413,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			    ANY_VALUE(r.status) AS status,
 			    ANY_VALUE(r.e_sign_status) AS eStatus,
-			    ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			    ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			    ANY_VALUE(r.project_name) AS project,
 			    ANY_VALUE(r.work_short_name) AS work,
 			    ANY_VALUE(r.contract_short_name) AS contract,
@@ -429,6 +434,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.id AS id,
 			    ANY_VALUE(r.rfi_id) AS rfiId,
 			    ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
+			    ANY_VALUE(r.structure),
 			    ANY_VALUE(r.rfi_description) AS rfiDescription,
 			    ANY_VALUE(r.created_by) AS rfiRequestedBy,
 			    ANY_VALUE(r.client_department) AS department,
@@ -438,7 +444,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			    ANY_VALUE(r.status) AS status,
 			    ANY_VALUE(r.e_sign_status) AS eStatus,
-			    ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			    ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			    ANY_VALUE(r.project_name) AS project,
 			    ANY_VALUE(r.work_short_name) AS work,
 			    ANY_VALUE(r.contract_short_name) AS contract,
@@ -458,6 +464,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.id AS id,
 			    ANY_VALUE(r.rfi_id) AS rfiId,
 			    ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
+			    ANY_VALUE(r.structure),
 			    ANY_VALUE(r.rfi_description) AS rfiDescription,
 			    ANY_VALUE(r.created_by) AS rfiRequestedBy,
 			    ANY_VALUE(r.client_department) AS department,
@@ -467,7 +474,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			    ANY_VALUE(r.status) AS status,
 			    ANY_VALUE(r.e_sign_status) AS eStatus,
-			    ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			    ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			    ANY_VALUE(r.project_name) AS project,
 			    ANY_VALUE(r.work_short_name) AS work,
 			    ANY_VALUE(r.contract_short_name) AS contract,
@@ -546,6 +553,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.element AS element,
 			    r.activity AS activity,
 			    r.created_by as createdBy,
+			    r.description AS rfiDescription,
 			    r.assigned_person_client AS assignedPersonClient,
 			    r.name_of_representative AS nameOfRepresentative,
 			    DATE_FORMAT(r.date_of_submission, '%d-%m-%y') AS dateOfSubmission,
@@ -608,6 +616,8 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    r.id AS id,
 			    ANY_VALUE(r.rfi_id) AS rfiId,
 			    ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
+			    ANY_VALUE(r.structure),
+			    ANY_VALUE(r.structure),
 			    ANY_VALUE(r.rfi_description) AS rfiDescription,
 			    ANY_VALUE(r.created_by) AS rfiRequestedBy,
 			    ANY_VALUE(r.client_department) AS department,
@@ -617,7 +627,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			    ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			    ANY_VALUE(r.status) AS status,
 			    ANY_VALUE(r.e_sign_status) AS eStatus,
-			    ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			    ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			    ANY_VALUE(r.project_name) AS project,
 			    ANY_VALUE(r.work_short_name) AS work,
 			    ANY_VALUE(r.contract_short_name) AS contract,
@@ -662,6 +672,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        r.id AS id,
 			        ANY_VALUE(r.rfi_id) AS rfiId,
 			        ANY_VALUE(DATE_FORMAT(r.date_of_submission, '%Y-%m-%d')) AS dateOfSubmission,
+			        ANY_VALUE(r.structure),
 			        ANY_VALUE(r.rfi_description) AS rfiDescription,
 			        ANY_VALUE(r.created_by) AS rfiRequestedBy,
 			        ANY_VALUE(r.client_department) AS department,
@@ -671,7 +682,7 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 			        ANY_VALUE(i.test_insite_lab) AS enggApproval,
 			        ANY_VALUE(r.status) AS status,
 			        ANY_VALUE(r.e_sign_status) AS eStatus,
-			        ANY_VALUE(COALESCE(i.ae_remarks, rv.remarks)) AS notes,
+			        ANY_VALUE(COALESCE(r.reason_for_delete, i.ae_remarks, rv.remarks)) AS notes,
 			        ANY_VALUE(r.project_name) AS project,
 			        ANY_VALUE(r.work_short_name) AS work,
 			        ANY_VALUE(r.contract_short_name) AS contract,

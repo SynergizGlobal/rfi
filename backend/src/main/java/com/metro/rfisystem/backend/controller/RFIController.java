@@ -286,28 +286,34 @@ public class RFIController {
 		return rfi.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
-	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteRFI(@PathVariable Long id, HttpSession session) {
+	//Delete RFI...
+	@DeleteMapping("/delete")
+	public ResponseEntity<String> deleteRFI(@RequestBody RFI_DTO rfiParm, HttpSession session) {
 
-	    String userName = (String) session.getAttribute("userName");
+		String userName = (String) session.getAttribute("userName");
 
-	    Optional<RFI> rfiOpt = rfiRepository.findById(id);
+		if (userName == null || userName.isEmpty()) {
+			return ResponseEntity.badRequest().body("Login Session Expired or Something went wrong!");
+		}
 
-	    if (!rfiOpt.isPresent()) {
-	        return ResponseEntity.notFound().build();
-	    }
+		Optional<RFI> rfiOpt = rfiRepository.findById(rfiParm.getId());
 
-	    RFI rfi = rfiOpt.get();
+		if (!rfiOpt.isPresent()) {
+			return ResponseEntity.notFound().build();
+		}
 
-	    // ✅ soft delete
-	    rfi.setIsDeleted(true);
-	    rfi.setStatus(EnumRfiStatus.DELETED);
-	    rfi.setAction("Deleted");
-	    rfi.setUpdatedAt(new Date());
+		RFI rfi = rfiOpt.get();
 
-	    rfiRepository.save(rfi);
+		// ✅ soft delete
+		rfi.setIsDeleted(true);
+		rfi.setReasonForDelete(rfiParm.getDescription());
+		rfi.setStatus(EnumRfiStatus.DELETED);
+		rfi.setAction("Deleted");
+		rfi.setUpdatedAt(new Date());
 
-	    return ResponseEntity.ok("RFI marked as deleted successfully!");
+		rfiRepository.save(rfi);
+
+		return ResponseEntity.ok("RFI marked as deleted successfully!");
 	}
 
 

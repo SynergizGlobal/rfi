@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import './CreatedRfi.css';
 import { useLocation } from "react-router-dom";
+import ReactDOM from "react-dom";
 
 const CreatedRfi = () => {
 	const [rfiData, setRfiData] = useState([]);
@@ -14,25 +15,30 @@ const CreatedRfi = () => {
 	const filterStatus = location.state?.filterStatus || [];
 
 	const [allRfis, setAllRfis] = useState([]);
+	
+	const [showDeletePopup, setShowDeletePopup] = useState(false);
+	const [deleteReason, setDeleteReason] = useState("");
+	const [selectedDeleteRow, setSelectedDeleteRow] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 
-	useEffect(() => {
+
+	const fetchRfiData = () => {
 		fetch(`${API_BASE_URL}rfi/rfi-details`, {
-			method: 'GET',
+			method: "GET",
 			headers: {
-				'Content-Type': 'application/json',
+				"Content-Type": "application/json",
 			},
-			credentials: 'include',
+			credentials: "include",
 		})
-			.then(response => {
+			.then((response) => {
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status} - ${response.statusText}`);
 				}
 				return response.json();
 			})
-			.then(data => {
-				console.log("Fetched RFI data:", data);
-				const transformed = data.map((item, index) => ({
+			.then((data) => {
+				const transformed = data.map((item) => ({
 					id: item.id,
 					rfiId: item.rfi_Id,
 					project: item.project,
@@ -40,22 +46,31 @@ const CreatedRfi = () => {
 					element: item.element,
 					activity: item.activity,
 					assignedPerson: item.createdBy,
-					submissionDate: item.dateOfSubmission || '',
+					submissionDate: item.dateOfSubmission || "",
 					status: item.status,
 					nameOfRepresentative: item.nameOfRepresentative,
 				}));
+
 				if (filterStatus.length > 0) {
-					const filtered = transformed.filter(item => filterStatus.includes(item.status));
+					const filtered = transformed.filter((item) =>
+						filterStatus.includes(item.status)
+					);
 					setRfiData(filtered);
 				} else {
 					setRfiData(transformed);
 				}
 			})
-			.catch(error => {
-				console.error('❌ Error fetching RFI data:', error);
-				alert('Failed to fetch RFI data. Please check if you are logged in.');
+			.catch((error) => {
+				console.error("❌ Error fetching RFI data:", error);
+				alert("Failed to fetch RFI data. Please check if you are logged in.");
 			});
+	};
+
+	
+	useEffect(() => {
+		fetchRfiData();
 	}, []);
+
 
 
 	const filteredRfis = allRfis.filter((rfi) =>
@@ -74,34 +89,113 @@ const CreatedRfi = () => {
 		});
 		console.log("Navigating to edit with:", { rfiId: rfi.rfiId, status: rfi.status, mode: 'edit' });
 	};
+	
 
-	const handleDelete = (rfi) => {
-		if (window.confirm(`Are you sure you want to delete RFI ${rfi.rfiId}?`)) {
-			console.log("🟡 RFI Object to delete:", rfi);
-			fetch(`${API_BASE_URL}rfi/delete/${rfi.id}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-			})
-				.then((res) => {
-					if (res.ok) {
-						alert('RFI deleted successfully');
 
-						setRfiData(prev => {
-							const updatedData = prev.filter(item => item.id !== rfi.id);
-							const newPageCount = Math.ceil(updatedData.length / pageSize);
-							const currentPageIndex = pageIndex;
-							const safePage = Math.min(currentPageIndex, newPageCount - 1);
-							gotoPage(safePage >= 0 ? safePage : 0);
-
-							return updatedData;
-						});
-					} else {
-						alert(`Failed to delete RFI (Status: ${res.status})`);
-					}
-				})
-				.catch((err) => console.error('Error deleting RFI:', err));
-		}
+	const handleDelete = (rowObj) => {
+		setSelectedDeleteRow(rowObj);
+		setDeleteReason("");
+		setShowDeletePopup(true);
 	};
+
+	const closeDeletePopup = () => {
+		setShowDeletePopup(false);
+		setDeleteReason("");
+		setSelectedDeleteRow(null);
+	};
+
+	
+	const confirmDelete = async () => {
+	  if (!deleteReason.trim()) {
+	    alert("Please enter reason for delete");
+	    return;
+	  }
+
+	  try {
+	    setDeleteLoading(true);
+
+	    const deleteId = selectedDeleteRow?.id;
+
+	    const url = `${API_BASE_URL}rfi/delete`;
+
+	    const res = await fetch(url, {
+	      method: "DELETE",
+	      credentials: "include",
+	      headers: {
+	        "Content-Type": "application/json",
+	      },
+	      body: JSON.stringify({
+	        id: deleteId,
+	        description: deleteReason,
+	      }),
+	    });
+
+	    const msg = await res.text();
+
+	    if (!res.ok) {
+	      alert(msg || "Delete failed");
+	      return;
+	    }
+
+	    alert(msg);
+	    fetchRfiData();
+
+	    closeDeletePopup();
+	  } catch (err) {
+	    console.error(err);
+	    alert("Something went wrong! Please try after some time.");
+	  } finally {
+	    setDeleteLoading(false);
+	  }
+	};
+
+
+	
+	const deleteModalContent = (
+		<div
+			className="popup-modal-rfi-loglist bg-black bg-opacity-50 z-50"
+			onClick={closeDeletePopup}
+		>
+			<div
+				className="popup-modal-inner bg-white rounded-xl shadow-lg p-4 max-w-md w-full"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<h2 className="text-lg font-semibold mb-2">Delete RFI</h2>
+
+				<label className="text-sm font-medium text-gray-700">
+					Reason for delete
+				</label>
+
+				<textarea
+					value={deleteReason}
+					onChange={(e) => setDeleteReason(e.target.value)}
+					rows={4}
+					className="form-control mt-1"
+					placeholder="Enter reason..."
+				/>
+
+				<div className="d-flex justify-content-end gap-2 mt-3">
+					<button
+						onClick={closeDeletePopup}
+						className="btn btn-white"
+						disabled={deleteLoading}
+					>
+						Close
+					</button>
+
+					<button
+						onClick={confirmDelete}
+						className="btn btn-danger"
+						disabled={deleteLoading}
+					>
+						{deleteLoading ? "Deleting..." : "Confirm Delete"}
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+
+	
 
 	const userDepartment = localStorage.getItem("departmentFk");
 	const userRole = localStorage.getItem("userRoleNameFk");
@@ -249,6 +343,13 @@ const disableActions = isEngineer || isContractorRep;
 					</div>
 				</div>
 			</div>
+			
+			{showDeletePopup &&
+				ReactDOM.createPortal(
+					deleteModalContent,
+					document.querySelector(".dashboard")
+				)}
+
 		</div>
 	);
 };

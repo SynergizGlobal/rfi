@@ -62,6 +62,10 @@ public class RFI {
 	private String component;
 	private String element;
 	private String activity;
+	
+	@Column(name = "reason_for_delete")
+	private String reasonForDelete;
+
 
 	@Column(name = "rfi_description", length = 1000)
 	private String rfiDescription;

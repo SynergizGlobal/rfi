@@ -596,7 +596,7 @@ const Inspection = () => {
 		const modalContent = (
 			<div className="popup-modal-rfi-loglist bg-black bg-opacity-50 z-50">
 				<div className="popup-modal-inner bg-white rounded-xl shadow-lg p-4 max-w-md w-full">
-					<h2 className="text-lg font-semibold mb-2">Notes</h2>
+					<h2 className="text-lg font-semibold mb-2">Rfi Description</h2>
 					<p className="text-gray-700 whitespace-pre-wrap ">{value}</p>
 					<div className='d-flex justify-content-end'>
 						<button
