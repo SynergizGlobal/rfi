@@ -15,6 +15,8 @@ import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RfiDetailsLogDTO;
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
+import com.metro.rfisystem.backend.dto.RfiLogFetchDTO;
+import com.metro.rfisystem.backend.dto.RfiLogFilterDTO;
 import com.metro.rfisystem.backend.dto.RfiLogWrappedDTO;
 import com.metro.rfisystem.backend.repository.pmis.UserRepository;
 import com.metro.rfisystem.backend.repository.rfi.ChecklistDescriptionRepository;
@@ -42,38 +44,35 @@ public class RfiLogServiceImpl implements RfiLogService {
 
 
 	@Override
-	public List<RfiLogDTO> listAllRfiLog(String userRole, String userName, String userId, String userType,
-			String deparmentFK) {
+	public List<RfiLogDTO> listAllRfiLog(RfiLogFetchDTO obj) {
 
-		if ("IT Admin".equalsIgnoreCase(userRole)) {
+		if ("IT Admin".equalsIgnoreCase(obj.getUserRole())) {
 			System.out.println("IT Admin.......");
-			return rfiRepository.listAllRfiLogItAdmin();
-		} else if ("DyHOD".equalsIgnoreCase(userType)) {
+			return rfiRepository.listAllRfiLogItAdmin(obj);              
+		} else if ("DyHOD".equalsIgnoreCase(obj.getUserType())) {
 			System.out.println("IDyHOD......");
 
-			return rfiRepository.listAllRfiLogByDyHod(userId);
+			return rfiRepository.listAllRfiLogByDyHod(obj);
 		}
-	    else if ("Data Admin".equalsIgnoreCase(userRole)) {
+	    else if ("Data Admin".equalsIgnoreCase(obj.getUserRole())) {
 	        System.out.println("Data Admin (all RFI log list)......");
-	        // ✅ New method that returns all RFIs
-	        return rfiRepository.listAllRfiLogByDataAdmin();
+	        return rfiRepository.listAllRfiLogByDataAdmin(obj);
 	    }
-	    else if ("Contractor".equalsIgnoreCase(userRole)) {
+	    else if ("Contractor".equalsIgnoreCase(obj.getUserRole())) {
 	        System.out.println("Contractor (all RFI log list)......");
-	        return rfiRepository.listAllRfiLogItAdmin(); 
-	        // or you can call: listAllRfiLogByDataAdmin() if same query
+	        return rfiRepository.listAllRfiLogItAdmin(obj); 
 	    }
-		else if ("Engg".equalsIgnoreCase(deparmentFK)) {
+		else if ("Engg".equalsIgnoreCase(obj.getDeparmentFK())) {
 			System.out.println("Engineer......");
-			return rfiRepository.listAllRfiLogByAssignedBy(userName);
-		} else if ("Regular User".equalsIgnoreCase(userRole)) { 
+			return rfiRepository.listAllRfiLogByAssignedBy(obj);
+		} else if ("Regular User".equalsIgnoreCase(obj.getUserRole())) { 
 	        System.out.println("Representative / Regular User......");
-	        return rfiRepository.listAllRfiLogByRepresentative(userName);
+	        return rfiRepository.listAllRfiLogByRepresentative(obj);
 
 	    } 
 		else
 			System.out.println("Contrator...... :");
-		return rfiRepository.listAllRfiLogByCreatedBy(userName);
+		return rfiRepository.listAllRfiLogByCreatedBy(obj);
 	}
 	
 	private List<AttachmentFileDTO> parseAttachmentData(String attachmentData) {
@@ -147,6 +146,20 @@ public class RfiLogServiceImpl implements RfiLogService {
 	            "No PDF found for txnId: " + txnId + " in " + pdfStoragePath);
 	    }
 	}
+
+	@Override
+	public RfiLogFilterDTO listAllFilterRfiLog() {
+
+	    List<String> projects = rfiRepository.listAllProjectFilterRfiLog();
+	    List<String> works = rfiRepository.listAllWorkFilterRfiLog();
+	    List<String> contracts = rfiRepository.listAllContractFilterRfiLog();
+
+	    return new RfiLogFilterDTO(projects, works, contracts);
+	}
+
+
+	
+	
 
 
 

@@ -18,12 +18,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.metro.rfisystem.backend.dto.RfiLogDTO;
+import com.metro.rfisystem.backend.dto.RfiLogFetchDTO;
+import com.metro.rfisystem.backend.dto.RfiLogFilterDTO;
 import com.metro.rfisystem.backend.dto.RfiLogWrappedDTO;
 import com.metro.rfisystem.backend.service.RfiLogService;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -41,17 +47,23 @@ public class RfiLogController {
 	@Value("${rfi.attachments.upload-dir}")
 	private String uploadDirAttachments;
 
-	@GetMapping("/getAllRfiLogDetails")
-	public ResponseEntity<List<RfiLogDTO>> getAllRfiLogDetails(HttpSession session) {
+	@PostMapping("/getAllRfiLogDetails")
+	public ResponseEntity<List<RfiLogDTO>> getAllRfiLogDetails(@RequestBody RfiLogFetchDTO obj, 
+			HttpSession session) {
 
 		String UserName = (String) session.getAttribute("userName");
+		obj.setUserName(UserName);
 		String UserRole = (String) session.getAttribute("userRoleNameFk");
+		obj.setUserRole(UserRole);
 		String UserId = (String) session.getAttribute("userId");
+		obj.setUserId(UserId);
 		String UserType = (String) session.getAttribute("userTypeFk");
+		obj.setUserType(UserType);
 		String departmentFK = (String) session.getAttribute("departmentFk");
+		obj.setDeparmentFK(departmentFK);
 
 
-		List<RfiLogDTO> list = logService.listAllRfiLog(UserRole, UserName, UserId,UserType,departmentFK);
+		List<RfiLogDTO> list = logService.listAllRfiLog(obj);
 
 		if (list.isEmpty()) {
 			return ResponseEntity.noContent().build();
@@ -59,6 +71,18 @@ public class RfiLogController {
 		return ResponseEntity.ok(list);
 	}
 	
+	
+	@GetMapping("/filter-list")
+	public ResponseEntity<RfiLogFilterDTO> getFilerListRfiLog() {
+	    try {
+	        return ResponseEntity.ok(logService.listAllFilterRfiLog());
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+	    }
+	}
+
+
 
 	@GetMapping("/getRfiReportDetails/{rfiId}")
 	public ResponseEntity<RfiLogWrappedDTO> getRfiDetails(@PathVariable Long rfiId) {

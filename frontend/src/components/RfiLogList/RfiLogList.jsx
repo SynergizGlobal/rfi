@@ -12,12 +12,7 @@ import jsPDF from 'jspdf';
 export default function RfiLogList() {
 	const [data, setData] = useState([]);
 	const [message, setMessage] = useState('');
-	const [projectOptions, setProjectOptions] = useState([]);
-	const [projectIdMap, setProjectIdMap] = useState({});
-	const [workOptions, setWorkOptions] = useState([]);
-	const [workIdMap, setWorkIdMap] = useState({});
-	const [contractOptions, setContractOptions] = useState([]);
-	const [contractIdMap, setContractIdMap] = useState({});
+
 	const [formState, setFormState] = useState({ project: '', work: '', contract: '' });
 	const [allData, setAllData] = useState([]);
 	const [selectedInspection, setSelectedInspection] = useState(null);
@@ -26,64 +21,91 @@ export default function RfiLogList() {
 	const [statusList, setStatusList] = useState([]);
 	const [Measurement, setMeasurement] = useState([]);
 	const [remarksList, setRemarksList] = useState([]);
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	const [projectOptions, setProjectOptions] = useState([]);
+	const [workOptions, setWorkOptions] = useState([]);
+	const [contractOptions, setContractOptions] = useState([]);
+	
 
-	const getExtension = (filename) => {
-		return filename?.split('.').pop()?.toLowerCase();
+	
+	const fetchRfiLogs = async (filters = {}) => {
+		try {
+			const payload = {
+				project: filters.project ?? "",
+				work: filters.work ?? "",
+				contract: filters.contract ?? "",
+			};
+
+			const res = await axios.post(
+				`${API_BASE_URL}api/rfiLog/getAllRfiLogDetails`,
+				payload,
+				{ withCredentials: true }
+			);
+
+			if (!res.data || res.data.length === 0) {
+				setAllData([]);
+				setData([]);
+				setMessage("No RFIs Found!");
+			} else {
+				setAllData(res.data);
+				setData(res.data);
+				setMessage("");
+			}
+		} catch (err) {
+			console.error("Error loading RFI data:", err);
+			setMessage("Error loading RFI data.");
+		}
 	};
 
-
-	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}api/rfiLog/getAllRfiLogDetails`, { withCredentials: true })
-			.then(response => {
-				if (response.status === 204 || !response.data || response.data.length === 0) {
-					setAllData([]);
-					setData([]);
-					setMessage('No RFIs found.');
-				} else {
-					setAllData(response.data);
-					setData(response.data);
-					setMessage('');
-				}
-			})
-			.catch(() => {
-				setMessage('Error loading RFI data.');
-			});
+		fetchRfiLogs({ project: "", work: "", contract: "" });
 	}, []);
 
-
-
+	
 	useEffect(() => {
-		axios.get(`${API_BASE_URL}rfi/projectNames`)
-			.then(response => {
-				const map = {};
-				const options = response.data.map(p => {
-					map[p.projectName] = p.projectId;
-					return { value: p.projectName, label: p.projectName };
+		fetchRfiLogs(formState);
+	}, [formState.project, formState.work, formState.contract]);
+
+
+
+
+	
+	useEffect(() => {
+		const fetchFilterList = async () => {
+			try {
+				const res = await axios.get(`${API_BASE_URL}api/rfiLog/filter-list`, {
+					withCredentials: true,
 				});
-				setProjectOptions(options);
-				setProjectIdMap(map);
-			});
+
+				const data = res.data || {};
+
+				const projectOpts = (data.projects || [])
+					.filter(Boolean)
+					.map((p) => ({ value: p, label: p }));
+
+				const workOpts = (data.works || [])
+					.filter(Boolean)
+					.map((w) => ({ value: w, label: w }));
+
+				const contractOpts = (data.contracts || [])
+					.filter(Boolean)
+					.map((c) => ({ value: c, label: c }));
+
+				setProjectOptions(projectOpts);
+				setWorkOptions(workOpts);
+				setContractOptions(contractOpts);
+			} catch (err) {
+				console.error("❌ filter-list API error:", err);
+			}
+		};
+
+		fetchFilterList();
 	}, []);
 
-	useEffect(() => {
-		const { project, work, contract } = formState;
 
-		const filtered = allData.filter(item => {
-			const matchProject = project ? item.project === project : true;
-			const matchWork = work ? item.work === work : true;
-			const matchContract = contract ? item.contract === contract : true;
-			return matchProject && matchWork && matchContract;
-		});
 
-		setData(filtered);
 
-		if (filtered.length === 0) {
-			setMessage('No RFIs match the selected filters.');
-		} else {
-			setMessage('');
-		}
-	}, [formState, allData]);
 
 
 	const processedData = useMemo(
@@ -164,6 +186,13 @@ export default function RfiLogList() {
 		);
 	};
 
+	
+
+	const getExtension = (filename) => {
+		return filename?.split('.').pop()?.toLowerCase();
+	};
+	
+	
 	const handlePrint = async () => {
 		if (!selectedInspection) {
 			alert("No data available to print!");
@@ -896,6 +925,12 @@ export default function RfiLogList() {
 		}
 	};
 
+	const handleClearFilters = () => {
+		const cleared = { project: "", work: "", contract: "" };
+		setFormState(cleared);
+		setGlobalFilter("");
+		fetchRfiLogs();
+	};
 
 
 
@@ -988,72 +1023,73 @@ export default function RfiLogList() {
 
 						<div className="filters">
 							<div className="form-row">
+
+								{/* ✅ Project */}
 								<div className="form-fields flex-2">
 									<label>Project:</label>
 									<Select
 										options={projectOptions}
-										value={formState.project ? { value: formState.project, label: formState.project } : null}
+										isClearable
+										value={
+											formState.project
+												? { value: formState.project, label: formState.project }
+												: null
+										}
 										onChange={(selected) => {
-											const project = selected?.value || '';
-											const projectId = projectIdMap[project] || '';
-											setFormState({ project, work: '', contract: '' });
-
-											if (projectId) {
-												axios.get(`${API_BASE_URL}rfi/workNames`, { params: { projectId } })
-													.then(res => {
-														const map = {};
-														const opts = res.data.map(w => {
-															map[w.workName] = w.workId;
-															return { value: w.workName, label: w.workName };
-														});
-														setWorkOptions(opts);
-														setWorkIdMap(map);
-													});
-											}
+											const project = selected?.value || "";
+											setFormState((prev) => ({
+												...prev,
+												project,
+											}));
 										}}
 									/>
 								</div>
 
+								{/* ✅ Work */}
 								<div className="form-fields flex-2">
 									<label>Work:</label>
 									<Select
 										options={workOptions}
-										value={formState.work ? workOptions.find(w => w.value === formState.work) : null}
+										isClearable
+										value={
+											formState.work
+												? { value: formState.work, label: formState.work }
+												: null
+										}
 										onChange={(selected) => {
-											const work = selected?.value || '';
-											const workId = workIdMap[work] || '';
-											setFormState(prev => ({ ...prev, work, contract: '' }));
-
-											if (workId) {
-												axios.get(`${API_BASE_URL}rfi/contractNames`, { params: { workId } })
-													.then(res => {
-														const map = {};
-														const opts = res.data.map(c => {
-															map[c.contractShortName] = c.contractIdFk.trim();
-															return { value: c.contractShortName, label: c.contractShortName };
-														});
-														setContractOptions(opts);
-														setContractIdMap(map);
-													});
-											}
+											const work = selected?.value || "";
+											setFormState((prev) => ({
+												...prev,
+												work,
+											}));
 										}}
 									/>
 								</div>
 
+								{/* ✅ Contract */}
 								<div className="form-fields flex-2">
 									<label>Contract:</label>
 									<Select
 										options={contractOptions}
-										value={formState.contract ? contractOptions.find(c => c.value === formState.contract) : null}
+										isClearable
+										value={
+											formState.contract
+												? { value: formState.contract, label: formState.contract }
+												: null
+										}
 										onChange={(selected) => {
-											const contract = selected?.value || '';
-											setFormState(prev => ({ ...prev, contract }));
+											const contract = selected?.value || "";
+											setFormState((prev) => ({
+												...prev,
+												contract,
+											}));
 										}}
 									/>
 								</div>
 
 							</div>
 						</div>
+
 
 
 						<div className="table-top-bar d-flex justify-content-between align-items-center">
@@ -1079,28 +1115,12 @@ export default function RfiLogList() {
 							<div className="reset-button-wrapper">
 								<button
 									className="reset-button"
-									onClick={() => {
-										setFormState({ project: '', work: '', contract: '' });
-										setWorkOptions([]);
-										setContractOptions([]);
-										axios.get(`${API_BASE_URL}api/rfiLog/getAllRfiLogDetails`, { withCredentials: true })
-											.then(response => {
-												if (response.status === 204 || !response.data || response.data.length === 0) {
-													setData([]);
-													setMessage('No RFIs found.');
-												} else {
-													setData(response.data);
-													setMessage('');
-												}
-											})
-											.catch(() => {
-												setMessage('Error loading RFI data.');
-											});
-									}}
+									onClick={handleClearFilters}
 								>
-									Reset Filters
+									Clear Filters
 								</button>
 							</div>
+
 
 						</div>
 
@@ -1119,7 +1139,7 @@ export default function RfiLogList() {
 								<tbody {...getTableBodyProps()}>
 									{message ? (
 										<tr>
-											<td colSpan={columns.length} className="message-cell">{message}</td>
+											<td colSpan={columns.length+2} className="message-cell">{message}</td>
 										</tr>
 									) : (
 										page.map((row, i) => {
