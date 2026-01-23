@@ -535,18 +535,45 @@ public interface RFIRepository extends JpaRepository<RFI, Long> {
 	long countRejectedInspectionsByCreatedBy(@Param("createdBy") String createdBy);
 
 	@Query("SELECT COUNT(r) FROM RFI r JOIN r.inspectionDetails i "
-			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected'")
+			+ "WHERE i.testInsiteLab = 'Rejected'")
 	long countRejectedInspections();
+	
+	@Query("SELECT COUNT(r) FROM RFI r JOIN r.inspectionDetails i "
+			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Accepted'")
+	long countAcceptedInspections();
+	
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
+			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Accepted' "
+			+ "AND r.assignedPersonClient = :assignedTo")
+	long countAcceptedInspectionsByAssignedTo(@Param("assignedTo") String assignedTo);
 
 	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
 			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected' "
 			+ "AND r.assignedPersonClient = :assignedTo")
 	long countRejectedInspectionsByAssignedTo(@Param("assignedTo") String assignedTo);
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
+			+ "WHERE r.status = 'INSPECTION_DONE' "
+			+ "AND r.assignedPersonClient = :assignedTo")
+	long countClosedInspectionsByAssignedTo(@Param("assignedTo") String assignedTo);
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
+			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Accepted' "
+			+ "AND (r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+	long countAcceptedInspectionsByRegularUser(@Param("userName") String userName);
+
 
 	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
 			+ "WHERE r.status = 'INSPECTION_DONE' AND i.testInsiteLab = 'Rejected' "
 			+ "AND (r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
 	long countRejectedInspectionsByRegularUser(@Param("userName") String userName);
+	
+	@Query("SELECT COUNT(DISTINCT r) FROM RFI r JOIN r.inspectionDetails i "
+			+ "WHERE r.status = 'INSPECTION_DONE' "
+			+ "AND (r.createdBy = :userName OR r.nameOfRepresentative = :userName OR r.assignedPersonClient = :userName)")
+	long countClosedInspectionsByRegularUser(@Param("userName") String userName);
+
 
 	// For Engineer
 	long countByStatusAndAssignedPersonClient(EnumRfiStatus status, String assignedTo);

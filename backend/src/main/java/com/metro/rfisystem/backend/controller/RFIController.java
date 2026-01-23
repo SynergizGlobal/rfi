@@ -363,8 +363,9 @@ public class RFIController {
 		    // ✅ Admin, DyHOD, Contractor → ALL RFIs
 		    counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));
 		    counts.put("RESCHEDULED", rfiRepository.countByStatus(EnumRfiStatus.RESCHEDULED));
-		    counts.put("ACCEPTED", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_AE));
+		    counts.put("ACCEPTED", rfiRepository.countAcceptedInspections());
 		    counts.put("REJECTED", rfiRepository.countRejectedInspections());
+		    counts.put("INSPECTION_DONE", rfiRepository.countByStatus(EnumRfiStatus.INSPECTION_DONE));
 
 		    List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 		            EnumRfiStatus.CREATED,
@@ -378,8 +379,9 @@ public class RFIController {
 
 		    counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_CON, userName));
 		    counts.put("RESCHEDULED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.RESCHEDULED, userName));
-		    counts.put("ACCEPTED", rfiRepository.countByStatusByRegularUser(EnumRfiStatus.INSPECTED_BY_AE, userName));
+		    counts.put("ACCEPTED", rfiRepository.countAcceptedInspectionsByRegularUser(userName));
 		    counts.put("REJECTED", rfiRepository.countRejectedInspectionsByRegularUser(userName));
+		    counts.put("INSPECTION_DONE", rfiRepository.countClosedInspectionsByRegularUser(userName));
 
 		    List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 		            EnumRfiStatus.CREATED,
@@ -393,8 +395,9 @@ public class RFIController {
 
 		    counts.put("INSPECTED_BY_CON", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_CON, userName));
 		    counts.put("RESCHEDULED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.RESCHEDULED, userName));
-		    counts.put("ACCEPTED", rfiRepository.countByStatusAndAssignedPersonClient(EnumRfiStatus.INSPECTED_BY_AE, userName));
+		    counts.put("ACCEPTED", rfiRepository.countAcceptedInspectionsByAssignedTo(userName));
 		    counts.put("REJECTED", rfiRepository.countRejectedInspectionsByAssignedTo(userName));
+		    counts.put("INSPECTION_DONE", rfiRepository.countClosedInspectionsByAssignedTo(userName));
 
 		    List<EnumRfiStatus> pendingStatuses = Arrays.asList(
 		            EnumRfiStatus.CREATED,

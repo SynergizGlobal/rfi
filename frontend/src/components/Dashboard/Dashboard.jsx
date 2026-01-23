@@ -352,7 +352,7 @@ const Dashboard = () => {
 									{/* Card 5: Rescheduled */}
 									<div
 										className="cards"
-										onClick={() => navigate("/Inspection", { state: { filterStatus: ["INSPECTED_BY_AE"] } })}
+										onClick={() => navigate("/Inspection", { state: { filterStatus: ["ACCEPTED"] } })}
 										style={{ cursor: 'pointer' }}
 									>
 										<div className="card-inner">
@@ -390,6 +390,29 @@ const Dashboard = () => {
 											<div className="card-bottom">
 												<div className="card-title">
 													<span className="card-text">RFI Rejected</span>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									{/* Card : Closed  (Accepted By engg && Inspection_done) */}
+									<div
+										className="cards"
+										onClick={() => navigate("/Inspection", { state: { filterStatus: ["CLOSED"] } })}
+										style={{ cursor: 'pointer' }}
+									>
+										<div className="card-inner">
+											<div className="card-top">
+												<div className="card-count">
+													<span className="card-number">{statusCounts.INSPECTION_DONE}</span>
+												</div>
+												<div className="cards-icon">
+													<img src="/images/closed.png" alt="tick symbol" width="27" height="27" />
+												</div>
+											</div>
+											<div className="card-bottom">
+												<div className="card-title">
+													<span className="card-text">RFI Closed</span>
 												</div>
 											</div>
 										</div>

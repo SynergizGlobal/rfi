@@ -1197,13 +1197,13 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			const mergedUrl = URL.createObjectURL(pdfBlob);
-			const link = document.createElement("a");
-			link.href = mergedUrl;
-			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
+//			const mergedUrl = URL.createObjectURL(pdfBlob);
+//			const link = document.createElement("a");
+//			link.href = mergedUrl;
+//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+//			document.body.appendChild(link);
+//			link.click();
+//			document.body.removeChild(link);
 			// 4️⃣ Upload PDF to backend
 
 

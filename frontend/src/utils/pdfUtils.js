@@ -21,6 +21,19 @@ export const toBase64 = async (input) => {
 };
 
 
+const loadFontAsBase64 = async (fontUrl) => {
+  const res = await fetch(fontUrl);
+  const buffer = await res.arrayBuffer();
+
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary); 
+};
+
 export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 	const mainPdfBytes = jsPDFDoc.output("arraybuffer");
 	const mainPdf = await PDFDocument.load(mainPdfBytes);
@@ -187,6 +200,17 @@ export async function generateInspectionPdf(rfiData) {
 	doc.setFont("helvetica", "bold");
 	doc.text("Location:", 40, 282);
 	doc.setFont("helvetica", "normal");
+
+	const devanagariBase64 = await loadFontAsBase64(
+	  "/fonts/NotoSansDevanagari-Regular.ttf"
+	);
+
+	// ✅ Register + use font
+	doc.addFileToVFS("NotoSansDevanagari-Regular.ttf", devanagariBase64);
+	doc.addFont("NotoSansDevanagari-Regular.ttf", "NotoDeva", "normal");
+
+	doc.setFont("NotoDeva", "normal");
+	doc.setFontSize(10);
 
 	doc.text(locationText, 85, 282, { maxWidth: 400 });
 

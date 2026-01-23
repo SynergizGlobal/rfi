@@ -89,10 +89,20 @@ const Inspection = () => {
 
 				// ✅ Apply status filter from Created RFI (via Dashboard navigation)
 				if (filterStatus && filterStatus.length > 0) {
-					if (filterStatus.includes("REJECTED")) {
-						// Filter by approvalStatus for rejected card
+					if (filterStatus.includes("ACCEPTED")) {
+						// Filter by approvalStatus for Accepted and closed card 
+						filteredData = data.filter((rfi) => rfi.approvalStatus === "Accepted" && rfi.status === "INSPECTION_DONE");
+					}
+					else if (filterStatus.includes("REJECTED")) {
+				     // Filter by approvalStatus for rejected and closed card
 						filteredData = data.filter((rfi) => rfi.approvalStatus === "Rejected" && rfi.status === "INSPECTION_DONE");
-					} else {
+					}
+					else if (filterStatus.includes("CLOSED")) {
+						// Filter by approvalStatus for Clsosed card (INSPECTION_DONE status rfi's) 
+						filteredData = data.filter((rfi) => rfi.status === "INSPECTION_DONE");
+					}
+
+					else {
 						// Default filter by status for other cards
 						filteredData = data.filter((rfi) => filterStatus.includes(rfi.status));
 					}
@@ -233,23 +243,27 @@ const Inspection = () => {
 	};
 
 	const isInspectionTimeValid = (rowDate, rowTime) => {
-		if (!rowDate || !rowTime) return false;
+	  if (!rowDate || !rowTime) return false;
 
-		// Row Date is in DD-MM-YY format → convert it
-		const [dd, mm, yy] = rowDate.split("-");
-		const fullYear = "20" + yy;
+	  const [dd, mm, yyyy] = rowDate.split("-");
 
-		// Convert to JS-friendly format
-		const formatted = `${fullYear}-${mm}-${dd}T${rowTime}`;
+	  const cleanTime =
+	    rowTime.split(".")[0].length === 5 ? `${rowTime}:00` : rowTime.split(".")[0];
 
-		const scheduled = new Date(formatted);
-		const now = new Date();
+	  const formatted = `${yyyy}-${mm}-${dd}T${cleanTime}`;  
 
-		console.log("Scheduled DateTime:", scheduled);
-		console.log("Current DateTime:", now);
+	  const scheduled = new Date(formatted);
+	  const now = new Date();
 
-		return now >= scheduled;
+	  console.log("Formatted:", formatted);
+	  console.log("Scheduled:", scheduled);
+	  console.log("Now:", now);
+
+	  if (isNaN(scheduled.getTime())) return false;
+
+	  return now >= scheduled;
 	};
+
 
 
 	const handleInspectionComplete = (rfi, status, dateOfInspection, timeOfInspection) => {
@@ -1254,30 +1268,32 @@ const Inspection = () => {
 	], [openDropdownRow, data]);
 
 	const {
-		getTableProps,
-		getTableBodyProps,
-		headerGroups,
-		page,
-		prepareRow,
-		state: { pageIndex, globalFilter },
-		setGlobalFilter,
-		nextPage,
-		previousPage,
-		canNextPage,
-		canPreviousPage,
-		pageOptions,
-		gotoPage,
-		setPageSize: tableSetPageSize,
+	  getTableProps,
+	  getTableBodyProps,
+	  headerGroups,
+	  page,
+	  prepareRow,
+	  rows, 
+	  state: { pageIndex, globalFilter },
+	  setGlobalFilter,
+	  nextPage,
+	  previousPage,
+	  canNextPage,
+	  canPreviousPage,
+	  pageOptions,
+	  gotoPage,
+	  setPageSize: tableSetPageSize,
 	} = useTable(
-		{
-			columns,
-			data,
-			initialState: { pageIndex: 0, pageSize },
-			getRowId: row => row.rfi_Id,
-		},
-		useGlobalFilter,
-		usePagination
+	  {
+	    columns,
+	    data,
+	    initialState: { pageIndex: 0, pageSize },
+	    getRowId: row => row.rfi_Id,
+	  },
+	  useGlobalFilter,
+	  usePagination
 	);
+
 
 	useEffect(() => {
 		tableSetPageSize(pageSize);
@@ -1349,9 +1365,10 @@ const Inspection = () => {
 
 						<div className="d-flex align-items-center justify-content-between">
 							<span>
-								Showing {pageIndex * pageSize + 1} to{' '}
-								{Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
+								Showing {rows.length === 0 ? 0 : pageIndex * pageSize + 1} to{" "}
+								{Math.min((pageIndex + 1) * pageSize, rows.length)} of {rows.length} entries
 							</span>
+
 							<div className="pagination">
 								<button onClick={previousPage} disabled={!canPreviousPage}>
 									«

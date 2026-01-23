@@ -996,6 +996,7 @@ export default function RfiLogList() {
 		getTableBodyProps,
 		headerGroups,
 		page,
+		rows,
 		prepareRow,
 		nextPage,
 		previousPage,
@@ -1864,8 +1865,8 @@ export default function RfiLogList() {
 
 						<div className="pagination-bar">
 							<span>
-								Showing {pageIndex * pageSize + 1} to{' '}
-								{Math.min((pageIndex + 1) * pageSize, data.length)} of {data.length} entries
+								Showing {rows.length === 0 ? 0 : pageIndex * pageSize + 1} to{" "}
+								{Math.min((pageIndex + 1) * pageSize, rows.length)} of {rows.length} entries
 							</span>
 							<button onClick={() => previousPage()} disabled={!canPreviousPage}>&lt; Prev</button>
 							<span>Page <strong>{pageIndex + 1} of {pageOptions.length}</strong></span>
