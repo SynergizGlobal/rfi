@@ -103,23 +103,7 @@ public class PdfUploadController {
         content.lineTo(x + 3, y - 1);
         content.lineTo(x + 10, y + 10);
         content.stroke();
-    }
-
-
-    private void drawCrossMark(PDPageContentStream content, float x, float y) throws IOException {
-        content.setStrokingColor(Color.black);
-        content.setLineWidth(1.5f);
-        content.moveTo(x - 2, y + 6);
-        content.lineTo(x + 6, y);
-        content.moveTo(x + 6, y + 6);
-        content.lineTo(x - 2, y);
-        content.stroke();
-    }
-
-
-
-    
-    
+    }    
 
 
     @PostMapping("rfi/uploadPdf/Engg")
@@ -177,7 +161,7 @@ public class PdfUploadController {
                 Map<String, float[]> coords = new HashMap<>();
                 coords.put("Accepted", new float[]{53, 343});
                 coords.put("Rejected", new float[]{353, 343});
-                coords.put("Remarks", new float[]{91, 311}); // measure actual Y in your PDF
+                coords.put("Remarks", new float[]{53, 299}); 
 
 
                 // ✅ Draw tick/cross using lines (no font needed)
@@ -186,7 +170,7 @@ public class PdfUploadController {
                     drawTickMark(content, pos[0], pos[1]);
                 } else if ("Rejected".equalsIgnoreCase(inspectionStatus)) {
                     float[] pos = coords.get("Rejected");
-                    drawCrossMark(content, pos[0], pos[1]);
+                    drawTickMark(content, pos[0], pos[1]);
                 }
 
 
@@ -194,13 +178,12 @@ public class PdfUploadController {
 
                 // ✅ Engineer Remarks
                 if (engRemarks != null && !engRemarks.isBlank()) {
-                    content.setFont(tickFont, 10);
+                    content.setFont(remarkFont, 10);
                     float[] remarkPos = coords.get("Remarks");
                     float startX = remarkPos[0];
                     float startY = remarkPos[1];
                     float maxWidth = 480;
                     float lineHeight = 12;
-
                     List<String> lines = wrapText(engRemarks, maxWidth, remarkFont, 10);
                     for (String line : lines) {
                         content.beginText();

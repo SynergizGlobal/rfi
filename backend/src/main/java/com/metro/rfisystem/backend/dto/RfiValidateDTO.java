@@ -14,5 +14,8 @@ public class RfiValidateDTO {
     private String remarks;
     private EnumValidation action;
     private String comment;
+    private String validatedByUserId;
+    private String validatedByUserName;
+
     
 }

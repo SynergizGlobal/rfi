@@ -20,13 +20,14 @@ public class LoginResponse {
     private String message;
     private String departmentFk;
     private String loginDepartment;
+    private String designation;
     private List<AllowedContractDTO > allowedContracts;
     private List<ContractDesignationEngineersDTO> designationWithEngineers;
 
 
     
     public LoginResponse(String userId, String username,String emailId, String userRoleNameFk, String userTypeFk, String departmentFk, String loginDepartment,
-    	List<AllowedContractDTO > allowedContracts,	List<ContractDesignationEngineersDTO> designationWithEngineers) {
+    	List<AllowedContractDTO > allowedContracts,	List<ContractDesignationEngineersDTO> designationWithEngineers, String designation) {
         this.userId = userId;
         this.userName = username;
         this.emailId= emailId;
@@ -37,6 +38,7 @@ public class LoginResponse {
         this.loginDepartment = loginDepartment;
         this.allowedContracts = allowedContracts;
         this.designationWithEngineers= designationWithEngineers;
+        this.designation = designation;
 
     }
 }

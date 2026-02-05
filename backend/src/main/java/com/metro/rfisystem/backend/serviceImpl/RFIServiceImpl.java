@@ -425,7 +425,7 @@ public class RFIServiceImpl implements RFIService {
 
 	@Override
 	public int countByAssignedTo(String assignedTo) {
-		return rfiRepository.countByAssignedPersonClient(assignedTo);
+		return rfiRepository.countByAssignedPersonClientAndIsDeletedFalse(assignedTo);
 
 	}
 

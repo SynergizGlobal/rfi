@@ -1,12 +1,24 @@
 package com.metro.rfisystem.backend.serviceImpl;
 
+import java.awt.Color;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
@@ -41,6 +53,10 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 	private final ChecklistDescriptionRepository checklistDescriptionRepository;
 	private final RFIEnclosureRepository enclosureRepository;
 	private final MeasurementsRepository measurementsRepository;
+	
+    @Value("${rfi.pdf.storage-path}")
+    private String pdfStoragePath;
+
 
 	@Autowired
 	private EmailService emailService;
@@ -71,30 +87,7 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 		} else
 			return null;
 	}
-
-	@Override
-	@Transactional
-	public boolean validateRfi(RfiValidateDTO dto) {
-
-		boolean success = false;
-		Optional<RFI> rfiOpt = rfiRepository.findById(dto.getLong_rfi_id());
-		Optional<RfiValidation> valOpt = rfiValidationRepository.findById(dto.getLong_rfi_validate_id());
-		if (rfiOpt.isEmpty() || valOpt.isEmpty()) {
-			throw new RuntimeException("Invalid RFI or Validation ID.");
-		}
-		RFI rfi = rfiOpt.get();
-		RfiValidation validation = valOpt.get();
-		rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
-		rfiRepository.save(rfi);
-		validation.setRemarks(dto.getRemarks());
-		validation.setEnumValidation(dto.getAction());
-		validation.setComment(dto.getComment());
-		rfiValidationRepository.save(validation);
-		emailService.sendValidationMail(rfi, validation);
-		success = true;
-		return success;
-
-	}
+	
 
 	private List<AttachmentFileDTO> parseAttachmentData(String attachmentData) {
 		if (attachmentData == null || attachmentData.trim().isEmpty()) {
@@ -181,5 +174,159 @@ public class RfiValidationServiceImpl implements RfiValidationService {
 
 		return "RFI sent for validation successfully.";
 	}
+	
+	
+	private List<String> wrapText(String text, float maxWidth, PDFont font, float fontSize) throws IOException {
+	    List<String> lines = new ArrayList<>();
+	    StringBuilder line = new StringBuilder();
+
+	    for (String word : text.split(" ")) {
+	        String testLine = line + (line.length() == 0 ? "" : " ") + word;
+	        float size = font.getStringWidth(testLine) / 1000 * fontSize;
+
+	        if (size > maxWidth) {
+	            lines.add(line.toString());
+	            line = new StringBuilder(word);
+	        } else {
+	            if (line.length() > 0) line.append(" ");
+	            line.append(word);
+	        }
+	    }
+	    if (!line.isEmpty()) lines.add(line.toString());
+	    return lines;
+	}
+
+
+    private void drawTickMark(PDPageContentStream content, float x, float y) throws IOException {
+        content.setStrokingColor(Color.BLACK);
+        content.setLineWidth(1.5f);
+        content.moveTo(x - 2, y + 5);
+        content.lineTo(x + 3, y - 1);
+        content.lineTo(x + 10, y + 10);
+        content.stroke();
+    }
+
+
+
+	
+	@Override
+	public boolean validateRfi(RfiValidateDTO dto) {
+
+		Optional<RFI> rfiOpt = rfiRepository.findById(dto.getLong_rfi_id());
+		Optional<RfiValidation> valOpt = rfiValidationRepository.findById(dto.getLong_rfi_validate_id());
+
+		if (rfiOpt.isEmpty() || valOpt.isEmpty()) {
+			throw new RuntimeException("Invalid RFI or Validation ID.");
+		}
+
+		RFI rfi = rfiOpt.get();
+		RfiValidation validation = valOpt.get();
+
+
+		rfi.setStatus(EnumRfiStatus.INSPECTION_DONE);
+		rfiRepository.save(rfi);
+
+		validation.setRemarks(dto.getRemarks());
+		validation.setEnumValidation(dto.getAction());
+		validation.setComment(dto.getComment());
+		validation.setValidatedByUserId(dto.getValidatedByUserId());
+		validation.setValidatedByUserName(dto.getValidatedByUserName());
+		validation.setValidatedOn(LocalDateTime.now());
+
+		rfiValidationRepository.save(validation);
+
+
+		try {
+			String txnId = rfi.getTxn_id();
+			File pdfFile = new File(pdfStoragePath, "signed_engineer_" + txnId + "_final.pdf");
+
+			if (!pdfFile.exists()) {
+				throw new RuntimeException("Final PDF not found for stamping.");
+			}
+
+			try (PDDocument document = PDDocument.load(pdfFile)) {
+
+				PDPage page = document.getPage(1);
+
+				Map<String, float[]> coords = new HashMap<>();
+
+				coords.put("Approved", new float[] { 53, 758 });
+				coords.put("Rejected", new float[] { 403, 758 });
+				coords.put("Remarks", new float[] { 100, 736 });
+				coords.put("Comment", new float[] { 55, 690 });
+				coords.put("ValidatedBy", new float[] { 115, 587 });
+				coords.put("ValidatedOn", new float[] { 470, 587 });
+
+				try (PDPageContentStream content = new PDPageContentStream(document, page,
+						PDPageContentStream.AppendMode.APPEND, true)) {
+
+					PDFont normalFont = PDType1Font.HELVETICA;
+					PDFont boldFont = PDType1Font.HELVETICA_BOLD;
+
+					if (dto.getAction() == EnumValidation.APPROVED) {
+						float[] pos = coords.get("Approved");
+						drawTickMark(content, pos[0], pos[1]);
+					} else if (dto.getAction() == EnumValidation.REJECTED) {
+						float[] pos = coords.get("Rejected");
+						drawTickMark(content, pos[0], pos[1]);
+					}
+
+					if (dto.getRemarks() != null && !dto.getRemarks().isBlank()) {
+						float[] pos = coords.get("Remarks");
+						content.beginText();
+						content.setFont(boldFont, 10);
+						content.newLineAtOffset(pos[0], pos[1]);
+						content.showText(dto.getRemarks());
+						content.endText();
+					}
+
+					if (dto.getComment() != null && !dto.getComment().isBlank()) {
+						float[] pos = coords.get("Comment");
+						float startX = pos[0];
+						float startY = pos[1];
+						float lineHeight = 12;
+						float maxWidth = 460;
+
+						List<String> lines = wrapText(dto.getComment(), maxWidth, normalFont, 10);
+
+						content.setFont(normalFont, 10);
+						for (String line : lines) {
+							content.beginText();
+							content.newLineAtOffset(startX, startY);
+							content.showText(line);
+							content.endText();
+							startY -= lineHeight;
+						}
+					}
+
+					float[] vb = coords.get("ValidatedBy");
+					content.beginText();
+					content.setFont(normalFont, 10);
+					content.newLineAtOffset(vb[0], vb[1]);
+					content.showText(dto.getValidatedByUserName());
+					content.endText();
+
+					float[] vo = coords.get("ValidatedOn");
+					content.beginText();
+					content.newLineAtOffset(vo[0], vo[1]);
+					content.showText(LocalDate.now().toString());
+					content.endText();
+				}
+
+				document.save(pdfFile);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+
+        emailService.sendValidationMail(rfi, validation);
+
+		return true;
+	}
+
+
+
 
 }

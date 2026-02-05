@@ -684,6 +684,20 @@ label span {
   font-family: Arial, sans-serif;
 }
 
+.engineer-remarks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-family: Arial, sans-serif;
+  position: relative;   
+}
+.engineer-remarks label {
+	  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
 .enclosure-comments label {
   font-weight: 600;
   font-size: 0.95rem;

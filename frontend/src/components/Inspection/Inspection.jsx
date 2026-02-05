@@ -51,8 +51,8 @@ const Inspection = () => {
 
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
-	
-	
+
+
 	const [showAssignPopup, setShowAssignPopup] = useState(false);
 	const [selectedPerson, setSelectedPerson] = useState('');
 	const [engineerOptions, setEngineerOptions] = useState([]);
@@ -89,13 +89,27 @@ const Inspection = () => {
 
 				// ✅ Apply status filter from Created RFI (via Dashboard navigation)
 				if (filterStatus && filterStatus.length > 0) {
-					if (filterStatus.includes("ACCEPTED")) {
+					if (filterStatus.includes("APPROVED")) {
 						// Filter by approvalStatus for Accepted and closed card 
-						filteredData = data.filter((rfi) => rfi.approvalStatus === "Accepted" && rfi.status === "INSPECTION_DONE");
+						filteredData = data.filter((rfi) => (rfi.approvalStatus === "Accepted" && (!rfi.validationStatus || rfi.validationStatus ==="APPROVED"))
+						    && rfi.status === "INSPECTION_DONE");
 					}
 					else if (filterStatus.includes("REJECTED")) {
-				     // Filter by approvalStatus for rejected and closed card
-						filteredData = data.filter((rfi) => rfi.approvalStatus === "Rejected" && rfi.status === "INSPECTION_DONE");
+						// Filter by approvalStatus for rejected and closed card
+						filteredData = data.filter((rfi) =>
+						    (
+						        (rfi.approvalStatus === "Rejected" && !rfi.validationStatus)
+
+						        ||
+
+						        (
+						            (rfi.approvalStatus === "Rejected" || rfi.approvalStatus === "Accepted") &&
+						            rfi.validationStatus === "REJECTED"
+						        )
+						    )
+						    && rfi.status === "INSPECTION_DONE"
+						);
+
 					}
 					else if (filterStatus.includes("CLOSED")) {
 						// Filter by approvalStatus for Clsosed card (INSPECTION_DONE status rfi's) 
@@ -243,25 +257,25 @@ const Inspection = () => {
 	};
 
 	const isInspectionTimeValid = (rowDate, rowTime) => {
-	  if (!rowDate || !rowTime) return false;
+		if (!rowDate || !rowTime) return false;
 
-	  const [dd, mm, yyyy] = rowDate.split("-");
+		const [dd, mm, yyyy] = rowDate.split("-");
 
-	  const cleanTime =
-	    rowTime.split(".")[0].length === 5 ? `${rowTime}:00` : rowTime.split(".")[0];
+		const cleanTime =
+			rowTime.split(".")[0].length === 5 ? `${rowTime}:00` : rowTime.split(".")[0];
 
-	  const formatted = `${yyyy}-${mm}-${dd}T${cleanTime}`;  
+		const formatted = `${yyyy}-${mm}-${dd}T${cleanTime}`;
 
-	  const scheduled = new Date(formatted);
-	  const now = new Date();
+		const scheduled = new Date(formatted);
+		const now = new Date();
 
-	  console.log("Formatted:", formatted);
-	  console.log("Scheduled:", scheduled);
-	  console.log("Now:", now);
+		console.log("Formatted:", formatted);
+		console.log("Scheduled:", scheduled);
+		console.log("Now:", now);
 
-	  if (isNaN(scheduled.getTime())) return false;
+		if (isNaN(scheduled.getTime())) return false;
 
-	  return now >= scheduled;
+		return now >= scheduled;
 	};
 
 
@@ -312,37 +326,37 @@ const Inspection = () => {
 	const [downloadingId, setDownloadingId] = useState(null);
 
 
-//	const handleDownloadSiteImagesPdf = async (id, uploadedBy, rfiId) => {
-//		const isContractor = uploadedBy?.toLowerCase() === "contractor";
-//		const uniqueId = isContractor ? id : `client-${id}`;
-//		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
-//		try {
-//			setDownloadingId(uniqueId);
-//
-//			const response = await fetch(
-//				`${API_BASE_URL}rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
-//			);
-//
-//			if (!response.ok) {
-//				alert("No images found or failed to generate PDF.");
-//				return;
-//			}
-//			const blob = await response.blob();
-//			const url = window.URL.createObjectURL(blob);
-//			const link = document.createElement("a");
-//			link.href = url;
-//			const filename = fileNameGenerated;
-//			link.setAttribute("download", filename);
-//			document.body.appendChild(link);
-//			link.click();
-//			link.remove();
-//		} catch (err) {
-//			console.error("PDF download error:", err);
-//			alert("Failed to download PDF.");
-//		} finally {
-//			setDownloadingId(null);
-//		}
-//	};
+	//	const handleDownloadSiteImagesPdf = async (id, uploadedBy, rfiId) => {
+	//		const isContractor = uploadedBy?.toLowerCase() === "contractor";
+	//		const uniqueId = isContractor ? id : `client-${id}`;
+	//		const fileNameGenerated = `${rfiId}_${isContractor ? "Contractor" : "Client"}_SiteImages.pdf`;
+	//		try {
+	//			setDownloadingId(uniqueId);
+	//
+	//			const response = await fetch(
+	//				`${API_BASE_URL}rfi/downloadSiteImagesPdf?id=${id}&uploadedBy=${uploadedBy}`
+	//			);
+	//
+	//			if (!response.ok) {
+	//				alert("No images found or failed to generate PDF.");
+	//				return;
+	//			}
+	//			const blob = await response.blob();
+	//			const url = window.URL.createObjectURL(blob);
+	//			const link = document.createElement("a");
+	//			link.href = url;
+	//			const filename = fileNameGenerated;
+	//			link.setAttribute("download", filename);
+	//			document.body.appendChild(link);
+	//			link.click();
+	//			link.remove();
+	//		} catch (err) {
+	//			console.error("PDF download error:", err);
+	//			alert("Failed to download PDF.");
+	//		} finally {
+	//			setDownloadingId(null);
+	//		}
+	//	};
 
 
 
@@ -420,7 +434,7 @@ const Inspection = () => {
 
 
 				body: JSON.stringify({
-					rfi_Id: selectedRfiForAssign.rfi_Id, // send as string, exactly what backend expects
+					rfi_Id: selectedRfiForAssign.rfi_Id, 
 					assignedPersonClient: selectedPerson,
 					clientDepartment: deptFK,
 				}),
@@ -441,9 +455,11 @@ const Inspection = () => {
 				}));
 				setShowAssignPopup(false);
 				setSelectedPerson('');
+				fetchUpdatedRfiData();
 			} else {
 				alert("Assignment failed: " + (await response.text()));
 			}
+			fetchUpdatedRfiData();
 		} catch (err) {
 			console.error(err);
 			alert("Error assigning person");
@@ -546,60 +562,60 @@ const Inspection = () => {
 
 	const handleClosePopPupAttachement = async () => {
 		setShowUploadPopupAttachDocs(false);
-		 setUploadedFile(null);
-		 setAttachmentDescription("");
+		setUploadedFile(null);
+		setAttachmentDescription("");
 	}
-	
+
 	const handleClosePopPupTestResult = async () => {
 		setShowUploadPopup(false);
-		 setUploadedFile(null);
-		 setSelectedTestType("");
+		setUploadedFile(null);
+		setSelectedTestType("");
 	}
 
 
 	const handleUploadAttachment = async () => {
-	  try {
-	    if (!selectedRfi?.id) {
-	      alert("No RFI selected!");
-	      return;
-	    }
+		try {
+			if (!selectedRfi?.id) {
+				alert("No RFI selected!");
+				return;
+			}
 
-	    if (!uploadedFile) {
-	      alert("Please select a file!");
-	      return;
-	    }
+			if (!uploadedFile) {
+				alert("Please select a file!");
+				return;
+			}
 
-	    const rfiId = selectedRfi.id;
+			const rfiId = selectedRfi.id;
 
-	    const formData = new FormData();
-	    formData.append("rfiId", rfiId);
-	    formData.append("description", attachmentDescription?.trim() || "");
-	    formData.append("file", uploadedFile);
+			const formData = new FormData();
+			formData.append("rfiId", rfiId);
+			formData.append("description", attachmentDescription?.trim() || "");
+			formData.append("file", uploadedFile);
 
-	    const res = await fetch(`${API_BASE_URL}rfi/upload-attachment`, {
-	      method: "POST",
-	      body: formData,
-	      credentials: "include",
-	    });
+			const res = await fetch(`${API_BASE_URL}rfi/upload-attachment`, {
+				method: "POST",
+				body: formData,
+				credentials: "include",
+			});
 
-	    const msg = await res.text();
+			const msg = await res.text();
 
-	    if (res.ok) {
-	      alert(msg);
+			if (res.ok) {
+				alert(msg);
 
-	      // ✅ reset
-	      setUploadedFile(null);
-	      setAttachmentDescription("");
-	      setShowUploadPopupAttachDocs(false);
+				// ✅ reset
+				setUploadedFile(null);
+				setAttachmentDescription("");
+				setShowUploadPopupAttachDocs(false);
 
 
-	    } else {
-	      alert("Upload Failed: " + msg);
-	    }
-	  } catch (err) {
-	    console.error(err);
-	    alert("Upload Error: " + err.message);
-	  }
+			} else {
+				alert("Upload Failed: " + msg);
+			}
+		} catch (err) {
+			console.error(err);
+			alert("Upload Error: " + err.message);
+		}
 	};
 
 	const RfiDescCell = ({ value }) => {
@@ -653,9 +669,11 @@ const Inspection = () => {
 		{ Header: 'Structure', accessor: 'structure' },
 		{ Header: 'Element', accessor: 'element' },
 		{ Header: 'Activity', accessor: 'activity' },
-		{ Header: 'RFI Description',
-			 accessor: 'rfiDescription',
-		 Cell: ({ value }) => <RfiDescCell value={value} /> },
+		{
+			Header: 'RFI Description',
+			accessor: 'rfiDescription',
+			Cell: ({ value }) => <RfiDescCell value={value} />
+		},
 		{ Header: 'Assigned Contractor', accessor: 'nameOfRepresentative' },
 		{
 			Header: "Assigned Employer's Engineer",
@@ -671,44 +689,44 @@ const Inspection = () => {
 			Header: 'Inspection Status',
 			accessor: 'status'
 		},
-//		{
-//			Header: 'Download Contractor Images',
-//			Cell: ({ row }) => {
-//				const isDownloading = downloadingId === row.original.id;
-//				const hasContractorImage = row.original.imgContractor !== null;
-//
-//				return hasContractorImage ? (
-//					<button
-//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor', row.original.rfi_Id)}
-//						className="btn-download"
-//						disabled={isDownloading}
-//					>
-//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-//					</button>
-//				) : (
-//					<span style={{ color: '#888' }}></span>
-//				);
-//			}
-//		},
-//		{
-//			Header: 'Download Client Images',
-//			Cell: ({ row }) => {
-//				const isDownloading = downloadingId === `client-${row.original.id}`;
-//				const hasClientImage = row.original.imgClient !== null;
-//
-//				return hasClientImage ? (
-//					<button
-//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User', row.original.rfi_Id)}
-//						className="btn-download"
-//						disabled={isDownloading}
-//					>
-//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
-//					</button>
-//				) : (
-//					<span style={{ color: '#888' }}></span>
-//				);
-//			}
-//		},
+		//		{
+		//			Header: 'Download Contractor Images',
+		//			Cell: ({ row }) => {
+		//				const isDownloading = downloadingId === row.original.id;
+		//				const hasContractorImage = row.original.imgContractor !== null;
+		//
+		//				return hasContractorImage ? (
+		//					<button
+		//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Contractor', row.original.rfi_Id)}
+		//						className="btn-download"
+		//						disabled={isDownloading}
+		//					>
+		//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+		//					</button>
+		//				) : (
+		//					<span style={{ color: '#888' }}></span>
+		//				);
+		//			}
+		//		},
+		//		{
+		//			Header: 'Download Client Images',
+		//			Cell: ({ row }) => {
+		//				const isDownloading = downloadingId === `client-${row.original.id}`;
+		//				const hasClientImage = row.original.imgClient !== null;
+		//
+		//				return hasClientImage ? (
+		//					<button
+		//						onClick={() => handleDownloadSiteImagesPdf(row.original.id, 'Regular User', row.original.rfi_Id)}
+		//						className="btn-download"
+		//						disabled={isDownloading}
+		//					>
+		//						{isDownloading ? '⏳ Downloading...' : '⬇️'}
+		//					</button>
+		//				) : (
+		//					<span style={{ color: '#888' }}></span>
+		//				);
+		//			}
+		//		},
 		{
 			Header: 'Action',
 			Cell: ({ row }) => {
@@ -888,8 +906,10 @@ const Inspection = () => {
 																} else {
 																	alert("✅ " + text);
 																	await fetchUpdatedRfiData();
+																	navigate('/Validation');
 																}
 																setConfirmPopupData(null);
+																
 															})
 															.catch((err) => {
 																console.error("❌ API error:", err);
@@ -1235,7 +1255,7 @@ const Inspection = () => {
 
 
 								{deptFK === 'engg' ? (
-									row.original.status === "INSPECTION_DONE" && row.original.testResEngg === null && (
+									row.original.status === "INSPECTION_DONE" && (row.original.testResEngg === null || row.original.testResEngg === "") && (
 										<button
 											onClick={() => {
 												setSelectedRfi(row.original);
@@ -1268,30 +1288,30 @@ const Inspection = () => {
 	], [openDropdownRow, data]);
 
 	const {
-	  getTableProps,
-	  getTableBodyProps,
-	  headerGroups,
-	  page,
-	  prepareRow,
-	  rows, 
-	  state: { pageIndex, globalFilter },
-	  setGlobalFilter,
-	  nextPage,
-	  previousPage,
-	  canNextPage,
-	  canPreviousPage,
-	  pageOptions,
-	  gotoPage,
-	  setPageSize: tableSetPageSize,
+		getTableProps,
+		getTableBodyProps,
+		headerGroups,
+		page,
+		prepareRow,
+		rows,
+		state: { pageIndex, globalFilter },
+		setGlobalFilter,
+		nextPage,
+		previousPage,
+		canNextPage,
+		canPreviousPage,
+		pageOptions,
+		gotoPage,
+		setPageSize: tableSetPageSize,
 	} = useTable(
-	  {
-	    columns,
-	    data,
-	    initialState: { pageIndex: 0, pageSize },
-	    getRowId: row => row.rfi_Id,
-	  },
-	  useGlobalFilter,
-	  usePagination
+		{
+			columns,
+			data,
+			initialState: { pageIndex: 0, pageSize },
+			getRowId: row => row.rfi_Id,
+		},
+		useGlobalFilter,
+		usePagination
 	);
 
 
@@ -1516,7 +1536,7 @@ const Inspection = () => {
 									onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
 								/>
 
-			{uploadedFile && <p style={{ text: "none" }}><strong>Selected File:</strong> {uploadedFile.name}</p>}
+								{uploadedFile && <p style={{ text: "none" }}><strong>Selected File:</strong> {uploadedFile.name}</p>}
 							</div>
 
 							<button className="done-btn" onClick={handleUploadAttachment}>

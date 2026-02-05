@@ -17,6 +17,7 @@ public class GetRfiDTO {
 	private String status;
 	private String remarks;
 	private String valdationAuth;
+	private String comment;
 	
 
 }

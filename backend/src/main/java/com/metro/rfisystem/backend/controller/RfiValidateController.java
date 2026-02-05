@@ -9,8 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
-
-import org.pptx4j.pml.CTTLTimeNodeParallel;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,17 +42,28 @@ public class RfiValidateController {
 
 
 	@PostMapping(value = "/validate")
-	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto) {
-		boolean success = false;
-	     success = rfiValidationService.validateRfi(dto);
-	    if (success == false) {
-	    	 return ResponseEntity
-		                .status(HttpStatus.BAD_REQUEST)
-		                .body("Failed to validate RFI.");
-	       
-	    } else {
-	    	 return ResponseEntity.ok("RFI validated successfully.");
-	    }
+	public ResponseEntity<String> validateRfis(@ModelAttribute RfiValidateDTO dto, HttpSession session) {
+
+		String userId = (String) session.getAttribute("userId");
+		String userName = (String) session.getAttribute("userName");
+		System.out.println("UserId: " + userId);
+		System.out.println("UserId: " + userId);
+		System.out.println("UserName: " + userName);
+		System.out.println("UserName: " + userName);
+
+		if ((userId == null || userId.isEmpty()) || (userName == null || userName.isEmpty())) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body("Login Session has Expired (or) UserId or UserName Not Found!");
+		}
+		dto.setValidatedByUserId(userId);
+		dto.setValidatedByUserName(userName);
+		boolean success = rfiValidationService.validateRfi(dto);
+		if (!success) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to validate RFI.");
+
+		} else {
+			return ResponseEntity.ok("RFI validated successfully.");
+		}
 	}
 
 	

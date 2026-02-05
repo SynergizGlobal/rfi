@@ -18,10 +18,11 @@ public class RfiLogDTO {
     private String person;
     private String dateRaised;
     private String dateResponded;
-    private String  enggApproval;
+    private String enggApproval;
     private String status;
     private String eStatus;
     private String notes;
+    private String validationStatus;
     private String project;
     private String work;
     private String contract;

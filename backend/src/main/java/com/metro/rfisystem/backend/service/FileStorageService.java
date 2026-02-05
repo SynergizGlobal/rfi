@@ -38,15 +38,12 @@ public class FileStorageService {
         }
     }
     
-    public String saveFileAttachment(MultipartFile file) {
+    public String saveFileAttachment(Long rfiId,MultipartFile file) {
         try {
             Path uploadDir = Paths.get(pdfStoragePathAttachments).toAbsolutePath().normalize();
             Files.createDirectories(uploadDir);
 
-            String originalName = file.getOriginalFilename();
-            String safeFileName = (originalName != null ? originalName.replaceAll("[\\\\/:*?\"<>|]", "_") : "uploaded.pdf");
-
-            String fileName = System.currentTimeMillis() + "_" + safeFileName;
+            String fileName ="RFI_"+ rfiId+ "_"+"attachments_"+ System.currentTimeMillis()+".pdf";
 
             Path filePath = uploadDir.resolve(fileName).normalize();
 

@@ -46,10 +46,18 @@ public class RfiValidation {
 	@Column(name = "action")
 	private EnumValidation enumValidation;
 
-	
 	@Column(name = "comment", length = 500)
 	private String comment;
 	
 	@Enumerated(EnumType.STRING)
 	private EnumValidation validationAuthority;
+	
+	@Column
+	private String validatedByUserId;
+	
+	@Column
+	private String validatedByUserName;
+	
+	@Column(name = "validated_on", columnDefinition = "TIMESTAMP")
+	private LocalDateTime validatedOn;
 }

@@ -5,6 +5,10 @@ import autoTable from "jspdf-autotable";
 
 let externalPdfBlobs = [];
 
+let enclosurePdfBlobs = [];
+let testReportPdfBlobs = [];
+let supportingPdfBlobs = [];
+
 // Convert image/File to Base64
 
 export const toBase64 = async (input) => {
@@ -38,6 +42,12 @@ export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 	const mainPdfBytes = jsPDFDoc.output("arraybuffer");
 	const mainPdf = await PDFDocument.load(mainPdfBytes);
 	const mergedPdf = await PDFDocument.create();
+	
+	const testReportCount = testReportPdfBlobs.length;
+	const enclosureCount = enclosurePdfBlobs.length;
+	const supportingCount = supportingPdfBlobs.length;
+
+	
 
 	// Add main PDF pages first
 	const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
@@ -48,13 +58,22 @@ export async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs) {
 		return new Blob([mergedBytes], { type: "application/pdf" });
 	}
 
-	// Separate test report and enclosures logically
-	// 👇 Assuming first group is test reports, rest are enclosures
-	const testReportCount = 1; // adjust if multiple test reports are expected
 
 	for (let i = 0; i < externalPdfBlobs.length; i++) {
 		let fileBlob = externalPdfBlobs[i];
-		let labelText = i < testReportCount ? "Test Report PDF" : "Enclosure PDF";
+		let labelText = "";
+
+
+		if (i < enclosureCount) {
+			labelText = "Enclosure PDF";
+		}
+		else if (i < enclosureCount + supportingCount) {
+			labelText = "Supporting Document PDF";
+		}
+		else {
+			labelText = "Test Report PDF";
+		}
+
 
 		// Normalize Blob
 		if (typeof fileBlob === "string") {
@@ -115,7 +134,7 @@ export async function generateInspectionPdf(rfiData) {
 	const contract = rfiData.contract || "";
 	const contractor = rfiData.contractor || rfiData.createdBy || "";
 	const contractorRep = rfiData.contractorRep || "";
-	const locationText = rfiData.location || "Not Provided"; // mandatory
+	const locationText = rfiData.location || "Not Provided"; 
 	const sideText = rfiData.side || "";
 	const measurements = Array.isArray(rfiData.measurements) ? rfiData.measurements : []; // mandatory
 	const submissionDate = rfiData.submissionDate || new Date().toLocaleDateString();
@@ -179,7 +198,7 @@ export async function generateInspectionPdf(rfiData) {
 	// Part I: RFI Details
 	// ==============================
 	doc.setFont("helvetica", "bold").setFontSize(12);
-	doc.rect(30, 170, 540, 390);
+	doc.rect(30, 170, 540, 490);
 	doc.text("Part - I :", 40, 185);
 	doc.text("RFI.No : " + (rfiData.rfi_Id || "………………"), 300, 185, { maxWidth: 400 });
 
@@ -220,12 +239,8 @@ export async function generateInspectionPdf(rfiData) {
 	doc.rect(40, 328, 510, 40);
 	doc.text(rfiDescription, 45, 343, { maxWidth: 500 });
 
-	// ==============================
-	// Enclosures (Checkboxes)
-	// ==============================
-	// ==============================
-	// Enclosures (Dynamic from backend)
-	// ==============================
+//  Enclosure Dynamic Places..
+
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Enclosures:", 40, 390);
 
@@ -288,8 +303,10 @@ export async function generateInspectionPdf(rfiData) {
 
 	doc.setFont("helvetica", "normal").setFontSize(10);
 	const remarksY = 550;
-	const remarkText = inspectionStatus === "Rejected" ? engineerRemarks || "" : "";
-	doc.text(remarkText, 50, remarksY);
+	const remarkText = inspectionStatus === "REJECTED" ? engineerRemarks || "" : "";
+	const maxWidth = doc.internal.pageSize.getWidth() - 100;
+	const wrappedText = doc.splitTextToSize(remarkText, maxWidth);
+	doc.text(wrappedText, 50, remarksY);
 
 	// Signature placeholders
 	// Reuse existing page height
@@ -303,43 +320,90 @@ export async function generateInspectionPdf(rfiData) {
 	// ==============================
 	// ============================== // Measurement Record (mandatory) // ============================== 
 	doc.addPage();
+
+	// Draw border FIRST
+	doc.rect(30, 30, 540, 800);
+
+	let y = 50;
+
+	/* ================= HEADER ================= */
+	doc.setFont("helvetica", "bold").setFontSize(12);
+	doc.text("Part - III : Validation (OPTIONAL)", 40, y);
+
+	y += 25;
+
+	/* ================= APPROVAL CHECKBOXES ================= */
+	doc.setFont("helvetica", "normal").setFontSize(10);
+
+	doc.rect(50, y, 12, 12);   // Approved
+	doc.rect(400, y, 12, 12);  // Rejected
+
+	doc.text("Approved", 70, y + 10);
+	doc.text("Rejected", 420, y + 10);
+
+	y += 30;
+
+	/* ================= VALIDATION INFO ================= */
+	doc.setFont("helvetica", "bold").setFontSize(10);
+	doc.text("Remarks:", 50, y);
+	y += 20;
+
+	/* ================= COMMENT SECTION ================= */
+	doc.text("Comment:", 50, y);
+	y += 15;
+
+	// Comment box sized for ~500 chars
+	const commentBoxHeight = 95;
+	doc.rect(50, y, 500, commentBoxHeight);
+
+	y += commentBoxHeight + 20;
+	
+	
+	doc.text("Validated By:", 50, y);
+	doc.text("Validated On:", 400, y);
+
+	y += 12; // small space below text
+
+	// Divider line inside border (same left/right margin as border padding)
+	doc.line(30, y, 570, y);
+
+	y += 15; // space before next section
+
+
+
+
+
+	/* ================= TEXT NORMALIZER ================= */
 	const normalizeText = (txt) =>
 	  String(txt || "-")
 	    .replace(/\r\n/g, "\n")
-	    .replace(/\n/g, " ")        // ✅ newline becomes space
-	    .replace(/\s+/g, " ")       // ✅ remove extra spaces
+	    .replace(/\n/g, " ")
+	    .replace(/\s+/g, " ")
 	    .trim();
 
-	doc.rect(30, 30, 540, 810);
+	/* ================= INSPECTION DESCRIPTIONS ================= */
 
-	let y = 45;
-
-	/* ✅ Inspection Description (Contractor) */
-	/* ✅ Contractor Description */
 	doc.setFont("helvetica", "bold").setFontSize(10);
 	doc.text("Inspection Description (Contractor):", 40, y);
 
 	doc.setFont("helvetica", "normal").setFontSize(9);
-
 	const descCon = normalizeText(inspDescriptionCon);
 	const descLinesCon = doc.splitTextToSize(descCon, 500);
 	doc.text(descLinesCon, 40, y + 14);
 	y += 14 + descLinesCon.length * 14 + 15;
 
-
-	/* ✅ Inspection Description (Client) */
+	/* Client Description */
 	doc.setFont("helvetica", "bold").setFontSize(10);
 	doc.text("Inspection Description (Client):", 40, y);
 
 	doc.setFont("helvetica", "normal").setFontSize(9);
-
 	const descEngg = normalizeText(inspDescriptionEngg);
 	const descLinesEngg = doc.splitTextToSize(descEngg, 500);
 	doc.text(descLinesEngg, 40, y + 14);
 	y += 14 + descLinesEngg.length * 14 + 20;
 
+	/* ================= MEASUREMENT TABLE ================= */
 
-	/* ✅ Measurement Record heading */
 	doc.setFont("helvetica", "bold").setFontSize(11);
 	doc.text("Measurement Record", 40, y);
 
@@ -362,24 +426,21 @@ export async function generateInspectionPdf(rfiData) {
 	  headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold" }
 	});
 
-	/* ✅ Start Enclosures BELOW table */
+	/* ================= ENCLOSURES SECTION ================= */
+
 	let encY = (doc.lastAutoTable?.finalY || tableStartY) + 30;
+
 	if (encY > pageHeight - 120) {
 	  doc.addPage();
 	  doc.rect(30, 30, 540, 810);
 	  encY = 60;
 	}
 
-	/* ==============================
-	   Enclosures + Checklists + Site Images
-	   ============================== */
-
 	doc.setFont("helvetica", "bold").setFontSize(12);
 	doc.text("Enclosures", 40, encY);
-
 	encY += 20;
 
-	let enclosurePdfBlobs = [];
+
 
 	for (const [index, enc] of enclosuresData.entries()) {
 	  if (encY > pageHeight - 80) {
@@ -489,11 +550,7 @@ export async function generateInspectionPdf(rfiData) {
 	renderSiteImages("Engineer Site Images:", images.engineer);
 
 
-	// ==============================
-	// Test Report Section
-	// ==============================
 
-	let testReportPdfBlobs = [];
 
 	function toBase64(file) {
 		return new Promise((resolve, reject) => {
@@ -556,10 +613,7 @@ export async function generateInspectionPdf(rfiData) {
 		}
 	}
 
-	// ==============================
-	// Supporting Documents (PDF or Images)
-	// ==============================
-	let supportingPdfBlobs = [];
+
 
 	if (supportingDocs?.length > 0) {
 		for (const docItem of supportingDocs) {
@@ -660,9 +714,9 @@ export async function generateInspectionPdf(rfiData) {
 
 
 	externalPdfBlobs = [
-    ...testReportPdfBlobs,
     ...enclosurePdfBlobs,
-    ...supportingPdfBlobs,  // ✅ FIXED
+    ...supportingPdfBlobs, 
+	...testReportPdfBlobs,
 ];
 
 	return { doc, externalPdfBlobs };

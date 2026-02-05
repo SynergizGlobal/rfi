@@ -46,6 +46,7 @@ import com.metro.rfisystem.backend.constants.ESignStatus;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.constants.InspectionSubmitResult;
 import com.metro.rfisystem.backend.constants.InspectionWorkFlowStatus;
+import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.MeasurementDTO;
 import com.metro.rfisystem.backend.dto.RFIInspectionRequestDTO;
 import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
@@ -88,8 +89,11 @@ public class InspectionServiceImpl implements InspectionService {
 	@Value("${supporting.docs.upload-dir}")
 	private String supportingDocsUploadDir;
 	
-	@Value("rfi.attachments.upload-dir")
+	@Value("${rfi.attachments.upload-dir}")
 	private String rfiAttachmentsUploadDir;
+	
+	@Value("${file.site.test.dir}")
+	private String rfiTestReportUploadDir;
 
 
 	@Override
@@ -152,7 +156,7 @@ public class InspectionServiceImpl implements InspectionService {
 		}
 
 		if (testDocument != null && !testDocument.isEmpty()) {
-			inspection.setTestSiteDocuments(saveFile(testDocument));
+			inspection.setTestSiteDocuments(saveFileTestReport(dto.getRfiId(),dto.getInspectionStatus() ,testDocument));
 		}
 
 		// Supporting documents
@@ -171,7 +175,7 @@ public class InspectionServiceImpl implements InspectionService {
 			for (int i = 0; i < supportingFiles.size(); i++) {
 				MultipartFile file = supportingFiles.get(i);
 				String description = dto.getSupportingDescriptions().get(i);
-				String savedPath = saveSupportingFile(file); // saves in ${user.home}/uploads/supporting-documents
+				String savedPath = saveSupportingFile(dto.getRfiId(),file); // saves in ${user.home}/uploads/supporting-documents
 
 				existingDocs.add(new SupportingDoc(savedPath, description));
 			}
@@ -298,7 +302,7 @@ public class InspectionServiceImpl implements InspectionService {
 			inspection.setSelfiePath(saveFile(selfie));
 		}
 		if (testDocument != null && !testDocument.isEmpty()) {
-			inspection.setTestSiteDocuments(saveFile(testDocument));
+			inspection.setTestSiteDocuments(saveFileTestReport(dto.getRfiId(),dto.getInspectionStatus(),testDocument));
 		}
 		// Supporting documents
 		if (supportingFiles != null && !supportingFiles.isEmpty() && dto.getSupportingDescriptions() != null) {
@@ -316,7 +320,7 @@ public class InspectionServiceImpl implements InspectionService {
 			for (int i = 0; i < supportingFiles.size(); i++) {
 				MultipartFile file = supportingFiles.get(i);
 				String description = dto.getSupportingDescriptions().get(i);
-				String savedPath = saveSupportingFile(file); // saves in ${user.home}/uploads/supporting-documents
+				String savedPath = saveSupportingFile(dto.getRfiId(),file); // saves in ${user.home}/uploads/supporting-documents
 
 				existingDocs.add(new SupportingDoc(savedPath, description));
 			}
@@ -609,20 +613,42 @@ public class InspectionServiceImpl implements InspectionService {
 			throw new RuntimeException("Failed to store file: " + ex.getMessage(), ex);
 		}
 	}
+	
+	private String saveFileTestReport(Long rfiId, InspectionStatus reportType, MultipartFile file) {
+		if (file.isEmpty()) {
+			throw new IllegalArgumentException("Cannot save empty file");
+		}
+		try {
+			Path dirPath = Paths.get(rfiTestReportUploadDir).toAbsolutePath().normalize();
+			Files.createDirectories(dirPath);
 
-	private String saveSupportingFile(MultipartFile file) throws IOException {
+			String newFileName = "RFI_"+rfiId+"_"+reportType+"_report_"+ System.currentTimeMillis()+ ".pdf";
+			Path targetPath = dirPath.resolve(newFileName);
+
+			Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+			return rfiTestReportUploadDir + "/" + newFileName;
+		} catch (IOException ex) {
+			throw new RuntimeException("Failed to store test report file : " + ex.getMessage(), ex);
+		}
+	}
+	
+	
+
+
+	private String saveSupportingFile(Long rfiId, MultipartFile file) throws IOException {
 		Path dirPath = Paths.get(supportingDocsUploadDir).toAbsolutePath().normalize();
 
 		if (!Files.exists(dirPath)) {
 			Files.createDirectories(dirPath);
 		}
 
-		String filename = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+		String filename ="RFI_"+ rfiId +"_"+ "supporting_docs_"+ System.currentTimeMillis()+".pdf";
 		Path filePath = dirPath.resolve(filename);
 
 		Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-		return filename; // return file name for database storage
+		return filename; 
 	}
 
 // hepler function for submiRfi to send for validation by Engineer Only	
@@ -843,7 +869,7 @@ public class InspectionServiceImpl implements InspectionService {
 	            return "Server PDF not found at: " + finalPdf.getAbsolutePath();
 	        }
 
-	        String attachmentFilePath = fileStorageService.saveFileAttachment(file);
+	        String attachmentFilePath = fileStorageService.saveFileAttachment(rfiId,file);
 	        File uploadedFile = new File(attachmentFilePath);
 	        String finalFileName = uploadedFile.getName();
 	        if (!uploadedFile.exists()) {

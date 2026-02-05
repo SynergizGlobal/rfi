@@ -13,8 +13,8 @@ const getExtension = (filename) => {
 export default function Validation() {
 	const [selectedInspection, setSelectedInspection] = useState(null);
 
-
 	const [message, setMessage] = useState('');
+	const [message1, setMessage1] = useState('');
 	const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
 	const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
 	const designation = localStorage.getItem("designation")?.toLowerCase();
@@ -22,20 +22,8 @@ export default function Validation() {
 	const isITAdmin = userRole === 'it admin';
 	const isDyHOD = userType === "dyhod";
 
-	const isEnggAuthority =
-		userRole != null &&
-		department === "engg" &&
-		userRole === "data admin" &&
-		designation !== "project engineer" &&
-		userType !== "dyhod" &&
-		userRole !== "regular user";
-
-
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 	const [editModeList, setEditModeList] = useState([]);
-	const [comments, setComments] = useState({});
-
-
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [enclosures, setEnclosures] = useState([]);
 	const [Measurement, setMeasurement] = useState([]);
@@ -48,13 +36,26 @@ export default function Validation() {
 	const [statusList, setStatusList] = useState([]);
 	const [statusList1, setStatusList1] = useState([]);
 
-
-
+	const [commentsList, setCommentList] = useState({});
+	const [commentsList1, setCommentList1] = useState({});
+	
+	const isEnggAuthority =
+		userRole != null &&
+		department === "engg" &&
+		userRole === "data admin" &&
+		designation !== "project engineer" &&
+		userType !== "dyhod" &&
+		userRole !== "regular user";
+		
+	const isProjectEngineer =
+		department === "engg" &&
+		userRole === "regular user" &&
+		designation === "project engineer";
 
 
 	const handleCommentChange = (rowIndex, value) => {
 		if (value.length <= 500) {
-			setComments((prev) => ({
+			setCommentList(prev => ({
 				...prev,
 				[rowIndex]: value,
 			}));
@@ -62,202 +63,202 @@ export default function Validation() {
 	};
 
 
+	const fetchValidations = () => {
+	  axios
+	    .get(`${API_BASE_URL}api/validation/getRfiValidations`, {
+	      withCredentials: true,
+	      headers: {
+	        "Content-Type": "application/json",
+	        Accept: "application/json",
+	      },
+	    })
+	    .then((res) => {
+	      console.log("GET /getRfiValidations response:", res.data);
 
+	      const data = Array.isArray(res.data) ? res.data : [];
 
-	//	useEffect(() => {
-	//		axios.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
-	//			withCredentials: true, headers: {
-	//				'Content-Type': 'application/json',
-	//				'Accept': 'application/json'
-	//			}
-	//		})
-	//			.then(res => {
-	//				console.log("GET /getRfiValidations response:", res.data);
-	//
-	//				const data = Array.isArray(res.data) ? res.data : [];
-	//
-	//				if (isEnggAuthority) {
-	//
-	//				}
-	//
-	//				setRfiList(data);
-	//				setRemarksList(data.map(item => item.remarks || ""));
-	//				setStatusList(data.map(item => item.status || ""));
-	//				setEditModeList(data.map(() => false));
-	//				setSubmittedList(data.map(item => item.remarks && item.status ? true : false));
-	//
-	//				if (data.length === 0) {
-	//					setMessage('No RFI validations found.');
-	//				} else {
-	//					setMessage('');
-	//				}
-	//			})
-	//			.catch(err => {
-	//				console.error("Error fetching RFI validations:", err);
-	//				setRfiList([]);
-	//				setRemarksList([]);
-	//				setStatusList([]);
-	//				setEditModeList([]);
-	//				setSubmittedList([]);
-	//				setMessage('Error loading RFI validations.');
-	//			});
-	//	}, []);
+	      // Clear messages first
+	      setMessage("");
+	      setMessage1("");
 
+	      // ===== ENGG AUTHORITY =====
+	      if (isEnggAuthority) {
+	        const enggAuthorityData = data.filter(
+	          (item) => (item.valdationAuth || "").toLowerCase() === "enggauthority"
+	        );
+
+	        const dyhodData = data.filter(
+	          (item) => (item.valdationAuth || "").toLowerCase() === "dyhod"
+	        );
+
+	        setRfiList(enggAuthorityData);
+	        setRemarksList(enggAuthorityData.map((item) => item.remarks || ""));
+	        setStatusList(enggAuthorityData.map((item) => item.status || ""));
+	        setCommentList(enggAuthorityData.map((item) => item.comment || ""));
+	        setEditModeList(enggAuthorityData.map(() => false));
+	        setSubmittedList(
+	          enggAuthorityData.map((item) => (item.remarks && item.status ? true : false))
+	        );
+
+	        setRfiList1(dyhodData);
+	        setRemarksList1(dyhodData.map((item) => item.remarks || ""));
+	        setStatusList1(dyhodData.map((item) => item.status || ""));
+	        setCommentList1(dyhodData.map((item) => item.comment || ""));
+
+	        if (enggAuthorityData.length === 0) {
+	          setMessage("No RFI validations found.");
+	        }
+	        if (dyhodData.length === 0) {
+	          setMessage1("No RFI validations found.");
+	        }
+
+	        return;
+	      }
+
+	      // ===== DYHOD =====
+	      if (isDyHOD) {
+	        const dyhodData = data.filter(
+	          (item) => (item.valdationAuth || "").toLowerCase() === "dyhod"
+	        );
+
+	        setRfiList(dyhodData);
+	        setRemarksList(dyhodData.map((item) => item.remarks || ""));
+	        setStatusList(dyhodData.map((item) => item.status || ""));
+	        setCommentList(dyhodData.map((item) => item.comment || ""));
+	        setEditModeList(dyhodData.map(() => false));
+	        setSubmittedList(
+	          dyhodData.map((item) => (item.remarks && item.status ? true : false))
+	        );
+
+	        if (dyhodData.length === 0) {
+	          setMessage("No RFI validations.");
+	        }
+
+	        return;
+	      }
+
+	      // ===== PROJECT ENGINEER =====
+	      if (isProjectEngineer) {
+	        const enggAuthorityData = data.filter(
+	          (item) => (item.valdationAuth || "").toLowerCase() === "enggauthority"
+	        );
+
+	        setRfiList1(enggAuthorityData);
+	        setRemarksList1(enggAuthorityData.map((item) => item.remarks || ""));
+	        setStatusList1(enggAuthorityData.map((item) => item.status || ""));
+	        setCommentList1(enggAuthorityData.map((item) => item.comment || ""));
+
+	        if (enggAuthorityData.length === 0) {
+	          setMessage1("No RFI validations found.");
+	        }
+
+	        return;
+	      }
+
+	      // ===== IT ADMIN =====
+	      if (isITAdmin) {
+	        setRfiList(data);
+	        setRemarksList(data.map((item) => item.remarks || ""));
+	        setStatusList(data.map((item) => item.status || ""));
+	        setCommentList(data.map((item) => item.comment || ""));
+	        setEditModeList(data.map(() => false));
+	        setSubmittedList(data.map((item) => (item.remarks && item.status ? true : false)));
+
+	        if (data.length === 0) {
+	          setMessage("No RFI validations found.");
+	        }
+
+	        return; 
+	      }
+	    })
+	    .catch((err) => {
+	      console.error("Error fetching RFI validations:", err);
+
+	      setRfiList([]);
+	      setRfiList1([]);
+	      setRemarksList([]);
+	      setRemarksList1([]);
+	      setStatusList([]);
+	      setStatusList1([]);
+	      setCommentList([]);
+	      setCommentList1([]);
+	      setEditModeList([]);
+	      setSubmittedList([]);
+
+	      setMessage("Error loading RFI validations.");
+	      setMessage1("Error loading RFI validations.");
+	    });
+	};
 
 	useEffect(() => {
-		axios
-			.get(`${API_BASE_URL}api/validation/getRfiValidations`, {
-				withCredentials: true,
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json"
-				}
-			})
-			.then((res) => {
-				console.log("GET /getRfiValidations response:", res.data);
-
-				const data = Array.isArray(res.data) ? res.data : [];
-
-				// ✅ ONLY if EnggAuthority
-				if (isEnggAuthority) {
-					// ✅ RFI List (EnggAuthority)
-					const enggAuthorityData = data.filter(
-						(item) => (item.valdationAuth || "").toLowerCase() === "enggauthority"
-					);
-
-					// ✅ RFI List1 (DyHod)
-					const dyhodData = data.filter(
-						(item) => (item.valdationAuth || "").toLowerCase() === "dyhod"
-					);
-
-					// ✅ set rfiList -> EnggAuthority
-					setRfiList(enggAuthorityData);
-					setRemarksList(enggAuthorityData.map((item) => item.remarks || ""));
-					setStatusList(enggAuthorityData.map((item) => item.status || ""));
-					setEditModeList(enggAuthorityData.map(() => false));
-					setSubmittedList(
-						enggAuthorityData.map((item) => (item.remarks && item.status ? true : false))
-					);
-
-					// ✅ set rfiList1 -> DyHod
-					setRfiList1(dyhodData);
-					setRemarksList1(dyhodData.map((item) => item.remarks || ""));
-					setStatusList1(dyhodData.map((item) => item.status || ""));
-
-					// ✅ message handling
-					if (enggAuthorityData.length === 0 || dyhodData.length === 0) {
-						setMessage("No RFI validations found.");
-					} else {
-						setMessage("No Data");
-					}
-
-					return; // ✅ stop normal flow
-				}
-
-				// ✅ normal user -> full data
-				setRfiList(data);
-				setRemarksList(data.map((item) => item.remarks || ""));
-				setStatusList(data.map((item) => item.status || ""));
-				setEditModeList(data.map(() => false));
-				setSubmittedList(data.map((item) => (item.remarks && item.status ? true : false)));
-
-				if (data.length === 0) {
-					setMessage("No RFI validations found.");
-				} else {
-					setMessage("");
-				}
-			})
-			.catch((err) => {
-				console.error("Error fetching RFI validations:", err);
-
-				setRfiList([]);
-				setRfiList1([]);
-
-				setRemarksList([]);
-				setRemarksList1([]);
-
-				setStatusList([]);
-				setStatusList1([]);
-
-				setEditModeList([]);
-				setSubmittedList([]);
-
-				setMessage("Error loading RFI validations.");
-			});
+	  fetchValidations();
 	}, []);
+
+
 
 
 	const updateRemark = (idx, value) => {
 		setRemarksList(prev => prev.map((item, i) => i === idx ? value : item));
 	};
 
-	const updateStatus = (idx, value) => {
-		setStatusList(prev => prev.map((item, i) => i === idx ? value : item));
-	};
-
-	const toggleEditMode = (idx) => {
-		setEditModeList(prev =>
-			prev.map((item, i) => i === idx ? !item : item)
-		);
-	};
 
 	const [submittedList, setSubmittedList] = useState([]);
 
-	const submitValidation = (rfi, idx) => {
-		const remarks = remarksList[idx]?.trim();
-		const action = statusList[idx]?.trim();
-		const comment = comments[idx]?.trim();
-		if (!remarks) {
-			alert("Please select a remark before submitting.");
-			return;
-		}
+	const submitValidation = async (rfi, idx, actionTaken) => {
+	  const remarks = (remarksList[idx] || "").trim();
+	  const comment = (commentsList[idx] || "").trim();
 
-		if (!action) {
-			alert("Please select a status before submitting.");
-			return;
-		}
+	  if (!remarks) {
+	    alert("Please select a remark before submitting.");
+	    return;
+	  }
 
-		if (!comment) {
-			alert("Please enter comment before submitting.!");
-			return;
-		}
+	  if (!actionTaken) {
+	    alert("Please select a status before submitting.");
+	    return;
+	  }
 
-		const formData = new FormData();
-		formData.append("long_rfi_id", rfi.longRfiId);
-		formData.append("long_rfi_validate_id", rfi.longRfiValidateId);
-		formData.append("remarks", remarks);
-		formData.append("action", action);
-		formData.append("comment", comment);
+	  if (actionTaken === "REJECTED" && !comment) {
+	    alert("Please enter a comment before rejecting.");
+	    return;
+	  }
 
-		axios.post(`${API_BASE_URL}api/validation/validate`, formData, {
-			headers: {
-				'Accept': 'application/json'
-			}
-		})
-			.then((response) => {
-				alert('Validation submitted successfully.');
-				setRfiList(prevList => {
-					const updated = [...prevList];
-					updated[idx] = {
-						...updated[idx],
-						remarks,
-						action
-					};
-					return updated;
-				});
-				setSubmittedList(prev =>
-					prev.map((item, i) => i === idx ? true : item)
-				);
-				setEditModeList(prev =>
-					prev.map((item, i) => i === idx ? false : item)
-				);
+	  try {
+	    const formData = new FormData();
+	    formData.append("long_rfi_id", rfi.longRfiId);
+	    formData.append("long_rfi_validate_id", rfi.longRfiValidateId);
+	    formData.append("remarks", remarks);
+	    formData.append("action", actionTaken);
+	    formData.append("comment", comment);
 
-			})
-			.catch(err => {
-				console.error('Validation error:', err);
-				alert('Failed to Vaidate RFI.!');
-			});
+	    // Optional: disable row while submitting
+	    const updatedSubmitted = [...submittedList];
+	    updatedSubmitted[idx] = true;
+	    setSubmittedList(updatedSubmitted);
+
+	    const response = await axios.post(
+	      `${API_BASE_URL}api/validation/validate`,
+	      formData,
+	      {
+	        headers: { Accept: "application/json" },
+	        withCredentials: true,
+	      }
+	    );
+
+	    alert(response.data || "Validation submitted successfully.");
+	    fetchValidations(); // refresh table
+
+	  } catch (err) {
+	    console.error("Validation error:", err);
+	    alert("Failed to validate RFI. Please try again.");
+
+	    const updatedSubmitted = [...submittedList];
+	    updatedSubmitted[idx] = false;
+	    setSubmittedList(updatedSubmitted);
+	  }
 	};
+
+
 
 
 	const fetchPreview = (rfiId) => {
@@ -295,9 +296,6 @@ export default function Validation() {
 		});
 	};
 
-	const isPdfFile = (file) => {
-		return typeof file === 'string' && file.toLowerCase().endsWith('.pdf');
-	};
 
 
 	async function mergeWithExternalPdfs(jsPDFDoc, externalPdfBlobs = []) {
@@ -358,7 +356,6 @@ export default function Validation() {
 		const pageWidth = doc.internal.pageSize.getWidth();
 		const pageHeight = doc.internal.pageSize.getHeight();
 		const margin = 10;
-		const contentWidth = pageWidth - 2 * margin;
 		const imageWidth = 120
 		const imageHeight = 100;
 		const lineHeight = 6;
@@ -569,6 +566,31 @@ export default function Validation() {
 			y += lineHeight;
 			doc.setFont(undefined, "bold").setFontSize(11).text("Remarks:", margin + 10, y);
 			doc.setFont(undefined, "normal").setFontSize(11).text(safe(inspection.remarks), margin + 30, y);
+			y += lineHeight;
+			ensureSpace(lineHeight);
+			doc.setFont(undefined, "bold").setFontSize(11).text("Comment:", margin + 10, y);
+
+			doc.setFont(undefined, "normal").setFontSize(9);
+			// ----- COMMENT LABEL -----
+			doc.setFont(undefined, "bold")
+				.setFontSize(11)
+				.text("Comment:", margin + 10, y);
+
+			// ----- COMMENT VALUE (WRAPPED) -----
+			doc.setFont(undefined, "normal")
+				.setFontSize(9);
+
+			const commentText = safe(inspection.validationComments) || "";
+
+
+			const maxWidth = pageWidth - margin - (margin + 30);
+			const wrappedText = doc.splitTextToSize(commentText, maxWidth);
+
+			ensureSpace(wrappedText.length * 5);
+
+			doc.text(wrappedText, margin + 30, y);
+			y += wrappedText.length * 5;
+
 			y += 15;
 			ensureSpace(lineHeight);
 			const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
@@ -943,9 +965,9 @@ export default function Validation() {
 			<HeaderRight />
 			<div className="right">
 				<div className="dashboard-main">
+				{!isProjectEngineer && (
+					<>
 					<h2 className="validation-heading">RFI VALIDATION</h2>
-
-
 					<div>
 						<div className="left-align">
 							<label>
@@ -975,10 +997,7 @@ export default function Validation() {
 									<th>Preview</th>
 									<th>Download</th>
 									<th>Remarks</th>
-									<th>Status</th>
-									{(isDyHOD || isITAdmin || isEnggAuthority) && (
-										<th>Comments</th>
-									)}
+									<th>Comments</th>
 									{(isDyHOD || isITAdmin || isEnggAuthority) && (
 										<th>Action</th>
 									)}
@@ -991,7 +1010,8 @@ export default function Validation() {
 										.map((rfi, idx) => {
 											const globalIndex = pageIndex * pageSize + idx;
 											const remarks = remarksList[globalIndex];
-											const status = statusList[globalIndex];
+											const action = statusList[globalIndex];
+											const comments = commentsList[globalIndex];
 											const isValidated = submittedList[globalIndex];
 											const isEditable = editModeList[globalIndex];
 
@@ -1025,31 +1045,13 @@ export default function Validation() {
 														)}
 													</td>
 
-
-													{/* Status column */}
-													<td>
-														{(isDyHOD || isITAdmin || isEnggAuthority) ? (
-															<select
-																value={status || ""}
-																onChange={(e) => updateStatus(globalIndex, e.target.value)}
-																disabled={isValidated && !isEditable}
-															>
-																<option value="">-- Select --</option>
-																<option value="APPROVED">Approved</option>
-																<option value="REJECTED">Rejected</option>
-															</select>
-														) : (
-															status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
-														)}
-													</td>
-
-
-													{(isDyHOD || isITAdmin || isEnggAuthority) && (<td style={{ position: "relative" }}>
+													<td style={{ position: "relative" }}>
 														<textarea
-															value={comments[globalIndex] || ""}
+															value={comments || ""}
 															onChange={(e) => handleCommentChange(globalIndex, e.target.value)}
 															disabled={isValidated && !isEditable}
 															placeholder="Enter your comment"
+															maxLength={500}
 															style={{
 																width: "100%",
 																minHeight: "60px",
@@ -1061,44 +1063,57 @@ export default function Validation() {
 																boxSizing: "border-box"
 															}}
 														/>
-														{/* Character counter inside bottom-right */}
+
+														{/* Character counter */}
 														<div
 															style={{
 																position: "absolute",
 																bottom: "1px",
 																right: "10px",
 																fontSize: "12px",
-																color: (comments[globalIndex]?.length || 0) >= 500 ? "red" : "#888",
+																color: (comments?.length || 0) >= 500 ? "red" : "#888",
 																pointerEvents: "none",
 																backgroundColor: "#fff"
 															}}
 														>
-															{500 - (comments[globalIndex]?.length || 0)} / 500
+															{500 - (comments?.length || 0)} / 500
 														</div>
-													</td>)}
-
+													</td>
 
 
 													{/* Action */}
 													{(isDyHOD || isITAdmin || isEnggAuthority) && (
 														<td>
 															{isValidated ? (
-																isEditable ? (
-																	<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Submit</button>
-																) : (
-																	<button className='btn btn-secondary' onClick={() => toggleEditMode(globalIndex)}>Edit</button>
-																)
+																<span style={{ color: action === "APPROVED" ? "green" : "red", fontWeight: "bold" }}>
+																	{action}
+																</span>
+
 															) : (
-																<button className='btn btn-primary' onClick={() => submitValidation(rfi, globalIndex)}>Validate</button>
-															)}
+																<>
+																	<div className='validate-buttons'>
+																		<button className='approve'
+																			onClick={() => submitValidation(rfi, globalIndex, "APPROVED")}
+																		>
+																			Approve
+																		</button>
+
+																		<button className='reject'
+																			onClick={() => submitValidation(rfi, globalIndex, "REJECTED")}
+																		>
+																			Reject
+																		</button>
+																	</div>
+																</>)}
 														</td>
+
 													)}
 												</tr>
 											);
 										})
 								) : (
 									<tr>
-										<td colSpan={7}>
+										<td colSpan={6}>
 											{message && (
 												<div className="alert alert-info text-center" role="alert">
 													{message}
@@ -1138,9 +1153,12 @@ export default function Validation() {
 						</div>
 
 					</div>
+					</>
+					
+					)}
 
 
-					{isEnggAuthority && (
+					{(isEnggAuthority || isProjectEngineer) && (
 						<div>
 							<h2 className="validation-heading">RFI LIST</h2>
 
@@ -1171,6 +1189,7 @@ export default function Validation() {
 										<th>Preview</th>
 										<th>Download</th>
 										<th>Remarks</th>
+										<th>Comment</th>
 										<th>Status</th>
 									</tr>
 								</thead>
@@ -1182,6 +1201,7 @@ export default function Validation() {
 												const globalIndex = pageIndex * pageSize + idx;
 												const remarks = remarksList1[globalIndex];
 												const status = statusList1[globalIndex];
+												const comment = commentsList1[globalIndex];
 
 												return (
 													<tr key={globalIndex}>
@@ -1201,10 +1221,27 @@ export default function Validation() {
 														</td>
 
 
+
+														{/*Comment */}
+														<td>{comment ? <span>{comment}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+
+														}
+
+														</td>
 														{/* Status column */}
 														<td>
 
-															{status ? <span>{status}</span> : <span style={{ color: '#999' }}>Validation Pending</span>
+															{status ? <span
+																style={{
+																	fontWeight: "bold",
+																	color:
+																		status === "APPROVED" ? "green" :
+																			status === "REJECTED" ? "red" :
+																				"#555"
+																}}
+															>
+																{status}
+															</span> : <span style={{ color: '#999' }}>Validation Pending</span>
 															}
 														</td>
 
@@ -1213,10 +1250,10 @@ export default function Validation() {
 											})
 									) : (
 										<tr>
-											<td colSpan={5}>
-												{message && (
+											<td colSpan={6}>
+												{message1 && (
 													<div className="alert alert-info text-center" role="alert">
-														{message}
+														{message1}
 													</div>
 												)}
 											</td>
@@ -1270,6 +1307,9 @@ export default function Validation() {
 						<div className="popup-overlay" onClick={() => setSelectedInspection(null)}>
 							<div className="popup-content" onClick={(e) => e.stopPropagation()}>
 								<h3>RFI Preview</h3>
+								<div className="d-flex justify-center">
+									<h3 style={{ gridColumn: 'span 1' }}>Request For Inspection (RFI)</h3>
+								</div>
 								<div className="form-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
 									<div className="form-fields">
 										<label>Client:</label>
@@ -1285,13 +1325,11 @@ export default function Validation() {
 									</div>
 								</div>
 
-								<div className="d-flex justify-center">
-									<h3 style={{ gridColumn: 'span 1' }}>Request For Inspection (RFI)</h3>
-								</div>
+
 								<div className="form-row align-start">
 									<div className="form-fields">
 										<label>Consultant:</label>
-										<p>{selectedInspection.consultant}</p>
+										<p>N/A</p>
 									</div>
 
 									<div className="form-fields">
@@ -1442,57 +1480,13 @@ export default function Validation() {
 
 
 								<div className='previewTable-section'>
-									<h3>Validation Status & Remarks</h3>
+									<h3>RFI Validation Details</h3>
 									<p><strong> Status:</strong> {selectedInspection.validationStatus || '---'}</p>
 									<p><strong>Remarks:</strong> {selectedInspection.remarks || '---'}</p>
+									<p><strong>comment:</strong> {selectedInspection.validationComments || '---'}</p>
 
 								</div>
-								{selectedInspection.selfieClient && (
-									<>
-										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
-										<div className="image-gallery">
-											{selectedInspection.selfieClient.split(',').map((img, idx) => {
-												const trimmedPath = img.trim();
-												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
 
-												return (
-													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-														<img
-															src={fileUrl}
-															alt={`Contractor Image ${idx + 1}`}
-															className="preview-image"
-															onError={() => console.error("Image load error:", fileUrl)}
-														/>
-													</a>
-												);
-											})}
-										</div>
-									</>
-								)}
-
-
-								{selectedInspection.imagesUploadedByClient && (
-									<>
-										<h4>Site Images By Inspector</h4>
-										<div className="image-gallery">
-											{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
-												const trimmedPath = img.trim();
-												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
-
-												return (
-													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
-														<img
-															src={fileUrl}
-															alt={`Contractor Image ${idx + 1}`}
-															className="preview-image"
-															onError={() => console.error("Image load error:", fileUrl)}
-														/>
-													</a>
-												);
-											})}
-										</div>
-									</>
-								)}
 
 								{selectedInspection.selfieContractor && (
 									<>
@@ -1540,6 +1534,54 @@ export default function Validation() {
 										</div>
 									</>
 								)}
+
+								{selectedInspection.selfieClient && (
+									<>
+										<h4 style={{ textAlign: 'center' }}>Inspector Selfie</h4>
+										<div className="image-gallery">
+											{selectedInspection.selfieClient.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
+									</>
+								)}
+
+
+								{selectedInspection.imagesUploadedByClient && (
+									<>
+										<h4>Site Images By Inspector</h4>
+										<div className="image-gallery">
+											{selectedInspection.imagesUploadedByClient.split(',').map((img, idx) => {
+												const trimmedPath = img.trim();
+												const fileUrl = `${fileBaseURL}?filepath=${encodeURIComponent(trimmedPath)}`;
+
+												return (
+													<a key={idx} href={fileUrl} target="_blank" rel="noopener noreferrer">
+														<img
+															src={fileUrl}
+															alt={`Contractor Image ${idx + 1}`}
+															className="preview-image"
+															onError={() => console.error("Image load error:", fileUrl)}
+														/>
+													</a>
+												);
+											})}
+										</div>
+									</>
+								)}
+
 
 
 

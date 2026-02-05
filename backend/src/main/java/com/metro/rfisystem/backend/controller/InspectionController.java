@@ -62,7 +62,6 @@ import com.metro.rfisystem.backend.repository.rfi.RFIInspectionDetailsRepository
 import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
 import com.metro.rfisystem.backend.service.EsignService;
 import com.metro.rfisystem.backend.service.EsignWebSocketService;
-import com.metro.rfisystem.backend.service.FileStorageService;
 import com.metro.rfisystem.backend.service.InspectionService;
 import com.metro.rfisystem.backend.service.RFIChecklistDescriptionService;
 import com.metro.rfisystem.backend.service.RFIEnclosureService;
@@ -97,8 +96,10 @@ public class InspectionController {
 
 	@Value("${supporting.docs.upload-dir}")
 	private String supportingDocsUploadDir;
-	@Autowired
-	private FileStorageService fileStorageService;
+	
+	@Value("${file.site.test.dir}")
+	private String rfiTestReportUploadDir;
+
 
 	@GetMapping("/rfi/inspection/{id}")
 	public ResponseEntity<RfiInspectionDTO> getInspectionData(@PathVariable Long id) {
@@ -225,6 +226,7 @@ public class InspectionController {
 //		}
 //	}
 
+	
 	
 	@GetMapping("/rfi/supporting-docs")
 	public ResponseEntity<Resource> getSupportingDoc(@RequestParam String fileName) {
@@ -454,6 +456,24 @@ public class InspectionController {
 	public List<String> getChecklistDescription(@RequestParam(name = "enclosureName") String enclosureName) {
 		return checklistDescriptionService.getChecklistDescription(enclosureName);
 	}
+	
+	public String saveFilePostTestResult(Long rfiId, String testType, MultipartFile file) {
+		try {
+			Path uploadDir = Paths.get(rfiTestReportUploadDir).toAbsolutePath().normalize();
+			Files.createDirectories(uploadDir);
+
+			String fileName ="RFI_"+rfiId+"_"+"PostTestReport_"+testType+"_"+ System.currentTimeMillis()+".pdf";
+
+			Path filePath = uploadDir.resolve(fileName).normalize();
+
+			file.transferTo(filePath.toFile());
+
+			return filePath.toString();
+
+		} catch (IOException e) {
+			throw new RuntimeException("❌ Failed to store file: " + e.getMessage(), e);
+		}
+	}
 
 	@Transactional
 	@PostMapping("/rfi/uploadPostTestReport")
@@ -510,7 +530,7 @@ public class InspectionController {
 						.body("Upload time expired. Allowed only within 15 days of closure.");
 			}
 
-			String testResultFilePath = fileStorageService.saveFile(file);
+			String testResultFilePath = saveFilePostTestResult(rfiId, testType, file);
 
 			File uploadedFile = new File(testResultFilePath);
 

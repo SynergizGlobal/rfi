@@ -26,6 +26,7 @@ public class RfiReportDTO {
     private String descriptionByContractor;
     private String validationStatus;
     private String remarks;
+    private String validationComments;
     private String selfieClient;
     private String selfieContractor;
     private String imagesUploadedByClient;
@@ -60,6 +61,7 @@ public class RfiReportDTO {
             String descriptionByContractor,
             String validationStatus,
             String remarks,
+            String validationComments,
             String selfieClient,
             String selfieContractor,
             String imagesUploadedByClient,
@@ -89,6 +91,7 @@ public class RfiReportDTO {
         this.descriptionByContractor = descriptionByContractor;
         this.validationStatus = validationStatus;
         this.remarks = remarks;
+        this.validationComments = validationComments;
         this.selfieClient = selfieClient;
         this.selfieContractor = selfieContractor;
         this.imagesUploadedByClient = imagesUploadedByClient;

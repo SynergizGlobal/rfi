@@ -123,6 +123,11 @@ export default function RfiLogList() {
 					displayStatus = 'Rejected';
 					color = 'red';
 
+				}
+				else if (row.validationStatus === 'REJECTED'){
+					displayStatus = 'Rejected';
+					color = 'red';
+					
 				} else if (row.status === 'INSPECTION_DONE') {
 					displayStatus = 'Closed';
 					color = 'blue';
@@ -620,7 +625,21 @@ export default function RfiLogList() {
 			doc.setFont(undefined, "normal").setFontSize(11)
 				.text(safe(inspection.remarks), margin + 30, y);
 
-			y += 15;
+			y += lineHeight;
+			ensureSpace(lineHeight);
+			doc.setFont(undefined, "bold").setFontSize(11).text("Comment:", margin + 10, y);
+			doc.setFont(undefined, "normal").setFontSize(9);
+
+			const commentText = safe(inspection.validationComments) || "";
+
+
+			const maxWidth = pageWidth - margin - (margin + 30);
+			const wrappedText = doc.splitTextToSize(commentText, maxWidth);
+
+			ensureSpace(wrappedText.length * 5);
+
+			doc.text(wrappedText, margin + 30, y);
+			y += wrappedText.length * 5;
 
 			const imageSection = async (label, paths, x = margin, yPos = y, options = {}) => {
 				if (!paths || !paths.trim()) return;

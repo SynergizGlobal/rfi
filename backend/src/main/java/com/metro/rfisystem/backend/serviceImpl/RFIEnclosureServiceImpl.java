@@ -11,17 +11,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.metro.rfisystem.backend.dto.EnclosureDTO;
 import com.metro.rfisystem.backend.dto.EnclosureFileDto;
-import com.metro.rfisystem.backend.dto.EnclosureNameDto;
 import com.metro.rfisystem.backend.dto.InspectionStatus;
 import com.metro.rfisystem.backend.dto.RFIInspectionAutofillDTO;
 import com.metro.rfisystem.backend.dto.TestType;
@@ -48,63 +42,68 @@ public class RFIEnclosureServiceImpl implements RFIEnclosureService {
 
 	@Override
 	public String uploadEnclosureFile(Long rfiId, String deptFk, String enclosureName, MultipartFile file,
-			String description) {
-		if (file == null || file.isEmpty()) {
-			throw new IllegalArgumentException("No file provided.");
-		}
+	        String description) {
 
-		// 2️⃣ Reject large files > 100 MB
-		long maxSize = 100 * 1024 * 1024; // 100MB
-		if (file.getSize() > maxSize) {
-			throw new IllegalArgumentException("File size exceeds 100MB limit.");
-		}
+	    if (file == null || file.isEmpty()) {
+	        throw new IllegalArgumentException("No file provided.");
+	    }
 
-		String originalFilename = file.getOriginalFilename();
-		if (originalFilename == null) {
-			throw new IllegalArgumentException("Invalid file name.");
-		}
+	    long maxSize = 100 * 1024 * 1024;
+	    if (file.getSize() > maxSize) {
+	        throw new IllegalArgumentException("File size exceeds 100MB limit.");
+	    }
 
-		String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-		if (ext.equals("xlsx") || ext.equals("xls") || ext.equals("csv")) {
-			throw new IllegalArgumentException("Excel files are not allowed.");
-		}
+	    String originalFilename = file.getOriginalFilename();
+	    if (originalFilename == null || !originalFilename.contains(".")) {
+	        throw new IllegalArgumentException("Invalid file name.");
+	    }
 
-		// 4️⃣ Detect encrypted PDF (optional)
-		if (ext.equals("pdf") && isEncryptedPdf(file)) {
-			throw new IllegalArgumentException("Encrypted PDF is not allowed.");
-		}
+	    String ext = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
 
-		String fileName = rfiId + "_" + originalFilename;
-		Path uploadPath = Paths.get(uploadDir);
-		try {
-			if (!Files.exists(uploadPath)) {
-				Files.createDirectories(uploadPath);
-			}
+	    if (!ext.equals(".pdf")) {
+	        throw new IllegalArgumentException("Only PDF files are allowed.");
+	    }
 
-			Path filePath = uploadPath.resolve(fileName);
-			file.transferTo(filePath.toFile());
+	    if (isEncryptedPdf(file)) {
+	        throw new IllegalArgumentException("Encrypted PDF is not allowed.");
+	    }
 
-			RFI rfi = rfiRepository.findById(rfiId).orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
+	    String timeStamp = String.valueOf(System.currentTimeMillis());
+	    String storedFileName = "rfi_" + rfiId + "_" + enclosureName +"_"+ timeStamp + ext;
 
-			RFIEnclosure enclosure = new RFIEnclosure();
-			enclosure.setRfi(rfi);
-			enclosure.setEnclosureName(enclosureName);
-			enclosure.setEnclosureUploadFile(filePath.toString());
-			enclosure.setDescription(description);
+	    Path uploadPath = Paths.get(uploadDir);
 
-			// 🔥 CORE FIX
-			enclosure.setUploadedBy("Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON");
+	    try {
+	        if (!Files.exists(uploadPath)) {
+	            Files.createDirectories(uploadPath);
+	        }
 
-			// 🔒 Lock contractor files
-			enclosure.setLocked(!"Engg".equalsIgnoreCase(deptFk));
+	        Path filePath = uploadPath.resolve(storedFileName);
+	        file.transferTo(filePath.toFile());
 
-			enclosureRepository.save(enclosure);
+	        RFI rfi = rfiRepository.findById(rfiId)
+	                .orElseThrow(() -> new IllegalArgumentException("Invalid RFI ID"));
 
-			return fileName;
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to save file: " + e.getMessage(), e);
-		}
+	        RFIEnclosure enclosure = new RFIEnclosure();
+	        enclosure.setRfi(rfi);
+	        enclosure.setEnclosureName(enclosureName);              
+	        enclosure.setEnclosureUploadFile(filePath.toString());  
+	        enclosure.setDescription(description);
+	        enclosure.setUploadedBy("Engg".equalsIgnoreCase(deptFk) ? "Engg" : "CON");
+	        enclosure.setLocked(!"Engg".equalsIgnoreCase(deptFk));
+
+
+
+	        enclosureRepository.save(enclosure);
+
+	        return storedFileName;
+
+	    } catch (IOException e) {
+	        throw new RuntimeException("Failed to save file: " + e.getMessage(), e);
+	    }
 	}
+
+
 
 	private boolean isEncryptedPdf(MultipartFile file) {
 		try (InputStream is = file.getInputStream()) {

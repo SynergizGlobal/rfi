@@ -26,7 +26,7 @@ const Header = () => {
 					<span onClick={sidemenu}>&#8801;</span>
 				</li>
 			</ul>
-			<Link to="/home">
+			<Link to="/dashboard">
 				<img src="/images/MRVC.webp" alt="logo" width="75" height="70" />
 				Mumbai Railway Vikas Corporation
 			</Link>

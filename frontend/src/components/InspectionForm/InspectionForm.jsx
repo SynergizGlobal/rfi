@@ -1197,14 +1197,14 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-//			const mergedUrl = URL.createObjectURL(pdfBlob);
-//			const link = document.createElement("a");
-//			link.href = mergedUrl;
-//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-//			document.body.appendChild(link);
-//			link.click();
-//			document.body.removeChild(link);
-			// 4️⃣ Upload PDF to backend
+			const mergedUrl = URL.createObjectURL(pdfBlob);
+			const link = document.createElement("a");
+			link.href = mergedUrl;
+			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			// Upload PDF to backend
 
 
 			if (!isEngineer) {
@@ -2350,7 +2350,18 @@ export default function InspectionForm() {
 															{files.length > 0 ? (
 																files.map((file) => (
 
-																	<div key={file.id} style={{ display: "flex", gap: "5px" }}>
+																	<div key={file.id} style={{ display: "flex", gap: "5px" , justifyContent: "center"}}>
+																	{/*  VIEW BUTTON */}
+																	<button
+																	  className="hover-blue-btn"
+																	  onClick={() => {
+																	    const url = `${API_BASE_URL}api/rfi/view-enclosure?id=${file.id}`;
+																	    window.open(url, "_blank");
+																	  }}
+																	>
+																	  View
+																	</button>
+
 																		{/* Download button */}
 																		<button
 																			className="hover-blue-btn"
@@ -2359,7 +2370,7 @@ export default function InspectionForm() {
 
 																				fetch(url, {
 																					method: "GET",
-																					credentials: "include" // 🔴 REQUIRED for HttpSession
+																					credentials: "include" 
 																				})
 																					.then((res) => {
 																						if (!res.ok) throw new Error("Download failed");
@@ -2428,9 +2439,6 @@ export default function InspectionForm() {
 																		>
 																			Remove
 																		</button>
-
-
-
 																	</div>
 																))
 															) : (
@@ -2448,10 +2456,10 @@ export default function InspectionForm() {
 																		type="button"
 																		className="hover-blue-btn"
 																		onClick={() => {
-																			const downloadUrl = `${API_BASE_URL}/rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
+																			const downloadUrl = `${API_BASE_URL}rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
 																			const link = document.createElement("a");
 																			link.href = downloadUrl;
-																			link.download = 'report.pdf';
+//																			link.download = 'report.pdf';
 																			document.body.appendChild(link);
 																			link.click();
 																			document.body.removeChild(link);
@@ -2495,7 +2503,7 @@ export default function InspectionForm() {
 
 												{/* Backend files */}
 												{supportingFiles.map((fileUrl, idx) => {
-													const fileName = fileUrl.split("/").pop(); // extract filename
+													const fileName = fileUrl.split("/").pop(); 
 													const downloadUrl = `${API_BASE_URL}rfi/supporting-doc/download?rfiId=${rfiData.id}&fileName=${encodeURIComponent(fileName)}`;
 													const viewUrl = `${API_BASE_URL}rfi/supporting-docs?fileName=${encodeURIComponent(fileName)}`;
 
@@ -2505,7 +2513,7 @@ export default function InspectionForm() {
 
 															{/* View */}
 															<button
-																className="hover-green-btn"
+																className="hover-blue-btn"
 																style={{ marginLeft: "10px" }}
 																onClick={() => window.open(viewUrl, "_blank")}
 															>
@@ -2579,7 +2587,7 @@ export default function InspectionForm() {
 															style={{ marginRight: "10px", width: "250px" }}
 														/>
 														<button
-															className="hover-green-btn"
+															className="hover-blue-btn"
 															style={{ marginRight: "8px" }}
 															onClick={() => window.open(URL.createObjectURL(docObj.file), "_blank")}
 														>
@@ -2961,6 +2969,7 @@ export default function InspectionForm() {
 															<label>Upload Test Report Here</label>
 															<input
 																type="file"
+																accept="application/pdf"
 																onChange={(e) => setTestReportFile(e.target.files[0])}
 																disabled={getDisabled()}
 															/>
@@ -2993,6 +3002,9 @@ export default function InspectionForm() {
 																	return;
 																}
 																setTestInLab(value);
+																if (value === "Accepted") {
+																     setEngineerRemarks("");
+																   }
 															}}
 															disabled={getDisabled()}
 														>
@@ -3008,7 +3020,7 @@ export default function InspectionForm() {
 
 										</div>
 										{testInLab === "Rejected" && (
-											<div className="enclosure-comments">
+											<div className="engineer-remarks">
 												<label>Remarks By Client <spam className="red">*</spam></label>
 												<textarea
 													value={engineerRemarks}
@@ -3708,7 +3720,7 @@ function UploadPopup({ onSubmit, onClose }) {
 		<div className="popup">
 			<div className="popup-content">
 				<h3>Upload File</h3>
-				<input type="file" onChange={e => setFile(e.target.files[0])} />
+				<input type="file" accept="application/pdf" onChange={e => setFile(e.target.files[0])} />
 				<div className="popup-actions">
 					<div className='checklist-popup-btn'>
 						<button onClick={onClose}>Cancel</button>

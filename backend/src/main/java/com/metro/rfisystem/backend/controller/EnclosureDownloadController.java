@@ -2,13 +2,18 @@ package com.metro.rfisystem.backend.controller;
 
 import java.io.File;
 import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +43,9 @@ import lombok.RequiredArgsConstructor;
 public class EnclosureDownloadController {
 	
 	private final RFIEnclosureRepository enclosureRepository;
+	
+	@Value("${rfi.enclosures.upload-dir}")
+	private String rfiEnclosureUploadDir;
 
 	
 	
@@ -242,5 +250,39 @@ public class EnclosureDownloadController {
 	}
 
 
+	@GetMapping("/view-enclosure")
+	public ResponseEntity<Resource> getViewEnclosureFile(@RequestParam Long id) {
 
+	    try {
+	        RFIEnclosure enclosure = enclosureRepository.findById(id)
+	                .orElseThrow(() -> new RuntimeException("File not found"));
+
+	        Path baseDir = Paths.get(rfiEnclosureUploadDir).toAbsolutePath().normalize();
+	        Path filePath = Paths.get(enclosure.getEnclosureUploadFile()).toAbsolutePath().normalize();
+
+	        // 🔒 Security: ensure file is inside allowed directory
+	        if (!filePath.startsWith(baseDir)) {
+	            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+	        }
+
+	        if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+	            return ResponseEntity.notFound().build();
+	        }
+
+	        Resource resource = new UrlResource(filePath.toUri());
+
+	        String fileName = filePath.getFileName().toString();
+
+	        return ResponseEntity.ok()
+	                .contentType(MediaType.APPLICATION_PDF)
+	                .header(HttpHeaders.CONTENT_DISPOSITION,
+	                        "inline; filename=\"" + fileName + "\"")
+	                .body(resource);
+
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+	    }
+	}
+
+		
 }

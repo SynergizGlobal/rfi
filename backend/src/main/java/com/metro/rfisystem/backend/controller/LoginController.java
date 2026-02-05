@@ -1,27 +1,20 @@
 package com.metro.rfisystem.backend.controller;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.metro.rfisystem.backend.dto.AllowedContractDTO;
 import com.metro.rfisystem.backend.dto.ContractDesignationEngineersDTO;
 import com.metro.rfisystem.backend.dto.ErrorResponse;
@@ -34,7 +27,6 @@ import com.metro.rfisystem.backend.repository.pmis.ContractExecutiveRepository;
 import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
 import com.metro.rfisystem.backend.repository.pmis.LoginRepository;
 import com.metro.rfisystem.backend.service.LoginService;
-
 import jakarta.servlet.http.HttpSession;
 
 @RestController
@@ -86,7 +78,7 @@ public class LoginController {
 			loginService.updateSessionId(user.getUserId(), session.getId());
 
 			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getEmailId(), user.getUserRoleNameFk(),
-					user.getUserTypeFk(), loginDepartment, user.getDepartmentFk(), allowedContracts, designationWithEngineers);
+					user.getUserTypeFk(), loginDepartment, user.getDepartmentFk(), allowedContracts, designationWithEngineers, user.getDesignation());
 
 			logger.info("Login successful for user: {}", user.getUserName());
 			return ResponseEntity.ok(response);
@@ -115,7 +107,7 @@ public class LoginController {
 			session.invalidate();
 
 			logger.info("Logout successful for user: {}", userName);
-			return ResponseEntity.ok(new LoginResponse(null, null,null,  null, "Logged out successfully", null, null, null, null));
+			return ResponseEntity.ok(new LoginResponse(null, null,null,  null, "Logged out successfully", null, null, null, null,null));
 
 		} catch (Exception e) {
 			logger.error("Error during logout", e);
@@ -130,7 +122,7 @@ public class LoginController {
 
 		if (user != null) {
 			LoginResponse response = new LoginResponse(user.getUserId(), user.getUserName(), user.getEmailId(), user.getUserRoleNameFk(),
-					user.getDepartmentFk(), "Session active", null, null, null);
+					user.getDepartmentFk(), "Session active", null, null, null, null);
 			return ResponseEntity.ok(response);
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

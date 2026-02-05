@@ -175,7 +175,7 @@ const Dashboard = () => {
         PENDING: 0,
         RESCHEDULED: 0,
         INSPECTED_BY_AE: 0,
-        ACCEPTED: 0,
+        APPROVED: 0,
         REJECTED: 0,
     });
 
@@ -352,13 +352,13 @@ const Dashboard = () => {
 									{/* Card 5: Rescheduled */}
 									<div
 										className="cards"
-										onClick={() => navigate("/Inspection", { state: { filterStatus: ["ACCEPTED"] } })}
+										onClick={() => navigate("/Inspection", { state: { filterStatus: ["APPROVED"] } })}
 										style={{ cursor: 'pointer' }}
 									>
 										<div className="card-inner">
 											<div className="card-top">
 												<div className="card-count">
-													<span className="card-number">{statusCounts.ACCEPTED}</span>
+													<span className="card-number">{statusCounts.APPROVED}</span>
 												</div>
 												<div className="cards-icon">
 													<img src="/images/accepted.png" alt="tick symbol" width="28" height="28" />
@@ -366,7 +366,7 @@ const Dashboard = () => {
 											</div>
 											<div className="card-bottom">
 												<div className="card-title">
-													<span className="card-text">RFI Accepted</span>
+													<span className="card-text">RFI Approved</span>
 												</div>
 											</div>
 										</div>
@@ -404,7 +404,7 @@ const Dashboard = () => {
 										<div className="card-inner">
 											<div className="card-top">
 												<div className="card-count">
-													<span className="card-number">{statusCounts.INSPECTION_DONE}</span>
+													<span className="card-number">{statusCounts.CLOSED}</span>
 												</div>
 												<div className="cards-icon">
 													<img src="/images/closed.png" alt="tick symbol" width="27" height="27" />

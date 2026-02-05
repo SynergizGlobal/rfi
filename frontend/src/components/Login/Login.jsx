@@ -147,9 +147,12 @@ const Login = () => {
 				localStorage.setItem('userTypeFk', data.userTypeFk);
 				localStorage.setItem('departmentFk', data.departmentFk);
 				localStorage.setItem('loginDepartment', data.loginDepartment);
+				localStorage.setItem('designation', data.designation);
 
 				console.log(localStorage.getItem('loginDepartment'));
 				console.log("✅ Stored userId:", data.userId);
+				console.log("✅ Stored user designation:", data.designation);
+
 				
 				try {
 				    const checkRes = await fetch(
