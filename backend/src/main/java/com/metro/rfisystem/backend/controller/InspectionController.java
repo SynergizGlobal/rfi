@@ -157,12 +157,10 @@ public class InspectionController {
 	}
 
 	@PostMapping(value = "/rfi/inspection/uploadSiteImage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<String> uploadSiteImage(@RequestPart("siteImage") MultipartFile siteImage, // ✅ must have
-																										// @RequestPart
-			@RequestParam("RfiId") Long rfiId, // ✅ bind RFI ID
+	public ResponseEntity<String> uploadSiteImage(@RequestPart("siteImage") MultipartFile siteImage, 
+			@RequestParam("RfiId") Long rfiId, 
 			HttpSession session) {
 
-		// Get department from session
 		String deptFk = (String) session.getAttribute("departmentFk");
 
 		if (deptFk == null || deptFk.isEmpty()) {
@@ -178,6 +176,17 @@ public class InspectionController {
 					.body("❌ Error uploading site image: " + e.getMessage());
 		}
 	}
+	
+	@PostMapping("/rfi/delete-site-img")
+	public ResponseEntity<String> deleteSiteImg(
+			@RequestParam long rfiId,
+			@RequestParam String img,
+			@RequestParam String uploadedBy) {
+
+		String msg = inspectionService.deleteSiteImgage(rfiId, img, uploadedBy);
+		return ResponseEntity.ok(msg);
+	}
+
 
 	@GetMapping("/rfi/inspections/{rfiId}")
 	public ResponseEntity<?> getInspectionByRfiId(@PathVariable Long rfiId, HttpSession session) {

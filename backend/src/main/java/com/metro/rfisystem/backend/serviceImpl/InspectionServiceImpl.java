@@ -410,6 +410,68 @@ public class InspectionServiceImpl implements InspectionService {
 
 		return "✅ Site image uploaded successfully for RFI ID " + rfiId + ".";
 	}
+	
+	
+	
+	@Override
+	public String deleteSiteImgage(long rfiId, String siteImage, String uploadedBy) {
+
+		if (siteImage == null || siteImage.trim().isEmpty()) {
+			throw new RuntimeException("No site image selected for deletion.");
+		}
+
+		RFI rfi = rfiRepository.findById(rfiId)
+				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + rfiId));
+
+		if (rfi.getStatus() == EnumRfiStatus.INSPECTION_DONE) {
+			return "Delete Failed, Inspection Closed!";
+		}
+
+		if (rfi.getStatus() == EnumRfiStatus.VALIDATION_PENDING) {
+			return "Delete Failed, Inspection under validation process!";
+		}
+
+		if (rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_AE
+				|| rfi.getStatus() == EnumRfiStatus.INSPECTED_BY_CON) {
+			return "Delete Failed, Inspection Already Submitted!";
+		}
+
+		Optional<String> siteImagesOpt =
+				inspectionRepository.getSiteImagesFilepath(rfiId, uploadedBy);
+
+		if (!siteImagesOpt.isPresent() || siteImagesOpt.get().trim().isEmpty()) {
+			return "No images found to delete.";
+		}
+
+		String siteImages = siteImagesOpt.get();
+
+		List<String> imageList = new ArrayList<>(
+				Arrays.asList(siteImages.split(",")));
+
+		boolean removed = imageList.removeIf(img ->
+				img.trim().equals(siteImage.trim()));
+
+		if (!removed) {
+			return "Image not found!";
+		}
+
+		String updatedImages = String.join(",", imageList);
+
+		inspectionRepository.updateSiteImages(
+				rfiId,
+				uploadedBy,
+				updatedImages.isEmpty() ? null : updatedImages
+		);
+
+		// 🔹 OPTIONAL: delete physical file
+//		deletePhysicalFile(siteImage);
+
+		return "Site image deleted successfully.";
+	}
+
+	
+	
+	
 
 	@Override
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk) {
@@ -903,6 +965,8 @@ public class InspectionServiceImpl implements InspectionService {
 	        return "Something went wrong, please try after some time! " + e.getMessage();
 	    }
 	}
+
+
 
 
 

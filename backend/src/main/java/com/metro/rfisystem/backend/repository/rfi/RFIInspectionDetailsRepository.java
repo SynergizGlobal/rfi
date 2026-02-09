@@ -4,11 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
+
+import jakarta.transaction.Transactional;
 
 public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspectionDetails, Long> {
 
@@ -60,6 +63,24 @@ public interface RFIInspectionDetailsRepository extends JpaRepository<RFIInspect
 	List<RFIInspectionDetails> findEngineerInspectionsByRfiId(@Param("rfiId") Long rfiId);
 
     Optional<RFIInspectionDetails> findTopByRfi_IdOrderByIdDesc(Long rfiId);
+    
+	
+	@Query(value = "select site_image from rfi_inspection_details where rfi_id_fk  = :rfiId  and uploaded_by = :uploadedBy ", nativeQuery = true)
+	Optional<String> getSiteImagesFilepath(long rfiId, String uploadedBy);
+	
+	@Modifying
+	@Transactional
+	@Query(value = """
+		update rfi_inspection_details
+		set site_image = :siteImage
+		where rfi_id_fk = :rfiId
+		  and uploaded_by = :uploadedBy
+		""", nativeQuery = true)
+	void updateSiteImages(
+			@Param("rfiId") long rfiId,
+			@Param("uploadedBy") String uploadedBy,
+			@Param("siteImage") String siteImage
+	);
 
 
 

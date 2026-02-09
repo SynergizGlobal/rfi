@@ -14,7 +14,6 @@ import com.metro.rfisystem.backend.dto.RfiInspectionDTO;
 import com.metro.rfisystem.backend.dto.SupportingDocDTO;
 import com.metro.rfisystem.backend.model.rfi.RFI;
 import com.metro.rfisystem.backend.model.rfi.RFIInspectionDetails;
-import com.metro.rfisystem.backend.model.rfi.RfiAttachments;
 
 public interface InspectionService {
 //	public RFIInspectionDetails getRFIIdTxnId(String espTxnID);
@@ -41,6 +40,8 @@ public interface InspectionService {
 														MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk) throws Exception;
 	
 	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk);
+	
+	public String deleteSiteImgage(long rfiId, String img, String uploadedBy);
 
 	public List<RFIInspectionRequestDTO> getInspectionsByRfiId(Long rfiId, String deptFk);
 

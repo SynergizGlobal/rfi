@@ -280,7 +280,7 @@ const Inspection = () => {
 
 
 
-	const handleInspectionComplete = (rfi, status, dateOfInspection, timeOfInspection) => {
+	const handleInspectionComplete = (rfi, status, dateOfInspection, timeOfInspection,inspectionStatus) => {
 
 		if (!isInspectionTimeValid(dateOfInspection, timeOfInspection)) {
 			alert("❌ Inspection cannot be started before the scheduled date and time.");
@@ -303,6 +303,15 @@ const Inspection = () => {
 				return;
 			}
 			const allowedStatuses = ["INSPECTED_BY_CON", "AE_INSP_ONGOING", "UPDATED", "RESCHEDULED", "REASSIGNED"];
+
+			if (status === "RESCHEDULED" ||  status === "UPDATED" || status === "REASSIGNED") {
+				
+				if (!inspectionStatus) {
+					alert("Inspection not allowed until Contractor completes inspection.");
+					return;
+				}
+
+			}
 			if (!allowedStatuses.includes(status)) {
 				alert("Inspection not allowed until Contractor completes inspection.");
 				return;
@@ -783,7 +792,8 @@ const Inspection = () => {
 											row.original.id,
 											row.original.status,
 											row.original.dateOfInspection,
-											row.original.timeOfInspection
+											row.original.timeOfInspection,
+											row.original.inspectionStatus
 										);
 									}}
 								>
@@ -981,7 +991,7 @@ const Inspection = () => {
 										</button>
 									)}
 
-								{(userRole === 'it admin' || userRole === 'data admin') ? (
+								{(userRole === 'it admin') ? (
 									// ✅ Show only this button for IT Admin
 									<button
 										onClick={() => {

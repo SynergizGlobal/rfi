@@ -1119,13 +1119,6 @@ export default function InspectionForm() {
 			console.log("Prepared contractor images:", images.contractor);
 			console.log("Prepared engineer images:", images.engineer);
 
-
-
-
-
-
-
-
 			let testReportFileData = null;
 			try {
 				const contractorInspection = (rfiData.inspectionDetails || [])
@@ -1197,13 +1190,14 @@ export default function InspectionForm() {
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-			const mergedUrl = URL.createObjectURL(pdfBlob);
-			const link = document.createElement("a");
-			link.href = mergedUrl;
-			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
+       // For testing purpose...
+//			const mergedUrl = URL.createObjectURL(pdfBlob);
+//			const link = document.createElement("a");
+//			link.href = mergedUrl;
+//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+//			document.body.appendChild(link);
+//			link.click();
+//			document.body.removeChild(link);
 			// Upload PDF to backend
 
 
@@ -1669,7 +1663,7 @@ export default function InspectionForm() {
 			await saveOfflineInspection({
 				inspectionId: inspectionId || Date.now(),
 				rfiId,
-				galleryImages: [file]   // 🔴 MERGED
+				galleryImages: [file]   
 			});
 
 			console.log("📸 Offline site image saved");
@@ -1702,6 +1696,27 @@ export default function InspectionForm() {
 			alert("❌ Failed to upload image. Please try again.");
 		}
 	};
+	
+	
+	
+	const deleteSiteImage = async (imgPath, uploadedBy, rfiId) => {
+		if (!window.confirm("Delete this image?")) return;
+
+		const response = await axios.post(`${API_BASE_URL}rfi/delete-site-img`, null, {
+			params: {
+				rfiId: rfiId,
+				img: imgPath,
+				uploadedBy: uploadedBy
+			}
+		});
+		
+		const text = response.data;
+		alert(text);
+
+		await fetchUpdatedRfiData(rfiId);
+	};
+
+
 
 	const validateEnclosures = () => {
 		if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
@@ -1960,140 +1975,99 @@ export default function InspectionForm() {
 												textAlign: "left",
 											}}
 										>
-											<tbody>
-												{/* Contractor Images */}
-												<tr>
-													<td
-														style={{
-															padding: "8px",
-															borderBottom: "1px solid #eee",
-															width: "25%",
-															verticalAlign: "top",
-														}}
-													>
-														Contractor Site Images
-													</td>
-													<td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-														{Array.isArray(rfiData?.inspectionDetails) &&
-															rfiData.inspectionDetails.some(
-																(d) => d.uploadedBy === "CON" && d.siteImage
-															) ? (
-															<div
-																style={{
-																	display: "flex",
-																	flexWrap: "wrap",
-																	gap: "10px",
-																	alignItems: "center",
-																}}
-															>
-																{rfiData.inspectionDetails
-																	.filter((d) => d.uploadedBy === "CON" && d.siteImage)
-																	.flatMap((d) => d.siteImage.split(","))
-																	.map((imgPath, index) => {
-																		const encodedPath = encodeURIComponent(imgPath.trim());
-																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-																		return (
-																			<a
-																				key={index}
-																				href={imageUrl}
-																				target="_blank"
-																				rel="noopener noreferrer"
-																				style={{
-																					display: "inline-block",
-																					border: "1px solid #ccc",
-																					borderRadius: "6px",
-																					overflow: "hidden",
-																					width: "100px",
-																					height: "100px",
-																					cursor: "pointer",
+										<tbody>
+											{/* Contractor Images */}
+											<tr>
+												<td style={{ padding: "8px", borderBottom: "1px solid #eee", width: "25%", verticalAlign: "top" }}>
+													Contractor Site Images
+												</td>
+												<td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+													{Array.isArray(rfiData?.inspectionDetails) &&
+													rfiData.inspectionDetails.some(d => d.uploadedBy === "CON" && d.siteImage) ? (
+														<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+															{rfiData.inspectionDetails
+																.filter(d => d.uploadedBy === "CON" && d.siteImage)
+																.flatMap(d => d.siteImage.split(","))
+																.map((imgPath, index) => {
+																	const encodedPath = encodeURIComponent(imgPath.trim());
+																	const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+
+																	return (
+																		<div className="site-image-wrapper" key={index}>
+																			<button
+																				className="site-delete-btn"
+																				onClick={(e) => {
+																					e.preventDefault();
+																					e.stopPropagation();
+																					deleteSiteImage(imgPath.trim(), "CON", rfiData.id);
 																				}}
 																			>
+																				×
+																			</button>
+
+																			<a href={imageUrl} target="_blank" rel="noopener noreferrer">
 																				<img
 																					src={imageUrl}
 																					alt={`Contractor Image ${index + 1}`}
-																					style={{
-																						width: "100%",
-																						height: "100%",
-																						objectFit: "cover",
-																					}}
+																					style={{ width: "100%", height: "100%", objectFit: "cover" }}
 																				/>
 																			</a>
-																		);
-																	})}
-															</div>
-														) : (
-															<span style={{ color: "#888" }}>No images uploaded</span>
-														)}
-													</td>
-												</tr>
+																		</div>
+																	);
+																})}
+														</div>
+													) : (
+														<span style={{ color: "#888" }}>No images uploaded</span>
+													)}
+												</td>
+											</tr>
 
-												{/* Engineer Images */}
-												<tr>
-													<td
-														style={{
-															padding: "8px",
-															width: "25%",
-															verticalAlign: "top",
-														}}
-													>
-														Engineer Site Images
-													</td>
-													<td style={{ padding: "8px" }}>
-														{Array.isArray(rfiData?.inspectionDetails) &&
-															rfiData.inspectionDetails.some(
-																(d) => d.uploadedBy === "Engg" && d.siteImage
-															) ? (
-															<div
-																style={{
-																	display: "flex",
-																	flexWrap: "wrap",
-																	gap: "10px",
-																	alignItems: "center",
-																}}
-															>
-																{rfiData.inspectionDetails
-																	.filter((d) => d.uploadedBy === "Engg" && d.siteImage)
-																	.flatMap((d) => d.siteImage.split(","))
-																	.map((imgPath, index) => {
-																		const encodedPath = encodeURIComponent(imgPath.trim());
-																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
-																		return (
-																			<a
-																				key={index}
-																				href={imageUrl}
-																				target="_blank"
-																				rel="noopener noreferrer"
-																				style={{
-																					display: "inline-block",
-																					border: "1px solid #ccc",
-																					borderRadius: "6px",
-																					overflow: "hidden",
-																					width: "100px",
-																					height: "100px",
-																					cursor: "pointer",
+											{/* Engineer Images */}
+											<tr>
+												<td style={{ padding: "8px", width: "25%", verticalAlign: "top" }}>
+													Engineer Site Images
+												</td>
+												<td style={{ padding: "8px" }}>
+													{Array.isArray(rfiData?.inspectionDetails) &&
+													rfiData.inspectionDetails.some(d => d.uploadedBy === "Engg" && d.siteImage) ? (
+														<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+															{rfiData.inspectionDetails
+																.filter(d => d.uploadedBy === "Engg" && d.siteImage)
+																.flatMap(d => d.siteImage.split(","))
+																.map((imgPath, index) => {
+																	const encodedPath = encodeURIComponent(imgPath.trim());
+																	const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+
+																	return (
+																		<div className="site-image-wrapper" key={index}>
+																			<button
+																				className="site-delete-btn"
+																				onClick={(e) => {
+																					e.preventDefault();
+																					e.stopPropagation();
+																					deleteSiteImage(imgPath.trim(), "Engg", rfiData.id);
 																				}}
 																			>
+																				×
+																			</button>
+
+																			<a href={imageUrl} target="_blank" rel="noopener noreferrer">
 																				<img
 																					src={imageUrl}
 																					alt={`Engineer Image ${index + 1}`}
-																					style={{
-																						width: "100%",
-																						height: "100%",
-																						objectFit: "cover",
-																					}}
+																					style={{ width: "100%", height: "100%", objectFit: "cover" }}
 																				/>
 																			</a>
-																		);
-																	})}
-															</div>
-														) : (
-															<span style={{ color: "#888" }}>No images uploaded</span>
-														)}
-													</td>
-												</tr>
-
-
-											</tbody>
+																		</div>
+																	);
+																})}
+														</div>
+													) : (
+														<span style={{ color: "#888" }}>No images uploaded</span>
+													)}
+												</td>
+											</tr>
+										</tbody>
 										</table>
 									</div>
 								</div>
