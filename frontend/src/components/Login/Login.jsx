@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
+import axios from 'axios';
+
 
 const Login = () => {
+	const location = useLocation();
+
+
+	
 	const [showForgot, setShowForgot] = useState(false);
 	const [showNewPassword, setShowNewPassword] = useState(false);
 	const [showOtpPopup, setShowOtpPopup] = useState(false);
@@ -17,6 +23,68 @@ const Login = () => {
 	const navigate = useNavigate();
 
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
+
+	useEffect(() => {
+
+	    const attemptTokenLogin = async () => {
+
+	        const params = new URLSearchParams(location.search);
+	        const token = params.get("token");
+
+	        if (!token) {
+	            console.log("No token found in URL");
+	            return;
+	        }
+
+	        console.log("Token detected:", token);
+
+	        try {
+	            const response = await fetch(`${API_BASE_URL}api/auth/login`, {
+	                method: "POST",
+	                headers: { "Content-Type": "application/json" },
+	                credentials: "include",
+	                body: JSON.stringify({ token }),
+	            });
+
+	            const data = await response.json();
+				
+				if (!response.ok) {
+				    console.error("Token login failed:", data);
+				    return;
+				}
+
+
+
+	            localStorage.setItem("isLoggedIn", "true");
+	            localStorage.setItem("userId", data.userId);
+	            localStorage.setItem("userName", data.userName);
+	            localStorage.setItem("userRoleNameFk", data.userRoleNameFk);
+	            localStorage.setItem("userTypeFk", data.userTypeFk);
+	            localStorage.setItem("departmentFk", data.departmentFk);
+	            localStorage.setItem("loginDepartment", data.loginDepartment);
+	            localStorage.setItem("designation", data.designation);
+
+	            if (data.allowedContractIds) {
+	                localStorage.setItem(
+	                    "allowedContracts",
+	                    JSON.stringify(data.allowedContractIds)
+	                );
+	            }
+
+
+                navigate("/rfiSystem/dashboard");
+              window.location.href = "/rfiSystem/dashboard";
+
+	        } catch (error) {
+	            console.error("Token login error:", error);
+	        }
+	    };
+
+	    attemptTokenLogin();
+
+	}, [location.search]);
+
 
 
 	const showForgotPassword = () => {
@@ -125,8 +193,171 @@ const Login = () => {
 			alert('Error resetting password');
 		}
 	};
+	
 
-	const handleLogin = async (e) => {
+//
+//	useEffect(() => {
+//
+//	    const params = new URLSearchParams(location.search);
+//	    const token = params.get("token");
+//
+//	    if (!token) return;
+//
+//	    const bootstrap = async () => {
+//
+//	        try {
+//
+//	            console.log("Token detected → bootstrapping session");
+//
+//	            const res = await axios.get(`${API_BASE_URL}api/auth/setsession`, {
+//	                params: { token },
+//	                withCredentials: true
+//	            });
+//
+//	            const data = res.data;
+//
+//	            if (!data) {
+//	                console.error("No session data returned");
+//	                navigate("/login", { replace: true });
+//	                return;
+//	            }
+//
+//	            localStorage.setItem('isLoggedIn', 'true');
+//	            localStorage.setItem('userId', data.userId);
+//	            localStorage.setItem('userName', data.userName);
+//	            localStorage.setItem('userRoleNameFk', data.userRoleNameFk);
+//	            localStorage.setItem('userTypeFk', data.userTypeFk);
+//	            localStorage.setItem('departmentFk', data.departmentFk);
+//	            localStorage.setItem('loginDepartment', data.loginDepartment);
+//	            localStorage.setItem('designation', data.designation);
+//
+//	            if (data.allowedContractIds) {
+//	                localStorage.setItem(
+//	                    'allowedContracts',
+//	                    JSON.stringify(data.allowedContractIds)
+//	                );
+//	            }
+//
+//	            console.log("✅ Token login successful:", data.userId);
+//
+//	            const sessionRes = await axios.get(
+//	                `${API_BASE_URL}api/auth/getsession`,
+//	                { withCredentials: true }
+//	            );
+//
+//	            if (!sessionRes.data) {
+//	                console.error("Backend session missing");
+//	                alert("Session not established");
+//	                navigate("/login", { replace: true });
+//	                return;
+//	            }
+//
+//	            try {
+//	                const checkRes = await axios.get(
+//	                    `${API_BASE_URL}api/checkUserDSC`,
+//	                    {
+//	                        params: { userId: data.userId },
+//	                        withCredentials: true
+//	                    }
+//	                );
+//
+//	                localStorage.setItem(
+//	                    "askForDSC",
+//	                    checkRes.data.exists ? "false" : "true"
+//	                );
+//
+//	            } catch (err) {
+//	                console.error("DSC check failed:", err);
+//	                localStorage.setItem("askForDSC", "true");
+//	            }
+//
+//	            // ✅ Clean token from URL
+//	            window.history.replaceState({}, document.title, "/rfiSystem/dashboard");
+//
+//	            // ✅ Single navigation ONLY
+//	            navigate("/rfiSystem/dashboard", { replace: true });
+//
+//	        } catch (err) {
+//	            console.error("Session bootstrap failed:", err);
+//	            localStorage.clear();
+//	            navigate("/", { replace: true });
+//	        }
+//	    };
+//
+//	    bootstrap();
+//
+//	}, [location.search]);
+//
+//
+//
+//
+//	const handleLogin = async (e) => {
+//		e.preventDefault();
+//		setMessage('');
+//
+//		try {
+//			
+//			const params = new URLSearchParams(location.search);
+//			const token = params.get("token");
+//			
+//			
+//			const response = await fetch(`${API_BASE_URL}api/auth/login`, {
+//				method: 'POST',
+//				headers: { 'Content-Type': 'application/json' },
+//				credentials: 'include',
+//				body: JSON.stringify({ userId: userid, password: password, token:token }),
+//			});
+//
+//			const data = await response.json();
+//			if (response.ok) {
+//				localStorage.setItem('isLoggedIn', true);
+//				localStorage.setItem('userId', data.userId);
+//				localStorage.setItem('userName', data.userName);
+//				localStorage.setItem('userRoleNameFk', data.userRoleNameFk);
+//				localStorage.setItem('userTypeFk', data.userTypeFk);
+//				localStorage.setItem('departmentFk', data.departmentFk);
+//				localStorage.setItem('loginDepartment', data.loginDepartment);
+//				localStorage.setItem('designation', data.designation);
+//
+//				console.log(localStorage.getItem('loginDepartment'));		
+//				try {
+//				    const checkRes = await fetch(
+//				        `${API_BASE_URL}api/checkUserDSC?userId=${data.userId}`,
+//				        { method: "GET", credentials: "include" }
+//				    );
+//				    const checkData = await checkRes.json();
+// 
+//				    if (checkData.exists) {
+//				        localStorage.setItem("askForDSC", "false");   // Do NOT ask again
+//				    } else {
+//				        localStorage.setItem("askForDSC", "true");    // Ask for DSC
+//				    }
+//				} catch (err) {
+//				    console.error("DSC check failed:", err);
+//				    localStorage.setItem("askForDSC", "true"); // safe fallback
+//				}	
+//
+//
+//				if (data.allowedContractIds) {
+//					localStorage.setItem('allowedContracts', JSON.stringify(data.allowedContractIds));
+//				}
+//
+//				window.location.href = "/rfiSystem/dashboard";
+//
+//			} else {
+//				setMessage(`❌ Login failed: ${data.message || 'Invalid credentials'}`);
+//			}
+//		} catch (error) {
+//			console.error('Login error:', error);
+//			setMessage('❌ An error occurred while logging in.');
+//		}
+//	};
+	
+	
+
+
+
+const handleLogin = async (e) => {
 		e.preventDefault();
 		setMessage('');
 
@@ -149,11 +380,7 @@ const Login = () => {
 				localStorage.setItem('loginDepartment', data.loginDepartment);
 				localStorage.setItem('designation', data.designation);
 
-				console.log(localStorage.getItem('loginDepartment'));
-				console.log("✅ Stored userId:", data.userId);
-				console.log("✅ Stored user designation:", data.designation);
-
-				
+				console.log(localStorage.getItem('loginDepartment'));		
 				try {
 				    const checkRes = await fetch(
 				        `${API_BASE_URL}api/checkUserDSC?userId=${data.userId}`,

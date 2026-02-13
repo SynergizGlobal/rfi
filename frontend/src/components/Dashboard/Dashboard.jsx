@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import HeaderRight from '../HeaderRight/HeaderRight';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Dashboard.css';
 import { jsPDF } from "jspdf";
+import axios from 'axios';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -10,10 +11,12 @@ const Dashboard = () => {
 	const [showSignModal, setShowSignModal] = useState(false);
 	const [loadingSignature, setLoadingSignature] = useState(true);
 
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+
+	
     const userRole = localStorage.getItem("userRoleNameFk")?.toLowerCase();
     const userType = localStorage.getItem("userTypeFk")?.toLowerCase();
     const userDepartment = localStorage.getItem("departmentFk")?.toLowerCase();
-    const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
     const isContractor = userRole === "contractor";
     const isRegularUser = userRole === "regular user";
@@ -22,6 +25,10 @@ const Dashboard = () => {
     const isEngg = userDepartment === "engg";
 
     const hasFullAccess = isITAdmin || isDataAdmin;
+	
+
+
+	
 
     const navigateWithStatus = (status) => {
         navigate("/CreatedRfi", { state: { filterStatus: status } });

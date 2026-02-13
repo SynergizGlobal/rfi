@@ -2,10 +2,14 @@ import React from 'react';
 import  { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
 
 	const [userName, setUserName] = useState('');
+	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
+	const navigate = useNavigate();
+
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem('userName');
@@ -18,6 +22,32 @@ const Header = () => {
 		const menuItems = document.querySelectorAll('.dashboard-menu li');
 		menuItems.forEach(item => item.classList.remove('active'));
 	};
+	
+	
+	const handleLogout = async () => {
+
+		try {
+			const response = await fetch(`${API_BASE_URL}api/auth/logout`, {
+				method: 'GET',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+			});
+
+			if (response.ok) {
+				navigate("/login");
+			}
+			else{
+				alert("Failed To logout, please try again or refresh the page");
+				}
+		}
+		catch (err) {
+			console.log("Failed to logout: " + err);
+		}
+		finally {
+			navigate("/login");
+		}
+
+	}
 
 	return (<div className="top-nav">
 		<div className="top-left-menu">
@@ -76,11 +106,8 @@ const Header = () => {
 										Edit Profile
 									</a>
 								</li>
-								{/*<li>
-									<Link to="">Change Password</Link>
-								</li>*/}
-								<li>
-									<Link to="/login">Logout</Link>
+							<li>
+									<Link onClick={handleLogout} >Logout</Link>
 								</li>
 							</ul>
 						</div>

@@ -1,11 +1,7 @@
 package com.metro.rfisystem.backend.controller;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Base64;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,8 +9,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,18 +21,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.metro.rfisystem.backend.dto.UserDTO;
 import com.metro.rfisystem.backend.dto.UserProfileDTO;
 import com.metro.rfisystem.backend.dto.UserUpdateDTO;
-import com.metro.rfisystem.backend.repository.pmis.ContractRepository;
-import com.metro.rfisystem.backend.repository.pmis.P6ActivityRepository;
+import com.metro.rfisystem.backend.model.pmis.User;
 import com.metro.rfisystem.backend.repository.pmis.UserRepository;
-import com.metro.rfisystem.backend.repository.rfi.RFIRepository;
-import com.metro.rfisystem.backend.service.RFIService;
 import com.metro.rfisystem.backend.service.UserService;
+import com.metro.rfisystem.backend.util.JwtUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 
@@ -172,5 +169,11 @@ public class UserController {
             return ResponseEntity.status(500).body(null);
         }
     }
+    
+    @PostMapping("/generate-test-token")
+    public String generateTestToken(@RequestParam String userId) {
+        return JwtUtil.generateToken(userId);
+    }
 
+ 
 }
