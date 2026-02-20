@@ -211,9 +211,9 @@ public class RFIController {
 		}
 		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
-		boolean isDataAdmin = userRole != null && userRole.equalsIgnoreCase("Data Admin"); // ✅ add this
-
-		if (isAdmin || isDyHOD || isDataAdmin) {
+		boolean isDataAdmin = userRole != null && userRole.equalsIgnoreCase("Data Admin"); 
+		boolean isSuperUser = userRole != null && userRole.equalsIgnoreCase("Super User");
+		if (isAdmin || isDyHOD || isDataAdmin || isSuperUser) {
 			return ResponseEntity.ok(rfiService.getAllRFIs());
 		}
 //		 if (userRole.equalsIgnoreCase("Contractor")) {
@@ -256,8 +256,9 @@ public class RFIController {
 		boolean isAdmin = userRole != null && userRole.equalsIgnoreCase("IT Admin");
 		boolean isDyHOD = userType != null && userType.equalsIgnoreCase("DyHOD");
 		boolean isDataAdmin = userRole != null && userRole.equalsIgnoreCase("Data Admin");
+		boolean isSuperUser = userRole != null && userRole.equalsIgnoreCase("Super User");
 
-		if (isAdmin || isDyHOD || isDataAdmin) {
+		if (isAdmin || isDyHOD || isDataAdmin || isSuperUser) {
 			return ResponseEntity.ok(rfiService.countByTotalRfiCreated());
 		}
 //		if (userRole.equalsIgnoreCase("Contractor")) {
@@ -349,6 +350,7 @@ public class RFIController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		}
 
+		boolean isSuperUser = userRole != null && userRole.equalsIgnoreCase("Super User");
 		boolean isAdmin = "IT Admin".equalsIgnoreCase(userRole);
 		boolean isDyHOD = "DyHOD".equalsIgnoreCase(userType);
 		boolean isContractor = "Contractor".equalsIgnoreCase(userRole);
@@ -358,7 +360,7 @@ public class RFIController {
 
 		Map<String, Long> counts = new HashMap<>();
 
-		if (isAdmin || isDyHOD || isContractor || isDataAdmin) {
+		if (isAdmin || isDyHOD || isContractor || isDataAdmin ||  isSuperUser) {
 
 		    // ✅ Admin, DyHOD, Contractor → ALL RFIs
 		    counts.put("INSPECTED_BY_CON", rfiRepository.countByStatus(EnumRfiStatus.INSPECTED_BY_CON));

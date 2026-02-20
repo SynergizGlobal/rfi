@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import CameraCapture from '../CameraCapture/CameraCapture';
@@ -12,8 +12,7 @@ import { connectEsignSocket, disconnectEsignSocket } from "../../utils/esignSock
 
 const deptFK = localStorage.getItem("departmentFk")?.toLowerCase();
 const isEngineer = deptFK === "engg";
-let globalVarConSubmited = null;
-let globalVarEnggSubmited = null;
+
 
 
 export default function InspectionForm() {
@@ -22,7 +21,6 @@ export default function InspectionForm() {
 	const location = useLocation();
 	const id = location.state?.rfi;
 	const skipSelfie = location.state?.skipSelfie;
-	const [viewMode, setViewMode] = useState(location.state?.viewMode || false);
 	const [step, setStep] = useState(skipSelfie ? 2 : 1);
 	const [rfiData, setRfiData] = useState(null);
 	const [locationText, setLocationText] = useState('');
@@ -30,7 +28,6 @@ export default function InspectionForm() {
 	const [selfieImage, setSelfieImage] = useState(null);
 	const [siteImage, setSiteImage] = useState(null);
 	const [galleryImages, setGalleryImages] = useState([null, null, null, null]);
-	const [inspectionStatusMode, setInspectionStatusMode] = useState("DRAFT");
 	const [inspectionStatusUserSelection, setInspectionStatusUserSelection] = useState("");
 	const [enclosureStates, setEnclosureStates] = useState({});
 	const [checklistPopup, setChecklistPopup] = useState(null);
@@ -51,28 +48,28 @@ export default function InspectionForm() {
 
 	const [engineerRemarks, setEngineerRemarks] = useState("");
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
-	const selfieRef = useRef(null);
-	const firstGalleryRef = useRef(null);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [uploading, setUploading] = useState(false);
-	const [supportingUploadPopup, setSupportingUploadPopup] = useState(false); // <-- fix for your error
-	const [supportingDocs, setSupportingDocs] = useState([]); // stores File objects (or uploaded file metadata)
+	const [supportingUploadPopup, setSupportingUploadPopup] = useState(false);
+	const [supportingDocs, setSupportingDocs] = useState([]);
 	const [supportingDescriptions, setSupportingDescriptions] = useState([]);
 	const [supportingFiles, setSupportingFiles] = useState([]);
-	const contractorSubmitted = rfiData?.inspectionDetails?.some(
-		d => d.uploadedBy === "CON" && d.workStatus?.toUpperCase() === "SUBMITTED"
-	);
-	globalVarConSubmited = contractorSubmitted;
 
-	const engineerSubmitted = rfiData?.inspectionDetails?.some(
-		d => d.uploadedBy === "Engg" && d.workStatus?.toUpperCase() === "SUBMITTED"
-	);
-	globalVarEnggSubmited = engineerSubmitted;
+	const contractorSubmitted =
+		rfiData?.inspectionDetails?.some(
+			d => d.uploadedBy === "CON" &&
+				d.workStatus?.toUpperCase() === "SUBMITTED"
+		) || false;
+
+	const engineerSubmitted =
+		rfiData?.inspectionDetails?.some(
+			d => d.uploadedBy === "Engg" &&
+				d.workStatus?.toUpperCase() === "SUBMITTED"
+		) || false;
+
 
 	const getDisabled = () => {
-		if (inspectionStatusMode === "DRAFT") return false;
-
 		if (isEngineer) {
 			return engineerSubmitted;
 		} else {
@@ -80,7 +77,6 @@ export default function InspectionForm() {
 		}
 	};
 
-	{/* STATE: Add this above (inside your component) */ }
 	const [customUnits, setCustomUnits] = useState({
 		Length: [],
 		Area: [],
@@ -98,6 +94,94 @@ export default function InspectionForm() {
 	};
 
 
+	const fetchRfiDataUpdateState = async () => {
+
+	    if (!id) return;
+
+	    try {
+	        const res = await fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, {
+	            credentials: "include",
+	        });
+
+	        if (!res.ok) throw new Error("Failed to fetch RFI details");
+
+	        const data1 = await res.json();
+
+	        setRfiData(data1);
+
+	        /* ✅ ENCLOSURE LIST NORMALIZATION */
+
+	        if (!data1.enclosures) return;
+
+	        const enclosuresArr = Array.isArray(data1.enclosures)
+	            ? data1.enclosures
+	            : data1.enclosures.split(",").map(e => e.trim());
+
+	        const formatted = enclosuresArr.map((enc, index) => ({
+	            id: `${data1.id}-${index}`,
+	            enclosure: enc,
+	        }));
+
+	        setEnclosuresData(formatted);
+
+	        const actionsState = {};
+	        const checklistState = {};
+
+	        for (const item of formatted) {
+
+	            try {
+	                const result = await fetchChecklistDataFromApi(id, item.enclosure);
+
+	                const rows = Array.isArray(result?.checklist)
+	                    ? result.checklist
+	                    : [];
+
+	                const contractorChecklistDone = rows.some(
+	                    row =>
+	                        (row.contractorStatus && row.contractorStatus.trim() !== "") ||
+	                        (row.contractorRemark && row.contractorRemark.trim() !== "")
+	                );
+
+	                const engineerChecklistDone = rows.some(
+	                    row =>
+	                        (row.engineerStatus && row.engineerStatus.trim() !== "") ||
+	                        (row.engineerRemark && row.engineerRemark.trim() !== "")
+	                );
+
+	                const hasAnyData = contractorChecklistDone || engineerChecklistDone;
+
+	                actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
+
+	                checklistState[item.id] = {
+	                    checklist: rows,
+	                    gradeOfConcrete: result?.gradeOfConcrete || "",
+	                    contractorChecklistDone,
+	                    engineerChecklistDone,
+	                };
+
+	            } catch (err) {
+
+	                console.log("Checklist fetch failed:", item.enclosure);
+
+	                actionsState[item.id] = "UPLOAD";
+
+	                checklistState[item.id] = {
+	                    checklist: [],
+	                    gradeOfConcrete: "",
+	                    contractorChecklistDone: false,
+	                    engineerChecklistDone: false,
+	                };
+	            }
+	        }
+
+	        setEnclosureActions(actionsState);
+	        setEnclosureStates(checklistState);
+
+	    } catch (err) {
+	        console.error("Error refreshing RFI:", err);
+	    }
+	};
+
 
 	useEffect(() => {
 		if (id) {
@@ -110,17 +194,17 @@ export default function InspectionForm() {
 					//Setting stored location  based on role and descritpion..
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
 
-						// ✅ latest CON record
+						//  latest CON record
 						const conInspection = data.inspectionDetails
 							.filter(det => (det.uploadedBy || "").toLowerCase() === "con")
 							.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
 
-						// ✅ latest Engg record
+						//  latest Engg record
 						const enggInspection = data.inspectionDetails
 							.filter(det => (det.uploadedBy || "").toLowerCase() === "engg")
 							.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
 
-						// ✅ set both comments
+						//  set both comments
 						setOverallComments(conInspection?.descriptionEnclosure || "");
 						setOverallComments2(enggInspection?.descriptionEnclosure || "");
 
@@ -139,14 +223,13 @@ export default function InspectionForm() {
 					}
 
 
-					// ✅ Handle Enclosures
+					//  Handle Enclosures
 					if (data.enclosures) {
 						const enclosuresArr = Array.isArray(data.enclosures)
 							? data.enclosures
 							: data.enclosures.split(",").map((enc) => enc.trim());
 
-						// 🔹 Prepare file mapping if backend has uploaded enclosure files
-						// 🔹 Handle uploaded enclosure files from backend
+
 						const uploadedEnclosures = Array.isArray(data.enclosure)
 							? data.enclosure.map((e) => ({
 								name: e.enclosureName?.trim(),
@@ -173,14 +256,14 @@ export default function InspectionForm() {
 								id: `${data.id}-${index}`,
 								rfiDescription: data.rfiDescription,
 								enclosure: enc,
-								filePath: uploadedFile?.filePath || null, // ✅ for PDF generation
+								filePath: uploadedFile?.filePath || null,
 								fileId: uploadedFile?.fileId || null,
 							};
 						});
 
 						setEnclosuresData(formatted);
 
-						// ✅ Existing logic - unchanged
+						//  Existing logic - unchanged
 						const fetchEnclosureActions = async () => {
 							const actionsState = {};
 							const checklistState = {};
@@ -190,57 +273,61 @@ export default function InspectionForm() {
 									const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
 									if (result) {
-										let hasData = false;
-										if (Array.isArray(result.checklist)) {
-											const dept = deptFK?.toLowerCase();
 
-											if (dept === "engg") {
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-												);
-											} else if (dept && dept !== "engg") {
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "")
-												);
-											} else {
-												hasData = result.checklist.some(
-													(chk) =>
-														(chk.contractorStatus && chk.contractorStatus.trim() !== "") ||
-														(chk.contractorRemarks && chk.contractorRemarks.trim() !== "") ||
-														(chk.engineerStatus && chk.engineerStatus.trim() !== "") ||
-														(chk.engineerRemark && chk.engineerRemark.trim() !== "")
-												);
-											}
-										}
+										const rows = Array.isArray(result.checklist) ? result.checklist : [];
 
-										const action = hasData ? "EDIT" : "OPEN";
-										actionsState[item.id] = action;
+										const contractorChecklistDone = rows.some(
+											row =>
+												(row.contractorStatus && row.contractorStatus.trim() !== "") ||
+												(row.contractorRemark && row.contractorRemark.trim() !== "")
+										);
+
+										const engineerChecklistDone = rows.some(
+											row =>
+												(row.engineerStatus && row.engineerStatus.trim() !== "") ||
+												(row.engineerRemark && row.engineerRemark.trim() !== "")
+										);
+
+										// ✅ Action logic (independent)
+										const hasAnyData = contractorChecklistDone || engineerChecklistDone;
+
+										actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
+
 										checklistState[item.id] = {
-											checklist: result.checklist || [],
+											checklist: rows,
 											gradeOfConcrete: result.gradeOfConcrete || "",
-											checklistDone: hasData,
+
+											contractorChecklistDone,
+											engineerChecklistDone
 										};
+
 									} else {
+
 										actionsState[item.id] = "UPLOAD";
+
 										checklistState[item.id] = {
 											checklist: [],
 											gradeOfConcrete: "",
-											checklistDone: false,
+
+											contractorChecklistDone: false,
+											engineerChecklistDone: false
 										};
 									}
+
 								} catch (err) {
 									console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+
 									actionsState[item.id] = "UPLOAD";
+
 									checklistState[item.id] = {
 										checklist: [],
 										gradeOfConcrete: "",
-										checklistDone: false,
+
+										contractorChecklistDone: false,
+										engineerChecklistDone: false
 									};
 								}
+
 							}
 
 							setEnclosureActions(actionsState);
@@ -250,7 +337,7 @@ export default function InspectionForm() {
 						fetchEnclosureActions();
 					}
 
-					// ✅ Existing inspection logic - untouched
+					// Existing inspection logic - untouched
 					if (Array.isArray(data.inspectionDetails) && data.inspectionDetails.length > 0) {
 						const contractorInspection = data.inspectionDetails
 							.filter((det) => det.uploadedBy === "CON")
@@ -367,30 +454,57 @@ export default function InspectionForm() {
 		setTimeOfInspection(now.toTimeString().split(" ")[0].slice(0, 5));
 	}, []);
 
+	
 	const fetchLocation = () => {
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				async position => {
-					const lat = position.coords.latitude;
-					const lng = position.coords.longitude;
-					try {
-						const res = await fetch(
-							`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-						);
-						const geoData = await res.json();
-						setLocationText(geoData.display_name || `Lat: ${lat}, Lng: ${lng}`);
-					} catch {
-						setLocationText(`Lat: ${lat}, Lng: ${lng}`);
-					}
-				},
-				() => setLocationText("Location access denied")
-			);
-		}
+
+	    if (!navigator.geolocation) return;
+
+	    navigator.geolocation.getCurrentPosition(
+
+	        async (position) => {
+	            try {
+	                const { latitude, longitude, accuracy } = position.coords;
+
+	                console.log("Latitude:", latitude);
+	                console.log("Longitude:", longitude);
+	                console.log("Accuracy:", accuracy);
+
+	                if (!accuracy || accuracy > 80) return;
+
+	                const res = await fetch(
+	                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+	                );
+
+	                if (!res.ok) return;
+
+	                const geoData = await res.json();
+
+	                if (!geoData?.display_name) return;
+	                setLocationText(geoData.display_name || "");
+
+	            } catch (err) {
+	                console.log("Location error:", err);
+	            }
+	        },
+
+	        (error) => {
+	            console.log("Geolocation error:", error);
+	        },
+
+	        {
+	            enableHighAccuracy: true,
+	            timeout: 10000,
+	            maximumAge: 0
+	        }
+	    );
 	};
+
+	
+	
 
 	function dataURLtoFile(dataUrl, filename) {
 		if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
-			console.warn("⚠️ Invalid data URL, skipping:", dataUrl);
+			console.warn(" Invalid data URL, skipping:", dataUrl);
 			return null;
 		}
 
@@ -451,27 +565,40 @@ export default function InspectionForm() {
 			const responseText = await res.text();
 			console.log("Checklist save response:", responseText);
 
-			// ✅ update states
+			//  update states
 			setEnclosureStates(prev => ({
 				...prev,
 				[id]: {
+					...prev[id],
+
 					checklist: checklistData,
 					gradeOfConcrete: grade,
-					checklistDone: true,
+
+					contractorChecklistDone: deptFK !== "engg"
+						? true
+						: prev[id]?.contractorChecklistDone,
+
+					engineerChecklistDone: deptFK === "engg"
+						? true
+						: prev[id]?.engineerChecklistDone
 				}
 			}));
 
-			// ✅ update actions so button shows "Edit"
 			setEnclosureActions(prev => ({
 				...prev,
 				[id]: "EDIT"
 			}));
 
 			setChecklistPopup(null);
+			fetchRfiDataUpdateState();
 			alert("Checklist saved successfully!");
 		} catch (err) {
+			fetchRfiDataUpdateState();
 			console.error("Checklist save failed:", err);
 			alert("Checklist save failed: " + err.message);
+		}
+		finally {
+			fetchRfiDataUpdateState();
 		}
 	};
 
@@ -496,7 +623,7 @@ export default function InspectionForm() {
 			return;
 		}
 
-		// 2️⃣ Reject Excel files
+		// 2️ Reject Excel files
 		const ext = file.name.split('.').pop().toLowerCase();
 		const blockedExt = ["xlsx", "xls", "csv", "doc", "docx"];
 
@@ -506,11 +633,11 @@ export default function InspectionForm() {
 		}
 
 
-		// 3️⃣ Detect encrypted PDFs (optional but recommended)
+		// 3️ Detect encrypted PDFs (optional but recommended)
 		if (ext === "pdf") {
 			const isEncrypted = await checkPdfEncrypted(file);
 			if (isEncrypted) {
-				alert("❌ Encrypted PDF is not allowed. Please upload a normal PDF.");
+				alert("Encrypted PDF is not allowed. Please upload a normal PDF.");
 				return;
 			}
 		}
@@ -567,7 +694,8 @@ export default function InspectionForm() {
 			}));
 
 			await fetchUpdatedRfiData(rfiData.id);
-			alert("✅ Enclosure File uploaded successfully.");
+			fetchRfiDataUpdateState();
+			alert(" Enclosure File uploaded successfully.");
 
 			setUploadPopup(null);
 		} catch (err) {
@@ -577,49 +705,12 @@ export default function InspectionForm() {
 	};
 
 
-	const fetchEnclosuresData = async (rfiId, setEnclosuresData) => {
-		try {
-			const res = await fetch(`${API_BASE_URL}rfi/enclosures/${rfiId}`, {
-				method: "GET",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-
-			if (!res.ok) {
-				const txt = await res.text().catch(() => "");
-				throw new Error(`Failed: ${txt || res.status}`);
-			}
-
-			const data = await res.json();
-
-			// 💥 Fix UI not updating / stale state
-			setEnclosuresData([]);
-			setTimeout(() => setEnclosuresData(data), 0);
-
-		} catch (err) {
-			console.error("Fetch error:", err);
-			setEnclosuresData([]);
-		}
-	};
-
-
-
 
 	const [measurements, setMeasurements] = useState([
 		{ type: "", L: "", B: "", H: "", No: "", total: "", weight: "", units: "" },
 	]);
 
 
-	const handleAddMeasurement = () => {
-		setMeasurements((prev) => [
-			...prev,
-			{ type: "", L: "", B: "", H: "", No: "", total: "", weight: "", units: "" },
-		]);
-	};
-
-	const handleDeleteMeasurement = (index) => {
-		setMeasurements((prev) => prev.filter((_, i) => i !== index));
-	};
 
 
 	const handleMeasurementChange = (index, field, value) => {
@@ -669,7 +760,6 @@ export default function InspectionForm() {
 		if (isSaving) return;
 		setIsSaving(true);
 
-		setInspectionStatusMode("DRAFT");
 
 		// Prepare supportingFiles and supportingDescriptions from supportingDocs state
 		const supportingFiles = supportingDocs.map(doc => doc.file);
@@ -746,11 +836,9 @@ export default function InspectionForm() {
 
 			if (!res.ok) throw new Error(await res.text());
 
-			const id = await res.json();
-			// setInspectionId(id); // if needed
 			alert("✅ Draft saved successfully!");
 			setIsSaving(false);
-			navigate("/inspection"); // Redirect after save
+			navigate("/inspection");
 
 		} catch (err) {
 			console.error("Draft save failed:", err);
@@ -872,7 +960,7 @@ export default function InspectionForm() {
 				name = sanitizeName(st.checklist[0].enclosureName);
 			}
 
-			if (!name) return;   // ✅ do not create ghost enclosure
+			if (!name) return;
 
 			if (!map[name]) {
 				map[name] = { enclosure: name, description: st.description || "", files: [], checklist: [], _ids: [] };
@@ -901,19 +989,74 @@ export default function InspectionForm() {
 	};
 
 	const formatDateSlash = (dateValue) => {
-	  if (!dateValue) return "";
+		if (!dateValue) return "";
 
-	  const d = new Date(dateValue);
-	  if (isNaN(d.getTime())) return "";
+		const d = new Date(dateValue);
+		if (isNaN(d.getTime())) return "";
 
-	  const dd = String(d.getDate()).padStart(2, "0");
-	  const mm = String(d.getMonth() + 1).padStart(2, "0");
-	  const yyyy = d.getFullYear();
+		const dd = String(d.getDate()).padStart(2, "0");
+		const mm = String(d.getMonth() + 1).padStart(2, "0");
+		const yyyy = d.getFullYear();
 
-	  return `${dd}/${mm}/${yyyy}`;
+		return `${dd}/${mm}/${yyyy}`;
 	};
 
+	const validateEnclosures = () => {
 
+	    if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
+	        alert("⚠️ No enclosures found — Please contact admin or support team.");
+	        return false;
+	    }
+
+	    for (const e of enclosuresData) {
+
+	        const state = enclosureStates[e.id];
+
+	        const checklistRows = state?.checklist || [];
+	        const hasChecklist = checklistRows.length > 0;
+
+	        const contractorDone = state?.contractorChecklistDone;
+	        const engineerDone   = state?.engineerChecklistDone;
+
+	        const contractorFileExists = rfiData.enclosure?.some(
+	            enc =>
+	                enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+	                && (enc.uploadedBy || "").toUpperCase() === "CON"
+	        );
+
+	        const engineerFileExists = rfiData.enclosure?.some(
+	            enc =>
+	                enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+	                && (enc.uploadedBy || "").toUpperCase() === "ENGG"
+	        );
+
+
+	        if (hasChecklist) {
+
+	            if (isEngineer && !engineerDone) {
+	                alert(`⚠️ Engineer checklist pending for "${e.enclosure}"`);
+	                return false;
+	            }
+
+	            if (!isEngineer && !contractorDone) {
+	                alert(`⚠️ Contractor checklist pending for "${e.enclosure}"`);
+	                return false;
+	            }
+	        }
+
+	        if (isEngineer && !engineerFileExists) {
+	            alert(`⚠️ Engineer must upload a file for "${e.enclosure}"`);
+	            return false;
+	        }
+
+	        if (!isEngineer && !contractorFileExists) {
+	            alert(`⚠️ Contractor must upload a file for "${e.enclosure}"`);
+	            return false;
+	        }
+	    }
+
+	    return true;
+	};
 
 	const handleSubmitInspection = async () => {
 		if (!validateStep()) {
@@ -1172,7 +1315,7 @@ export default function InspectionForm() {
 					b: m.B,
 					h: m.H,
 					weight: m.weight || "",
-					units: m.units || "",       
+					units: m.units || "",
 					no: m.No,
 					total: m.total,
 				})),
@@ -1182,22 +1325,20 @@ export default function InspectionForm() {
 				images,
 			});
 
-			// ✅ 3. Merge with external PDFs if any
-			const y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 50;
 
 			const pdfBlob =
 				externalPdfBlobs.length > 0
 					? await mergeWithExternalPdfs(doc, externalPdfBlobs)
 					: doc.output("blob");
 
-       // For testing purpose...
-//			const mergedUrl = URL.createObjectURL(pdfBlob);
-//			const link = document.createElement("a");
-//			link.href = mergedUrl;
-//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
-//			document.body.appendChild(link);
-//			link.click();
-//			document.body.removeChild(link);
+			// For testing purpose...
+			//			const mergedUrl = URL.createObjectURL(pdfBlob);
+			//			const link = document.createElement("a");
+			//			link.href = mergedUrl;
+			//			link.download = `Inspection_RFI_${rfiData.rfi_Id || "Draft"}.pdf`;
+			//			document.body.appendChild(link);
+			//			link.click();
+			//			document.body.removeChild(link);
 			// Upload PDF to backend
 
 
@@ -1256,9 +1397,6 @@ export default function InspectionForm() {
 					if (!resCon.ok) {
 						throw new Error(await resCon.text());
 					}
-
-					setInspectionStatusMode("SUBMITTED");
-					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
 					setIsSubmitting(false);
 
 					await new Promise((resolve) => {
@@ -1333,9 +1471,7 @@ export default function InspectionForm() {
 						throw new Error(`? Submission failed: ${errText}`);
 					}
 
-					setInspectionStatusMode("SUBMITTED");
 					setIsSubmitting(false);
-					localStorage.setItem(`inspectionLocked_${rfiData.id}`, "true");
 					alert("Engineer eSign completed successfully.");
 					navigate("/inspection");
 
@@ -1426,13 +1562,7 @@ export default function InspectionForm() {
 			});
 		});
 	}
-	useEffect(() => {
-		if (id && localStorage.getItem(`inspectionLocked_${id}`) === "true") {
-			setInspectionStatusMode("SUBMITTED");
-		} else {
-			setInspectionStatusMode("DRAFT");
-		}
-	}, [id]);
+
 
 	useEffect(() => {
 		if (!rfiData?.id) return;
@@ -1452,12 +1582,12 @@ export default function InspectionForm() {
 					setChainage(latestInspection.chainage || "");
 
 
-					// ✅ measurements now comes from `latestInspection.measurements`
+					// measurements now comes from `latestInspection.measurements`
 					if (latestInspection.measurements) {
 						console.log("Raw measurement object:", latestInspection.measurements);
 						const m = latestInspection.measurements;
 
-						// ⭐ Add this block to register unit if not in predefined list
+						//  Add this block to register unit if not in predefined list
 						const unitFromBackend = m.units;
 						const typeFromBackend = m.measurementType;
 
@@ -1519,12 +1649,10 @@ export default function InspectionForm() {
 	}, []);
 
 
-	const [completedOfflineInspections, setCompletedOfflineInspections] = useState({});
-
 	const syncOfflineInspections = async () => {
 		if (!navigator.onLine) return;
 
-		// ✅ Sync inspection images first
+		//  Sync inspection images first
 		const offlineInspections = await getAllOfflineInspections();
 
 
@@ -1553,12 +1681,7 @@ export default function InspectionForm() {
 						: dataURLtoFile(inspection.selfieImage, "selfie.jpg"));
 				}
 
-				// Site Images
-				/*inspection.galleryImages?.forEach((img, i) => {
-					if (img) formData.append("siteImages", img instanceof File ? img : dataURLtoFile(img, `siteImage${i + 1}.jpg`));
-				});
-*/
-				// Test Report
+
 				if (inspection.testReportFile) {
 					formData.append("testReport", inspection.testReportFile);
 				}
@@ -1574,16 +1697,14 @@ export default function InspectionForm() {
 					continue;
 				}
 
-				console.log(`✅ Synced inspection ${inspection.rfiId}`);
+				console.log(` Synced inspection ${inspection.rfiId}`);
 
 				const completed = JSON.parse(localStorage.getItem("completedOfflineInspections") || "{}");
 				completed[inspection.rfiId] = true;
 				localStorage.setItem("completedOfflineInspections", JSON.stringify(completed));
 
-				/*				await removeOfflineInspection(inspection.inspectionId);
-				*/
 			} catch (err) {
-				console.error(`⚠️ Failed to sync inspection ${inspection.rfiId}:`, err);
+				console.error(` Failed to sync inspection ${inspection.rfiId}:`, err);
 			}
 		}
 
@@ -1602,25 +1723,20 @@ export default function InspectionForm() {
 				});
 
 				if (!res.ok) {
-					console.error(`❌ Failed to sync enclosure ${enclosure.enclosureName}`);
+					console.error(` Failed to sync enclosure ${enclosure.enclosureName}`);
 					continue;
 				}
 
 
 
-				console.log(`📂 Synced enclosure ${enclosure.enclosureName}`);
+				console.log(` Synced enclosure ${enclosure.enclosureName}`);
 			} catch (err) {
-				console.error(`⚠️ Failed to sync enclosure ${enclosure.enclosureName}:`, err);
+				console.error(` Failed to sync enclosure ${enclosure.enclosureName}:`, err);
 			}
 		}
 
-		/*		offlineEnclosures.forEach(e => clearOfflineEnclosures(e.rfiId));
-		*/
-
 	};
 
-
-	const [isOffline, setIsOffline] = useState(false);
 
 
 
@@ -1629,11 +1745,13 @@ export default function InspectionForm() {
 		return () => window.removeEventListener("online", syncOfflineInspections);
 	}, []);
 
+
 	const generateUniqueTxnId = () => {
 		const timestamp = Date.now();
 		const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 		return `${timestamp}${randomSuffix}`;
 	};
+
 
 	const fetchUpdatedRfiData = async (id) => {
 		try {
@@ -1663,10 +1781,10 @@ export default function InspectionForm() {
 			await saveOfflineInspection({
 				inspectionId: inspectionId || Date.now(),
 				rfiId,
-				galleryImages: [file]   
+				galleryImages: [file]
 			});
 
-			console.log("📸 Offline site image saved");
+			console.log(" Offline site image saved");
 			return;
 		}
 
@@ -1688,17 +1806,17 @@ export default function InspectionForm() {
 			alert(resultText);
 			console.log("Upload result:", resultText);
 
-			// ✅ Re-fetch updated inspection details
+			//  Re-fetch updated inspection details
 			await fetchUpdatedRfiData(rfiId);
 
 		} catch (error) {
 			console.error("Upload error:", error);
-			alert("❌ Failed to upload image. Please try again.");
+			alert(" Failed to upload image. Please try again.");
 		}
 	};
-	
-	
-	
+
+
+
 	const deleteSiteImage = async (imgPath, uploadedBy, rfiId) => {
 		if (!window.confirm("Delete this image?")) return;
 
@@ -1709,7 +1827,7 @@ export default function InspectionForm() {
 				uploadedBy: uploadedBy
 			}
 		});
-		
+
 		const text = response.data;
 		alert(text);
 
@@ -1718,28 +1836,9 @@ export default function InspectionForm() {
 
 
 
-	const validateEnclosures = () => {
-		if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
-			alert("⚠️ No enclosures found — please contact admin.");
-			return false;
-		}
 
-		for (const e of enclosuresData) {
-			const enclosureFile = rfiData.enclosure?.find(
-				enc =>
-					enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-			)?.enclosureUploadFile;
 
-			const checklistDone = enclosureStates[e.id]?.checklistDone;
 
-			if (!enclosureFile && !checklistDone) {
-				alert(`⚠️ Please complete enclosure "${e.enclosure}" — upload file or finish checklist.`);
-				return false;
-			}
-		}
-
-		return true;
-	};
 
 
 
@@ -1767,7 +1866,387 @@ export default function InspectionForm() {
 		}
 	}, [measurements]);
 
+	// Updated ChecklistPopup component with autofill support
+	function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode, engineerSubmitted }) {
+		const [checklistData, setChecklistData] = useState([]);
+		const [gradeOfConcrete, setGradeOfConcrete] = useState('');
+		const isReadOnly = statusMode === "SUBMITTED";
+		const [errorMsg, setErrorMsg] = useState('');
+		const [loading, setLoading] = useState(true);
+		const [isExistingData, setIsExistingData] = useState(false);
 
+		useEffect(() => {
+			const fetchData = async () => {
+				setLoading(true);
+				try {
+					if (data && data.checklist && data.checklist.length > 0) {
+						// Use existing data from props (must include action!)
+						setChecklistData(data.checklist);
+						setGradeOfConcrete(data.gradeOfConcrete || '');
+						setIsExistingData(data.action === 'EDIT');
+					} else {
+						// Fetch data from API
+						const result = await fetchChecklistData(rfiData.id, enclosureName);
+						if (result?.checklist) {
+							setChecklistData(result.checklist);
+							setGradeOfConcrete(result.gradeOfConcrete || '');
+							setIsExistingData(result.action === 'EDIT');
+						} else {
+							setChecklistData([]);
+							setIsExistingData(false);
+						}
+					}
+				} catch (error) {
+					console.error("Error loading checklist data:", error);
+					setChecklistData([]);
+					setIsExistingData(false);
+				} finally {
+					setLoading(false);
+				}
+			};
+
+			if (rfiData?.id && enclosureName) {
+				fetchData();
+			}
+		}, [rfiData?.id, enclosureName, fetchChecklistData, data]);
+
+
+		const handleChange = (id, field, value) => {
+			setChecklistData(prev => prev.map(row =>
+				row.id === id ? { ...row, [field]: value } : row
+			));
+		};
+
+
+		const handleSelectAll = (field, value) => {
+			if (!value) return;
+
+			setChecklistData((prev) =>
+				prev.map((row) => ({
+					...row,
+					[field]: value === "CLEAR" ? "" : value,
+				}))
+			);
+		};
+
+		const handleDone = () => {
+			// If logged-in is Engineer → validate engineerStatus
+			if (isEngineer) {
+				if (checklistData.some(row => !row.engineerStatus)) {
+					setErrorMsg(" Please fill Engineer Status (Yes/No/N/A) for all items.");
+					return;
+				}
+			}
+
+			// If logged-in is Contractor → validate contractorStatus
+			else {
+				if (checklistData.some(row => !row.contractorStatus)) {
+					setErrorMsg(" Please fill Contractor Status (Yes/No/N/A) for all items.");
+					return;
+				}
+			}
+
+			//  If everything is valid
+			setErrorMsg("");
+			onDone(checklistData, gradeOfConcrete);
+		};
+
+
+
+		// Define columns for DataTable
+		const columns = [
+			{
+				name: 'ID',
+				selector: row => row.id,
+				width: '60px',
+			},
+			{
+				name: 'Description',
+				selector: row => row.description,
+				wrap: true,
+				minWidth: '250px',
+			},
+			{
+				name: 'Contracor Status',
+				cell: row => (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`contractorStatus-${row.id}`}
+								checked={row.contractorStatus === 'YES'}
+								onChange={() => handleChange(row.id, 'contractorStatus', 'YES')}
+								disabled={isReadOnly || deptFK === 'engg'}
+							/> Yes
+						</label>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`contractorStatus-${row.id}`}
+								checked={row.contractorStatus === 'NO'}
+								onChange={() => handleChange(row.id, 'contractorStatus', 'NO')}
+								disabled={isReadOnly || deptFK === 'engg'}
+							/> No
+						</label>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`contractorStatus-${row.id}`}
+								checked={row.contractorStatus === 'NA'}
+								onChange={() => handleChange(row.id, 'contractorStatus', 'NA')}
+								disabled={isReadOnly || deptFK === 'engg'}
+							/> N/A
+						</label>
+					</div>
+				),
+				minWidth: '180px',
+			},
+			{
+				name: 'Engineer Status',
+				cell: row => (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`engineerStatus-${row.id}`}
+								checked={row.engineerStatus === 'YES'}
+								onChange={() => handleChange(row.id, 'engineerStatus', 'YES')}
+								disabled={!isEngineer || engineerSubmitted}
+							/> Yes
+						</label>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`engineerStatus-${row.id}`}
+								checked={row.engineerStatus === 'NO'}
+								onChange={() => handleChange(row.id, 'engineerStatus', 'NO')}
+								disabled={!isEngineer || engineerSubmitted}
+							/> No
+						</label>
+						<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<input
+								type="radio"
+								name={`engineerStatus-${row.id}`}
+								checked={row.engineerStatus === 'NA'}
+								onChange={() => handleChange(row.id, 'engineerStatus', 'NA')}
+								disabled={!isEngineer || engineerSubmitted}
+							/> N/A
+						</label>
+					</div>
+				),
+				minWidth: '180px',
+			},
+			{
+				name: 'Contractor Remark',
+				cell: row => (
+					<input
+						value={row.contractorRemark}
+						onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)}
+						disabled={isReadOnly || deptFK === 'engg'}
+						style={{ width: '100%', padding: '4px' }}
+					/>
+				),
+				minWidth: '150px',
+			},
+			{
+				name: 'Engineer Remark',
+				cell: row => (
+					<input
+						value={row.aeRemark}
+						onChange={e => handleChange(row.id, 'aeRemark', e.target.value)}
+						disabled={!isEngineer || engineerSubmitted}
+						style={{ width: '100%', padding: '4px' }}
+					/>
+				),
+				minWidth: '150px',
+			},
+		];
+
+		if (loading) {
+			return (
+				<div className="popup">
+					<div className="popup-content" style={{ padding: '20px', textAlign: 'center' }}>
+						Loading checklist data...
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<div className="popup">
+				<div className="popup-content" style={{ maxWidth: '90vw', maxHeight: '90vh' }}>
+					{/* Add indicator for autofilled data */}
+					{isExistingData && (
+						<div style={{
+							backgroundColor: '#e6f7ff',
+							padding: '10px',
+							border: '1px solid #91d5ff',
+							borderRadius: '4px',
+							marginBottom: '15px'
+						}}>
+							<strong>✓ Loaded existing checklist data</strong>
+						</div>
+					)}
+
+					<div className="form-row">
+						<div className="form-fields flex-1">
+							<label>Name Of Work:</label>
+							<input type="text" readOnly value={rfiData.work || ''} />
+						</div>
+						<div className="form-fields flex-2">
+							<label>Date:</label>
+							<input type="text" name="date" value={rfiData.dateOfInspection || ''} readOnly />
+						</div>
+					</div>
+					<div className="form-row">
+
+
+					</div>
+					<div className="form-row">
+						<div className="form-fields flex-2">
+							<label>Structure Type:</label>
+							<input type="text" name="structure_type" value={rfiData.structureType || ''} readOnly />
+						</div>
+						<div className="form-fields flex-2">
+							<label>Component:</label>
+							<input type="text" name="component" value={rfiData.component || ''} readOnly />
+						</div>
+					</div>
+					<div className="form-row">
+						<div className="form-fields flex-2">
+							<label>RFI No:</label>
+							<input type="text" name="rfi_id" value={rfiData.rfi_Id || ''} readOnly />
+						</div>
+						<div className="form-fields flex-2">
+							<label>Grade of Concrete/Steel: </label>
+							<input
+								type="text"
+								name="concrete_grade"
+								id="concrete_grade"
+								value={gradeOfConcrete}
+								onChange={e => setGradeOfConcrete(e.target.value)}
+								disabled={isReadOnly || deptFK === 'engg'} />
+						</div>
+					</div>
+
+					<h3>
+						{enclosureName ? enclosureName.toUpperCase() : ''}
+					</h3>
+
+					{/*  Select All Dropdowns */}
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "flex-end",
+							gap: "20px",
+							marginBottom: "10px",
+							alignItems: "center",
+						}}
+					>
+						{deptFK !== "engg" && (
+							<div>
+								<label style={{ marginRight: "5px", fontWeight: "bold" }}>
+									Contractor Select All:
+								</label>
+								<select
+									onChange={(e) => handleSelectAll("contractorStatus", e.target.value)}
+									disabled={isReadOnly}
+									defaultValue=""
+								>
+									<option value="">--Select--</option>
+									<option value="YES">YES</option>
+									<option value="NO">NO</option>
+									<option value="NA">N/A</option>
+									<option value="CLEAR">Clear All</option>
+								</select>
+							</div>
+						)}
+
+						{isEngineer && !engineerSubmitted && (
+							<div>
+								<label style={{ marginRight: "5px", fontWeight: "bold" }}>
+									Engineer Select All:
+								</label>
+								<select
+									onChange={(e) => handleSelectAll("engineerStatus", e.target.value)}
+									defaultValue=""
+								>
+									<option value="">--Select--</option>
+									<option value="YES">YES</option>
+									<option value="NO">NO</option>
+									<option value="NA">N/A</option>
+									<option value="CLEAR">Clear All</option>
+								</select>
+							</div>
+						)}
+					</div>
+					{checklistData.length > 0 ? (
+						<DataTable
+							columns={columns}
+							data={checklistData}
+							noHeader
+							striped
+							responsive
+							pagination={checklistData.length > 10}
+							paginationPerPage={10}
+							customStyles={{
+								headCells: {
+									style: {
+										backgroundColor: '#f5f5f5',
+										fontWeight: 'bold',
+									},
+								},
+								cells: {
+									style: {
+										padding: '8px',
+										fontSize: '14px',
+									},
+								},
+							}}
+						/>
+					) : (
+						<div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+							No checklist items found for this enclosure.
+						</div>
+					)}
+
+					{errorMsg && (
+						<div style={{ color: 'red', marginBottom: '1rem', fontWeight: 'bold' }}>
+							{errorMsg}
+						</div>
+					)}
+
+					<div
+						className="popup-actions"
+						style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
+					>
+						<div className="checklist-popup-btn">
+							<button onClick={onClose}>Cancel</button>
+
+							{deptFK === 'engg' ? (
+								<button
+									onClick={handleDone}
+									disabled={checklistData.length === 0}
+									hidden={engineerSubmitted === true}
+								>
+									Done
+								</button>
+							) : (
+								<button
+									onClick={handleDone}
+									disabled={checklistData.length === 0}
+									hidden={contractorSubmitted === true}
+								>
+									Done
+								</button>
+							)}
+						</div>
+					</div>
+
+				</div>
+			</div>
+		);
+	}
 
 	if (!rfiData)
 		return <div>Loading RFI details...</div>;
@@ -1907,13 +2386,13 @@ export default function InspectionForm() {
 														onClick={async () => {
 															try {
 																setUploading(true);
-																// 🔴 OFFLINE MODE → SAVE LOCALLY
+																//  OFFLINE MODE → SAVE LOCALLY
 
 																console.log("📌 [DEBUG] Gallery images before upload:", galleryImages);
 																console.log("📌 [DEBUG] RFI ID:", rfiData?.id);
 
 																if (!galleryImages[0] || !rfiData?.id) {
-																	console.warn("⚠️ Missing image or RFI ID");
+																	console.warn(" Missing image or RFI ID");
 																	return;
 																}
 
@@ -1924,7 +2403,7 @@ export default function InspectionForm() {
 																		galleryImages: [galleryImages[0]]
 																	});
 
-																	console.log("📌 [DEBUG] Saved offline image:", galleryImages[0]);
+																	console.log(" [DEBUG] Saved offline image:", galleryImages[0]);
 																	setGalleryImages([]);
 																	setSiteImage(null);
 																	return;
@@ -1975,99 +2454,99 @@ export default function InspectionForm() {
 												textAlign: "left",
 											}}
 										>
-										<tbody>
-											{/* Contractor Images */}
-											<tr>
-												<td style={{ padding: "8px", borderBottom: "1px solid #eee", width: "25%", verticalAlign: "top" }}>
-													Contractor Site Images
-												</td>
-												<td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-													{Array.isArray(rfiData?.inspectionDetails) &&
-													rfiData.inspectionDetails.some(d => d.uploadedBy === "CON" && d.siteImage) ? (
-														<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-															{rfiData.inspectionDetails
-																.filter(d => d.uploadedBy === "CON" && d.siteImage)
-																.flatMap(d => d.siteImage.split(","))
-																.map((imgPath, index) => {
-																	const encodedPath = encodeURIComponent(imgPath.trim());
-																	const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+											<tbody>
+												{/* Contractor Images */}
+												<tr>
+													<td style={{ padding: "8px", borderBottom: "1px solid #eee", width: "25%", verticalAlign: "top" }}>
+														Contractor Site Images
+													</td>
+													<td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+														{Array.isArray(rfiData?.inspectionDetails) &&
+															rfiData.inspectionDetails.some(d => d.uploadedBy === "CON" && d.siteImage) ? (
+															<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+																{rfiData.inspectionDetails
+																	.filter(d => d.uploadedBy === "CON" && d.siteImage)
+																	.flatMap(d => d.siteImage.split(","))
+																	.map((imgPath, index) => {
+																		const encodedPath = encodeURIComponent(imgPath.trim());
+																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
 
-																	return (
-																		<div className="site-image-wrapper" key={index}>
-																			<button
-																				className="site-delete-btn"
-																				onClick={(e) => {
-																					e.preventDefault();
-																					e.stopPropagation();
-																					deleteSiteImage(imgPath.trim(), "CON", rfiData.id);
-																				}}
-																			>
-																				×
-																			</button>
+																		return (
+																			<div className="site-image-wrapper" key={index}>
+																				<button
+																					className="site-delete-btn"
+																					onClick={(e) => {
+																						e.preventDefault();
+																						e.stopPropagation();
+																						deleteSiteImage(imgPath.trim(), "CON", rfiData.id);
+																					}}
+																				>
+																					×
+																				</button>
 
-																			<a href={imageUrl} target="_blank" rel="noopener noreferrer">
-																				<img
-																					src={imageUrl}
-																					alt={`Contractor Image ${index + 1}`}
-																					style={{ width: "100%", height: "100%", objectFit: "cover" }}
-																				/>
-																			</a>
-																		</div>
-																	);
-																})}
-														</div>
-													) : (
-														<span style={{ color: "#888" }}>No images uploaded</span>
-													)}
-												</td>
-											</tr>
+																				<a href={imageUrl} target="_blank" rel="noopener noreferrer">
+																					<img
+																						src={imageUrl}
+																						alt={`Contractor Image ${index + 1}`}
+																						style={{ width: "100%", height: "100%", objectFit: "cover" }}
+																					/>
+																				</a>
+																			</div>
+																		);
+																	})}
+															</div>
+														) : (
+															<span style={{ color: "#888" }}>No images uploaded</span>
+														)}
+													</td>
+												</tr>
 
-											{/* Engineer Images */}
-											<tr>
-												<td style={{ padding: "8px", width: "25%", verticalAlign: "top" }}>
-													Engineer Site Images
-												</td>
-												<td style={{ padding: "8px" }}>
-													{Array.isArray(rfiData?.inspectionDetails) &&
-													rfiData.inspectionDetails.some(d => d.uploadedBy === "Engg" && d.siteImage) ? (
-														<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-															{rfiData.inspectionDetails
-																.filter(d => d.uploadedBy === "Engg" && d.siteImage)
-																.flatMap(d => d.siteImage.split(","))
-																.map((imgPath, index) => {
-																	const encodedPath = encodeURIComponent(imgPath.trim());
-																	const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
+												{/* Engineer Images */}
+												<tr>
+													<td style={{ padding: "8px", width: "25%", verticalAlign: "top" }}>
+														Engineer Site Images
+													</td>
+													<td style={{ padding: "8px" }}>
+														{Array.isArray(rfiData?.inspectionDetails) &&
+															rfiData.inspectionDetails.some(d => d.uploadedBy === "Engg" && d.siteImage) ? (
+															<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+																{rfiData.inspectionDetails
+																	.filter(d => d.uploadedBy === "Engg" && d.siteImage)
+																	.flatMap(d => d.siteImage.split(","))
+																	.map((imgPath, index) => {
+																		const encodedPath = encodeURIComponent(imgPath.trim());
+																		const imageUrl = `${API_BASE_URL}api/validation/previewFiles?filepath=${encodedPath}`;
 
-																	return (
-																		<div className="site-image-wrapper" key={index}>
-																			<button
-																				className="site-delete-btn"
-																				onClick={(e) => {
-																					e.preventDefault();
-																					e.stopPropagation();
-																					deleteSiteImage(imgPath.trim(), "Engg", rfiData.id);
-																				}}
-																			>
-																				×
-																			</button>
+																		return (
+																			<div className="site-image-wrapper" key={index}>
+																				<button
+																					className="site-delete-btn"
+																					onClick={(e) => {
+																						e.preventDefault();
+																						e.stopPropagation();
+																						deleteSiteImage(imgPath.trim(), "Engg", rfiData.id);
+																					}}
+																				>
+																					×
+																				</button>
 
-																			<a href={imageUrl} target="_blank" rel="noopener noreferrer">
-																				<img
-																					src={imageUrl}
-																					alt={`Engineer Image ${index + 1}`}
-																					style={{ width: "100%", height: "100%", objectFit: "cover" }}
-																				/>
-																			</a>
-																		</div>
-																	);
-																})}
-														</div>
-													) : (
-														<span style={{ color: "#888" }}>No images uploaded</span>
-													)}
-												</td>
-											</tr>
-										</tbody>
+																				<a href={imageUrl} target="_blank" rel="noopener noreferrer">
+																					<img
+																						src={imageUrl}
+																						alt={`Engineer Image ${index + 1}`}
+																						style={{ width: "100%", height: "100%", objectFit: "cover" }}
+																					/>
+																				</a>
+																			</div>
+																		);
+																	})}
+															</div>
+														) : (
+															<span style={{ color: "#888" }}>No images uploaded</span>
+														)}
+													</td>
+												</tr>
+											</tbody>
 										</table>
 									</div>
 								</div>
@@ -2076,193 +2555,6 @@ export default function InspectionForm() {
 
 								<div className="measurements-section">
 									<h3 className="section-title">Enclosures <span class="red">*</span></h3>
-									{/*<table className="measurements-table">
-										<thead>
-											<tr>
-												<th>RFI Description</th>
-												<th>Enclosure</th>
-												<th>Action</th>
-												<th>Uploaded</th>
-												<th>Test Report</th>
-											</tr>
-										</thead>
-										<tbody>
-											{enclosuresData.map((e, index) => {
-												const state = enclosureStates[e.id] || {};
-												const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
-
-												const enclosureFile = rfiData.enclosure?.find(enc =>
-													enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-												)?.enclosureUploadFile;
-
-												return (
-													<tr key={e.id}>
-														<td>{e.rfiDescription}</td>
-														<td>{e.enclosure}</td>
-
-														<td className='enclouse-open-upload'>
-															{enclosureActions[e.id] === 'UPLOAD' ? (
-																<button
-																	className="hover-blue-btn"
-																	onClick={() => setUploadPopup(e.id)}
-																	disabled={getDisabled()}
-																>
-																	Upload
-																</button>
-															) : (
-																<>
-																	{deptFK?.toLowerCase() === "engg" ? (
-																		<>
-																			<button
-																				className="hover-blue-btn"
-																				onClick={() => setChecklistPopup(e.id)}
-																			>
-																				{engineerSubmitted
-																					? 'View'
-																					: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-																			</button>
-																			<button
-																				className="hover-blue-btn"
-																				onClick={() => setUploadPopup(e.id)}
-																				disabled={getDisabled()}
-																			>
-																				Upload
-																			</button>
-																		</>
-																	) : (
-																		<>
-																			<button
-																				className="hover-blue-btn"
-																				onClick={() => setChecklistPopup(e.id)}
-																			>
-																				{contractorSubmitted
-																					? 'View'
-																					: (enclosureStates[e.id]?.checklistDone ? 'Edit' : 'Open')}
-																			</button>
-																			<button
-																				className="hover-blue-btn"
-																				onClick={() => setUploadPopup(e.id)}
-																				disabled={getDisabled()}
-																			>
-																				Upload
-																			</button>
-																		</>
-																	)}
-																</>
-															)}
-														</td>
-														<td>
-															{enclosureFile ? (
-																<>
-																	{ DOWNLOAD BUTTON }
-																	<button
-																		className="hover-blue-btn"
-																		onClick={() => {
-																			const url = `${API_BASE_URL.replace(/\/$/, '')}/api/rfi/DownloadEnclosure?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`;
-
-																			fetch(url)
-																				.then((response) => {
-																					if (!response.ok) throw new Error('Download failed');
-																					return response.blob();
-																				})
-																				.then((blob) => {
-																					const blobUrl = window.URL.createObjectURL(blob);
-																					const link = document.createElement('a');
-																					link.href = blobUrl;
-																					link.download = `{${rfiData.rfi_Id}}-{${e.rfiDescription}}-{${e.enclosure}}.pdf`;
-																					document.body.appendChild(link);
-																					link.click();
-																					link.remove();
-																					window.URL.revokeObjectURL(blobUrl);
-																				})
-																				.catch(() => alert('❌ Unable to download file.'));
-																		}}
-																	>
-																		Download
-																	</button>
-
-																	{ DELETE BUTTON }
-																	<button
-																		className="hover-red-btn"
-																		disabled={getDisabled()}
-																		onClick={async () => {
-																			if (!window.confirm(`Delete all uploaded files under ${e.enclosure}?`)) return;
-
-																			try {
-																				const res = await fetch(
-																					`${API_BASE_URL}rfi/enclosure/files?rfiId=${rfiData.id}&enclosureName=${encodeURIComponent(e.enclosure)}`,
-																					{ method: "DELETE", credentials: "include" }
-																				);
-
-																				if (!res.ok) {
-																					const txt = await res.text().catch(() => "");
-																					throw new Error(txt || "Delete failed");
-																				}
-
-																				alert("Files deleted successfully");
-
-																				// ⭐ UPDATE FRONTEND IMMEDIATELY — NO PAGE REFRESH ⭐
-																				setRfiData(prev => ({
-																					...prev,
-																					enclosure: prev.enclosure?.map(enc =>
-																						enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-																							? { ...enc, enclosureUploadFile: null }
-																							: enc
-																					)
-																				}));
-
-																			} catch (err) {
-																				console.error(err);
-																				alert("Error deleting files");
-																			}
-																		}}
-																		style={{ marginLeft: "8px" }}
-																	>
-																		Remove
-																	</button>
-
-																</>
-															) : (
-																'---'
-															)}
-
-														</td>
-
-
-														{index === 0 && (
-															<td rowSpan={enclosuresData.length}>
-																{rfiReportFilepath ? (
-																	<button
-																		type="button"
-																		className="hover-blue-btn"
-																		onClick={() => {
-																			const sanitizedBase = API_BASE_URL.replace(/\/$/, '');
-																			const encodedPath = encodeURIComponent(rfiReportFilepath);
-																			const downloadUrl = `${sanitizedBase}/rfi/DownloadPrev?filepath=${encodedPath}`;
-																			const filename = rfiReportFilepath.split(/[\\/]/).pop();
-
-																			const link = document.createElement('a');
-																			link.href = downloadUrl;
-																			link.download = filename || 'report.pdf';
-																			document.body.appendChild(link);
-																			link.click();
-																			document.body.removeChild(link);
-																		}}
-																	>
-																		Download
-																	</button>
-																) : (
-																	'---'
-																)}
-															</td>
-														)}
-
-													</tr>
-												);
-											})}
-										</tbody>
-									</table>*/}
-
 
 									<table className="measurements-table">
 										<thead>
@@ -2304,8 +2596,8 @@ export default function InspectionForm() {
 																		onClick={() => setChecklistPopup(e.id)}
 																	>
 																		{deptFK?.toLowerCase() === "engg"
-																			? (files.some(f => f.uploadedBy === "Engg") ? "View" : "Open")
-																			: (files.some(f => f.uploadedBy === "CON") ? "View" : "Open")}
+																			? (getDisabled() ? "View" : "Open")
+																			: (getDisabled() ? "View" : "Open")}
 																	</button>
 
 																	<button
@@ -2324,17 +2616,17 @@ export default function InspectionForm() {
 															{files.length > 0 ? (
 																files.map((file) => (
 
-																	<div key={file.id} style={{ display: "flex", gap: "5px" , justifyContent: "center"}}>
-																	{/*  VIEW BUTTON */}
-																	<button
-																	  className="hover-blue-btn"
-																	  onClick={() => {
-																	    const url = `${API_BASE_URL}api/rfi/view-enclosure?id=${file.id}`;
-																	    window.open(url, "_blank");
-																	  }}
-																	>
-																	  View
-																	</button>
+																	<div key={file.id} style={{ display: "flex", gap: "5px", justifyContent: "center" }}>
+																		{/*  VIEW BUTTON */}
+																		<button
+																			className="hover-blue-btn"
+																			onClick={() => {
+																				const url = `${API_BASE_URL}api/rfi/view-enclosure?id=${file.id}`;
+																				window.open(url, "_blank");
+																			}}
+																		>
+																			View
+																		</button>
 
 																		{/* Download button */}
 																		<button
@@ -2344,7 +2636,7 @@ export default function InspectionForm() {
 
 																				fetch(url, {
 																					method: "GET",
-																					credentials: "include" 
+																					credentials: "include"
 																				})
 																					.then((res) => {
 																						if (!res.ok) throw new Error("Download failed");
@@ -2433,7 +2725,7 @@ export default function InspectionForm() {
 																			const downloadUrl = `${API_BASE_URL}rfi/DownloadPrev?filepath=${encodeURIComponent(rfiReportFilepath)}`;
 																			const link = document.createElement("a");
 																			link.href = downloadUrl;
-//																			link.download = 'report.pdf';
+																			//																			link.download = 'report.pdf';
 																			document.body.appendChild(link);
 																			link.click();
 																			document.body.removeChild(link);
@@ -2455,7 +2747,6 @@ export default function InspectionForm() {
 
 
 									{/* Supporting Documents Section */}
-									{/* Supporting Documents Upload Section */}
 									<div className="supporting-documents-upload" style={{ marginTop: "20px" }}>
 										<label className="upload-label" style={{ fontWeight: "600" }}>
 											Supporting Documents
@@ -2477,7 +2768,7 @@ export default function InspectionForm() {
 
 												{/* Backend files */}
 												{supportingFiles.map((fileUrl, idx) => {
-													const fileName = fileUrl.split("/").pop(); 
+													const fileName = fileUrl.split("/").pop();
 													const downloadUrl = `${API_BASE_URL}rfi/supporting-doc/download?rfiId=${rfiData.id}&fileName=${encodeURIComponent(fileName)}`;
 													const viewUrl = `${API_BASE_URL}rfi/supporting-docs?fileName=${encodeURIComponent(fileName)}`;
 
@@ -2604,7 +2895,7 @@ export default function InspectionForm() {
 									</div>
 
 
-									{/* ✅ Description box below the table */}
+									{/*  Description box below the table */}
 									<div className="enclosure-comments">
 										<label htmlFor="enclosureComments">Description By Contractor</label>
 										<textarea
@@ -2911,7 +3202,7 @@ export default function InspectionForm() {
 																	width: "fit-content",
 																	margin: 0,
 																}}
-																disabled={viewMode}
+																disabled={getDisabled()}
 															>
 																{contractorStatus && contractorStatus.trim() !== ""
 																	? contractorStatus
@@ -2977,8 +3268,8 @@ export default function InspectionForm() {
 																}
 																setTestInLab(value);
 																if (value === "Accepted") {
-																     setEngineerRemarks("");
-																   }
+																	setEngineerRemarks("");
+																}
 															}}
 															disabled={getDisabled()}
 														>
@@ -3037,16 +3328,8 @@ export default function InspectionForm() {
 										onClick={handleSaveDraft}
 										disabled={getDisabled()}
 									>
-										{isSaving ? "Saving..." : "Save Draft"}
+										{isSaving ? "Saving..." : "Save As Draft"}
 									</button>
-
-									{/*<button
-										className="btn btn-green"
-										onClick={handleSubmitInspection}
-										disabled={getDisabled()}
-									>
-										{isSubmitting ? "Submitting..." : "Submit"}
-									</button>*/}
 
 									<button
 										type="button"
@@ -3056,193 +3339,9 @@ export default function InspectionForm() {
 									>
 										{isSubmitting ? "Submitting..." : "Submit"}
 									</button>
-
-
-									{/*		{deptFK !== "engg" ? (
-										<button
-											type="button"
-											className="btn btn-green"
-
-											onClick={async () => {
-												if (isSubmitting) return;
-												setIsSubmitting(true);
-												// 1. Generate PDF
-												const doc = await generateInspectionPdf({
-													rfiId: rfiData?.id,
-													project: rfiData?.project,
-													contractorRep,
-													location: locationText,
-													chainage,
-													dateOfInspection,
-													timeOfInspection,
-													inspectionStatus,
-												});
-
-												const y = doc.lastAutoTable?.finalY
-													? doc.lastAutoTable.finalY + 20
-													: 50;
-
-												const pdfBlob = doc.output("blob");
-
-												// 2. Send PDF to backend for saving
-												const pdfFormData = new FormData();
-												pdfFormData.append("pdf", pdfBlob, `${rfiData?.id}.pdf`);
-												pdfFormData.append("rfiId", rfiData?.id);
-
-												try {
-													const uploadRes = await fetch(`${API_BASE_URL}rfi/uploadPdf`, {
-														method: "POST",
-														body: pdfFormData,
-														credentials: "include", // ✅ keep consistent
-													});
-
-													if (!uploadRes.ok) {
-														throw new Error("Failed to upload PDF");
-													}
-													console.log("PDF saved on server!");
-
-													// 3. Aadhaar eSign flow
-													const txnId = generateUniqueTxnId();
-													const formData = new FormData();
-													formData.append("pdfBlob", pdfBlob);
-													formData.append("sc", "Y");
-													formData.append("txnId", txnId);
-													formData.append("rfiId", rfiData?.id ?? "");
-
-													formData.append("signerName", "Swathi" || "");
-													formData.append("contractorName", "M V" || "");
-													formData.append("signY", Math.floor(y));
-
-													const res = await fetch(
-														`${API_BASE_URL}rfi/getSignedXmlRequest`,
-														{
-															method: "POST",
-															body: formData,
-															credentials: "include",
-														}
-													);
-													const response = await res.json();
-
-													// 4. Redirect to CDAC eSign form
-													const form = document.createElement("form");
-													form.method = "POST";
-													form.action =
-														"https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-													form.style.display = "none";
-
-													const signedXmlRequest = document.createElement("input");
-													signedXmlRequest.type = "hidden";
-													signedXmlRequest.name = "eSignRequest";
-													signedXmlRequest.value = response.signedXmlRequest;
-													form.appendChild(signedXmlRequest);
-
-													const aspTxnID = document.createElement("input");
-													aspTxnID.type = "hidden";
-													aspTxnID.name = "aspTxnID";
-													aspTxnID.value = txnId;
-													form.appendChild(aspTxnID);
-
-													const contentType = document.createElement("input");
-													contentType.id = "Content-Type";
-													contentType.name = "Content-Type";
-													contentType.type = "hidden";
-													contentType.value = "application/xml";
-													form.appendChild(contentType);
-
-													document.body.appendChild(form);
-
-													console.log("Signed XML Request:", response.signedXmlRequest);
-													console.log("Txn ID:", txnId);
-
-													form.submit();
-												} catch (err) {
-													console.error("Error:", err);
-												}
-											}}
-											disabled={getDisabled()}
-
-										>
-											{isSubmitting ? "Submitting..." : "Submit to Engineer"}
-										</button>
-									) : (
-										<button
-											type="button"
-											className="btn btn-green"
-											onClick={async () => {
-												if (isSubmitting) return;
-												setIsSubmitting(true)
-												try {
-													const doc = await generateInspectionPdf({
-														rfiId: rfiData?.id,
-														project: rfiData?.project,
-														contractorRep,
-														location: locationText,
-														chainage,
-														dateOfInspection,
-														timeOfInspection,
-														inspectionStatus,
-													});
-
-													const y = doc.lastAutoTable?.finalY
-														? doc.lastAutoTable.finalY + 20
-														: 50;
-
-
-													const formData = new FormData();
-													formData.append("sc", "Y");
-													formData.append("rfiId", rfiData?.id ?? "");
-													formData.append("signerName", "Pranavi" || "");
-													formData.append("engineerName", "PVM" || "");
-													formData.append("signY", Math.floor(y));
-
-
-													const res = await fetch(`${API_BASE_URL}rfi/getEngSignedXmlRequest`, {
-														method: "POST",
-														body: formData,
-														credentials: "include",
-													});
-
-													const response = await res.json();
-
-													// 3. Redirect to CDAC eSign form
-													const form = document.createElement("form");
-													form.method = "POST";
-													form.action = "https://es-staging.cdac.in/esignlevel2/2.1/form/signdoc";
-													form.style.display = "none";
-
-													const signedXmlRequest = document.createElement("input");
-													signedXmlRequest.type = "hidden";
-													signedXmlRequest.name = "eSignRequest";
-													signedXmlRequest.value = response.signedXmlRequest;
-													form.appendChild(signedXmlRequest);
-
-													const aspTxnID = document.createElement("input");
-													aspTxnID.type = "hidden";
-													aspTxnID.name = "aspTxnID";
-													aspTxnID.value = response.txnId;
-													form.appendChild(aspTxnID);
-
-													const contentType = document.createElement("input");
-													contentType.id = "Content-Type";
-													contentType.name = "Content-Type";
-													contentType.type = "hidden";
-													contentType.value = "application/xml";
-													form.appendChild(contentType);
-
-													document.body.appendChild(form);
-													form.submit();
-												} catch (err) {
-													console.error("Error:", err);
-												}
-											}}
-											disabled={getDisabled()}
-
-										>
-											{isSubmitting ? "Submitting..." : "Submit"}
-										</button>
-									)}
-*/}
 								</div>
+
+
 							</div>
 						)}
 
@@ -3256,8 +3355,8 @@ export default function InspectionForm() {
 									handleChecklistSubmit(checklistPopup, checklistData, grade)
 								}
 								onClose={() => setChecklistPopup(null)}
-								statusMode={inspectionStatusMode}   // ✅ NEW
-								engineerSubmitted={engineerSubmitted}   // 🔑 pass here
+								statusMode={getDisabled()}
+								engineerSubmitted={engineerSubmitted}
 
 
 							/>
@@ -3302,391 +3401,7 @@ export default function InspectionForm() {
 	);
 }
 
-// Updated ChecklistPopup component with autofill support
-function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode, engineerSubmitted }) {
-	const [checklistData, setChecklistData] = useState([]);
-	const [gradeOfConcrete, setGradeOfConcrete] = useState('');
-	const location = useLocation();
-	const id = location.state?.rfi;
-	const skipSelfie = location.state?.skipSelfie;
-	const viewMode = location.state?.viewMode || false;
-	const isReadOnly = statusMode === "SUBMITTED"; // 🟢 lock only when submitted
 
-	const [errorMsg, setErrorMsg] = useState('');
-	const [loading, setLoading] = useState(true);
-	const [isExistingData, setIsExistingData] = useState(false);
-
-	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				if (data && data.checklist && data.checklist.length > 0) {
-					// Use existing data from props (must include action!)
-					setChecklistData(data.checklist);
-					setGradeOfConcrete(data.gradeOfConcrete || '');
-					setIsExistingData(data.action === 'EDIT');
-				} else {
-					// Fetch data from API
-					const result = await fetchChecklistData(rfiData.id, enclosureName);
-					if (result?.checklist) {
-						setChecklistData(result.checklist);
-						setGradeOfConcrete(result.gradeOfConcrete || '');
-						setIsExistingData(result.action === 'EDIT');
-					} else {
-						setChecklistData([]);
-						setIsExistingData(false);
-					}
-				}
-			} catch (error) {
-				console.error("Error loading checklist data:", error);
-				setChecklistData([]);
-				setIsExistingData(false);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		if (rfiData?.id && enclosureName) {
-			fetchData();
-		}
-	}, [rfiData?.id, enclosureName, fetchChecklistData, data]);
-
-
-	const handleChange = (id, field, value) => {
-		setChecklistData(prev => prev.map(row =>
-			row.id === id ? { ...row, [field]: value } : row
-		));
-	};
-
-
-	const handleSelectAll = (field, value) => {
-		if (!value) return;
-
-		setChecklistData((prev) =>
-			prev.map((row) => ({
-				...row,
-				[field]: value === "CLEAR" ? "" : value,
-			}))
-		);
-	};
-	const handleDone = () => {
-		// If logged-in is Engineer → validate engineerStatus
-		if (isEngineer) {
-			if (checklistData.some(row => !row.engineerStatus)) {
-				setErrorMsg("⚠️ Please fill Engineer Status (Yes/No/N/A) for all items.");
-				return;
-			}
-		}
-
-		// If logged-in is Contractor → validate contractorStatus
-		else {
-			if (checklistData.some(row => !row.contractorStatus)) {
-				setErrorMsg("⚠️ Please fill Contractor Status (Yes/No/N/A) for all items.");
-				return;
-			}
-		}
-
-		// ✅ If everything is valid
-		setErrorMsg("");
-		onDone(checklistData, gradeOfConcrete);
-	};
-
-
-
-	// Define columns for DataTable
-	const columns = [
-		{
-			name: 'ID',
-			selector: row => row.id,
-			width: '60px',
-		},
-		{
-			name: 'Description',
-			selector: row => row.description,
-			wrap: true,
-			minWidth: '250px',
-		},
-		{
-			name: 'Contracor Status',
-			cell: row => (
-				<div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`contractorStatus-${row.id}`}
-							checked={row.contractorStatus === 'YES'}
-							onChange={() => handleChange(row.id, 'contractorStatus', 'YES')}
-							disabled={isReadOnly || deptFK === 'engg'}
-						/> Yes
-					</label>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`contractorStatus-${row.id}`}
-							checked={row.contractorStatus === 'NO'}
-							onChange={() => handleChange(row.id, 'contractorStatus', 'NO')}
-							disabled={isReadOnly || deptFK === 'engg'}
-						/> No
-					</label>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`contractorStatus-${row.id}`}
-							checked={row.contractorStatus === 'NA'}
-							onChange={() => handleChange(row.id, 'contractorStatus', 'NA')}
-							disabled={isReadOnly || deptFK === 'engg'}
-						/> N/A
-					</label>
-				</div>
-			),
-			minWidth: '180px',
-		},
-		{
-			name: 'Engineer Status',
-			cell: row => (
-				<div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`engineerStatus-${row.id}`}
-							checked={row.engineerStatus === 'YES'}
-							onChange={() => handleChange(row.id, 'engineerStatus', 'YES')}
-							disabled={!isEngineer || engineerSubmitted}
-						/> Yes
-					</label>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`engineerStatus-${row.id}`}
-							checked={row.engineerStatus === 'NO'}
-							onChange={() => handleChange(row.id, 'engineerStatus', 'NO')}
-							disabled={!isEngineer || engineerSubmitted}
-						/> No
-					</label>
-					<label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-						<input
-							type="radio"
-							name={`engineerStatus-${row.id}`}
-							checked={row.engineerStatus === 'NA'}
-							onChange={() => handleChange(row.id, 'engineerStatus', 'NA')}
-							disabled={!isEngineer || engineerSubmitted}
-						/> N/A
-					</label>
-				</div>
-			),
-			minWidth: '180px',
-		},
-		{
-			name: 'Contractor Remark',
-			cell: row => (
-				<input
-					value={row.contractorRemark}
-					onChange={e => handleChange(row.id, 'contractorRemark', e.target.value)}
-					disabled={isReadOnly || deptFK === 'engg'}
-					style={{ width: '100%', padding: '4px' }}
-				/>
-			),
-			minWidth: '150px',
-		},
-		{
-			name: 'Engineer Remark',
-			cell: row => (
-				<input
-					value={row.aeRemark}
-					onChange={e => handleChange(row.id, 'aeRemark', e.target.value)}
-					disabled={!isEngineer || engineerSubmitted}
-					style={{ width: '100%', padding: '4px' }}
-				/>
-			),
-			minWidth: '150px',
-		},
-	];
-
-	if (loading) {
-		return (
-			<div className="popup">
-				<div className="popup-content" style={{ padding: '20px', textAlign: 'center' }}>
-					Loading checklist data...
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<div className="popup">
-			<div className="popup-content" style={{ maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto' }}>
-				{/* Add indicator for autofilled data */}
-				{isExistingData && (
-					<div style={{
-						backgroundColor: '#e6f7ff',
-						padding: '10px',
-						border: '1px solid #91d5ff',
-						borderRadius: '4px',
-						marginBottom: '15px'
-					}}>
-						<strong>✓ Loaded existing checklist data</strong>
-					</div>
-				)}
-
-				<div className="form-row">
-					<div className="form-fields flex-1">
-						<label>Name Of Work:</label>
-						<input type="text" readOnly value={rfiData.work || ''} />
-					</div>
-					<div className="form-fields flex-2">
-						<label>Date:</label>
-						<input type="text" name="date" value={rfiData.dateOfInspection || ''} readOnly />
-					</div>
-				</div>
-				<div className="form-row">
-
-
-				</div>
-				<div className="form-row">
-					<div className="form-fields flex-2">
-						<label>Structure Type:</label>
-						<input type="text" name="structure_type" value={rfiData.structureType || ''} readOnly />
-					</div>
-					<div className="form-fields flex-2">
-						<label>Component:</label>
-						<input type="text" name="component" value={rfiData.component || ''} readOnly />
-					</div>
-				</div>
-				<div className="form-row">
-					<div className="form-fields flex-2">
-						<label>RFI No:</label>
-						<input type="text" name="rfi_id" value={rfiData.rfi_Id || ''} readOnly />
-					</div>
-					<div className="form-fields flex-2">
-						<label>Grade of Concrete/Steel: </label>
-						<input
-							type="text"
-							name="concrete_grade"
-							id="concrete_grade"
-							value={gradeOfConcrete}
-							onChange={e => setGradeOfConcrete(e.target.value)}
-							disabled={isReadOnly || deptFK === 'engg'} />
-					</div>
-				</div>
-
-				<h3>
-					{enclosureName ? enclosureName.toUpperCase() : ''}
-				</h3>
-
-				{/* ✅ Select All Dropdowns */}
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "flex-end",
-						gap: "20px",
-						marginBottom: "10px",
-						alignItems: "center",
-					}}
-				>
-					{deptFK !== "engg" && (
-						<div>
-							<label style={{ marginRight: "5px", fontWeight: "bold" }}>
-								Contractor Select All:
-							</label>
-							<select
-								onChange={(e) => handleSelectAll("contractorStatus", e.target.value)}
-								disabled={isReadOnly}
-								defaultValue=""
-							>
-								<option value="">--Select--</option>
-								<option value="YES">YES</option>
-								<option value="NO">NO</option>
-								<option value="NA">N/A</option>
-								<option value="CLEAR">Clear All</option>
-							</select>
-						</div>
-					)}
-
-					{isEngineer && !engineerSubmitted && (
-						<div>
-							<label style={{ marginRight: "5px", fontWeight: "bold" }}>
-								Engineer Select All:
-							</label>
-							<select
-								onChange={(e) => handleSelectAll("engineerStatus", e.target.value)}
-								defaultValue=""
-							>
-								<option value="">--Select--</option>
-								<option value="YES">YES</option>
-								<option value="NO">NO</option>
-								<option value="NA">N/A</option>
-								<option value="CLEAR">Clear All</option>
-							</select>
-						</div>
-					)}
-				</div>
-				{checklistData.length > 0 ? (
-					<DataTable
-						columns={columns}
-						data={checklistData}
-						noHeader
-						striped
-						responsive
-						pagination={checklistData.length > 10}
-						paginationPerPage={10}
-						customStyles={{
-							headCells: {
-								style: {
-									backgroundColor: '#f5f5f5',
-									fontWeight: 'bold',
-								},
-							},
-							cells: {
-								style: {
-									padding: '8px',
-									fontSize: '14px',
-								},
-							},
-						}}
-					/>
-				) : (
-					<div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-						No checklist items found for this enclosure.
-					</div>
-				)}
-
-				{errorMsg && (
-					<div style={{ color: 'red', marginBottom: '1rem', fontWeight: 'bold' }}>
-						{errorMsg}
-					</div>
-				)}
-
-				<div
-					className="popup-actions"
-					style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
-				>
-					<div className="checklist-popup-btn">
-						<button onClick={onClose}>Cancel</button>
-
-						{deptFK === 'engg' ? (
-							<button
-								onClick={handleDone}
-								disabled={checklistData.length === 0}
-								hidden={globalVarEnggSubmited === true}
-							>
-								Done
-							</button>
-						) : (
-							<button
-								onClick={handleDone}
-								disabled={checklistData.length === 0}
-								hidden={globalVarConSubmited === true}
-							>
-								Done
-							</button>
-						)}
-					</div>
-				</div>
-
-			</div>
-		</div>
-	);
-}
 function UploadPopup({ onSubmit, onClose }) {
 	const [file, setFile] = useState(null);
 

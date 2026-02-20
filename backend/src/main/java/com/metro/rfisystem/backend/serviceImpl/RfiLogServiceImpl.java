@@ -46,27 +46,28 @@ public class RfiLogServiceImpl implements RfiLogService {
 	@Override
 	public List<RfiLogDTO> listAllRfiLog(RfiLogFetchDTO obj) {
 
-		if ("IT Admin".equalsIgnoreCase(obj.getUserRole())) {
-			System.out.println("IT Admin.......");
+		if ("IT Admin".equalsIgnoreCase(obj.getUserRole()) ||
+				"Super User".equalsIgnoreCase(obj.getUserRole())) {
+//			System.out.println("<> IT Admin...> Super User....<>");
 			return rfiRepository.listAllRfiLogItAdmin(obj);              
 		} else if ("DyHOD".equalsIgnoreCase(obj.getUserType())) {
-			System.out.println("IDyHOD......");
+//			System.out.println("IDyHOD......");
 
 			return rfiRepository.listAllRfiLogByDyHod(obj);
 		}
 	    else if ("Data Admin".equalsIgnoreCase(obj.getUserRole())) {
-	        System.out.println("Data Admin (all RFI log list)......");
+//	        System.out.println("Data Admin (all RFI log list)......");
 	        return rfiRepository.listAllRfiLogByDataAdmin(obj);
 	    }
 	    else if ("Contractor".equalsIgnoreCase(obj.getUserRole())) {
-	        System.out.println("Contractor (all RFI log list)......");
+//	        System.out.println("Contractor (all RFI log list)......");
 	        return rfiRepository.listAllRfiLogItAdmin(obj); 
 	    }
 		else if ("Engg".equalsIgnoreCase(obj.getDeparmentFK())) {
-			System.out.println("Engineer......");
+//			System.out.println("Engineer......");
 			return rfiRepository.listAllRfiLogByAssignedBy(obj);
 		} else if ("Regular User".equalsIgnoreCase(obj.getUserRole())) { 
-	        System.out.println("Representative / Regular User......");
+//	        System.out.println("Representative / Regular User......");
 	        return rfiRepository.listAllRfiLogByRepresentative(obj);
 
 	    } 

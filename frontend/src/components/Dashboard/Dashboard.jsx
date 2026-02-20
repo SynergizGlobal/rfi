@@ -20,11 +20,13 @@ const Dashboard = () => {
 
     const isContractor = userRole === "contractor";
     const isRegularUser = userRole === "regular user";
-    const isITAdmin = userRole === "it admin";
+    const isITAdmin = userRole === "super user";
+	const isSuperUser = userRole === "it admin";
+
     const isDataAdmin = userRole === "data admin";
     const isEngg = userDepartment === "engg";
 
-    const hasFullAccess = isITAdmin || isDataAdmin;
+    const hasFullAccess = isITAdmin || isDataAdmin || isSuperUser;
 	
 
 
