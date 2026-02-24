@@ -69,35 +69,17 @@ public class RFIInspectionDetails {
     @Column(name="uploaded_by")
     private String uploadedBy;
     
-    private String txn_id;
-    private String created_by;
-    private String rfi_id;
-    
     @Column(name = "ae_remarks", length = 1000)
     private String engineerRemarks;
 
     @Column(name = "work_status")
     private InspectionWorkFlowStatus workStatus;
-    
-    @Column(name = "contractor_submitted_date")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate contractor_submitted_date;
-    
-    @Column(name = "engineer_submitted_date")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate engineer_submitted_date;
-    
-//    @Column(name = "contractor_esign_done")
-//    private Boolean contractorEsignDone = false;
-//
-//    @Column(name = "engineer_esign_done")
-//    private Boolean engineerEsignDone = false;
-//    
+        
     @Column(name = "post_test_type")
     private String postTestType;
 
     @Column(name = "post_test_report_path")
-    private String postTestReportPath; // File path of uploaded test result
+    private String postTestReportPath; 
     
     @Column(name = "description_enclosure", length = 2000)
     private String descriptionEnclosure;
@@ -105,8 +87,11 @@ public class RFIInspectionDetails {
     @Column(name = "supporting_documents", columnDefinition = "TEXT")
     private String supportingDocuments;
 
-    @Column(name = "documents_description", length = 200) // fixed spelling
+    @Column(name = "documents_description", length = 200) 
     private String documentsDescription;
+    
+    @Column(name = "submitted_by")
+    private String submittedBy;
 
 
 }

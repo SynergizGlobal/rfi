@@ -94,7 +94,7 @@ export default function InspectionForm() {
 	};
 
 
-	const fetchRfiDataUpdateState = async () => {
+	const fetchRfiDataUpdateState = async (id) => {
 
 	    if (!id) return;
 
@@ -109,8 +109,6 @@ export default function InspectionForm() {
 
 	        setRfiData(data1);
 
-	        /* ✅ ENCLOSURE LIST NORMALIZATION */
-
 	        if (!data1.enclosures) return;
 
 	        const enclosuresArr = Array.isArray(data1.enclosures)
@@ -119,6 +117,7 @@ export default function InspectionForm() {
 
 	        const formatted = enclosuresArr.map((enc, index) => ({
 	            id: `${data1.id}-${index}`,
+				rfiDescription: data1.rfiDescription,
 	            enclosure: enc,
 	        }));
 
@@ -176,6 +175,120 @@ export default function InspectionForm() {
 
 	        setEnclosureActions(actionsState);
 	        setEnclosureStates(checklistState);
+			
+			//  Handle Enclosures
+								if (data1.enclosures) {
+									const enclosuresArr = Array.isArray(data1.enclosures)
+										? data1.enclosures
+										: data1.enclosures.split(",").map((enc) => enc.trim());
+
+
+									const uploadedEnclosures = Array.isArray(data1.enclosure)
+										? data1.enclosure.map((e) => ({
+											name: e.enclosureName?.trim(),
+											filePath: e.enclosureUploadFile || e.filePath || null,
+											fileId: e.id || null,
+										}))
+										: Array.isArray(data1.enclosures)
+											? data1.enclosures
+												.filter((e) => typeof e === "object")
+												.map((e) => ({
+													name: e.enclosureName?.trim(),
+													filePath: e.enclosureUploadFile || e.filePath || null,
+													fileId: e.id || null,
+												}))
+											: [];
+
+
+									const formatted = enclosuresArr.map((enc, index) => {
+										const uploadedFile = uploadedEnclosures.find(
+											(e) => e.name?.trim().toLowerCase() === enc.trim().toLowerCase()
+										);
+
+										return {
+											id: `${data1.id}-${index}`,
+											rfiDescription: data1.rfiDescription,
+											enclosure: enc,
+											filePath: uploadedFile?.filePath || null,
+											fileId: uploadedFile?.fileId || null,
+										};
+									});
+
+									setEnclosuresData(formatted);
+
+									//  Existing logic - unchanged
+									const fetchEnclosureActions = async () => {
+										const actionsState = {};
+										const checklistState = {};
+
+										for (const item of formatted) {
+											try {
+												const result = await fetchChecklistDataFromApi(id, item.enclosure);
+
+												if (result) {
+
+													const rows = Array.isArray(result.checklist) ? result.checklist : [];
+
+													const contractorChecklistDone = rows.some(
+														row =>
+															(row.contractorStatus && row.contractorStatus.trim() !== "") ||
+															(row.contractorRemark && row.contractorRemark.trim() !== "")
+													);
+
+													const engineerChecklistDone = rows.some(
+														row =>
+															(row.engineerStatus && row.engineerStatus.trim() !== "") ||
+															(row.engineerRemark && row.engineerRemark.trim() !== "")
+													);
+
+													// ✅ Action logic (independent)
+													const hasAnyData = contractorChecklistDone || engineerChecklistDone;
+
+													actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
+
+													checklistState[item.id] = {
+														checklist: rows,
+														gradeOfConcrete: result.gradeOfConcrete || "",
+
+														contractorChecklistDone,
+														engineerChecklistDone
+													};
+
+												} else {
+
+													actionsState[item.id] = "UPLOAD";
+
+													checklistState[item.id] = {
+														checklist: [],
+														gradeOfConcrete: "",
+
+														contractorChecklistDone: false,
+														engineerChecklistDone: false
+													};
+												}
+
+											} catch (err) {
+												console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+
+												actionsState[item.id] = "UPLOAD";
+
+												checklistState[item.id] = {
+													checklist: [],
+													gradeOfConcrete: "",
+
+													contractorChecklistDone: false,
+													engineerChecklistDone: false
+												};
+											}
+
+										}
+
+										setEnclosureActions(actionsState);
+										setEnclosureStates(checklistState);
+									};
+
+									fetchEnclosureActions();
+								}
 
 	    } catch (err) {
 	        console.error("Error refreshing RFI:", err);
@@ -590,15 +703,11 @@ export default function InspectionForm() {
 			}));
 
 			setChecklistPopup(null);
-			fetchRfiDataUpdateState();
-			alert("Checklist saved successfully!");
+			await fetchRfiDataUpdateState(rfiData.id);
+			alert("Checklist saved successfully.");
 		} catch (err) {
-			fetchRfiDataUpdateState();
 			console.error("Checklist save failed:", err);
 			alert("Checklist save failed: " + err.message);
-		}
-		finally {
-			fetchRfiDataUpdateState();
 		}
 	};
 
@@ -692,10 +801,10 @@ export default function InspectionForm() {
 						: [file]
 				}
 			}));
-
-			await fetchUpdatedRfiData(rfiData.id);
-			fetchRfiDataUpdateState();
+			
 			alert(" Enclosure File uploaded successfully.");
+
+			await fetchRfiDataUpdateState(rfiData.id);
 
 			setUploadPopup(null);
 		} catch (err) {
@@ -1004,7 +1113,7 @@ export default function InspectionForm() {
 	const validateEnclosures = () => {
 
 	    if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
-	        alert("⚠️ No enclosures found — Please contact admin or support team.");
+	        alert("No enclosures found — Please contact admin or support team.");
 	        return false;
 	    }
 
@@ -1029,28 +1138,25 @@ export default function InspectionForm() {
 	                enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
 	                && (enc.uploadedBy || "").toUpperCase() === "ENGG"
 	        );
+			
+			const anyFileUploaded = contractorFileExists || engineerFileExists;
 
 
-	        if (hasChecklist) {
+			if (hasChecklist) {
 
-	            if (isEngineer && !engineerDone) {
-	                alert(`⚠️ Engineer checklist pending for "${e.enclosure}"`);
-	                return false;
-	            }
+				if (isEngineer && !engineerDone) {
+					alert(` please complete the checklist pending for "${e.enclosure}"`);
+					return false;
+				}
 
-	            if (!isEngineer && !contractorDone) {
-	                alert(`⚠️ Contractor checklist pending for "${e.enclosure}"`);
-	                return false;
-	            }
-	        }
+				if (!isEngineer && !contractorDone) {
+					alert(`please complete the checklist pending for "${e.enclosure}"`);
+					return false;
+				}
+			}
 
-	        if (isEngineer && !engineerFileExists) {
-	            alert(`⚠️ Engineer must upload a file for "${e.enclosure}"`);
-	            return false;
-	        }
-
-	        if (!isEngineer && !contractorFileExists) {
-	            alert(`⚠️ Contractor must upload a file for "${e.enclosure}"`);
+	        if (!hasChecklist && !anyFileUploaded) {
+	            alert(`Please upload a file for "${e.enclosure}"!`);
 	            return false;
 	        }
 	    }
@@ -2573,6 +2679,12 @@ export default function InspectionForm() {
 												) || [];
 
 												const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
+												
+												const state = enclosureStates[e.id];
+
+												const hasChecklist = state?.checklist?.length > 0;
+												const hasChecklistData =
+												    state?.contractorChecklistDone || state?.engineerChecklistDone;
 
 												return (
 													<tr key={e.id}>
@@ -2581,34 +2693,39 @@ export default function InspectionForm() {
 
 														{/* Upload/Open buttons */}
 														<td>
-															{enclosureActions[e.id] === 'UPLOAD' ? (
-																<button
-																	className="hover-blue-btn"
-																	onClick={() => setUploadPopup(e.id)}
-																	disabled={getDisabled()}
-																>
-																	Upload
-																</button>
-															) : (
-																<>
-																	<button
-																		className="hover-blue-btn"
-																		onClick={() => setChecklistPopup(e.id)}
-																	>
-																		{deptFK?.toLowerCase() === "engg"
-																			? (getDisabled() ? "View" : "Open")
-																			: (getDisabled() ? "View" : "Open")}
-																	</button>
+														  {!state ? (
+														    <span style={{ opacity: 0.5 }}>...</span>
+														  ) : !hasChecklist ? (
+														    /* No checklist at all */
+														    <button
+														      className="hover-blue-btn"
+														      onClick={() => setUploadPopup(e.id)}
+														      disabled={getDisabled()}
+														    >
+														      Upload
+														    </button>
+														  ) : (
+														    <>
+														      <button
+														        className="hover-blue-btn"
+														        onClick={() => setChecklistPopup(e.id)}
+														      >
+														        {getDisabled()
+														          ? "View"
+														          : hasChecklistData
+														            ? "Open"     
+														            : "Open"}    
+														      </button>
 
-																	<button
-																		className="hover-blue-btn"
-																		onClick={() => setUploadPopup(e.id)}
-																		disabled={getDisabled()}
-																	>
-																		Upload
-																	</button>
-																</>
-															)}
+														      <button
+														        className="hover-blue-btn"
+														        onClick={() => setUploadPopup(e.id)}
+														        disabled={getDisabled()}
+														      >
+														        Upload
+														      </button>
+														    </>
+														  )}
 														</td>
 
 														{/* Download and Remove buttons */}

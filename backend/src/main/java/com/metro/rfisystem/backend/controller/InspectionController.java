@@ -134,13 +134,15 @@ public class InspectionController {
 			@RequestPart(value = "supportingFiles", required = false) List<MultipartFile> supportingFiles) {
 
 		String deptFk = (String) session.getAttribute("departmentFk");
+		
+		String userName = (String) session.getAttribute("userName");
 
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			RFIInspectionRequestDTO dto = objectMapper.readValue(dataJson, RFIInspectionRequestDTO.class);
 
 			InspectionSubmitResult result = inspectionService.finalizeInspection(dto, selfie, testDocument,
-					supportingFiles, deptFk);
+					supportingFiles, deptFk, userName);
 
 			switch (result) {
 			case ENGINEER_SUCCESS:

@@ -237,7 +237,7 @@ public class InspectionServiceImpl implements InspectionService {
 
 	@Transactional
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-			MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk) throws Exception {
+			MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk, String userName) throws Exception {
 
 		RFI rfi = rfiRepository.findById(dto.getRfiId())
 				.orElseThrow(() -> new RuntimeException("RFI not found with ID: " + dto.getRfiId()));
@@ -335,6 +335,9 @@ public class InspectionServiceImpl implements InspectionService {
 		}
 
 		inspection.setWorkStatus(InspectionWorkFlowStatus.SUBMITTED);
+		if(!userName.isEmpty() && userName != null) {
+			inspection.setSubmittedBy(userName);
+		}
 
 		if ("Engg".equalsIgnoreCase(deptFk)) {
 			if (dto.getTestInsiteLab() != null && dto.getTestInsiteLab().toString().equalsIgnoreCase("Rejected")) {

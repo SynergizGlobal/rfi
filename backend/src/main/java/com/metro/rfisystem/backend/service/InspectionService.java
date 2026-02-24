@@ -37,7 +37,7 @@ public interface InspectionService {
 	ResponseEntity<byte[]> generateSiteImagesPdf(Long id, String uploadedBy) throws IOException, DocumentException;
 
 	public InspectionSubmitResult finalizeInspection(RFIInspectionRequestDTO dto, MultipartFile selfie,
-														MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk) throws Exception;
+														MultipartFile testDocument, List<MultipartFile> supportingFiles, String deptFk, String userName) throws Exception;
 	
 	public String UploadSiteImage(MultipartFile siteImage, Long rfiId, String deptFk);
 	
