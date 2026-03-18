@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef  } from 'react';
 import { useLocation } from 'react-router-dom';
 import HeaderRight from '../HeaderRight/HeaderRight';
 import CameraCapture from '../CameraCapture/CameraCapture';
@@ -17,7 +17,8 @@ const isEngineer = deptFK === "engg";
 
 export default function InspectionForm() {
 	const navigate = useNavigate();
-
+	const inspectionRef = useRef(null);
+	const locationRef = useRef(null);
 	const location = useLocation();
 	const id = location.state?.rfi;
 	const skipSelfie = location.state?.skipSelfie;
@@ -55,6 +56,7 @@ export default function InspectionForm() {
 	const [supportingDocs, setSupportingDocs] = useState([]);
 	const [supportingDescriptions, setSupportingDescriptions] = useState([]);
 	const [supportingFiles, setSupportingFiles] = useState([]);
+	
 
 	const contractorSubmitted =
 		rfiData?.inspectionDetails?.some(
@@ -974,23 +976,54 @@ export default function InspectionForm() {
 
 		// ✅ Location is mandatory
 		if (!locationText || locationText.trim() === '') {
+			
 			newErrors.location = "Location is required";
+			setTimeout(() => {
+				locationRef.current?.focus();
+			}, 0);
+		}
+		
+		// Engineer validation
+		if (deptFK?.toLowerCase() === "engg" && !testInLab) {
+			newErrors.testInLab = "Please select inspection status";
 		}
 
 		// ✅ At least one measurement with valid values
-		const hasValidMeasurement = measurements.some(m => {
+		const hasValidMeasurement = measurements.some((m) => {
 			if (!m.type) return false;
+
+			const isValidNumber = (val) =>
+				val !== null && val !== "" && !isNaN(val);
+
+			const hasUnit = m.units && m.units !== "";
+
 			switch (m.type) {
 				case "Number":
-					return m.No !== null && m.No !== "";
+					return hasUnit && isValidNumber(m.No);
+
 				case "Length":
-					return m.L !== null && m.L !== "";
+					return hasUnit && isValidNumber(m.L) && isValidNumber(m.No);
+
 				case "Area":
-					return m.L !== null && m.B !== null && m.total !== null;
+					return (
+						hasUnit &&
+						isValidNumber(m.L) &&
+						isValidNumber(m.B) &&
+						isValidNumber(m.No)
+					);
+
 				case "Volume":
-					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
+					return (
+						hasUnit &&
+						isValidNumber(m.L) &&
+						isValidNumber(m.B) &&
+						isValidNumber(m.H) &&
+						isValidNumber(m.No)
+					);
+
 				case "Weight":
-					return m.L !== null && m.B !== null && m.H !== null && m.total !== null;
+					return hasUnit && isValidNumber(m.weight);
+
 				default:
 					return false;
 			}
@@ -1005,6 +1038,30 @@ export default function InspectionForm() {
 		return Object.keys(newErrors).length === 0;
 	};
 
+	
+	const validateConSideTestTypeStep = () => {
+		const newErrors = {};
+
+		// ✅ Check test type selected
+		if (!inspectionStatusUserSelection || inspectionStatusUserSelection === "") {
+			newErrors.testType = "Please select test type";
+		}
+
+		// ✅ If LAB_TEST or SITE_TEST → file required
+		if (
+			inspectionStatusUserSelection === "LAB_TEST" ||
+			inspectionStatusUserSelection === "SITE_TEST"
+		) {
+			if (!testReportFile) {
+				newErrors.testReportFile = "Please upload test report file here";
+			}
+		}
+
+		setErrors(newErrors);
+
+		// ✅ return true if no errors
+		return Object.keys(newErrors).length === 0;
+	};
 
 
 	const getEnclosuresForRfi = async (rfiId) => {
@@ -1177,15 +1234,18 @@ export default function InspectionForm() {
 
 	const handleSubmitInspection = async () => {
 		if (!validateStep()) {
-			alert("⚠️ Please fill required data before submitting.");
 			return;
 		}
 
-		// Engineer must select inspection status
-		if (deptFK?.toLowerCase() === "engg" && !testInLab) {
-			alert("Inspection Status is mandatory!");
-			return;
+		if (!isEngineer) {
+
+			if (!validateConSideTestTypeStep()) {
+				setIsSubmitting(false);
+				return;
+			}
 		}
+
+		
 		// If rejected → remarks required
 		if (deptFK?.toLowerCase() === "engg" && testInLab === "Rejected" && !engineerRemarks.trim()) {
 			alert("Remarks are mandatory when Inspection is Rejected!");
@@ -1461,7 +1521,8 @@ export default function InspectionForm() {
 			// Upload PDF to backend
 
 
-			if (!isEngineer) {
+			if (!isEngineer) { 
+
 
 				const confirmed = await showConfirmationModal(
 					"I hereby confirm that the information submitted in this RFI is accurate and complete to the best of my knowledge. I authorize the use of my E-Sign solely from identity verification (KYC) for submission authentication."
@@ -2046,6 +2107,8 @@ export default function InspectionForm() {
 			setMeasurements([{ type: "", units: "", L: "", B: "", H: "", No: "", total: "" }]);
 		}
 	}, [measurements]);
+	
+	
 
 	// Updated ChecklistPopup component with autofill support
 	function ChecklistPopup({ rfiData, enclosureName, data, fetchChecklistData, onDone, onClose, statusMode, engineerSubmitted }) {
@@ -2474,7 +2537,19 @@ export default function InspectionForm() {
 								<div className="form-grid">
 									<div className="form-left">
 										<label>Location <span class="red">*</span>:</label>
-										<input value={locationText} onFocus={fetchLocation} onChange={e => setLocationText(e.target.value)}
+										<input
+											ref={locationRef}
+											value={locationText}
+											onFocus={fetchLocation}
+											onChange={e => {
+												setLocationText(e.target.value);
+
+												// clear error
+												setErrors(prev => ({
+													...prev,
+													location: ""
+												}));
+											}}
 											disabled={getDisabled()}
 										/>
 										{errors.location && <p className="error-text">{errors.location}</p>}
@@ -3405,7 +3480,15 @@ export default function InspectionForm() {
 												) : (
 													<select
 														value={inspectionStatusUserSelection || inspectionStatus || ""}
-														onChange={(e) => setInspectionStatusUserSelection(e.target.value)}
+														onChange={(e) => {
+															const value = e.target.value;
+
+															setInspectionStatusUserSelection(value);
+
+															if (value === "VISUAL") {
+																setTestReportFile(null);
+															}
+														}}
 														disabled={getDisabled()}
 													>
 														<option value="" disabled hidden>Select</option>
@@ -3415,6 +3498,9 @@ export default function InspectionForm() {
 													</select>
 
 
+												)}
+												{errors.testType && (
+													<p className="error-text">{errors.testType}</p>
 												)}
 											</div>
 
@@ -3430,14 +3516,19 @@ export default function InspectionForm() {
 																onChange={(e) => setTestReportFile(e.target.files[0])}
 																disabled={getDisabled()}
 															/>
+															{errors.testReportFile && (
+																<p className="error-text">{errors.testReportFile}</p>
+															)}
 														</>
+														
 													)}
+
 											</div>
 
 
 											{/* ✅ Engineer Section */}
 											<div className="form-fields">
-												{deptFK?.toLowerCase() === "engg" && (
+												{(deptFK?.toLowerCase() === "engg" || testInLab) && (
 													<>
 														<label>Inspection Status</label>
 														<select
@@ -3463,15 +3554,19 @@ export default function InspectionForm() {
 																	setEngineerRemarks("");
 																}
 															}}
-															disabled={getDisabled()}
+															disabled={getDisabled() || !isEngineer}
 														>
 															<option value="">Select</option>
 															<option value="Accepted">Accepted</option>
 															<option value="Rejected">Rejected</option>
 														</select>
 
-
+														{errors.testInLab && (
+															<p className="error-text">{errors.testInLab}</p>
+														)}
 													</>
+													
+													
 												)}
 											</div>
 
@@ -3488,7 +3583,7 @@ export default function InspectionForm() {
 													}}
 													placeholder="Enter remarks"
 													className="comments-textarea"
-													disabled={getDisabled()}
+													disabled={getDisabled() || !isEngineer}
 												/>
 												<div
 													style={{
