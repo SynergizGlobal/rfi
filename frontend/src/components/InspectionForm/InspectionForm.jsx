@@ -96,203 +96,203 @@ export default function InspectionForm() {
 
 	const fetchRfiDataUpdateState = async (id) => {
 
-	    if (!id) return;
+		if (!id) return;
 
-	    try {
-	        const res = await fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, {
-	            credentials: "include",
-	        });
+		try {
+			const res = await fetch(`${API_BASE_URL}rfi/rfi-details/${id}`, {
+				credentials: "include",
+			});
 
-	        if (!res.ok) throw new Error("Failed to fetch RFI details");
+			if (!res.ok) throw new Error("Failed to fetch RFI details");
 
-	        const data1 = await res.json();
+			const data1 = await res.json();
 
-	        setRfiData(data1);
+			setRfiData(data1);
 
-	        if (!data1.enclosures) return;
+			if (!data1.enclosures) return;
 
-	        const enclosuresArr = Array.isArray(data1.enclosures)
-	            ? data1.enclosures
-	            : data1.enclosures.split(",").map(e => e.trim());
+			const enclosuresArr = Array.isArray(data1.enclosures)
+				? data1.enclosures
+				: data1.enclosures.split(",").map(e => e.trim());
 
-	        const formatted = enclosuresArr.map((enc, index) => ({
-	            id: `${data1.id}-${index}`,
+			const formatted = enclosuresArr.map((enc, index) => ({
+				id: `${data1.id}-${index}`,
 				rfiDescription: data1.rfiDescription,
-	            enclosure: enc,
-	        }));
+				enclosure: enc,
+			}));
 
-	        setEnclosuresData(formatted);
+			setEnclosuresData(formatted);
 
-	        const actionsState = {};
-	        const checklistState = {};
+			const actionsState = {};
+			const checklistState = {};
 
-	        for (const item of formatted) {
+			for (const item of formatted) {
 
-	            try {
-	                const result = await fetchChecklistDataFromApi(id, item.enclosure);
+				try {
+					const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
-	                const rows = Array.isArray(result?.checklist)
-	                    ? result.checklist
-	                    : [];
+					const rows = Array.isArray(result?.checklist)
+						? result.checklist
+						: [];
 
-	                const contractorChecklistDone = rows.some(
-	                    row =>
-	                        (row.contractorStatus && row.contractorStatus.trim() !== "") ||
-	                        (row.contractorRemark && row.contractorRemark.trim() !== "")
-	                );
+					const contractorChecklistDone = rows.some(
+						row =>
+							(row.contractorStatus && row.contractorStatus.trim() !== "") ||
+							(row.contractorRemark && row.contractorRemark.trim() !== "")
+					);
 
-	                const engineerChecklistDone = rows.some(
-	                    row =>
-	                        (row.engineerStatus && row.engineerStatus.trim() !== "") ||
-	                        (row.engineerRemark && row.engineerRemark.trim() !== "")
-	                );
+					const engineerChecklistDone = rows.some(
+						row =>
+							(row.engineerStatus && row.engineerStatus.trim() !== "") ||
+							(row.engineerRemark && row.engineerRemark.trim() !== "")
+					);
 
-	                const hasAnyData = contractorChecklistDone || engineerChecklistDone;
+					const hasAnyData = contractorChecklistDone || engineerChecklistDone;
 
-	                actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
+					actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
 
-	                checklistState[item.id] = {
-	                    checklist: rows,
-	                    gradeOfConcrete: result?.gradeOfConcrete || "",
-	                    contractorChecklistDone,
-	                    engineerChecklistDone,
-	                };
+					checklistState[item.id] = {
+						checklist: rows,
+						gradeOfConcrete: result?.gradeOfConcrete || "",
+						contractorChecklistDone,
+						engineerChecklistDone,
+					};
 
-	            } catch (err) {
+				} catch (err) {
 
-	                console.log("Checklist fetch failed:", item.enclosure);
+					console.log("Checklist fetch failed:", item.enclosure);
 
-	                actionsState[item.id] = "UPLOAD";
+					actionsState[item.id] = "UPLOAD";
 
-	                checklistState[item.id] = {
-	                    checklist: [],
-	                    gradeOfConcrete: "",
-	                    contractorChecklistDone: false,
-	                    engineerChecklistDone: false,
-	                };
-	            }
-	        }
+					checklistState[item.id] = {
+						checklist: [],
+						gradeOfConcrete: "",
+						contractorChecklistDone: false,
+						engineerChecklistDone: false,
+					};
+				}
+			}
 
-	        setEnclosureActions(actionsState);
-	        setEnclosureStates(checklistState);
-			
+			setEnclosureActions(actionsState);
+			setEnclosureStates(checklistState);
+
 			//  Handle Enclosures
-								if (data1.enclosures) {
-									const enclosuresArr = Array.isArray(data1.enclosures)
-										? data1.enclosures
-										: data1.enclosures.split(",").map((enc) => enc.trim());
+			if (data1.enclosures) {
+				const enclosuresArr = Array.isArray(data1.enclosures)
+					? data1.enclosures
+					: data1.enclosures.split(",").map((enc) => enc.trim());
 
 
-									const uploadedEnclosures = Array.isArray(data1.enclosure)
-										? data1.enclosure.map((e) => ({
-											name: e.enclosureName?.trim(),
-											filePath: e.enclosureUploadFile || e.filePath || null,
-											fileId: e.id || null,
-										}))
-										: Array.isArray(data1.enclosures)
-											? data1.enclosures
-												.filter((e) => typeof e === "object")
-												.map((e) => ({
-													name: e.enclosureName?.trim(),
-													filePath: e.enclosureUploadFile || e.filePath || null,
-													fileId: e.id || null,
-												}))
-											: [];
+				const uploadedEnclosures = Array.isArray(data1.enclosure)
+					? data1.enclosure.map((e) => ({
+						name: e.enclosureName?.trim(),
+						filePath: e.enclosureUploadFile || e.filePath || null,
+						fileId: e.id || null,
+					}))
+					: Array.isArray(data1.enclosures)
+						? data1.enclosures
+							.filter((e) => typeof e === "object")
+							.map((e) => ({
+								name: e.enclosureName?.trim(),
+								filePath: e.enclosureUploadFile || e.filePath || null,
+								fileId: e.id || null,
+							}))
+						: [];
 
 
-									const formatted = enclosuresArr.map((enc, index) => {
-										const uploadedFile = uploadedEnclosures.find(
-											(e) => e.name?.trim().toLowerCase() === enc.trim().toLowerCase()
-										);
+				const formatted = enclosuresArr.map((enc, index) => {
+					const uploadedFile = uploadedEnclosures.find(
+						(e) => e.name?.trim().toLowerCase() === enc.trim().toLowerCase()
+					);
 
-										return {
-											id: `${data1.id}-${index}`,
-											rfiDescription: data1.rfiDescription,
-											enclosure: enc,
-											filePath: uploadedFile?.filePath || null,
-											fileId: uploadedFile?.fileId || null,
-										};
-									});
+					return {
+						id: `${data1.id}-${index}`,
+						rfiDescription: data1.rfiDescription,
+						enclosure: enc,
+						filePath: uploadedFile?.filePath || null,
+						fileId: uploadedFile?.fileId || null,
+					};
+				});
 
-									setEnclosuresData(formatted);
+				setEnclosuresData(formatted);
 
-									//  Existing logic - unchanged
-									const fetchEnclosureActions = async () => {
-										const actionsState = {};
-										const checklistState = {};
+				//  Existing logic - unchanged
+				const fetchEnclosureActions = async () => {
+					const actionsState = {};
+					const checklistState = {};
 
-										for (const item of formatted) {
-											try {
-												const result = await fetchChecklistDataFromApi(id, item.enclosure);
+					for (const item of formatted) {
+						try {
+							const result = await fetchChecklistDataFromApi(id, item.enclosure);
 
-												if (result) {
+							if (result) {
 
-													const rows = Array.isArray(result.checklist) ? result.checklist : [];
+								const rows = Array.isArray(result.checklist) ? result.checklist : [];
 
-													const contractorChecklistDone = rows.some(
-														row =>
-															(row.contractorStatus && row.contractorStatus.trim() !== "") ||
-															(row.contractorRemark && row.contractorRemark.trim() !== "")
-													);
+								const contractorChecklistDone = rows.some(
+									row =>
+										(row.contractorStatus && row.contractorStatus.trim() !== "") ||
+										(row.contractorRemark && row.contractorRemark.trim() !== "")
+								);
 
-													const engineerChecklistDone = rows.some(
-														row =>
-															(row.engineerStatus && row.engineerStatus.trim() !== "") ||
-															(row.engineerRemark && row.engineerRemark.trim() !== "")
-													);
+								const engineerChecklistDone = rows.some(
+									row =>
+										(row.engineerStatus && row.engineerStatus.trim() !== "") ||
+										(row.engineerRemark && row.engineerRemark.trim() !== "")
+								);
 
-													// ✅ Action logic (independent)
-													const hasAnyData = contractorChecklistDone || engineerChecklistDone;
+								// ✅ Action logic (independent)
+								const hasAnyData = contractorChecklistDone || engineerChecklistDone;
 
-													actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
+								actionsState[item.id] = hasAnyData ? "EDIT" : "OPEN";
 
-													checklistState[item.id] = {
-														checklist: rows,
-														gradeOfConcrete: result.gradeOfConcrete || "",
+								checklistState[item.id] = {
+									checklist: rows,
+									gradeOfConcrete: result.gradeOfConcrete || "",
 
-														contractorChecklistDone,
-														engineerChecklistDone
-													};
+									contractorChecklistDone,
+									engineerChecklistDone
+								};
 
-												} else {
+							} else {
 
-													actionsState[item.id] = "UPLOAD";
+								actionsState[item.id] = "UPLOAD";
 
-													checklistState[item.id] = {
-														checklist: [],
-														gradeOfConcrete: "",
+								checklistState[item.id] = {
+									checklist: [],
+									gradeOfConcrete: "",
 
-														contractorChecklistDone: false,
-														engineerChecklistDone: false
-													};
-												}
+									contractorChecklistDone: false,
+									engineerChecklistDone: false
+								};
+							}
 
-											} catch (err) {
-												console.log("Error fetching checklist for enclosure:", item.enclosure, err);
+						} catch (err) {
+							console.log("Error fetching checklist for enclosure:", item.enclosure, err);
 
-												actionsState[item.id] = "UPLOAD";
+							actionsState[item.id] = "UPLOAD";
 
-												checklistState[item.id] = {
-													checklist: [],
-													gradeOfConcrete: "",
+							checklistState[item.id] = {
+								checklist: [],
+								gradeOfConcrete: "",
 
-													contractorChecklistDone: false,
-													engineerChecklistDone: false
-												};
-											}
+								contractorChecklistDone: false,
+								engineerChecklistDone: false
+							};
+						}
 
-										}
+					}
 
-										setEnclosureActions(actionsState);
-										setEnclosureStates(checklistState);
-									};
+					setEnclosureActions(actionsState);
+					setEnclosureStates(checklistState);
+				};
 
-									fetchEnclosureActions();
-								}
+				fetchEnclosureActions();
+			}
 
-	    } catch (err) {
-	        console.error("Error refreshing RFI:", err);
-	    }
+		} catch (err) {
+			console.error("Error refreshing RFI:", err);
+		}
 	};
 
 
@@ -567,53 +567,51 @@ export default function InspectionForm() {
 		setTimeOfInspection(now.toTimeString().split(" ")[0].slice(0, 5));
 	}, []);
 
-	
+
 	const fetchLocation = () => {
 
-	    if (!navigator.geolocation) return;
+		if (!navigator.geolocation) return;
 
-	    navigator.geolocation.getCurrentPosition(
+		navigator.geolocation.getCurrentPosition(
 
-	        async (position) => {
-	            try {
-	                const { latitude, longitude, accuracy } = position.coords;
+			async (position) => {
+				try {
+					const { latitude, longitude, accuracy } = position.coords;
 
-	                console.log("Latitude:", latitude);
-	                console.log("Longitude:", longitude);
-	                console.log("Accuracy:", accuracy);
+					console.log("Latitude:", latitude);
+					console.log("Longitude:", longitude);
+					console.log("Accuracy:", accuracy);
 
-	                if (!accuracy || accuracy > 80) return;
+					const res = await fetch(
+						`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+					);
 
-	                const res = await fetch(
-	                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-	                );
+					if (!res.ok) return;
 
-	                if (!res.ok) return;
+					const geoData = await res.json();
 
-	                const geoData = await res.json();
+					if (!geoData?.display_name) return;
+					setLocationText(geoData.display_name || "");
 
-	                if (!geoData?.display_name) return;
-	                setLocationText(geoData.display_name || "");
+				} catch (err) {
+					console.log("Location error:", err);
+				}
+			},
 
-	            } catch (err) {
-	                console.log("Location error:", err);
-	            }
-	        },
+			(error) => {
+				console.log("Geolocation error:", error);
+			},
 
-	        (error) => {
-	            console.log("Geolocation error:", error);
-	        },
-
-	        {
-	            enableHighAccuracy: true,
-	            timeout: 10000,
-	            maximumAge: 0
-	        }
-	    );
+			{
+				enableHighAccuracy: true,
+				timeout: 30000,
+				maximumAge: 30000
+			}
+		);
 	};
 
-	
-	
+
+
 
 	function dataURLtoFile(dataUrl, filename) {
 		if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
@@ -801,7 +799,7 @@ export default function InspectionForm() {
 						: [file]
 				}
 			}));
-			
+
 			alert(" Enclosure File uploaded successfully.");
 
 			await fetchRfiDataUpdateState(rfiData.id);
@@ -825,6 +823,19 @@ export default function InspectionForm() {
 	const handleMeasurementChange = (index, field, value) => {
 		setMeasurements((prev) => {
 			const updated = [...prev];
+			if (field === "type") {
+				updated[index] = {
+					type: value,
+					L: "",
+					B: "",
+					H: "",
+					No: "",
+					total: "",
+					weight: "",
+					units: ""
+				};
+				return updated;
+			}
 			updated[index][field] = value;
 
 			const { type, L, B, H, weight, No, units } = updated[index];
@@ -1112,33 +1123,33 @@ export default function InspectionForm() {
 
 	const validateEnclosures = () => {
 
-	    if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
-	        alert("No enclosures found — Please contact admin or support team.");
-	        return false;
-	    }
+		if (!Array.isArray(enclosuresData) || enclosuresData.length === 0) {
+			alert("No enclosures found — Please contact admin or support team.");
+			return false;
+		}
 
-	    for (const e of enclosuresData) {
+		for (const e of enclosuresData) {
 
-	        const state = enclosureStates[e.id];
+			const state = enclosureStates[e.id];
 
-	        const checklistRows = state?.checklist || [];
-	        const hasChecklist = checklistRows.length > 0;
+			const checklistRows = state?.checklist || [];
+			const hasChecklist = checklistRows.length > 0;
 
-	        const contractorDone = state?.contractorChecklistDone;
-	        const engineerDone   = state?.engineerChecklistDone;
+			const contractorDone = state?.contractorChecklistDone;
+			const engineerDone = state?.engineerChecklistDone;
 
-	        const contractorFileExists = rfiData.enclosure?.some(
-	            enc =>
-	                enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-	                && (enc.uploadedBy || "").toUpperCase() === "CON"
-	        );
+			const contractorFileExists = rfiData.enclosure?.some(
+				enc =>
+					enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+					&& (enc.uploadedBy || "").toUpperCase() === "CON"
+			);
 
-	        const engineerFileExists = rfiData.enclosure?.some(
-	            enc =>
-	                enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
-	                && (enc.uploadedBy || "").toUpperCase() === "ENGG"
-	        );
-			
+			const engineerFileExists = rfiData.enclosure?.some(
+				enc =>
+					enc.enclosureName?.trim().toLowerCase() === e.enclosure?.trim().toLowerCase()
+					&& (enc.uploadedBy || "").toUpperCase() === "ENGG"
+			);
+
 			const anyFileUploaded = contractorFileExists || engineerFileExists;
 
 
@@ -1155,13 +1166,13 @@ export default function InspectionForm() {
 				}
 			}
 
-	        if (!hasChecklist && !anyFileUploaded) {
-	            alert(`Please upload a file for "${e.enclosure}"!`);
-	            return false;
-	        }
-	    }
+			if (!hasChecklist && !anyFileUploaded) {
+				alert(`Please upload a file for "${e.enclosure}"!`);
+				return false;
+			}
+		}
 
-	    return true;
+		return true;
 	};
 
 	const handleSubmitInspection = async () => {
@@ -1215,7 +1226,6 @@ export default function InspectionForm() {
 		try {
 			// 1️⃣ Submit inspection data to backend
 			const formData = new FormData();
-
 			const supportingFiles = supportingDocs.map(doc => doc.file);
 			const supportingDescriptions = supportingDocs.map(doc => doc.description);
 
@@ -1249,6 +1259,9 @@ export default function InspectionForm() {
 				supportingDescriptions,
 
 			};
+
+
+
 
 			formData.append("data", JSON.stringify(inspectionPayload));
 
@@ -1494,6 +1507,13 @@ export default function InspectionForm() {
 				console.log("Stamping successful");
 
 				try {
+					
+					
+					for (let pair of formData.entries()) {
+						console.log("Contractor payload");
+					  console.log(pair[0], pair[1]);
+					}
+					
 					const resCon = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 						method: "POST",
 						body: formData,
@@ -1536,6 +1556,8 @@ export default function InspectionForm() {
 						return; // stop further execution
 					}
 
+
+
 					const pdfFormData = new FormData();
 					pdfFormData.append("inspectionStatus", (testInLab || "").trim());
 					pdfFormData.append("engineerRemarks", engineerRemarks || "");
@@ -1565,6 +1587,12 @@ export default function InspectionForm() {
 						throw new Error(`Stamping failed: ${stampData.message || "Unknown error"}`);
 					}
 					console.log("? Stamping successful");
+					
+
+					for (let pair of formData.entries()) {
+						console.log("Engineeer payload");
+						console.log(pair[0], pair[1]);
+					}
 
 					const resEngg = await fetch(`${API_BASE_URL}rfi/finalSubmit`, {
 						method: "POST",
@@ -1572,9 +1600,60 @@ export default function InspectionForm() {
 						credentials: "include",
 					});
 
+
+
 					if (!resEngg.ok) {
 						const errText = await resEngg.text();
 						throw new Error(`? Submission failed: ${errText}`);
+					}
+
+					const pmiscal = (rfiData?.pmisCalcFk || '').toLowerCase();
+					const p6activityidfk = rfiData?.p6ActivityId || '';
+
+					const measurementquantity =
+						measurements.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0) || 0;
+
+					const engineerapproval = (testInLab || '').toLowerCase();
+
+					if (engineerapproval === 'accepted' && pmiscal !== 'no') {
+
+						let completedscope = 0;
+
+						if (pmiscal === 'measure') {
+							completedscope = measurementquantity;
+						}
+
+						if (pmiscal === 'percent') {
+							completedscope = 100;
+						}
+
+						const pmisPayload = {
+							rfiInspectionDate: new Date().toISOString().split("T")[0],
+							p6ActivityIdFk: p6activityidfk,
+							completedScope: completedscope
+						};
+
+						console.log("PMIS Payload:", pmisPayload);
+
+						try {
+						  const pmisRes = await fetch(`${API_BASE_URL}pmis/saveRfiActivityProgress`, {
+						    method: "POST",
+						    headers: {
+						      "Content-Type": "application/json"
+						    },
+						    body: JSON.stringify(pmisPayload)
+						  });
+
+						  if (pmisRes.ok) {
+						    console.log("✅ PMIS saved successfully");
+						  } else {
+						    const errorText = await pmisRes.text();
+						    console.log("❌ PMIS save failed:", errorText);
+						  }
+
+						} catch (error) {
+						  console.log("🚨 Network error:", error);
+						}
 					}
 
 					setIsSubmitting(false);
@@ -1590,10 +1669,6 @@ export default function InspectionForm() {
 
 
 			}
-
-
-
-
 
 		} catch (err) {
 			console.error("❌ Submission failed:", err);
@@ -2679,12 +2754,12 @@ export default function InspectionForm() {
 												) || [];
 
 												const rfiReportFilepath = rfiData.inspectionDetails?.[0]?.testSiteDocuments || '';
-												
+
 												const state = enclosureStates[e.id];
 
 												const hasChecklist = state?.checklist?.length > 0;
 												const hasChecklistData =
-												    state?.contractorChecklistDone || state?.engineerChecklistDone;
+													state?.contractorChecklistDone || state?.engineerChecklistDone;
 
 												return (
 													<tr key={e.id}>
@@ -2693,39 +2768,39 @@ export default function InspectionForm() {
 
 														{/* Upload/Open buttons */}
 														<td>
-														  {!state ? (
-														    <span style={{ opacity: 0.5 }}>...</span>
-														  ) : !hasChecklist ? (
-														    /* No checklist at all */
-														    <button
-														      className="hover-blue-btn"
-														      onClick={() => setUploadPopup(e.id)}
-														      disabled={getDisabled()}
-														    >
-														      Upload
-														    </button>
-														  ) : (
-														    <>
-														      <button
-														        className="hover-blue-btn"
-														        onClick={() => setChecklistPopup(e.id)}
-														      >
-														        {getDisabled()
-														          ? "View"
-														          : hasChecklistData
-														            ? "Open"     
-														            : "Open"}    
-														      </button>
+															{!state ? (
+																<span style={{ opacity: 0.5 }}>...</span>
+															) : !hasChecklist ? (
+																/* No checklist at all */
+																<button
+																	className="hover-blue-btn"
+																	onClick={() => setUploadPopup(e.id)}
+																	disabled={getDisabled()}
+																>
+																	Upload
+																</button>
+															) : (
+																<>
+																	<button
+																		className="hover-blue-btn"
+																		onClick={() => setChecklistPopup(e.id)}
+																	>
+																		{getDisabled()
+																			? "View"
+																			: hasChecklistData
+																				? "Open"
+																				: "Open"}
+																	</button>
 
-														      <button
-														        className="hover-blue-btn"
-														        onClick={() => setUploadPopup(e.id)}
-														        disabled={getDisabled()}
-														      >
-														        Upload
-														      </button>
-														    </>
-														  )}
+																	<button
+																		className="hover-blue-btn"
+																		onClick={() => setUploadPopup(e.id)}
+																		disabled={getDisabled()}
+																	>
+																		Upload
+																	</button>
+																</>
+															)}
 														</td>
 
 														{/* Download and Remove buttons */}
@@ -3061,9 +3136,9 @@ export default function InspectionForm() {
 											<tr>
 												<th>Type of Measurement</th>
 												<th>Units</th>
-												<th>L</th>
-												<th>B</th>
-												<th>H</th>
+												<th>Length</th>
+												<th>Breadth</th>
+												<th>Height</th>
 												<th>Weight</th>
 												<th>No.</th>
 												<th>Total Qty</th>

@@ -1,15 +1,20 @@
 package com.metro.rfisystem.backend.repository.pmis;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.metro.rfisystem.backend.dto.ExecutiveDTO;
+import com.metro.rfisystem.backend.dto.PmisP6ActivityDTO;
 import com.metro.rfisystem.backend.dto.TaskCodeRequestDto;
 import com.metro.rfisystem.backend.model.pmis.P6Activity;
+
+import jakarta.transaction.Transactional;
 
 public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer> {
 
@@ -48,7 +53,7 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 
 	@Query(value = """
 						   SELECT
-			distinct a.p6_activity_name
+			distinct a.p6_activity_name as activity, a.p6_activity_id as P6ActivityIdFk
 			FROM
 			 p6_activities a
 			LEFT JOIN
@@ -61,9 +66,14 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			 AND a.component = :component
 			 aND a.component_id = :component_id;
 						    """, nativeQuery = true)
-	List<String> findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(
+	List<PmisP6ActivityDTO> findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(
 			@Param("structureType") String structureType, @Param("structure") String structure,
 			@Param("component") String component, @Param("component_id") String component_id);
+	
+	
+	@Query(value="select distinct p6_activity_name as acivity from"
+			+ " p6_activities order by p6_activity_name",nativeQuery = true)
+	List<String> p6ActivityNamesReferenceForm();
 
 	@Query(value = """
 				select distinct u.user_name AS userName,
@@ -82,5 +92,20 @@ public interface P6ActivityRepository extends JpaRepository<P6Activity, Integer>
 			+ "AND component = :#{#dto.component} " + "AND component_id = :#{#dto.element} "
 			+ "AND activity_name = :#{#dto.activityName} " + "ORDER BY last_updated_date DESC", nativeQuery = true)
 	Optional<String> getTaskCodeforSelectedDetails(@Param("dto") TaskCodeRequestDto dto);
+	
+	
+	
 
+	    @Modifying
+	    @Transactional
+	    @Query(value = "INSERT INTO RFI_activity_progress (RFI_inspection_date, P6_activity_id_fk, Completed_scope)"
+	    		+ " VALUES (:date, :activityId, :scope)", nativeQuery = true)
+	    int insertRfiProgress(
+	            @Param("date") LocalDate date,
+	            @Param("activityId") String activityId,
+	            @Param("scope") Double scope
+	    );
+	    
 }
+
+

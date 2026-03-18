@@ -24,6 +24,9 @@ const CreateRfi = () => {
 	const { id, status } = location.state || {};
 
 	const [actions, setActions] = useState([]);
+	
+	const [activityOptions, setActivityOptions] = useState([]);
+
 
 	useEffect(() => {
 		if (status === "INSPECTION_DONE") {
@@ -87,6 +90,8 @@ const CreateRfi = () => {
 		component: '',
 		element: '',
 		activity: '',
+		p6ActivityIdFk: '',
+		pmisCalcFk: '',
 		rfiDescription: '',
 		action: '',
 		typeOfRFI: '',
@@ -132,6 +137,8 @@ const CreateRfi = () => {
 	      component: formData.component || "",
 	      element: formData.element || "",
 	      activity: formData.activity || "",
+		  p6ActivityIdFk: formData.p6ActivityIdFk || "",
+		  pmisCalcFk: formData.pmisCalcFk || "",
 	      rfiDescription: formData.rfiDescription || "",
 	      action: formData.action || "",
 	      typeOfRFI: formData.typeOfRFI || "",
@@ -453,6 +460,8 @@ const CreateRfi = () => {
 						component: data.component || '',
 						element: data.element || '',
 						activity: data.activity || '',
+						p6ActivityIdFk:data.p6ActivityIdFk || '',
+						pmisCalcFk:data.pmisCalcFk || '',
 						rfiDescription: data.rfiDescription || '',
 						action: data.action || '',
 						typeOfRFI: data.typeOfRFI || '',
@@ -603,7 +612,6 @@ const CreateRfi = () => {
 
 
 
-	const [activityOptions, setActivityOptions] = useState([]);
 	useEffect(() => {
 		const { structureType, structure, component, element } = formState;
 
@@ -614,17 +622,18 @@ const CreateRfi = () => {
 						structureType,
 						structure,
 						component,
-						component_id: element // ✅ using `element` as `component_id`
+						component_id: element 
 					}
 				})
 				.then(response => {
 					console.log('Activity API response:', response.data);
 					const options = response.data.map(activity => ({
-						value: activity,
-						label: activity
+						value: activity.activity,
+						label: activity.activity,
+						id: activity.p6ActivityIdFk
 					}));
 					setActivityOptions(options);
-				})
+				})	
 				.catch(error => {
 					console.error('Error fetching activity options:', error);
 					setActivityOptions([]);
@@ -649,7 +658,8 @@ const CreateRfi = () => {
 					// Map RFI Descriptions
 					const rfiOptions = response.data.map(item => ({
 						value: item.rfiDescription,
-						label: item.rfiDescription
+						label: item.rfiDescription,
+						pmisCalcFk:item.pmisCalc
 					}));
 					setRfiDescriptionOptions(rfiOptions);
 
@@ -1170,7 +1180,10 @@ const CreateRfi = () => {
 														: null
 												}
 												onChange={(selected) =>
-													setFormState({ ...formState, activity: selected?.value || '' })
+													setFormState({ ...formState,
+														 activity: selected?.value || '',
+														 p6ActivityIdFk: selected?.id || ''
+													})
 												}
 												isDisabled={!isEditable}
 											/>
@@ -1188,7 +1201,9 @@ const CreateRfi = () => {
 														: null
 												}
 												onChange={(selected) =>
-													setFormState({ ...formState, rfiDescription: selected?.value || '' })
+													setFormState({ ...formState,
+														 rfiDescription: selected?.value || '',
+													 pmisCalcFk:selected?.pmisCalcFk || '', })
 												}
 												isDisabled={!isEditable}
 											/>

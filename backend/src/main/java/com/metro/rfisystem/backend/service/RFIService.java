@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.PmisP6ActivityDTO;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
@@ -35,7 +36,7 @@ public interface RFIService {
 	List<String> getElementByStructureStructureTypeComponent(String contractId, String structureType, String structure,
 			String component);
 
-	List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
+	List<PmisP6ActivityDTO> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType, String structure,
 			String component, String component_id);
 
 	List<RfiListDTO> getAllRFIs();

@@ -62,6 +62,8 @@ public class RFI {
 	private String component;
 	private String element;
 	private String activity;
+	private String p6ActivityId;
+	private String pmisCalcFk;
 	
 	@Column(name = "reason_for_delete")
 	private String reasonForDelete;

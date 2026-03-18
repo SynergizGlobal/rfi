@@ -280,3 +280,27 @@
 }
 
 
+.rfi-notes-cell {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.truncate-text {
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 250px;
+}
+
+.view-more-text {
+	color: #0d6efd;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.view-more-text:hover {
+	text-decoration: underline;
+}

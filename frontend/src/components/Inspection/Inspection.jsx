@@ -635,9 +635,13 @@ const Inspection = () => {
 		const modalContent = (
 			<div className="popup-modal-rfi-loglist bg-black bg-opacity-50 z-50">
 				<div className="popup-modal-inner bg-white rounded-xl shadow-lg p-4 max-w-md w-full">
-					<h2 className="text-lg font-semibold mb-2">Rfi Description</h2>
-					<p className="text-gray-700 whitespace-pre-wrap ">{value}</p>
-					<div className='d-flex justify-content-end'>
+					<h2 className="text-lg font-semibold mb-2">RFI Description</h2>
+
+					<p className="text-gray-700 whitespace-pre-wrap">
+						{value}
+					</p>
+
+					<div className="d-flex justify-content-end">
 						<button
 							onClick={() => setShowPopup(false)}
 							className="btn btn-white"
@@ -648,24 +652,26 @@ const Inspection = () => {
 				</div>
 			</div>
 		);
+
 		return (
 			<>
-				{value.length > 50 ? (
-					<>
-						<button
+				<div className="rfi-desc-cell">
+					<span className="truncate-text">{value}</span>
+
+					{value.length > 50 && (
+						<span
+							className="view-more-text"
 							onClick={() => setShowPopup(true)}
-							className="text-blue-600 underline"
 						>
-							👁️
-						</button>
-						{showPopup &&
-							ReactDOM.createPortal(
-								modalContent,
-								document.querySelector(".dashboard")
-							)}
-					</>
-				) : (
-					<span>{value}</span>
+						more
+						</span>
+					)}
+				</div>
+
+				{showPopup &&
+					ReactDOM.createPortal(
+						modalContent,
+						document.querySelector(".dashboard")
 				)}
 			</>
 		);

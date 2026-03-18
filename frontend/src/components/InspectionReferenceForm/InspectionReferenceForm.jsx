@@ -35,20 +35,27 @@ const InspectionReferenceForm = () => {
 	const [tableData, setTableData] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 
+	const pmisCalcOptions = ["Measure", "Percent", "No"];
+
+	const addPmisCalcOptions = pmisCalcOptions.map(opt => ({
+		value: opt,
+		label: opt
+	}));
+
 	const API_BASE_URL = process.env.REACT_APP_API_BACKEND_URL;
 
 	const newRowRef = useRef(null);
 
 	useEffect(() => {
-  if (selectedOption === "first") {
-    axios
-      .get(`${API_BASE_URL}api/v1/enclouser/enclosure_list`) // ✅ fetch all
-      .then((res) => {
-        setOpenEnclosers(res.data); // set all enclosures
-      })
-      .catch((err) => console.error("Error fetching all enclosures:", err));
-  }
-}, [selectedOption, API_BASE_URL]);
+		if (selectedOption === "first") {
+			axios
+				.get(`${API_BASE_URL}api/v1/enclouser/enclosure_list`) // ✅ fetch all
+				.then((res) => {
+					setOpenEnclosers(res.data); // set all enclosures
+				})
+				.catch((err) => console.error("Error fetching all enclosures:", err));
+		}
+	}, [selectedOption, API_BASE_URL]);
 
 
 	useEffect(() => {
@@ -387,13 +394,13 @@ const InspectionReferenceForm = () => {
 		gotoPage: gotoPage1,
 		pageOptions: pageOptions1,
 		setPageSize: setPageSize1,
- 
+
 	} = firstTableInstance;
 
-/*useEffect(() => { setFirstPageIndex(stateFirst.pageIndex); setFirstGlobalFilter(stateFirst.globalFilter); }, [stateFirst.pageIndex, stateFirst.globalFilter]);*/
-  useEffect(() => {
-    setPageSize1(pageSize); // update table when dropdown changes
-  }, [pageSize, setPageSize1]);
+	/*useEffect(() => { setFirstPageIndex(stateFirst.pageIndex); setFirstGlobalFilter(stateFirst.globalFilter); }, [stateFirst.pageIndex, stateFirst.globalFilter]);*/
+	useEffect(() => {
+		setPageSize1(pageSize); // update table when dropdown changes
+	}, [pageSize, setPageSize1]);
 	// Second Table
 	const secondTableInstance = useTable(
 		{
@@ -422,15 +429,15 @@ const InspectionReferenceForm = () => {
 		gotoPage: gotoPage2,
 		pageOptions: pageOptions2,
 		setPageSize: setPageSize2,
- 
-		
+
+
 	} = secondTableInstance;
 
-  /*useEffect(() => { setSecondPageIndex(stateSecond.pageIndex); setSecondGlobalFilter(stateSecond.globalFilter); }, [stateSecond.pageIndex, stateSecond.globalFilter]);*/
-  useEffect(() => {
-    setPageSize2(pageSize); // update table when dropdown changes
-	gotoPage2(0);
-  }, [pageSize, setPageSize2, gotoPage2, checklistItems]);
+	/*useEffect(() => { setSecondPageIndex(stateSecond.pageIndex); setSecondGlobalFilter(stateSecond.globalFilter); }, [stateSecond.pageIndex, stateSecond.globalFilter]);*/
+	useEffect(() => {
+		setPageSize2(pageSize); // update table when dropdown changes
+		gotoPage2(0);
+	}, [pageSize, setPageSize2, gotoPage2, checklistItems]);
 
 	// Select columns and data depending on dropdown choice
 
@@ -575,35 +582,35 @@ const InspectionReferenceForm = () => {
 			console.log(rowData?.isNew ? "Row submitted successfully" : "Row updated successfully");
 			// 👇 Automatically create "Upload" row after saving an "Open" enclosure
 			if (updatedAction.toLowerCase() === "open") {
-			     const existingUpload = openEnclosers.some(
-			       (item) =>
-			         item.encloserName === inputVal &&
-			         item.action?.toLowerCase() === "upload"
-			     );
+				const existingUpload = openEnclosers.some(
+					(item) =>
+						item.encloserName === inputVal &&
+						item.action?.toLowerCase() === "upload"
+				);
 
-			     if (!existingUpload) {
-			       const newUploadPayload = {
-			         encloserName: inputVal,
-			         action: "Upload",
-			       };
+				if (!existingUpload) {
+					const newUploadPayload = {
+						encloserName: inputVal,
+						action: "Upload",
+					};
 
-			       // ✅ Save "Upload" row to backend immediately
-			       const uploadRes = await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, newUploadPayload);
-			       const uploadRow = uploadRes.data;
+					// ✅ Save "Upload" row to backend immediately
+					const uploadRes = await axios.post(`${API_BASE_URL}api/v1/enclouser/submit`, newUploadPayload);
+					const uploadRow = uploadRes.data;
 
-			       setOpenEnclosers((prev) => [
-			         ...prev,
-			         {
-			           id: uploadRow.id,
-			           encloserName: uploadRow.encloserName,
-			           action: uploadRow.action,
-			           isNew: false,
-			         },
-			       ]);
-			     }
-			   }
+					setOpenEnclosers((prev) => [
+						...prev,
+						{
+							id: uploadRow.id,
+							encloserName: uploadRow.encloserName,
+							action: uploadRow.action,
+							isNew: false,
+						},
+					]);
+				}
+			}
 
-			   console.log("Row saved successfully");
+			console.log("Row saved successfully");
 		} catch (error) {
 			console.error("Error saving row:", error);
 			alert("Failed to save row. Please try again.");
@@ -643,6 +650,28 @@ const InspectionReferenceForm = () => {
 	};
 
 	const [addRfiEnclosuresOptions, setAddRfiEnclosuresOptions] = useState([]);
+//	const [activityList, setActivityList] = useState([]);
+	
+//	useEffect(() => {
+//	  axios
+//	    .get(`${API_BASE_URL}rfi/get-activitey-names`)
+//	    .then((res) => {
+//	      if (res.data.ActivityList) {
+//	        setActivityList(res.data.ActivityList);
+//	      }
+//	    })
+//	    .catch((err) => console.error("Error fetching activities:", err));
+//	}, [API_BASE_URL]);
+//	
+//	const activityOptions = useMemo(
+//	  () =>
+//	    activityList.map((act) => ({
+//	      value: act,
+//	      label: act,
+//	    })),
+//	  [activityList]
+//	);
+//	
 
 	// ------------------- ADD ROW -------------------
 	const handleThirdAddRow = () => {
@@ -652,6 +681,7 @@ const InspectionReferenceForm = () => {
 				activity: "",
 				rfiDescription: "",
 				enclosures: [],
+				pmisCalc:"",
 				isNew: true,
 				isEditing: true,
 			};
@@ -697,6 +727,7 @@ const InspectionReferenceForm = () => {
 								? item.enclosures
 								: item.enclosures.split(",").map(e => e.trim())
 							: [],
+							pmisCalc:item.pmisCalc || "",
 						isNew: false,
 						isEditing: false,
 					}));
@@ -718,7 +749,8 @@ const InspectionReferenceForm = () => {
 			(row.rfiDescription && row.rfiDescription.toLowerCase().includes(lowerFilter)) ||
 			(row.enclosures && Array.isArray(row.enclosures) &&
 				row.enclosures.some(val => val && val.toLowerCase().includes(lowerFilter))) ||
-			(row.description && row.description.toLowerCase().includes(lowerFilter)) // for checklist
+			(row.description && row.description.toLowerCase().includes(lowerFilter)) || 
+			(row.pmisCalc && row.pmisCalc.toLowerCase().includes(lowerFilter))
 		);
 		const start = page * size;
 		return {
@@ -777,6 +809,7 @@ const InspectionReferenceForm = () => {
 					enclosures: Array.isArray(rowData.enclosures)
 						? rowData.enclosures.join(",")
 						: rowData.enclosures,
+						pmisCalc: rowData.pmisCalc,
 				}),
 			});
 
@@ -813,6 +846,7 @@ const InspectionReferenceForm = () => {
 				enclosures: rowData.enclosures && Array.isArray(rowData.enclosures)
 					? rowData.enclosures.join(",")
 					: rowData.enclosures || "",
+					pmisCalc: rowData.pmisCalc || "",
 			};
 
 			const response = await fetch(`${API_BASE_URL}rfi/Update/${rowData.id}`, {
@@ -870,22 +904,23 @@ const InspectionReferenceForm = () => {
 			accessor: "sr_no",
 		},
 		{
-			Header: "Activity",
-			accessor: "activity",
-			Cell: ({ row }) => {
-				const { sr_no, activity, isEditing, isNew } = row.original;
-				return isEditing || isNew ? (
-					<input
-						value={thirdEditInputs[sr_no]?.activity ?? activity ?? ""}
-						onChange={(e) =>
-							handleThirdInputChange(sr_no, "activity", e.target.value)
-						}
-					/>
-				) : (
-					activity
-				);
-			},
-		},
+					Header: "Activity",
+					accessor: "activity",
+					Cell: ({ row }) => {
+						const { sr_no, activity, isEditing, isNew } = row.original;
+						return isEditing || isNew ? (
+							<input
+							placeholder="Enter Text"
+								value={thirdEditInputs[sr_no]?.activity ?? activity ?? ""}
+								onChange={(e) =>
+									handleThirdInputChange(sr_no, "activity", e.target.value)
+								}
+							/>
+						) : (
+							activity
+						);
+					},
+				},
 		{
 			Header: "RFI Description",
 			accessor: "rfiDescription",
@@ -894,6 +929,7 @@ const InspectionReferenceForm = () => {
 				return isEditing || isNew ? (
 					<input
 						value={thirdEditInputs[sr_no]?.rfiDescription ?? rfiDescription ?? ""}
+						placeholder="Enter Text"
 						onChange={(e) =>
 							handleThirdInputChange(sr_no, "rfiDescription", e.target.value)
 						}
@@ -940,6 +976,31 @@ const InspectionReferenceForm = () => {
 			},
 		},
 		{
+			Header: "PMIS Calc",
+			accessor: "pmisCalc",
+			Cell: ({ row }) => {
+				const { sr_no, pmisCalc, isEditing, isNew } = row.original;
+
+				return isEditing || isNew ? (
+					<Select
+						options={addPmisCalcOptions}
+						value={addPmisCalcOptions.find(opt => opt.value === pmisCalc)}
+						isClearable
+						onChange={(selectedOption) =>
+							handleThirdInputChange(
+								sr_no,
+								"pmisCalc",
+								selectedOption?.value || ""
+							)
+						}
+						placeholder="Select PMIS Calc"
+					/>
+				) : (
+					pmisCalc || ""
+				);
+			},
+		},
+		{
 			Header: "Action",
 			accessor: "action",
 			Cell: ({ row }) => {
@@ -970,6 +1031,7 @@ const InspectionReferenceForm = () => {
 				);
 			},
 		},
+
 	];
 
 	const PaginationControls = ({ pageIndex, canPreviousPage, canNextPage, previousPage, nextPage, gotoPage, pageOptions }) => (
@@ -1227,7 +1289,7 @@ const InspectionReferenceForm = () => {
 									<tbody>
 										{thirdPaginated.length === 0 ? (
 											<tr>
-												<td colSpan={4}>No data available</td>
+												<td colSpan={6}>No data available</td>
 											</tr>
 										) : (
 											thirdPaginated.map((row) => (

@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.PmisP6ActivityDTO;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
@@ -111,6 +112,8 @@ public class RFIServiceImpl implements RFIService {
 		rfi.setAction(dto.getAction());
 		rfi.setTypeOfRFI(dto.getTypeOfRFI());
 		rfi.setNameOfRepresentative(dto.getNameOfRepresentative());
+		rfi.setP6ActivityId(dto.getP6ActivityIdFk());
+		rfi.setPmisCalcFk(dto.getPmisCalcFk());
 		if (dto.getEnclosures() != null && !dto.getEnclosures().isEmpty()) {
 			rfi.setEnclosures(String.join(",", dto.getEnclosures()));
 		} else {
@@ -249,7 +252,7 @@ public class RFIServiceImpl implements RFIService {
 	}
 
 	@Override
-	public List<String> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType,
+	public List<PmisP6ActivityDTO> getActivityNamesByStructureStructureTypeComponentComponentId(String structureType,
 			String structure, String component, String component_id) {
 		return p6ActivityRepository.findActivityNamesByStructureTypeAndStructureAndComponentAndCompId(structureType,
 				structure, component, component_id);
@@ -259,7 +262,7 @@ public class RFIServiceImpl implements RFIService {
 		List<RfiDescription> descriptions = rfiDescriptionRepository.findByActivity(activity);
 
 		return descriptions.stream()
-				.map(desc -> new RfiDescriptionDTO(desc.getRfiDescription(),
+				.map(desc -> new RfiDescriptionDTO(desc.getRfiDescription(),desc.getPmisCalc(),
 						Arrays.stream(desc.getEnclosures().split(",")).map(String::trim).collect(Collectors.toList())))
 				.collect(Collectors.toList());
 	}

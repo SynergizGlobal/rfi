@@ -31,6 +31,7 @@ import com.metro.rfisystem.backend.constants.EnumRfiStatus;
 import com.metro.rfisystem.backend.dto.AssignPersonDTO;
 import com.metro.rfisystem.backend.dto.ContractDropdownDTO;
 import com.metro.rfisystem.backend.dto.ContractInfoProjection;
+import com.metro.rfisystem.backend.dto.PmisP6ActivityDTO;
 import com.metro.rfisystem.backend.dto.ProjectDTO;
 import com.metro.rfisystem.backend.dto.RFI_DTO;
 import com.metro.rfisystem.backend.dto.RfiDescriptionDTO;
@@ -135,7 +136,7 @@ public class RFIController {
 	}
 
 	@GetMapping("/activityNames")
-	public List<String> getActivityNamesByStructureTypeStructureComponentComponentId(
+	public List<PmisP6ActivityDTO> getActivityNamesByStructureTypeStructureComponentComponentId(
 			@RequestParam(name = "structureType", required = false) String structureType,
 			@RequestParam(name = "structure", required = false) String structure,
 			@RequestParam(name = "component", required = false) String component,

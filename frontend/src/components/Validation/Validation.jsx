@@ -1036,7 +1036,6 @@ export default function Validation() {
 															>
 																<option value="">-- Select --</option>
 																<option value="NONO">NONO</option>
-																<option value="NONOC(B)">NONOC (B)</option>
 																<option value="NONOC(C)">NONOC (C)</option>
 																<option value="NOR">NOR</option>
 															</select>

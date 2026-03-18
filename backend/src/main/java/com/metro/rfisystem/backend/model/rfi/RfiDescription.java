@@ -20,6 +20,7 @@ public class RfiDescription {
     private String activity;
     private String rfiDescription;
     private String enclosures;
+    private String pmisCalc;
 
 
 }

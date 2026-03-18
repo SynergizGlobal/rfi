@@ -169,25 +169,24 @@ export default function RfiLogList() {
 			</div>
 		);
 		return (
+
 			<>
-				{value.length > 30 ? (
-					<>
-						<button
-							onClick={() => setShowPopup(true)}
-							className="text-blue-600 underline"
-						>
-							👁️
-						</button>
-						{showPopup &&
-							ReactDOM.createPortal(
-								modalContent,
-								document.querySelector(".dashboard")
-							)}
-					</>
-				) : (
-					<span>{value}</span>
-				)}
+				<div className="rfi-notes-cell">
+					<span className="truncate-text">{value}</span>
+					{value.length > 30 && (
+						<span className="view-more-text"
+							onClick={() => setShowPopup(true)}>
+							more </span>
+					)}
+
+					{showPopup &&
+						ReactDOM.createPortal(
+							modalContent,
+							document.querySelector(".dashboard")
+						)}
+				</div>
 			</>
+
 		);
 	};
 
